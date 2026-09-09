@@ -157,6 +157,19 @@
     }
   ],
   "mesh_mode": "blocks",
+  "material_mode": "projected-color-v1",
+  "material_views": [
+    "000",
+    "045",
+    "090",
+    "135",
+    "180",
+    "225",
+    "270",
+    "315",
+    "TOP",
+    "BOT"
+  ],
   "requested_profiles": [
     "L2",
     "L4",
@@ -179,7 +192,12 @@
     "L2": {
       "generated": true,
       "mesh_mode": "blocks",
+      "material_mode": "projected-color-v1",
       "views": [
+        "000",
+        "090"
+      ],
+      "material_views": [
         "000",
         "090"
       ],
@@ -192,6 +210,19 @@
         3,
         60
       ],
+      "material": {
+        "mode": "projected-color-v1",
+        "attribute": "bpt_projected_color",
+        "views": [
+          "000",
+          "090"
+        ],
+        "view_count": 2,
+        "projected_vertices": 8072,
+        "fallback_vertices": 11444,
+        "accepted_samples": 19014,
+        "rejected_samples": 30746
+      },
       "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet5/scans/L2/sheet5_L2.glb",
       "blend": null,
       "vertices": 19516,
@@ -200,12 +231,25 @@
         1.689655065536499,
         1.3793103694915771,
         1.9999998807907104
+      ],
+      "materials": [
+        "BPT Projected Material"
+      ],
+      "color_attributes": [
+        "bpt_projected_color"
       ]
     },
     "L4": {
       "generated": true,
       "mesh_mode": "blocks",
+      "material_mode": "projected-color-v1",
       "views": [
+        "000",
+        "090",
+        "180",
+        "270"
+      ],
+      "material_views": [
         "000",
         "090",
         "180",
@@ -220,6 +264,21 @@
         4,
         60
       ],
+      "material": {
+        "mode": "projected-color-v1",
+        "attribute": "bpt_projected_color",
+        "views": [
+          "000",
+          "090",
+          "180",
+          "270"
+        ],
+        "view_count": 4,
+        "projected_vertices": 11852,
+        "fallback_vertices": 2258,
+        "accepted_samples": 15207,
+        "rejected_samples": 43480
+      },
       "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet5/scans/L4/sheet5_L4.glb",
       "blend": null,
       "vertices": 14110,
@@ -228,12 +287,29 @@
         1.6842105388641357,
         1.3333332538604736,
         2.0
+      ],
+      "materials": [
+        "BPT Projected Material"
+      ],
+      "color_attributes": [
+        "bpt_projected_color"
       ]
     },
     "L8": {
       "generated": true,
       "mesh_mode": "blocks",
+      "material_mode": "projected-color-v1",
       "views": [
+        "000",
+        "090",
+        "180",
+        "270",
+        "045",
+        "135",
+        "225",
+        "315"
+      ],
+      "material_views": [
         "000",
         "090",
         "180",
@@ -252,6 +328,25 @@
         5,
         45
       ],
+      "material": {
+        "mode": "projected-color-v1",
+        "attribute": "bpt_projected_color",
+        "views": [
+          "000",
+          "090",
+          "180",
+          "270",
+          "045",
+          "135",
+          "225",
+          "315"
+        ],
+        "view_count": 8,
+        "projected_vertices": 7792,
+        "fallback_vertices": 1464,
+        "accepted_samples": 24450,
+        "rejected_samples": 51062
+      },
       "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet5/scans/L8/sheet5_L8.glb",
       "blend": null,
       "vertices": 9256,
@@ -260,12 +355,31 @@
         2.341463327407837,
         1.8536584377288818,
         2.0
+      ],
+      "materials": [
+        "BPT Projected Material"
+      ],
+      "color_attributes": [
+        "bpt_projected_color"
       ]
     },
     "L10": {
       "generated": true,
       "mesh_mode": "blocks",
+      "material_mode": "projected-color-v1",
       "views": [
+        "000",
+        "090",
+        "180",
+        "270",
+        "045",
+        "135",
+        "225",
+        "315",
+        "TOP",
+        "BOT"
+      ],
+      "material_views": [
         "000",
         "090",
         "180",
@@ -286,6 +400,27 @@
         5,
         45
       ],
+      "material": {
+        "mode": "projected-color-v1",
+        "attribute": "bpt_projected_color",
+        "views": [
+          "000",
+          "090",
+          "180",
+          "270",
+          "045",
+          "135",
+          "225",
+          "315",
+          "TOP",
+          "BOT"
+        ],
+        "view_count": 10,
+        "projected_vertices": 6784,
+        "fallback_vertices": 11,
+        "accepted_samples": 21943,
+        "rejected_samples": 46018
+      },
       "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet5/scans/L10/sheet5_L10.glb",
       "blend": null,
       "vertices": 6795,
@@ -294,6 +429,12 @@
         2.341463327407837,
         1.414634108543396,
         2.0
+      ],
+      "materials": [
+        "BPT Projected Material"
+      ],
+      "color_attributes": [
+        "bpt_projected_color"
       ]
     }
   }
