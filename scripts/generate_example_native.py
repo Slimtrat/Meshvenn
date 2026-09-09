@@ -38,6 +38,10 @@ from core.presheet_layout import (
     CELL_SPECS,
     pixel_bbox,
 )
+from core.projected_material import (
+    ProjectedMaterialView,
+    apply_projected_material,
+)
 from scripts.run_logger import RunLogger
 
 
@@ -987,6 +991,131 @@ def prepare_projections(
 
 
 # ---------------------------------------------------------
+# Projected material views
+# ---------------------------------------------------------
+
+def prepare_material_views(
+    views: list[
+        ExtractedView
+    ],
+    *,
+    logger: RunLogger,
+) -> dict[
+    str,
+    ProjectedMaterialView,
+]:
+    """
+    Load the cleaned RGBA projection PNGs and convert
+    them into in-memory ProjectedMaterialView instances.
+
+    ProjectedMaterialView copies the image pixels, so the
+    temporary Blender Image can immediately be released.
+    """
+
+    valid_views = [
+        view
+        for view in views
+        if (
+            view.valid
+            and view.mask.occupied_count > 0
+        )
+    ]
+
+    material_views: dict[
+        str,
+        ProjectedMaterialView,
+    ] = {}
+
+    for index, view in enumerate(
+        valid_views,
+        start=1,
+    ):
+        logger.progress(
+            index,
+            len(
+                valid_views
+            ),
+            f"RGB {view.name}",
+        )
+
+        image = bpy.data.images.load(
+            str(
+                view.path.resolve()
+            ),
+            check_existing=False,
+        )
+
+        try:
+            material_views[
+                view.name
+            ] = (
+                ProjectedMaterialView
+                .from_blender_image(
+                    name=view.name,
+                    image=image,
+                    azimuth_degrees=(
+                        view
+                        .azimuth_degrees
+                    ),
+                    elevation_degrees=(
+                        view
+                        .elevation_degrees
+                    ),
+                    flip_x=False,
+                    weight=1.0,
+                    mask=view.mask,
+                )
+            )
+
+        finally:
+            bpy.data.images.remove(
+                image
+            )
+
+    return material_views
+
+
+def material_views_for_snapshot(
+    material_views: dict[
+        str,
+        ProjectedMaterialView,
+    ],
+    applied_views: tuple[
+        str,
+        ...
+    ]
+    | list[
+        str
+    ],
+) -> list[
+    ProjectedMaterialView
+]:
+    """
+    Preserve the reconstruction view order and ensure
+    each profile only receives images which participated
+    in that profile's visual-hull reconstruction.
+    """
+
+    result: list[
+        ProjectedMaterialView
+    ] = []
+
+    for view_name in applied_views:
+        view = material_views.get(
+            view_name
+        )
+
+        if view is None:
+            continue
+
+        result.append(
+            view
+        )
+
+    return result
+
+
+# ---------------------------------------------------------
 # Blender scene
 # ---------------------------------------------------------
 
@@ -1120,6 +1249,17 @@ def export_object(
             for value
             in obj.dimensions
         ],
+        "materials": [
+            material.name
+            for material
+            in obj.data.materials
+            if material is not None
+        ],
+        "color_attributes": [
+            attribute.name
+            for attribute
+            in obj.data.color_attributes
+        ],
     }
 
 
@@ -1164,6 +1304,10 @@ def process_sheet(
             sheet_path
         ),
     ):
+        # -------------------------------------------------
+        # Extract source views
+        # -------------------------------------------------
+
         with logger.timed(
             "extract sheet"
         ):
@@ -1185,11 +1329,34 @@ def process_sheet(
                 ),
             )
 
+        # -------------------------------------------------
+        # Geometry inputs
+        # -------------------------------------------------
+
         with logger.timed(
             "prepare masks"
         ):
             projections = (
                 prepare_projections(
+                    views,
+                    logger=(
+                        logger.child()
+                    ),
+                )
+            )
+
+        # -------------------------------------------------
+        # Appearance inputs
+        #
+        # The RGB buffers are prepared once for the whole
+        # sheet and reused by every requested scan level.
+        # -------------------------------------------------
+
+        with logger.timed(
+            "prepare material views"
+        ):
+            material_views = (
+                prepare_material_views(
                     views,
                     logger=(
                         logger.child()
@@ -1211,11 +1378,18 @@ def process_sheet(
             mesh_mode=(
                 args.mesh_mode
             ),
+            material_mode=(
+                "projected-color-v1"
+            ),
         )
 
         scanner = (
             NativeScanner()
         )
+
+        # -------------------------------------------------
+        # Native reconstruction
+        # -------------------------------------------------
 
         with logger.timed(
             "native scan"
@@ -1246,10 +1420,26 @@ def process_sheet(
                 )
             )
 
+        # -------------------------------------------------
+        # Manifest global information
+        # -------------------------------------------------
+
         manifest[
             "mesh_mode"
         ] = (
             args.mesh_mode
+        )
+
+        manifest[
+            "material_mode"
+        ] = (
+            "projected-color-v1"
+        )
+
+        manifest[
+            "material_views"
+        ] = list(
+            material_views.keys()
         )
 
         manifest[
@@ -1267,6 +1457,10 @@ def process_sheet(
         manifest[
             "profiles"
         ] = {}
+
+        # -------------------------------------------------
+        # Build one Blender object per profile
+        # -------------------------------------------------
 
         for (
             level_name,
@@ -1288,16 +1482,37 @@ def process_sheet(
                 mesh_mode=(
                     args.mesh_mode
                 ),
+                material_mode=(
+                    "projected-color-v1"
+                ),
             ):
+                active_material_views = (
+                    material_views_for_snapshot(
+                        material_views,
+                        list(
+                            snapshot
+                            .applied_views
+                        ),
+                    )
+                )
+
                 profile_info = {
                     "generated": False,
                     "mesh_mode": (
                         args.mesh_mode
                     ),
+                    "material_mode": (
+                        "projected-color-v1"
+                    ),
                     "views": list(
                         snapshot
                         .applied_views
                     ),
+                    "material_views": [
+                        view.name
+                        for view
+                        in active_material_views
+                    ],
                     "occupied_voxels": (
                         snapshot
                         .volume
@@ -1332,6 +1547,10 @@ def process_sheet(
 
                 clear_scene()
 
+                # -----------------------------------------
+                # Inject native mesh
+                # -----------------------------------------
+
                 with level_logger.timed(
                     "inject native mesh"
                 ):
@@ -1351,6 +1570,101 @@ def process_sheet(
                         )
                     )
 
+                # -----------------------------------------
+                # Smooth shading first.
+                #
+                # The projected material uses generated
+                # vertex normals to score source views.
+                # -----------------------------------------
+
+                with level_logger.timed(
+                    "shade smooth"
+                ):
+                    shade_smooth_native_object(
+                        obj
+                    )
+
+                # -----------------------------------------
+                # Project source RGB onto mesh.
+                #
+                # IMPORTANT:
+                #
+                # This happens before target-height scaling,
+                # while vertex positions are still expressed
+                # in native reconstruction coordinates.
+                # -----------------------------------------
+
+                if not active_material_views:
+                    raise RuntimeError(
+                        (
+                            "No projected material "
+                            f"views available for "
+                            f"{sheet_name}/{level_name}."
+                        )
+                    )
+
+                with level_logger.timed(
+                    "project material"
+                ):
+                    material_stats = (
+                        apply_projected_material(
+                            obj,
+                            active_material_views,
+                            volume_width=(
+                                snapshot
+                                .volume
+                                .width
+                            ),
+                            volume_depth=(
+                                snapshot
+                                .volume
+                                .depth
+                            ),
+                            volume_height=(
+                                snapshot
+                                .volume
+                                .height
+                            ),
+                            voxel_size=(
+                                args.voxel_size
+                            ),
+                            center_xy=True,
+                            facing_power=2.0,
+                            allow_backface_fallback=True,
+                        )
+                    )
+
+                level_logger.info(
+                    "projected material",
+                    views=len(
+                        active_material_views
+                    ),
+                    projected_vertices=(
+                        material_stats
+                        .projected_vertices
+                    ),
+                    fallback_vertices=(
+                        material_stats
+                        .fallback_vertices
+                    ),
+                    accepted_samples=(
+                        material_stats
+                        .accepted_samples
+                    ),
+                    rejected_samples=(
+                        material_stats
+                        .rejected_samples
+                    ),
+                )
+
+                # -----------------------------------------
+                # Final scale
+                #
+                # The color attribute is already baked into
+                # mesh corners, so geometry may now safely
+                # be normalized to target height.
+                # -----------------------------------------
+
                 with level_logger.timed(
                     "scale object"
                 ):
@@ -1359,12 +1673,48 @@ def process_sheet(
                         args.target_height,
                     )
 
-                with level_logger.timed(
-                    "shade smooth"
-                ):
-                    shade_smooth_native_object(
-                        obj
-                    )
+                # -----------------------------------------
+                # Metadata on Blender object
+                # -----------------------------------------
+
+                obj[
+                    "bpt_engine"
+                ] = "native-cpp"
+
+                obj[
+                    "bpt_mesh_mode"
+                ] = (
+                    args.mesh_mode
+                )
+
+                obj[
+                    "bpt_material"
+                ] = (
+                    "projected-color-v1"
+                )
+
+                obj[
+                    "bpt_scan_level"
+                ] = (
+                    level_name
+                )
+
+                obj[
+                    "bpt_projection_count"
+                ] = len(
+                    snapshot
+                    .applied_views
+                )
+
+                obj[
+                    "bpt_material_view_count"
+                ] = len(
+                    active_material_views
+                )
+
+                # -----------------------------------------
+                # Export GLB / optional Blend
+                # -----------------------------------------
 
                 with level_logger.timed(
                     "export GLB"
@@ -1386,9 +1736,46 @@ def process_sheet(
                         )
                     )
 
+                # -----------------------------------------
+                # Manifest profile material statistics
+                # -----------------------------------------
+
                 profile_info.update(
                     {
                         "generated": True,
+                        "material": {
+                            "mode": (
+                                "projected-color-v1"
+                            ),
+                            "attribute": (
+                                "bpt_projected_color"
+                            ),
+                            "views": [
+                                view.name
+                                for view
+                                in active_material_views
+                            ],
+                            "view_count": (
+                                material_stats
+                                .view_count
+                            ),
+                            "projected_vertices": (
+                                material_stats
+                                .projected_vertices
+                            ),
+                            "fallback_vertices": (
+                                material_stats
+                                .fallback_vertices
+                            ),
+                            "accepted_samples": (
+                                material_stats
+                                .accepted_samples
+                            ),
+                            "rejected_samples": (
+                                material_stats
+                                .rejected_samples
+                            ),
+                        },
                         **export_info,
                     }
                 )
@@ -1398,6 +1785,10 @@ def process_sheet(
                 ][
                     level_name
                 ] = profile_info
+
+        # -------------------------------------------------
+        # Manifest
+        # -------------------------------------------------
 
         manifest_path = (
             sheet_root
@@ -1494,6 +1885,13 @@ def main() -> None:
         "Mesh mode",
         value=(
             args.mesh_mode
+        ),
+    )
+
+    logger.info(
+        "Material mode",
+        value=(
+            "projected-color-v1"
         ),
     )
 

@@ -28,6 +28,15 @@ from scripts.run_logger import (
 
 
 # ---------------------------------------------------------
+# Constants
+# ---------------------------------------------------------
+
+MATERIAL_MODE = (
+    "projected-color-v1"
+)
+
+
+# ---------------------------------------------------------
 # CLI
 # ---------------------------------------------------------
 
@@ -539,6 +548,13 @@ def print_plan(
     )
 
     logger.info(
+        "Material mode",
+        value=(
+            MATERIAL_MODE
+        ),
+    )
+
+    logger.info(
         "Voxel size",
         value=(
             args.voxel_size
@@ -775,6 +791,13 @@ def main() -> None:
         "Mesh mode",
         value=(
             args.mesh_mode
+        ),
+    )
+
+    logger.info(
+        "Material mode",
+        value=(
+            MATERIAL_MODE
         ),
     )
 
