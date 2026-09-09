@@ -70,26 +70,18 @@ permissions:
 
 
 concurrency:
-  group: >
-    examples-${{ github.event_name }}-${{ github.ref }}
+  group: examples-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 
 env:
   BLENDER_VERSION: "5.2.1"
-
-  BLENDER_ARCHIVE: >
-    blender-5.2.1-linux-x64.tar.xz
-
-  BLENDER_ROOT: >
-    ${{ github.workspace }}/.blender
+  BLENDER_ROOT: "${{ github.workspace }}/.blender"
+  BLENDER_ARCHIVE: "blender-5.2.1-linux-x64.tar.xz"
+  BLENDER_BASE_URL: "https://download.blender.org/release/Blender5.2"
 
 
 jobs:
-
-  # ---------------------------------------------------------
-  # Determine what kind of generation should run.
-  # ---------------------------------------------------------
 
   config:
     name: Configure
@@ -111,7 +103,6 @@ jobs:
           set -euo pipefail
 
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-
             echo "mode=smoke" >> "$GITHUB_OUTPUT"
             echo "example=mascotte/test1" >> "$GITHUB_OUTPUT"
             echo "start_sheet=sheet1.png" >> "$GITHUB_OUTPUT"
@@ -120,44 +111,22 @@ jobs:
             echo "commit_results=false" >> "$GITHUB_OUTPUT"
 
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-
             echo "mode=manual" >> "$GITHUB_OUTPUT"
-
-            echo \
-              "example=${{ inputs.example }}" \
-              >> "$GITHUB_OUTPUT"
-
-            echo \
-              "start_sheet=${{ inputs.start_sheet }}" \
-              >> "$GITHUB_OUTPUT"
-
-            echo \
-              "profiles=${{ inputs.profiles }}" \
-              >> "$GITHUB_OUTPUT"
-
-            echo \
-              "resolution=${{ inputs.resolution }}" \
-              >> "$GITHUB_OUTPUT"
-
-            echo \
-              "commit_results=${{ inputs.commit_results }}" \
-              >> "$GITHUB_OUTPUT"
+            echo "example=${{ inputs.example }}" >> "$GITHUB_OUTPUT"
+            echo "start_sheet=${{ inputs.start_sheet }}" >> "$GITHUB_OUTPUT"
+            echo "profiles=${{ inputs.profiles }}" >> "$GITHUB_OUTPUT"
+            echo "resolution=${{ inputs.resolution }}" >> "$GITHUB_OUTPUT"
+            echo "commit_results=${{ inputs.commit_results }}" >> "$GITHUB_OUTPUT"
 
           else
-
             echo "mode=full" >> "$GITHUB_OUTPUT"
             echo "example=all" >> "$GITHUB_OUTPUT"
             echo "start_sheet=" >> "$GITHUB_OUTPUT"
             echo "profiles=L2 L4 L8 L10" >> "$GITHUB_OUTPUT"
             echo "resolution=64" >> "$GITHUB_OUTPUT"
             echo "commit_results=true" >> "$GITHUB_OUTPUT"
-
           fi
 
-
-  # ---------------------------------------------------------
-  # One Blender process.
-  # ---------------------------------------------------------
 
   generate:
     name: Generate examples
@@ -165,7 +134,6 @@ jobs:
       - config
 
     runs-on: ubuntu-latest
-
     timeout-minutes: 30
 
     steps:
@@ -183,8 +151,34 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .blender
-          key: >
-            blender-linux-x64-${{ env.BLENDER_VERSION }}
+          key: blender-linux-x64-${{ env.BLENDER_VERSION }}
+
+      # -----------------------------------------------------
+      # Robust Blender install
+      # -----------------------------------------------------
+
+      - name: Validate Blender download URL
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          URL="${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
+
+          echo "Checking:"
+          echo "${URL}"
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --location \
+            --head \
+            --retry 5 \
+            --retry-all-errors \
+            --connect-timeout 15 \
+            --max-time 60 \
+            "${URL}"
 
       - name: Download Blender
         if: steps.blender-cache.outputs.cache-hit != 'true'
@@ -192,72 +186,130 @@ jobs:
         run: |
           set -euo pipefail
 
+          URL="${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
+          ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
+
+          rm -rf "${BLENDER_ROOT}"
           mkdir -p "${BLENDER_ROOT}"
+
+          echo "Downloading Blender ${BLENDER_VERSION}"
+          echo "${URL}"
 
           curl \
             --fail \
+            --show-error \
             --location \
-            --retry 3 \
-            --retry-delay 2 \
-            --output /tmp/blender.tar.xz \
-            "https://download.blender.org/release/Blender5.2/${BLENDER_ARCHIVE}"
+            --retry 5 \
+            --retry-delay 3 \
+            --retry-all-errors \
+            --connect-timeout 20 \
+            --max-time 900 \
+            --output "${ARCHIVE}" \
+            "${URL}"
 
-          tar \
-            -xJf /tmp/blender.tar.xz \
-            -C "${BLENDER_ROOT}" \
-            --strip-components=1
+          if [[ ! -s "${ARCHIVE}" ]]; then
+            echo "Downloaded archive is empty."
+            exit 1
+          fi
 
-          rm \
-            /tmp/blender.tar.xz
+          echo "Archive size:"
+          du -h "${ARCHIVE}"
 
-      - name: Verify Blender
+      - name: Validate Blender archive
+        if: steps.blender-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
 
-          "${BLENDER_ROOT}/blender" \
+          ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
+
+          echo "Testing archive integrity..."
+
+          xz \
+            --test \
+            "${ARCHIVE}"
+
+          tar \
+            -tJf "${ARCHIVE}" \
+            > /dev/null
+
+          echo "Archive is valid."
+
+      - name: Extract Blender
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
+
+          tar \
+            -xJf "${ARCHIVE}" \
+            -C "${BLENDER_ROOT}" \
+            --strip-components=1
+
+          rm \
+            "${ARCHIVE}"
+
+      # -----------------------------------------------------
+      # Verify cache or installation
+      # -----------------------------------------------------
+
+      - name: Verify Blender executable
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BLENDER_BIN="${BLENDER_ROOT}/blender"
+
+          if [[ ! -f "${BLENDER_BIN}" ]]; then
+            echo "Blender executable not found:"
+            echo "${BLENDER_BIN}"
+
+            echo "Blender directory:"
+            find "${BLENDER_ROOT}" \
+              -maxdepth 2 \
+              -type f \
+              | head -n 50
+
+            exit 1
+          fi
+
+          chmod +x \
+            "${BLENDER_BIN}"
+
+          "${BLENDER_BIN}" \
             --version
 
           VERSION="$(
-            "${BLENDER_ROOT}/blender" \
+            "${BLENDER_BIN}" \
               --version \
               | head -n 1
           )"
 
           if [[ "${VERSION}" != *"Blender ${BLENDER_VERSION}"* ]]; then
-            echo \
-              "Expected Blender ${BLENDER_VERSION}, got ${VERSION}"
-
+            echo "Wrong Blender version."
+            echo "Expected: ${BLENDER_VERSION}"
+            echo "Actual: ${VERSION}"
             exit 1
           fi
 
       # -----------------------------------------------------
-      # Display plan
+      # Configuration
       # -----------------------------------------------------
 
       - name: Generation configuration
         shell: bash
         run: |
-          echo \
-            "Mode: ${{ needs.config.outputs.mode }}"
-
-          echo \
-            "Example: ${{ needs.config.outputs.example }}"
-
-          echo \
-            "Start sheet: ${{ needs.config.outputs.start_sheet }}"
-
-          echo \
-            "Profiles: ${{ needs.config.outputs.profiles }}"
-
-          echo \
-            "Resolution: ${{ needs.config.outputs.resolution }}"
-
-          echo \
-            "Commit: ${{ needs.config.outputs.commit_results }}"
+          echo "Mode: ${{ needs.config.outputs.mode }}"
+          echo "Example: ${{ needs.config.outputs.example }}"
+          echo "Start sheet: ${{ needs.config.outputs.start_sheet }}"
+          echo "Profiles: ${{ needs.config.outputs.profiles }}"
+          echo "Resolution: ${{ needs.config.outputs.resolution }}"
+          echo "Commit: ${{ needs.config.outputs.commit_results }}"
 
       # -----------------------------------------------------
-      # Generate command safely.
+      # Generation
       # -----------------------------------------------------
 
       - name: Generate
@@ -265,8 +317,10 @@ jobs:
         run: |
           set -euo pipefail
 
+          BLENDER_BIN="${BLENDER_ROOT}/blender"
+
           COMMAND=(
-            "${BLENDER_ROOT}/blender"
+            "${BLENDER_BIN}"
             "--background"
             "--factory-startup"
             "--python"
@@ -305,13 +359,8 @@ jobs:
             done
           fi
 
-          printf \
-            '[projection-tool] command:'
-
-          printf \
-            ' %q' \
-            "${COMMAND[@]}"
-
+          printf '[projection-tool] command:'
+          printf ' %q' "${COMMAND[@]}"
           echo
 
           "${COMMAND[@]}"
@@ -384,25 +433,23 @@ jobs:
               )
 
       # -----------------------------------------------------
-      # Always keep CI artifact.
+      # Artifact
       # -----------------------------------------------------
 
       - name: Upload generated examples
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: >
-            projection-examples-${{ github.run_number }}
+          name: projection-examples-${{ github.run_number }}
 
           path: |
             example/**/generated/**
 
           if-no-files-found: warn
-
           retention-days: 14
 
       # -----------------------------------------------------
-      # Commit only on main or manually when requested.
+      # Git tracking
       # -----------------------------------------------------
 
       - name: Prepare generated files for Git
@@ -412,13 +459,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
-          # We track:
-          # - extracted PNG
-          # - manifests
-          # - GLB
-          #
-          # .blend remains CI-only.
 
           find example \
             -type f \
@@ -452,9 +492,7 @@ jobs:
             --cached \
             --quiet
           then
-            echo \
-              "Generated examples already up-to-date."
-
+            echo "Generated examples already up-to-date."
             exit 0
           fi
 
@@ -465,4 +503,3 @@ jobs:
           git push \
             origin \
             HEAD:main
-  
