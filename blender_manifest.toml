@@ -1,0 +1,38 @@
+schema_version = "1.0.0"
+
+id = "blender_projection_tool"
+version = "0.1.0"
+name = "Projection Tool"
+
+tagline = "Generate 3D blockout meshes from orthographic silhouettes"
+
+maintainer = "Slimtrat"
+
+type = "add-on"
+
+website = "https://github.com/Slimtrat/blender_projection_tool"
+
+tags = [
+    "Mesh",
+    "Modeling",
+]
+
+blender_version_min = "5.2.0"
+
+license = [
+    "SPDX:GPL-3.0-or-later",
+]
+
+[permissions]
+files = "Load silhouette reference images from disk"
+
+[build]
+paths_exclude_pattern = [
+    "/.git/",
+    "/.github/",
+    "/tests/",
+    "/dist/",
+    "__pycache__/",
+    "*.pyc",
+    "*.zip",
+]
