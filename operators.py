@@ -15,7 +15,10 @@ from bpy.props import (
 from bpy.types import Operator
 from bpy_extras.io_utils import ImportHelper
 
-from .core.image_mask import rgba_to_mask
+from .core.image_mask import (
+    BinaryMask,
+    rgba_to_mask,
+)
 from .core.native_bridge import (
     NativeCore,
     NativeProjection,
@@ -23,6 +26,10 @@ from .core.native_bridge import (
 from .core.native_mesh_builder import (
     create_blender_mesh_from_native,
     shade_smooth_native_object,
+)
+from .core.projected_material import (
+    ProjectedMaterialView,
+    apply_projected_material,
 )
 
 
@@ -39,6 +46,10 @@ IMAGE_FILTER = (
 ANGLE_PATTERN = re.compile(
     r"(?<!\d)(\d{1,3})(?:deg|°)?(?!\d)",
     re.IGNORECASE,
+)
+
+DEFAULT_MESH_MODE = (
+    "surface_nets"
 )
 
 
@@ -645,7 +656,7 @@ class BPT_OT_GenerateCharacter(
 
     bl_description = (
         "Generate a native C++ visual hull "
-        "from all enabled projection silhouettes"
+        "and projected material from enabled views"
     )
 
     def execute(
@@ -657,10 +668,11 @@ class BPT_OT_GenerateCharacter(
         )
 
         try:
-            projections = (
-                _build_native_projections(
-                    settings
-                )
+            (
+                projections,
+                material_views,
+            ) = _build_projection_inputs(
+                settings
             )
 
             if len(projections) < 2:
@@ -712,11 +724,18 @@ class BPT_OT_GenerateCharacter(
                     "CANCELLED"
                 }
 
+            # -------------------------------------------------
+            # Geometry
+            # -------------------------------------------------
+
             native_mesh = (
                 core.build_surface_mesh(
                     volume,
                     voxel_size=1.0,
                     center_xy=True,
+                    mesh_mode=(
+                        DEFAULT_MESH_MODE
+                    ),
                 )
             )
 
@@ -748,6 +767,57 @@ class BPT_OT_GenerateCharacter(
                 )
             )
 
+            # -------------------------------------------------
+            # Smooth geometry before color projection.
+            #
+            # Projected Material V1 uses vertex normals to
+            # select and blend the most relevant camera views.
+            # -------------------------------------------------
+
+            shade_smooth_native_object(
+                obj
+            )
+
+            # -------------------------------------------------
+            # Appearance
+            #
+            # IMPORTANT:
+            #
+            # Apply projection before height normalization.
+            #
+            # At this point mesh coordinates still correspond
+            # exactly to the native voxel reconstruction
+            # coordinates used by projection_math.py.
+            # -------------------------------------------------
+
+            material_stats = (
+                apply_projected_material(
+                    obj,
+                    material_views,
+                    volume_width=(
+                        volume.width
+                    ),
+                    volume_depth=(
+                        volume.depth
+                    ),
+                    volume_height=(
+                        volume.height
+                    ),
+                    voxel_size=1.0,
+                    center_xy=True,
+                    facing_power=2.0,
+                    allow_backface_fallback=True,
+                )
+            )
+
+            # -------------------------------------------------
+            # Final Blender scale
+            #
+            # Color is already baked to CORNER attributes, so
+            # scaling the final object cannot alter projection
+            # alignment anymore.
+            # -------------------------------------------------
+
             if (
                 settings.normalize_height
             ):
@@ -756,13 +826,19 @@ class BPT_OT_GenerateCharacter(
                     settings.target_height,
                 )
 
-            shade_smooth_native_object(
-                obj
-            )
+            # -------------------------------------------------
+            # Metadata
+            # -------------------------------------------------
 
             obj[
                 "bpt_engine"
             ] = "native-cpp"
+
+            obj[
+                "bpt_mesh_mode"
+            ] = (
+                DEFAULT_MESH_MODE
+            )
 
             obj[
                 "bpt_projection_count"
@@ -800,13 +876,35 @@ class BPT_OT_GenerateCharacter(
                 native_mesh.polygon_count
             )
 
+            obj[
+                "bpt_material_accepted_samples"
+            ] = (
+                material_stats
+                .accepted_samples
+            )
+
+            obj[
+                "bpt_material_rejected_samples"
+            ] = (
+                material_stats
+                .rejected_samples
+            )
+
+            # -------------------------------------------------
+            # Result
+            # -------------------------------------------------
+
             self.report(
                 {"INFO"},
                 (
                     "Native scan generated from "
                     f"{len(projections)} projections: "
                     f"{volume.occupied_count} voxels, "
-                    f"{native_mesh.vertex_count} vertices."
+                    f"{native_mesh.vertex_count} vertices, "
+                    f"{material_stats.projected_vertices} "
+                    "directly projected material vertices, "
+                    f"{material_stats.fallback_vertices} "
+                    "fallback vertices."
                 ),
             )
 
@@ -829,17 +927,41 @@ class BPT_OT_GenerateCharacter(
 
 
 # ---------------------------------------------------------
-# Native conversion helpers
+# Projection conversion helpers
 # ---------------------------------------------------------
 
 
-def _build_native_projections(
+def _build_projection_inputs(
     settings,
-) -> list[
-    NativeProjection
-]:
-    projections: list[
+) -> tuple[
+    list[
         NativeProjection
+    ],
+    list[
+        ProjectedMaterialView
+    ],
+]:
+    """
+    Build geometry and appearance inputs together.
+
+    The same projection mask is deliberately shared between:
+
+        NativeProjection
+            -> geometry
+
+        ProjectedMaterialView
+            -> appearance
+
+    This keeps the material from sampling pixels which the
+    visual-hull reconstruction itself considered background.
+    """
+
+    native_projections: list[
+        NativeProjection
+    ] = []
+
+    material_views: list[
+        ProjectedMaterialView
     ] = []
 
     for item in settings.projections:
@@ -854,24 +976,87 @@ def _build_native_projections(
             settings.alpha_threshold,
         )
 
-        projections.append(
+        if (
+            mask.occupied_count
+            == 0
+        ):
+            continue
+
+        azimuth_degrees = (
+            math.degrees(
+                item.azimuth
+            )
+        )
+
+        elevation_degrees = (
+            math.degrees(
+                item.elevation
+            )
+        )
+
+        flip_x = bool(
+            item.flip_x
+        )
+
+        native_projections.append(
             NativeProjection(
                 mask=mask,
                 azimuth_degrees=(
-                    math.degrees(
-                        item.azimuth
-                    )
+                    azimuth_degrees
                 ),
                 elevation_degrees=(
-                    math.degrees(
-                        item.elevation
-                    )
+                    elevation_degrees
                 ),
-                flip_x=(
-                    item.flip_x
-                ),
+                flip_x=flip_x,
             )
         )
+
+        material_views.append(
+            ProjectedMaterialView
+            .from_blender_image(
+                name=(
+                    item.name
+                    or (
+                        f"{azimuth_degrees:.1f}°"
+                    )
+                ),
+                image=item.image,
+                azimuth_degrees=(
+                    azimuth_degrees
+                ),
+                elevation_degrees=(
+                    elevation_degrees
+                ),
+                flip_x=flip_x,
+                weight=float(
+                    item.weight
+                ),
+                mask=mask,
+            )
+        )
+
+    return (
+        native_projections,
+        material_views,
+    )
+
+
+def _build_native_projections(
+    settings,
+) -> list[
+    NativeProjection
+]:
+    """
+    Compatibility helper kept for callers that only need
+    geometry projections.
+    """
+
+    (
+        projections,
+        _material_views,
+    ) = _build_projection_inputs(
+        settings
+    )
 
     return projections
 
@@ -879,7 +1064,7 @@ def _build_native_projections(
 def _image_to_mask(
     image: bpy.types.Image,
     alpha_threshold: float,
-):
+) -> BinaryMask:
     if (
         image.size[0] <= 0
         or image.size[1] <= 0
