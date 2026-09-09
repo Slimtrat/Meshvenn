@@ -91,6 +91,12 @@ class VisualHullOptions:
     symmetry_x: bool = False
 
 
+@dataclass(frozen=True)
+class ProjectionFrame:
+    horizontal_extent: float
+    vertical_extent: float
+
+
 def build_visual_hull(
     projections: list[ProjectionView],
     *,
@@ -119,6 +125,11 @@ def build_visual_hull(
     depth = options.resolution
     height = options.resolution
 
+    frames = [
+        _calculate_projection_frame(projection)
+        for projection in active_projections
+    ]
+
     values: list[bool] = []
 
     for z in range(height):
@@ -132,6 +143,7 @@ def build_visual_hull(
                     depth=depth,
                     height=height,
                     projections=active_projections,
+                    frames=frames,
                 )
 
                 values.append(occupied)
@@ -270,17 +282,23 @@ def _voxel_matches_all_projections(
     depth: int,
     height: int,
     projections: list[ProjectionView],
+    frames: list[ProjectionFrame],
 ) -> bool:
     nx = _grid_to_normalized(x, width)
     ny = _grid_to_normalized(y, depth)
     nz = _grid_to_normalized(z, height)
 
-    for projection in projections:
+    for projection, frame in zip(
+        projections,
+        frames,
+        strict=True,
+    ):
         u, v = _project_voxel_to_mask(
             x=nx,
             y=ny,
             z=nz,
             projection=projection,
+            frame=frame,
         )
 
         if not _sample_mask_uv(
@@ -303,15 +321,69 @@ def _grid_to_normalized(
     return (value / (size - 1)) * 2.0 - 1.0
 
 
+def _calculate_projection_frame(
+    projection: ProjectionView,
+) -> ProjectionFrame:
+    azimuth = math.radians(
+        projection.azimuth_degrees
+    )
+
+    elevation = math.radians(
+        projection.elevation_degrees
+    )
+
+    cos_az = abs(math.cos(azimuth))
+    sin_az = abs(math.sin(azimuth))
+
+    # Horizontal projected range of the normalized
+    # [-1, 1] x [-1, 1] XY box after azimuth rotation.
+    horizontal_extent = cos_az + sin_az
+
+    # After azimuth, the depth axis has the same maximum
+    # absolute extent on the normalized cube.
+    rotated_depth_extent = horizontal_extent
+
+    cos_el = abs(math.cos(elevation))
+    sin_el = abs(math.sin(elevation))
+
+    # Projection vertical coordinate is a combination of
+    # rotated depth and original Z.
+    vertical_extent = (
+        rotated_depth_extent * sin_el
+        + cos_el
+    )
+
+    horizontal_extent = max(
+        horizontal_extent,
+        1e-9,
+    )
+
+    vertical_extent = max(
+        vertical_extent,
+        1e-9,
+    )
+
+    return ProjectionFrame(
+        horizontal_extent=horizontal_extent,
+        vertical_extent=vertical_extent,
+    )
+
+
 def _project_voxel_to_mask(
     *,
     x: float,
     y: float,
     z: float,
     projection: ProjectionView,
+    frame: ProjectionFrame,
 ) -> tuple[float, float]:
-    azimuth = math.radians(projection.azimuth_degrees)
-    elevation = math.radians(projection.elevation_degrees)
+    azimuth = math.radians(
+        projection.azimuth_degrees
+    )
+
+    elevation = math.radians(
+        projection.elevation_degrees
+    )
 
     cos_az = math.cos(-azimuth)
     sin_az = math.sin(-azimuth)
@@ -324,11 +396,18 @@ def _project_voxel_to_mask(
     sin_el = math.sin(-elevation)
 
     x2 = x1
-    y2 = y1 * cos_el - z1 * sin_el
     z2 = y1 * sin_el + z1 * cos_el
 
-    u = (x2 + 1.0) * 0.5
-    v = (z2 + 1.0) * 0.5
+    normalized_u = (
+        x2 / frame.horizontal_extent
+    )
+
+    normalized_v = (
+        z2 / frame.vertical_extent
+    )
+
+    u = (normalized_u + 1.0) * 0.5
+    v = (normalized_v + 1.0) * 0.5
 
     if projection.flip_x:
         u = 1.0 - u
@@ -341,11 +420,23 @@ def _sample_mask_uv(
     u: float,
     v: float,
 ) -> bool:
-    if u < 0.0 or u > 1.0:
+    epsilon = 1e-9
+
+    if u < -epsilon or u > 1.0 + epsilon:
         return False
 
-    if v < 0.0 or v > 1.0:
+    if v < -epsilon or v > 1.0 + epsilon:
         return False
+
+    u = min(
+        max(u, 0.0),
+        1.0,
+    )
+
+    v = min(
+        max(v, 0.0),
+        1.0,
+    )
 
     x = min(
         int(u * (mask.width - 1) + 0.5),
@@ -364,9 +455,6 @@ def _normalize_projection_view(
     projection: ProjectionView,
     resolution: int,
 ) -> ProjectionView:
-    target_width = resolution
-    target_height = resolution
-
     mask = projection.mask
 
     if projection.flip_x:
@@ -374,8 +462,8 @@ def _normalize_projection_view(
 
     normalized_mask = resize_mask_nearest(
         mask,
-        target_width,
-        target_height,
+        resolution,
+        resolution,
     )
 
     return ProjectionView(

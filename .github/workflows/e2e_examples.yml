@@ -1,0 +1,150 @@
+# .github/workflows/e2e_examples.yml
+
+name: E2E Examples
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "core/**"
+      - "scripts/**"
+      - "example/**"
+      - ".github/workflows/e2e_examples.yml"
+
+  pull_request:
+    paths:
+      - "core/**"
+      - "scripts/**"
+      - "example/**"
+      - ".github/workflows/e2e_examples.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-examples:
+    name: Blender E2E Example Generation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Blender
+        shell: bash
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y blender
+
+      - name: Show Blender version
+        shell: bash
+        run: |
+          blender --version
+
+      - name: Verify scripts exist
+        shell: bash
+        run: |
+          set -e
+
+          required_files=(
+            "scripts/generate_example.py"
+            "scripts/generate_all_examples.py"
+            "core/__init__.py"
+            "core/masks.py"
+            "core/visual_hull.py"
+            "core/mesh_builder.py"
+            "core/cleanup.py"
+          )
+
+          for file in "${required_files[@]}"; do
+            if [[ ! -f "$file" ]]; then
+              echo "Missing file: $file"
+              exit 1
+            fi
+          done
+
+      - name: Check example availability
+        shell: bash
+        run: |
+          set -e
+
+          if [[ ! -d "example" ]]; then
+            echo "No example directory found."
+            exit 1
+          fi
+
+          EXAMPLE_COUNT=$(find example -type f \( \
+            -iname "*.png" -o \
+            -iname "*.jpg" -o \
+            -iname "*.jpeg" -o \
+            -iname "*.webp" -o \
+            -iname "*.bmp" -o \
+            -iname "*.tif" -o \
+            -iname "*.tiff" \
+          \) | wc -l)
+
+          echo "Detected example images: $EXAMPLE_COUNT"
+
+          if [[ "$EXAMPLE_COUNT" -lt 2 ]]; then
+            echo "Not enough example images to run E2E generation."
+            exit 1
+          fi
+
+      - name: Generate all examples
+        shell: bash
+        run: |
+          set -e
+
+          python scripts/generate_all_examples.py \
+            --blender blender \
+            --examples example \
+            --output output/examples \
+            --resolution 64 \
+            --threshold 0.1 \
+            --voxel-size 0.05 \
+            --smooth 3
+
+      - name: Verify outputs
+        shell: bash
+        run: |
+          set -e
+
+          if [[ ! -d "output/examples" ]]; then
+            echo "Output directory was not created."
+            exit 1
+          fi
+
+          BLEND_COUNT=$(find output/examples -type f -name "*.blend" | wc -l)
+          GLB_COUNT=$(find output/examples -type f -name "*.glb" | wc -l)
+
+          echo "Generated .blend files: $BLEND_COUNT"
+          echo "Generated .glb files:   $GLB_COUNT"
+
+          if [[ "$BLEND_COUNT" -lt 1 ]]; then
+            echo "No .blend files generated."
+            exit 1
+          fi
+
+          if [[ "$GLB_COUNT" -lt 1 ]]; then
+            echo "No .glb files generated."
+            exit 1
+          fi
+
+      - name: Upload generated outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-projection-tool-e2e-output
+          path: output/examples
+          if-no-files-found: error
+          retention-days: 14
+          
