@@ -33,15 +33,20 @@ on:
         required: false
         default: "L2 L4 L8 L10"
 
-      frames:
-        description: "Turntable frame count"
+      views:
+        description: "Views per contact sheet"
         required: false
-        default: "36"
+        default: "8"
 
       size:
         description: "Preview size"
         required: false
-        default: "512"
+        default: "384"
+
+      samples:
+        description: "Cycles samples"
+        required: false
+        default: "1"
 
 
 permissions:
@@ -124,7 +129,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p native/bin
+          mkdir -p \
+            native/bin
 
           LIB_PATH="$(
             find build/native \
@@ -167,9 +173,6 @@ jobs:
     runs-on: ubuntu-latest
 
     timeout-minutes: 20
-
-    env:
-      LIBGL_ALWAYS_SOFTWARE: "1"
 
     steps:
       - name: Checkout
@@ -254,35 +257,6 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Headless OpenGL
-      # -----------------------------------------------------
-
-      - name: Install headless OpenGL runtime
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          sudo apt-get update
-
-          sudo apt-get install -y \
-            libegl1 \
-            libegl-mesa0 \
-            libgl1 \
-            libglx-mesa0
-
-      - name: Verify EGL runtime
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ldconfig -p \
-            | grep "libEGL.so.1"
-
-          ldconfig -p \
-            | grep "libGL.so.1"
-
-
-      # -----------------------------------------------------
       # Configuration
       # -----------------------------------------------------
 
@@ -298,39 +272,39 @@ jobs:
 
             RESOLUTION="${{ inputs.resolution }}"
             PROFILES="${{ inputs.profiles }}"
-            FRAMES="${{ inputs.frames }}"
+            VIEWS="${{ inputs.views }}"
             SIZE="${{ inputs.size }}"
+            SAMPLES="${{ inputs.samples }}"
 
           elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
 
             RESOLUTION="48"
             PROFILES="L2"
-            FRAMES="24"
-            SIZE="384"
+            VIEWS="4"
+            SIZE="256"
+            SAMPLES="1"
 
           else
 
             RESOLUTION="64"
             PROFILES="L2 L4 L8 L10"
-            FRAMES="36"
-            SIZE="512"
+            VIEWS="8"
+            SIZE="384"
+            SAMPLES="1"
 
           fi
 
-          if ! [[ "${RESOLUTION}" =~ ^[0-9]+$ ]]; then
-            echo "Invalid resolution: ${RESOLUTION}"
-            exit 1
-          fi
-
-          if ! [[ "${FRAMES}" =~ ^[0-9]+$ ]]; then
-            echo "Invalid frames: ${FRAMES}"
-            exit 1
-          fi
-
-          if ! [[ "${SIZE}" =~ ^[0-9]+$ ]]; then
-            echo "Invalid size: ${SIZE}"
-            exit 1
-          fi
+          for VALUE in \
+            "${RESOLUTION}" \
+            "${VIEWS}" \
+            "${SIZE}" \
+            "${SAMPLES}"
+          do
+            if ! [[ "${VALUE}" =~ ^[0-9]+$ ]]; then
+              echo "Invalid numeric value: ${VALUE}"
+              exit 1
+            fi
+          done
 
           echo \
             "resolution=${RESOLUTION}" \
@@ -341,21 +315,26 @@ jobs:
             >> "${GITHUB_OUTPUT}"
 
           echo \
-            "frames=${FRAMES}" \
+            "views=${VIEWS}" \
             >> "${GITHUB_OUTPUT}"
 
           echo \
             "size=${SIZE}" \
             >> "${GITHUB_OUTPUT}"
 
+          echo \
+            "samples=${SAMPLES}" \
+            >> "${GITHUB_OUTPUT}"
+
           echo "Resolution: ${RESOLUTION}"
           echo "Profiles: ${PROFILES}"
-          echo "Frames: ${FRAMES}"
+          echo "Views: ${VIEWS}"
           echo "Size: ${SIZE}"
+          echo "Samples: ${SAMPLES}"
 
 
       # -----------------------------------------------------
-      # Native reconstruction
+      # Generate both sheets
       # -----------------------------------------------------
 
       - name: Generate native scans
@@ -374,7 +353,6 @@ jobs:
             -- \
             --examples example \
             --example mascotte/test1 \
-            --start-sheet sheet1.png \
             --profiles "${PROFILE_ARGS[@]}" \
             --resolution "${{ steps.config.outputs.resolution }}" \
             --thread-count 0 \
@@ -382,7 +360,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Preview render
+      # Render both sheets
       # -----------------------------------------------------
 
       - name: Render previews
@@ -394,55 +372,57 @@ jobs:
           mkdir -p \
             visual-preview
 
-          for LEVEL in ${{ steps.config.outputs.profiles }}; do
+          for SHEET in sheet1 sheet2; do
 
-            SCAN_DIR="example/mascotte/test1/generated/sheet1/scans/${LEVEL}"
+            for LEVEL in ${{ steps.config.outputs.profiles }}; do
 
-            if [[ ! -d "${SCAN_DIR}" ]]; then
-              echo "Missing scan directory: ${SCAN_DIR}"
-              exit 1
-            fi
+              SCAN_DIR="example/mascotte/test1/generated/${SHEET}/scans/${LEVEL}"
 
-            GLB="$(
-              find "${SCAN_DIR}" \
-                -type f \
-                -name "*.glb" \
-                | head -n 1
-            )"
+              if [[ ! -d "${SCAN_DIR}" ]]; then
+                echo "Missing scan directory: ${SCAN_DIR}"
+                exit 1
+              fi
 
-            if [[ -z "${GLB}" ]]; then
-              echo "No GLB found for ${LEVEL}"
-              exit 1
-            fi
+              GLB="$(
+                find "${SCAN_DIR}" \
+                  -type f \
+                  -name "*.glb" \
+                  | head -n 1
+              )"
 
-            OUTPUT_DIR="visual-preview/${LEVEL}"
+              if [[ -z "${GLB}" ]]; then
+                echo "No GLB found for ${SHEET}/${LEVEL}"
+                exit 1
+              fi
 
-            mkdir -p \
-              "${OUTPUT_DIR}"
+              OUTPUT_DIR="visual-preview/${SHEET}/${LEVEL}"
 
-            echo
-            echo "Rendering ${LEVEL}"
-            echo
-            echo "GLB: ${GLB}"
-            echo
+              mkdir -p \
+                "${OUTPUT_DIR}"
 
-            "${BLENDER_ROOT}/blender" \
-              --background \
-              --factory-startup \
-              --python scripts/render_turntable.py \
-              -- \
-              --input "${GLB}" \
-              --output "${OUTPUT_DIR}" \
-              --frames "${{ steps.config.outputs.frames }}" \
-              --size "${{ steps.config.outputs.size }}" \
-              --contact-views 8 \
-              --fps 24
+              echo
+              echo "Rendering ${SHEET} ${LEVEL}"
+              echo "GLB: ${GLB}"
+              echo
+
+              "${BLENDER_ROOT}/blender" \
+                --background \
+                --factory-startup \
+                --python scripts/render_turntable.py \
+                -- \
+                --input "${GLB}" \
+                --output "${OUTPUT_DIR}" \
+                --views "${{ steps.config.outputs.views }}" \
+                --size "${{ steps.config.outputs.size }}" \
+                --samples "${{ steps.config.outputs.samples }}"
+
+            done
 
           done
 
 
       # -----------------------------------------------------
-      # Validation
+      # Verify
       # -----------------------------------------------------
 
       - name: Verify previews
@@ -451,30 +431,24 @@ jobs:
         run: |
           set -euo pipefail
 
-          for LEVEL in ${{ steps.config.outputs.profiles }}; do
+          for SHEET in sheet1 sheet2; do
 
-            DIR="visual-preview/${LEVEL}"
+            for LEVEL in ${{ steps.config.outputs.profiles }}; do
 
-            CONTACT="${DIR}/contact_sheet.png"
+              CONTACT="visual-preview/${SHEET}/${LEVEL}/contact_sheet.png"
 
-            VIDEO="${DIR}/turntable.mp4"
+              if [[ ! -s "${CONTACT}" ]]; then
+                echo "Missing contact sheet: ${CONTACT}"
+                exit 1
+              fi
 
-            if [[ ! -s "${CONTACT}" ]]; then
-              echo "Missing contact sheet for ${LEVEL}"
-              exit 1
-            fi
+              echo
+              echo "${SHEET}/${LEVEL}"
 
-            if [[ ! -s "${VIDEO}" ]]; then
-              echo "Missing turntable video for ${LEVEL}"
-              exit 1
-            fi
+              ls -lh \
+                "${CONTACT}"
 
-            echo
-            echo "${LEVEL}"
-
-            ls -lh \
-              "${CONTACT}" \
-              "${VIDEO}"
+            done
 
           done
 
@@ -504,7 +478,7 @@ jobs:
             echo
 
             echo \
-              "Frames: **${{ steps.config.outputs.frames }}**"
+              "Views: **${{ steps.config.outputs.views }}**"
 
             echo
 
@@ -512,17 +486,17 @@ jobs:
               "Render: **${{ steps.config.outputs.size }} × ${{ steps.config.outputs.size }}**"
 
             echo
-            echo "Generated previews:"
+
+            echo \
+              "Cycles samples: **${{ steps.config.outputs.samples }}**"
+
+            echo
+            echo "Contact sheets:"
             echo
 
             find visual-preview \
-              -maxdepth 2 \
               -type f \
-              \( \
-                -name "turntable.mp4" \
-                -o \
-                -name "contact_sheet.png" \
-              \) \
+              -name "contact_sheet.png" \
               -print \
               | sort \
               | sed 's/^/- `/' \
@@ -577,6 +551,7 @@ jobs:
           path: |
             visual-preview/**
             example/mascotte/test1/generated/sheet1/manifest.json
+            example/mascotte/test1/generated/sheet2/manifest.json
 
           if-no-files-found: warn
 
