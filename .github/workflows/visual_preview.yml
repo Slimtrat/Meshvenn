@@ -1,0 +1,696 @@
+name: Visual Preview
+
+on:
+  pull_request:
+    paths:
+      - "native/**"
+      - "core/**"
+      - "scripts/render_turntable.py"
+      - "scripts/generate_*native.py"
+      - "example/**"
+      - ".github/workflows/visual_preview.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "native/**"
+      - "core/**"
+      - "scripts/render_turntable.py"
+      - "scripts/generate_*native.py"
+      - "example/**"
+      - ".github/workflows/visual_preview.yml"
+
+  workflow_dispatch:
+    inputs:
+      resolution:
+        description: "Visual hull resolution"
+        required: false
+        default: "64"
+
+      profiles:
+        description: "Profiles, space separated"
+        required: false
+        default: "L2 L4 L8 L10"
+
+      views:
+        description: "Views per contact sheet"
+        required: false
+        default: "8"
+
+      size:
+        description: "Preview size"
+        required: false
+        default: "384"
+
+      samples:
+        description: "Cycles samples"
+        required: false
+        default: "1"
+
+
+permissions:
+  contents: write
+
+
+concurrency:
+  group: visual-preview-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+env:
+  BLENDER_VERSION: "5.2.1"
+  BLENDER_ARCHIVE: "blender-5.2.1-linux-x64.tar.xz"
+  BLENDER_BASE_URL: "https://download.blender.org/release/Blender5.2"
+  BLENDER_ROOT: "${{ github.workspace }}/.blender"
+
+
+jobs:
+
+  # ---------------------------------------------------------
+  # Native
+  # ---------------------------------------------------------
+
+  native:
+    name: Build native core
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake --version
+          ninja --version
+          g++ --version
+
+      - name: Configure native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            -S native \
+            -B build/native \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBPT_BUILD_TESTS=ON
+
+      - name: Build native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            --build build/native \
+            --parallel
+
+      - name: Run native tests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ctest \
+            --test-dir build/native \
+            --output-on-failure
+
+      - name: Stage native library
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p \
+            native/bin
+
+          LIB_PATH="$(
+            find build/native \
+              -type f \
+              -name "libbpt_core.so" \
+              | head -n 1
+          )"
+
+          if [[ -z "${LIB_PATH}" ]]; then
+            echo "libbpt_core.so not found"
+            exit 1
+          fi
+
+          cp \
+            "${LIB_PATH}" \
+            native/bin/libbpt_core.so
+
+          ls -lh \
+            native/bin/libbpt_core.so
+
+      - name: Upload native library
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-preview-native-linux
+          path: native/bin/libbpt_core.so
+          if-no-files-found: error
+          retention-days: 2
+
+
+  # ---------------------------------------------------------
+  # Preview
+  # ---------------------------------------------------------
+
+  preview:
+    name: Generate visual previews
+
+    needs:
+      - native
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download native library
+        uses: actions/download-artifact@v4
+        with:
+          name: visual-preview-native-linux
+          path: native/bin
+
+      - name: Verify native library
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test \
+            -f native/bin/libbpt_core.so
+
+          ls -lh \
+            native/bin/libbpt_core.so
+
+
+      # -----------------------------------------------------
+      # Blender
+      # -----------------------------------------------------
+
+      - name: Cache Blender
+        id: blender-cache
+
+        uses: actions/cache@v4
+
+        with:
+          path: .blender
+          key: blender-linux-x64-${{ env.BLENDER_VERSION }}
+
+      - name: Download Blender
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+
+        shell: bash
+
+        run: |
+          set -euo pipefail
+
+          mkdir -p \
+            "${BLENDER_ROOT}"
+
+          URL="${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
+
+          ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
+
+          curl \
+            --fail \
+            --show-error \
+            --location \
+            --retry 5 \
+            --retry-all-errors \
+            --connect-timeout 20 \
+            --max-time 900 \
+            --output "${ARCHIVE}" \
+            "${URL}"
+
+          xz \
+            --test \
+            "${ARCHIVE}"
+
+          tar \
+            -xJf "${ARCHIVE}" \
+            -C "${BLENDER_ROOT}" \
+            --strip-components=1
+
+          rm \
+            "${ARCHIVE}"
+
+      - name: Verify Blender
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          "${BLENDER_ROOT}/blender" \
+            --version
+
+
+      # -----------------------------------------------------
+      # Configuration
+      # -----------------------------------------------------
+
+      - name: Resolve configuration
+        id: config
+
+        shell: bash
+
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+
+            RESOLUTION="${{ inputs.resolution }}"
+            PROFILES="${{ inputs.profiles }}"
+            VIEWS="${{ inputs.views }}"
+            SIZE="${{ inputs.size }}"
+            SAMPLES="${{ inputs.samples }}"
+
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+
+            RESOLUTION="48"
+            PROFILES="L2"
+            VIEWS="4"
+            SIZE="256"
+            SAMPLES="1"
+
+          else
+
+            RESOLUTION="64"
+            PROFILES="L2 L4 L8 L10"
+            VIEWS="8"
+            SIZE="384"
+            SAMPLES="1"
+
+          fi
+
+          for VALUE in \
+            "${RESOLUTION}" \
+            "${VIEWS}" \
+            "${SIZE}" \
+            "${SAMPLES}"
+          do
+            if ! [[ "${VALUE}" =~ ^[0-9]+$ ]]; then
+              echo "Invalid numeric value: ${VALUE}"
+              exit 1
+            fi
+          done
+
+          echo \
+            "resolution=${RESOLUTION}" \
+            >> "${GITHUB_OUTPUT}"
+
+          echo \
+            "profiles=${PROFILES}" \
+            >> "${GITHUB_OUTPUT}"
+
+          echo \
+            "views=${VIEWS}" \
+            >> "${GITHUB_OUTPUT}"
+
+          echo \
+            "size=${SIZE}" \
+            >> "${GITHUB_OUTPUT}"
+
+          echo \
+            "samples=${SAMPLES}" \
+            >> "${GITHUB_OUTPUT}"
+
+          echo "Resolution: ${RESOLUTION}"
+          echo "Profiles: ${PROFILES}"
+          echo "Views: ${VIEWS}"
+          echo "Size: ${SIZE}"
+          echo "Samples: ${SAMPLES}"
+
+
+      # -----------------------------------------------------
+      # Generate sheets
+      # -----------------------------------------------------
+
+      - name: Generate native scans
+        shell: bash
+
+        run: |
+          set -euo pipefail
+
+          read -ra PROFILE_ARGS \
+            <<< "${{ steps.config.outputs.profiles }}"
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python scripts/generate_all_native.py \
+            -- \
+            --examples example \
+            --example mascotte/test1 \
+            --profiles "${PROFILE_ARGS[@]}" \
+            --resolution "${{ steps.config.outputs.resolution }}" \
+            --thread-count 0 \
+            --skip-blend
+
+
+      # -----------------------------------------------------
+      # Render sheets
+      # -----------------------------------------------------
+
+      - name: Render previews
+        shell: bash
+
+        run: |
+          set -euo pipefail
+
+          mkdir -p \
+            visual-preview
+
+          for SHEET in sheet1 sheet2; do
+
+            for LEVEL in ${{ steps.config.outputs.profiles }}; do
+
+              SCAN_DIR="example/mascotte/test1/generated/${SHEET}/scans/${LEVEL}"
+
+              if [[ ! -d "${SCAN_DIR}" ]]; then
+                echo "Missing scan directory: ${SCAN_DIR}"
+                exit 1
+              fi
+
+              GLB="$(
+                find "${SCAN_DIR}" \
+                  -type f \
+                  -name "*.glb" \
+                  | head -n 1
+              )"
+
+              if [[ -z "${GLB}" ]]; then
+                echo "No GLB found for ${SHEET}/${LEVEL}"
+                exit 1
+              fi
+
+              OUTPUT_DIR="visual-preview/${SHEET}/${LEVEL}"
+
+              mkdir -p \
+                "${OUTPUT_DIR}"
+
+              echo
+              echo "Rendering ${SHEET} ${LEVEL}"
+              echo "GLB: ${GLB}"
+              echo
+
+              "${BLENDER_ROOT}/blender" \
+                --background \
+                --factory-startup \
+                --python scripts/render_turntable.py \
+                -- \
+                --input "${GLB}" \
+                --output "${OUTPUT_DIR}" \
+                --views "${{ steps.config.outputs.views }}" \
+                --size "${{ steps.config.outputs.size }}" \
+                --samples "${{ steps.config.outputs.samples }}"
+
+            done
+
+          done
+
+
+      # -----------------------------------------------------
+      # Verify
+      # -----------------------------------------------------
+
+      - name: Verify previews
+        shell: bash
+
+        run: |
+          set -euo pipefail
+
+          for SHEET in sheet1 sheet2; do
+
+            for LEVEL in ${{ steps.config.outputs.profiles }}; do
+
+              CONTACT="visual-preview/${SHEET}/${LEVEL}/contact_sheet.png"
+
+              if [[ ! -s "${CONTACT}" ]]; then
+                echo "Missing contact sheet: ${CONTACT}"
+                exit 1
+              fi
+
+              echo
+              echo "${SHEET}/${LEVEL}"
+
+              ls -lh \
+                "${CONTACT}"
+
+            done
+
+          done
+
+
+      # -----------------------------------------------------
+      # Prepare persistent docs
+      # -----------------------------------------------------
+
+      - name: Prepare documentation previews
+        if: github.event_name != 'pull_request'
+        shell: bash
+
+        run: |
+          set -euo pipefail
+
+          rm -rf \
+            docs/previews
+
+          mkdir -p \
+            docs/previews/sheet1 \
+            docs/previews/sheet2
+
+          for SHEET in sheet1 sheet2; do
+
+            for LEVEL in ${{ steps.config.outputs.profiles }}; do
+
+              SOURCE="visual-preview/${SHEET}/${LEVEL}/contact_sheet.png"
+
+              DESTINATION="docs/previews/${SHEET}/${LEVEL}.png"
+
+              if [[ ! -s "${SOURCE}" ]]; then
+                echo "Missing preview source: ${SOURCE}"
+                exit 1
+              fi
+
+              cp \
+                "${SOURCE}" \
+                "${DESTINATION}"
+
+            done
+
+          done
+
+          find docs/previews \
+            -type f \
+            -print \
+            | sort
+
+
+      # -----------------------------------------------------
+      # Generate Markdown documentation
+      # -----------------------------------------------------
+
+      - name: Generate visual preview Markdown
+        if: github.event_name != 'pull_request'
+        shell: bash
+
+        run: |
+          set -euo pipefail
+
+          mkdir -p \
+            docs
+
+          cat > docs/visual-preview.md <<'EOF'
+          # Visual Reconstruction Preview
+
+          This page is generated automatically from the reference sheets.
+
+          It provides a quick visual check of the native C++ reconstruction pipeline.
+
+          ## Scan levels
+
+          - **L2** — 000° + 090°
+          - **L4** — 000° + 090° + 180° + 270°
+          - **L8** — 8 horizontal views
+          - **L10** — L8 + TOP + BOT
+
+          ---
+
+          ## Sheet 1
+
+          ### L2
+
+          ![Sheet 1 - L2](previews/sheet1/L2.png)
+
+          ### L4
+
+          ![Sheet 1 - L4](previews/sheet1/L4.png)
+
+          ### L8
+
+          ![Sheet 1 - L8](previews/sheet1/L8.png)
+
+          ### L10
+
+          ![Sheet 1 - L10](previews/sheet1/L10.png)
+
+          ---
+
+          ## Sheet 2
+
+          ### L2
+
+          ![Sheet 2 - L2](previews/sheet2/L2.png)
+
+          ### L4
+
+          ![Sheet 2 - L4](previews/sheet2/L4.png)
+
+          ### L8
+
+          ![Sheet 2 - L8](previews/sheet2/L8.png)
+
+          ### L10
+
+          ![Sheet 2 - L10](previews/sheet2/L10.png)
+
+          ---
+
+          ## Generation
+
+          These images are generated by GitHub Actions using:
+
+          - the native C++ visual hull engine;
+          - Blender headless;
+          - Cycles CPU;
+          - the example reference sheets in `example/mascotte/test1/sheets/`.
+
+          The committed images represent the latest successful preview generated from `main`.
+          EOF
+
+
+      # -----------------------------------------------------
+      # Summary
+      # -----------------------------------------------------
+
+      - name: Generate preview summary
+        if: always()
+
+        shell: bash
+
+        run: |
+          {
+            echo "# Native visual preview"
+            echo
+
+            echo \
+              "Resolution: **${{ steps.config.outputs.resolution }}**"
+
+            echo
+
+            echo \
+              "Profiles: **${{ steps.config.outputs.profiles }}**"
+
+            echo
+
+            echo \
+              "Views: **${{ steps.config.outputs.views }}**"
+
+            echo
+
+            echo \
+              "Render: **${{ steps.config.outputs.size }} × ${{ steps.config.outputs.size }}**"
+
+            echo
+
+            echo \
+              "Cycles samples: **${{ steps.config.outputs.samples }}**"
+
+            echo
+            echo "Contact sheets:"
+            echo
+
+            find visual-preview \
+              -type f \
+              -name "contact_sheet.png" \
+              -print \
+              | sort \
+              | sed 's/^/- `/' \
+              | sed 's/$/`/' \
+              || true
+
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+
+      # -----------------------------------------------------
+      # Artifact
+      # -----------------------------------------------------
+
+      - name: Upload visual previews
+        if: always()
+
+        uses: actions/upload-artifact@v4
+
+        with:
+          name: native-visual-preview-${{ github.run_number }}
+
+          path: |
+            visual-preview/**
+            example/mascotte/test1/generated/sheet1/manifest.json
+            example/mascotte/test1/generated/sheet2/manifest.json
+
+          if-no-files-found: warn
+
+          retention-days: 14
+
+
+      # -----------------------------------------------------
+      # Persist previews on main
+      # -----------------------------------------------------
+
+      - name: Commit visual documentation
+        if: >-
+          github.event_name == 'push'
+          && github.ref == 'refs/heads/main'
+
+        shell: bash
+
+        run: |
+          set -euo pipefail
+
+          git config \
+            user.name \
+            "github-actions[bot]"
+
+          git config \
+            user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            docs/visual-preview.md \
+            docs/previews
+
+          if git diff \
+            --cached \
+            --quiet
+          then
+            echo \
+              "Visual documentation is already up to date."
+
+            exit 0
+          fi
+
+          git commit \
+            -m \
+            "docs: update visual reconstruction previews [skip ci]"
+
+          git push
