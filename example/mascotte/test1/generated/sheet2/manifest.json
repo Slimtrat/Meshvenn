@@ -1,0 +1,295 @@
+{
+  "engine": "native-cpp",
+  "source": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/sheets/sheet2.png",
+  "source_sha256": "b08d59b0ab6de81fbeb47d72dafb21fa95ee5d698d49e055a5a9d4a1e6b00965",
+  "sheet_width": 1536,
+  "sheet_height": 1024,
+  "cuts": [
+    {
+      "view": "000",
+      "azimuth": 0.0,
+      "elevation": 0.0,
+      "bbox": [
+        25,
+        582,
+        252,
+        862
+      ],
+      "output": "000.png",
+      "sha256": "b73700fa7648e83d51eacc35798e351808f9baf13800ac8739400e54d706c62b",
+      "valid": true,
+      "mask_pixels": 26034
+    },
+    {
+      "view": "045",
+      "azimuth": 45.0,
+      "elevation": 0.0,
+      "bbox": [
+        260,
+        582,
+        487,
+        862
+      ],
+      "output": "045.png",
+      "sha256": "47622fd5775444c3283dd5815af60a75ed2c583a759bce03490364f91d11220d",
+      "valid": true,
+      "mask_pixels": 25738
+    },
+    {
+      "view": "090",
+      "azimuth": 90.0,
+      "elevation": 0.0,
+      "bbox": [
+        498,
+        582,
+        725,
+        862
+      ],
+      "output": "090.png",
+      "sha256": "66d3f3d0cc5d3f1e339eb314380a4038637c9217c7ce5de98c89c775336b8a42",
+      "valid": true,
+      "mask_pixels": 21513
+    },
+    {
+      "view": "135",
+      "azimuth": 135.0,
+      "elevation": 0.0,
+      "bbox": [
+        734,
+        582,
+        962,
+        862
+      ],
+      "output": "135.png",
+      "sha256": "a0258011f2c0dcf936c06a609db3d7d71ff0bfac83a5834813b10f59e312cb9e",
+      "valid": true,
+      "mask_pixels": 25223
+    },
+    {
+      "view": "180",
+      "azimuth": 180.0,
+      "elevation": 0.0,
+      "bbox": [
+        971,
+        582,
+        1198,
+        862
+      ],
+      "output": "180.png",
+      "sha256": "5d41cfabc32a8e55fa798c9e9b36b12067feb57a4012e52c43af5fa870343a26",
+      "valid": true,
+      "mask_pixels": 25942
+    },
+    {
+      "view": "225",
+      "azimuth": 225.0,
+      "elevation": 0.0,
+      "bbox": [
+        25,
+        204,
+        252,
+        486
+      ],
+      "output": "225.png",
+      "sha256": "2a976c2cf0c9a1c7e1d620f3116f1b02252dec1dd0ddb9f926e22d71c85a3dcd",
+      "valid": true,
+      "mask_pixels": 23905
+    },
+    {
+      "view": "270",
+      "azimuth": 270.0,
+      "elevation": 0.0,
+      "bbox": [
+        260,
+        204,
+        487,
+        486
+      ],
+      "output": "270.png",
+      "sha256": "41e35db6d626c5b223342c533962d27f2d8c1d7ccc3d91e21f9da041650a7a81",
+      "valid": true,
+      "mask_pixels": 21802
+    },
+    {
+      "view": "315",
+      "azimuth": 315.0,
+      "elevation": 0.0,
+      "bbox": [
+        498,
+        204,
+        725,
+        486
+      ],
+      "output": "315.png",
+      "sha256": "133e8cc5fc7bd99d6b6138a4be17a0287003c79bf97b1daedadfc2ce80ce2f23",
+      "valid": true,
+      "mask_pixels": 25198
+    },
+    {
+      "view": "TOP",
+      "azimuth": 0.0,
+      "elevation": 90.0,
+      "bbox": [
+        734,
+        204,
+        962,
+        486
+      ],
+      "output": "TOP.png",
+      "sha256": "9692fa11c9920faaeca78cf240f6eb16efdb624ec343a1f62fabe99a0f344f20",
+      "valid": true,
+      "mask_pixels": 17835
+    },
+    {
+      "view": "BOT",
+      "azimuth": 0.0,
+      "elevation": -90.0,
+      "bbox": [
+        971,
+        204,
+        1198,
+        486
+      ],
+      "output": "BOT.png",
+      "sha256": "53e6621c19013ea294d88ef3cd8e1cbf21004ac6d2e706f2e06d0fc5fc9ac668",
+      "valid": true,
+      "mask_pixels": 14313
+    }
+  ],
+  "requested_profiles": [
+    "L2",
+    "L4",
+    "L8",
+    "L10"
+  ],
+  "available_views": [
+    "000",
+    "090",
+    "180",
+    "270",
+    "045",
+    "135",
+    "225",
+    "315",
+    "TOP",
+    "BOT"
+  ],
+  "profiles": {
+    "L2": {
+      "generated": true,
+      "views": [
+        "000",
+        "090"
+      ],
+      "occupied_voxels": 39364,
+      "bounds": [
+        8,
+        57,
+        13,
+        45,
+        2,
+        61
+      ],
+      "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet2/scans/L2/sheet2_L2.glb",
+      "blend": null,
+      "vertices": 13919,
+      "faces": 13982,
+      "dimensions": [
+        1.6666667461395264,
+        1.1000001430511475,
+        2.000000238418579
+      ]
+    },
+    "L4": {
+      "generated": true,
+      "views": [
+        "000",
+        "090",
+        "180",
+        "270"
+      ],
+      "occupied_voxels": 31568,
+      "bounds": [
+        8,
+        57,
+        16,
+        45,
+        2,
+        60
+      ],
+      "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet2/scans/L4/sheet2_L4.glb",
+      "blend": null,
+      "vertices": 12012,
+      "faces": 12104,
+      "dimensions": [
+        1.6949152946472168,
+        1.01694917678833,
+        2.0
+      ]
+    },
+    "L8": {
+      "generated": true,
+      "views": [
+        "000",
+        "090",
+        "180",
+        "270",
+        "045",
+        "135",
+        "225",
+        "315"
+      ],
+      "occupied_voxels": 29430,
+      "bounds": [
+        13,
+        55,
+        16,
+        45,
+        2,
+        53
+      ],
+      "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet2/scans/L8/sheet2_L8.glb",
+      "blend": null,
+      "vertices": 10676,
+      "faces": 10788,
+      "dimensions": [
+        1.653846263885498,
+        1.153846263885498,
+        2.0
+      ]
+    },
+    "L10": {
+      "generated": true,
+      "views": [
+        "000",
+        "090",
+        "180",
+        "270",
+        "045",
+        "135",
+        "225",
+        "315",
+        "TOP",
+        "BOT"
+      ],
+      "occupied_voxels": 25454,
+      "bounds": [
+        13,
+        55,
+        18,
+        44,
+        2,
+        53
+      ],
+      "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet2/scans/L10/sheet2_L10.glb",
+      "blend": null,
+      "vertices": 9262,
+      "faces": 9344,
+      "dimensions": [
+        1.653846263885498,
+        1.0384615659713745,
+        2.0
+      ]
+    }
+  }
+}
