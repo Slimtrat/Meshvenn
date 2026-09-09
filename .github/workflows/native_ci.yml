@@ -1,0 +1,309 @@
+name: Native CI
+
+on:
+  pull_request:
+    paths:
+      - "native/**"
+      - "core/native_*.py"
+      - "scripts/generate_*native.py"
+      - ".github/workflows/native_ci.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "native/**"
+      - "core/native_*.py"
+      - "scripts/generate_*native.py"
+      - ".github/workflows/native_ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BLENDER_VERSION: "5.2.1"
+  BLENDER_ARCHIVE: "blender-5.2.1-linux-x64.tar.xz"
+  BLENDER_BASE_URL: "https://download.blender.org/release/Blender5.2"
+  BLENDER_ROOT: "${{ github.workspace }}/.blender"
+
+jobs:
+
+  # ---------------------------------------------------------
+  # Native core build + tests
+  # ---------------------------------------------------------
+
+  native:
+    name: Native C++ core
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            g++
+
+      - name: Configure native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            -S native \
+            -B build/native \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBPT_BUILD_TESTS=ON
+
+      - name: Build native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            --build build/native \
+            --config Release \
+            --parallel
+
+      - name: Run native tests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ctest \
+            --test-dir build/native \
+            --output-on-failure
+
+      - name: Stage native library
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p native/bin
+
+          LIB_PATH="$(
+            find build/native \
+              -type f \
+              -name "libbpt_core.so" \
+              | head -n 1
+          )"
+
+          if [[ -z "${LIB_PATH}" ]]; then
+            echo "libbpt_core.so not found"
+            exit 1
+          fi
+
+          cp \
+            "${LIB_PATH}" \
+            native/bin/libbpt_core.so
+
+          ls -lh \
+            native/bin/libbpt_core.so
+
+      - name: Upload native library
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-core-linux
+          path: native/bin/libbpt_core.so
+          if-no-files-found: error
+          retention-days: 3
+
+
+  # ---------------------------------------------------------
+  # Blender smoke test
+  # ---------------------------------------------------------
+
+  blender-smoke:
+    name: Blender native smoke
+    needs:
+      - native
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download native library artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: native-core-linux
+          path: native/bin
+
+      - name: Verify native library
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test \
+            -f native/bin/libbpt_core.so
+
+          ls -lh \
+            native/bin/libbpt_core.so
+
+      # -----------------------------------------------------
+      # Blender cache
+      # -----------------------------------------------------
+
+      - name: Cache Blender
+        id: blender-cache
+        uses: actions/cache@v4
+        with:
+          path: .blender
+          key: blender-linux-x64-${{ env.BLENDER_VERSION }}
+
+      - name: Download Blender
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p \
+            "${BLENDER_ROOT}"
+
+          URL="${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
+          ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
+
+          curl \
+            --fail \
+            --show-error \
+            --location \
+            --retry 5 \
+            --retry-all-errors \
+            --connect-timeout 20 \
+            --max-time 900 \
+            --output "${ARCHIVE}" \
+            "${URL}"
+
+          xz \
+            --test \
+            "${ARCHIVE}"
+
+          tar \
+            -xJf "${ARCHIVE}" \
+            -C "${BLENDER_ROOT}" \
+            --strip-components=1
+
+          rm \
+            "${ARCHIVE}"
+
+      - name: Verify Blender
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          "${BLENDER_ROOT}/blender" \
+            --version
+
+      # -----------------------------------------------------
+      # Native bridge smoke
+      # -----------------------------------------------------
+
+      - name: Test ctypes native loader
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from core.native_bridge import NativeCore
+
+          core = NativeCore()
+
+          print(
+              "Native core loaded successfully"
+          )
+          PY
+
+      # -----------------------------------------------------
+      # Minimal generation
+      # -----------------------------------------------------
+
+      - name: Generate L2 smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python \
+            scripts/generate_all_native.py \
+            -- \
+            --examples example \
+            --example mascotte/test1 \
+            --start-sheet sheet1.png \
+            --profiles L2 \
+            --resolution 32 \
+            --thread-count 0 \
+            --skip-blend
+
+      - name: Verify smoke output
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          MANIFEST="$(
+            find example/mascotte/test1/generated \
+              -type f \
+              -name manifest.json \
+              | head -n 1
+          )"
+
+          GLB="$(
+            find example/mascotte/test1/generated \
+              -type f \
+              -name "*.glb" \
+              | head -n 1
+          )"
+
+          if [[ -z "${MANIFEST}" ]]; then
+            echo "No manifest generated"
+            exit 1
+          fi
+
+          if [[ -z "${GLB}" ]]; then
+            echo "No GLB generated"
+            exit 1
+          fi
+
+          echo "Manifest:"
+          echo "${MANIFEST}"
+
+          echo "GLB:"
+          echo "${GLB}"
+
+      - name: Show generated files
+        if: always()
+        shell: bash
+        run: |
+          find example/mascotte/test1/generated \
+            -type f \
+            -print \
+            | sort \
+            || true
+
+      - name: Upload smoke output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-blender-smoke-${{ github.run_number }}
+          path: |
+            example/mascotte/test1/generated/**
+          if-no-files-found: warn
+          retention-days: 3

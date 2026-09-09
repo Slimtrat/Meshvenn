@@ -1,21 +1,15 @@
-name: Examples
+name: Native Examples
 
 on:
-  pull_request:
-    paths:
-      - "core/**"
-      - "scripts/**"
-      - "example/**/sheets/**"
-      - ".github/workflows/examples.yml"
-
   push:
     branches:
       - main
     paths:
-      - "core/**"
-      - "scripts/**"
+      - "native/**"
+      - "core/native_*.py"
+      - "scripts/generate_*native.py"
       - "example/**/sheets/**"
-      - ".github/workflows/examples.yml"
+      - ".github/workflows/native_examples.yml"
 
   workflow_dispatch:
     inputs:
@@ -57,9 +51,17 @@ on:
           - "96"
           - "128"
 
+      thread_count:
+        description: >
+          Threads natifs.
+          0 = auto.
+        required: true
+        default: "0"
+        type: string
+
       commit_results:
         description: >
-          Committer les GLB, manifests et découpes sur main.
+          Committer GLB, manifests et découpes générées sur main.
         required: true
         default: true
         type: boolean
@@ -70,68 +72,175 @@ permissions:
 
 
 concurrency:
-  group: examples-${{ github.event_name }}-${{ github.ref }}
+  group: native-examples-${{ github.ref }}
   cancel-in-progress: true
 
 
 env:
   BLENDER_VERSION: "5.2.1"
-  BLENDER_ROOT: "${{ github.workspace }}/.blender"
   BLENDER_ARCHIVE: "blender-5.2.1-linux-x64.tar.xz"
   BLENDER_BASE_URL: "https://download.blender.org/release/Blender5.2"
+  BLENDER_ROOT: "${{ github.workspace }}/.blender"
 
 
 jobs:
+
+  # ---------------------------------------------------------
+  # Resolve generation parameters
+  # ---------------------------------------------------------
 
   config:
     name: Configure
     runs-on: ubuntu-latest
 
     outputs:
-      mode: ${{ steps.config.outputs.mode }}
       example: ${{ steps.config.outputs.example }}
       start_sheet: ${{ steps.config.outputs.start_sheet }}
       profiles: ${{ steps.config.outputs.profiles }}
       resolution: ${{ steps.config.outputs.resolution }}
+      thread_count: ${{ steps.config.outputs.thread_count }}
       commit_results: ${{ steps.config.outputs.commit_results }}
 
     steps:
-      - name: Configure run
+      - name: Resolve configuration
         id: config
         shell: bash
         run: |
           set -euo pipefail
 
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "mode=smoke" >> "$GITHUB_OUTPUT"
-            echo "example=mascotte/test1" >> "$GITHUB_OUTPUT"
-            echo "start_sheet=sheet1.png" >> "$GITHUB_OUTPUT"
-            echo "profiles=L2" >> "$GITHUB_OUTPUT"
-            echo "resolution=32" >> "$GITHUB_OUTPUT"
-            echo "commit_results=false" >> "$GITHUB_OUTPUT"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
 
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "mode=manual" >> "$GITHUB_OUTPUT"
             echo "example=${{ inputs.example }}" >> "$GITHUB_OUTPUT"
-            echo "start_sheet=${{ inputs.start_sheet }}" >> "$GITHUB_OUTPUT"
-            echo "profiles=${{ inputs.profiles }}" >> "$GITHUB_OUTPUT"
-            echo "resolution=${{ inputs.resolution }}" >> "$GITHUB_OUTPUT"
-            echo "commit_results=${{ inputs.commit_results }}" >> "$GITHUB_OUTPUT"
+
+            echo \
+              "start_sheet=${{ inputs.start_sheet }}" \
+              >> "$GITHUB_OUTPUT"
+
+            echo \
+              "profiles=${{ inputs.profiles }}" \
+              >> "$GITHUB_OUTPUT"
+
+            echo \
+              "resolution=${{ inputs.resolution }}" \
+              >> "$GITHUB_OUTPUT"
+
+            echo \
+              "thread_count=${{ inputs.thread_count }}" \
+              >> "$GITHUB_OUTPUT"
+
+            echo \
+              "commit_results=${{ inputs.commit_results }}" \
+              >> "$GITHUB_OUTPUT"
 
           else
-            echo "mode=full" >> "$GITHUB_OUTPUT"
+
             echo "example=all" >> "$GITHUB_OUTPUT"
             echo "start_sheet=" >> "$GITHUB_OUTPUT"
             echo "profiles=L2 L4 L8 L10" >> "$GITHUB_OUTPUT"
             echo "resolution=64" >> "$GITHUB_OUTPUT"
+            echo "thread_count=0" >> "$GITHUB_OUTPUT"
             echo "commit_results=true" >> "$GITHUB_OUTPUT"
+
           fi
 
 
+  # ---------------------------------------------------------
+  # Native build
+  # ---------------------------------------------------------
+
+  native:
+    name: Build native core
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            g++
+
+      - name: Configure native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            -S native \
+            -B build/native \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBPT_BUILD_TESTS=ON
+
+      - name: Build native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            --build build/native \
+            --config Release \
+            --parallel
+
+      - name: Run native tests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ctest \
+            --test-dir build/native \
+            --output-on-failure
+
+      - name: Stage native library
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p native/bin
+
+          LIB_PATH="$(
+            find build/native \
+              -type f \
+              -name "libbpt_core.so" \
+              | head -n 1
+          )"
+
+          if [[ -z "${LIB_PATH}" ]]; then
+            echo "libbpt_core.so not found"
+            exit 1
+          fi
+
+          cp \
+            "${LIB_PATH}" \
+            native/bin/libbpt_core.so
+
+      - name: Upload native library
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-core-linux-main
+          path: native/bin/libbpt_core.so
+          if-no-files-found: error
+          retention-days: 3
+
+
+  # ---------------------------------------------------------
+  # Generate examples
+  # ---------------------------------------------------------
+
   generate:
-    name: Generate examples
+    name: Generate native examples
     needs:
       - config
+      - native
 
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -142,8 +251,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Download native library
+        uses: actions/download-artifact@v4
+        with:
+          name: native-core-linux-main
+          path: native/bin
+
+      - name: Verify native library
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test \
+            -f native/bin/libbpt_core.so
+
+          ls -lh \
+            native/bin/libbpt_core.so
+
       # -----------------------------------------------------
-      # Blender cache
+      # Blender
       # -----------------------------------------------------
 
       - name: Cache Blender
@@ -153,95 +279,32 @@ jobs:
           path: .blender
           key: blender-linux-x64-${{ env.BLENDER_VERSION }}
 
-      # -----------------------------------------------------
-      # Robust Blender install
-      # -----------------------------------------------------
-
-      - name: Validate Blender download URL
-        if: steps.blender-cache.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          URL="${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
-
-          echo "Checking:"
-          echo "${URL}"
-
-          curl \
-            --fail \
-            --silent \
-            --show-error \
-            --location \
-            --head \
-            --retry 5 \
-            --retry-all-errors \
-            --connect-timeout 15 \
-            --max-time 60 \
-            "${URL}"
-
       - name: Download Blender
         if: steps.blender-cache.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
 
+          mkdir -p \
+            "${BLENDER_ROOT}"
+
           URL="${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
           ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
-
-          rm -rf "${BLENDER_ROOT}"
-          mkdir -p "${BLENDER_ROOT}"
-
-          echo "Downloading Blender ${BLENDER_VERSION}"
-          echo "${URL}"
 
           curl \
             --fail \
             --show-error \
             --location \
             --retry 5 \
-            --retry-delay 3 \
             --retry-all-errors \
             --connect-timeout 20 \
             --max-time 900 \
             --output "${ARCHIVE}" \
             "${URL}"
 
-          if [[ ! -s "${ARCHIVE}" ]]; then
-            echo "Downloaded archive is empty."
-            exit 1
-          fi
-
-          echo "Archive size:"
-          du -h "${ARCHIVE}"
-
-      - name: Validate Blender archive
-        if: steps.blender-cache.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
-
-          echo "Testing archive integrity..."
-
           xz \
             --test \
             "${ARCHIVE}"
-
-          tar \
-            -tJf "${ARCHIVE}" \
-            > /dev/null
-
-          echo "Archive is valid."
-
-      - name: Extract Blender
-        if: steps.blender-cache.outputs.cache-hit != 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
 
           tar \
             -xJf "${ARCHIVE}" \
@@ -251,80 +314,43 @@ jobs:
           rm \
             "${ARCHIVE}"
 
-      # -----------------------------------------------------
-      # Verify cache or installation
-      # -----------------------------------------------------
-
-      - name: Verify Blender executable
+      - name: Verify Blender
         shell: bash
         run: |
           set -euo pipefail
 
-          BLENDER_BIN="${BLENDER_ROOT}/blender"
-
-          if [[ ! -f "${BLENDER_BIN}" ]]; then
-            echo "Blender executable not found:"
-            echo "${BLENDER_BIN}"
-
-            echo "Blender directory:"
-            find "${BLENDER_ROOT}" \
-              -maxdepth 2 \
-              -type f \
-              | head -n 50
-
-            exit 1
-          fi
-
-          chmod +x \
-            "${BLENDER_BIN}"
-
-          "${BLENDER_BIN}" \
+          "${BLENDER_ROOT}/blender" \
             --version
 
-          VERSION="$(
-            "${BLENDER_BIN}" \
-              --version \
-              | head -n 1
-          )"
-
-          if [[ "${VERSION}" != *"Blender ${BLENDER_VERSION}"* ]]; then
-            echo "Wrong Blender version."
-            echo "Expected: ${BLENDER_VERSION}"
-            echo "Actual: ${VERSION}"
-            exit 1
-          fi
-
       # -----------------------------------------------------
-      # Configuration
+      # Show config
       # -----------------------------------------------------
 
-      - name: Generation configuration
+      - name: Show generation config
         shell: bash
         run: |
-          echo "Mode: ${{ needs.config.outputs.mode }}"
-          echo "Example: ${{ needs.config.outputs.example }}"
-          echo "Start sheet: ${{ needs.config.outputs.start_sheet }}"
-          echo "Profiles: ${{ needs.config.outputs.profiles }}"
-          echo "Resolution: ${{ needs.config.outputs.resolution }}"
-          echo "Commit: ${{ needs.config.outputs.commit_results }}"
+          echo "Example:      ${{ needs.config.outputs.example }}"
+          echo "Start sheet:  ${{ needs.config.outputs.start_sheet }}"
+          echo "Profiles:     ${{ needs.config.outputs.profiles }}"
+          echo "Resolution:   ${{ needs.config.outputs.resolution }}"
+          echo "Thread count: ${{ needs.config.outputs.thread_count }}"
+          echo "Commit:       ${{ needs.config.outputs.commit_results }}"
 
       # -----------------------------------------------------
-      # Generation
+      # Generate
       # -----------------------------------------------------
 
-      - name: Generate
+      - name: Generate all native examples
         shell: bash
         run: |
           set -euo pipefail
 
-          BLENDER_BIN="${BLENDER_ROOT}/blender"
-
           COMMAND=(
-            "${BLENDER_BIN}"
+            "${BLENDER_ROOT}/blender"
             "--background"
             "--factory-startup"
             "--python"
-            "scripts/generate_all_in_blender.py"
+            "scripts/generate_all_native.py"
             "--"
             "--examples"
             "example"
@@ -332,6 +358,9 @@ jobs:
             "${{ needs.config.outputs.example }}"
             "--resolution"
             "${{ needs.config.outputs.resolution }}"
+            "--thread-count"
+            "${{ needs.config.outputs.thread_count }}"
+            "--skip-blend"
             "--continue-on-error"
           )
 
@@ -366,10 +395,10 @@ jobs:
           "${COMMAND[@]}"
 
       # -----------------------------------------------------
-      # Diagnostics
+      # Validation
       # -----------------------------------------------------
 
-      - name: Show generated files
+      - name: Show generated tree
         if: always()
         shell: bash
         run: |
@@ -397,62 +426,84 @@ jobs:
                   "No manifest generated."
               )
 
-          successful_profiles = 0
+          generated_profiles = 0
 
-          for path in manifests:
+          for manifest_path in manifests:
               data = json.loads(
-                  path.read_text(
+                  manifest_path.read_text(
                       encoding="utf-8"
                   )
               )
 
-              generated = [
-                  name
-                  for name, profile
-                  in data.get(
-                      "profiles",
-                      {}
-                  ).items()
-                  if profile.get(
-                      "generated"
+              if data.get("engine") != "native-cpp":
+                  raise SystemExit(
+                      f"{manifest_path} was not generated by native-cpp"
                   )
+
+              profiles = data.get(
+                  "profiles",
+                  {}
+              )
+
+              successful = [
+                  name
+                  for name, profile in profiles.items()
+                  if profile.get("generated") is True
               ]
 
               print(
-                  f"{path}: "
-                  f"{generated}"
+                  manifest_path,
+                  successful,
               )
 
-              successful_profiles += len(
-                  generated
+              generated_profiles += len(
+                  successful
               )
 
-          if successful_profiles == 0:
+          if generated_profiles == 0:
               raise SystemExit(
-                  "No successful scan profile."
+                  "No successful native profile."
               )
+
+      - name: Validate GLB outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          GLB_COUNT="$(
+            find example \
+              -type f \
+              -path "*/generated/*" \
+              -name "*.glb" \
+              | wc -l
+          )"
+
+          echo "GLB files: ${GLB_COUNT}"
+
+          if [[ "${GLB_COUNT}" -lt 1 ]]; then
+            echo "No GLB generated."
+            exit 1
+          fi
 
       # -----------------------------------------------------
-      # Artifact
+      # CI artifact
       # -----------------------------------------------------
 
       - name: Upload generated examples
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: projection-examples-${{ github.run_number }}
-
+          name: native-generated-examples-${{ github.run_number }}
           path: |
             example/**/generated/**
-
           if-no-files-found: warn
           retention-days: 14
 
       # -----------------------------------------------------
-      # Git tracking
+      # Commit generated dataset
       # -----------------------------------------------------
 
-      - name: Prepare generated files for Git
+      - name: Prepare Git changes
         if: >
           needs.config.outputs.commit_results == 'true'
           && github.ref == 'refs/heads/main'
@@ -498,7 +549,7 @@ jobs:
 
           git commit \
             -m \
-            "chore: regenerate examples [generated examples]"
+            "chore: regenerate native examples [generated examples]"
 
           git push \
             origin \
