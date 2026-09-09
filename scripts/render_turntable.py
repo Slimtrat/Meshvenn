@@ -583,36 +583,37 @@ def setup_render(
         bpy.context.scene
     )
 
-    available_engines = {
-        item.identifier
-        for item in (
-            scene
-            .bl_rna
-            .properties["engine"]
-            .enum_items
-        )
-    }
+    render_engine = None
 
-    if "BLENDER_EEVEE" in available_engines:
-        scene.render.engine = (
-            "BLENDER_EEVEE"
-        )
+    for candidate in (
+        "BLENDER_EEVEE",
+        "CYCLES",
+    ):
+        try:
+            scene.render.engine = (
+                candidate
+            )
 
-    elif "CYCLES" in available_engines:
-        scene.render.engine = (
-            "CYCLES"
-        )
+            render_engine = (
+                candidate
+            )
 
-        scene.cycles.device = (
-            "CPU"
-        )
+            break
 
-    else:
+        except TypeError:
+            continue
+
+    if render_engine is None:
         raise RuntimeError(
             (
                 "No supported Blender "
                 "render engine available."
             )
+        )
+
+    if render_engine == "CYCLES":
+        scene.cycles.device = (
+            "CPU"
         )
 
     scene.render.resolution_x = (
@@ -663,7 +664,10 @@ def setup_render(
     )
 
     background = (
-        world.node_tree.nodes.get(
+        world
+        .node_tree
+        .nodes
+        .get(
             "Background"
         )
     )
@@ -684,7 +688,12 @@ def setup_render(
             0.25
         )
 
-
+    print(
+        (
+            "Preview render engine: "
+            f"{render_engine}"
+        )
+    )
 # ---------------------------------------------------------
 # Still render
 # ---------------------------------------------------------
