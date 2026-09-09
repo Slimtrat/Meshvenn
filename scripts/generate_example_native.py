@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from core.masks import rgba_to_mask
+from core.image_mask import rgba_to_mask
 from core.native_bridge import NativeProjection
 from core.native_mesh_builder import (
     create_blender_mesh_from_native,
