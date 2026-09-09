@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from .masks import BinaryMask
+from .image_mask import BinaryMask
 from .native_loader import load_native_library
 
 

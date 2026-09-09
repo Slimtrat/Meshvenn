@@ -1,5 +1,3 @@
-# .github/workflows/ci.yml
-
 name: CI
 
 on:
@@ -7,6 +5,7 @@ on:
     branches:
       - main
       - develop
+      - dev
 
   pull_request:
 
@@ -16,25 +15,10 @@ permissions:
   contents: write
 
 jobs:
-  test:
-    name: Tests
-    runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Run tests
-        run: |
-          python -m unittest discover \
-            -s tests \
-            -p "test_*.py" \
-            -v
+  # ---------------------------------------------------------
+  # Validate repository
+  # ---------------------------------------------------------
 
   validate:
     name: Validate extension
@@ -47,7 +31,7 @@ jobs:
       - name: Check required files
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
 
           required_files=(
             "blender_manifest.toml"
@@ -57,31 +41,235 @@ jobs:
             "properties.py"
             "operators.py"
             "ui.py"
+
             "core/__init__.py"
-            "core/masks.py"
-            "core/visual_hull.py"
-            "core/mesh_builder.py"
-            "core/cleanup.py"
-            "tests/test_visual_hull.py"
+            "core/image_mask.py"
+            "core/native_loader.py"
+            "core/native_bridge.py"
+            "core/native_scan.py"
+            "core/native_mesh_builder.py"
+
+            "native/CMakeLists.txt"
+            "native/include/bpt_core.h"
+            "native/src/api.cpp"
+            "native/src/visual_hull.cpp"
+            "native/src/mesh.cpp"
+            "native/tests/test_visual_hull.cpp"
+
             "README.md"
           )
 
           for file in "${required_files[@]}"; do
-            if [[ ! -f "$file" ]]; then
-              echo "Missing required file: $file"
+            if [[ ! -f "${file}" ]]; then
+              echo "Missing required file: ${file}"
               exit 1
             fi
           done
 
-          echo "Extension structure is valid."
+          echo "Repository structure valid."
+
+
+  # ---------------------------------------------------------
+  # Build native binaries
+  # ---------------------------------------------------------
+
+  native:
+    name: Native ${{ matrix.platform }}
+    needs:
+      - validate
+
+    strategy:
+      fail-fast: false
+
+      matrix:
+        include:
+          - platform: linux
+            os: ubuntu-latest
+            library_name: libbpt_core.so
+
+          - platform: windows
+            os: windows-latest
+            library_name: bpt_core.dll
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------
+      # Linux
+      # -----------------------------------------------------
+
+      - name: Install Linux build tools
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            g++
+
+      - name: Configure native core - Linux
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            -S native \
+            -B build/native \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBPT_BUILD_TESTS=ON
+
+      - name: Build native core - Linux
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            --build build/native \
+            --parallel
+
+      - name: Test native core - Linux
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ctest \
+            --test-dir build/native \
+            --output-on-failure
+
+      - name: Stage Linux library
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p native/bin
+
+          LIB_PATH="$(
+            find build/native \
+              -type f \
+              -name "libbpt_core.so" \
+              | head -n 1
+          )"
+
+          if [[ -z "${LIB_PATH}" ]]; then
+            echo "libbpt_core.so not found"
+            exit 1
+          fi
+
+          cp \
+            "${LIB_PATH}" \
+            native/bin/libbpt_core.so
+
+          ls -lh native/bin
+
+
+      # -----------------------------------------------------
+      # Windows
+      # -----------------------------------------------------
+
+      - name: Configure native core - Windows
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          cmake `
+            -S native `
+            -B build/native `
+            -A x64 `
+            -DBPT_BUILD_TESTS=ON
+
+          if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+          }
+
+      - name: Build native core - Windows
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          cmake `
+            --build build/native `
+            --config Release `
+            --parallel
+
+          if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+          }
+
+      - name: Test native core - Windows
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          ctest `
+            --test-dir build/native `
+            -C Release `
+            --output-on-failure
+
+          if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+          }
+
+      - name: Stage Windows library
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          New-Item `
+            -ItemType Directory `
+            -Force `
+            -Path native/bin `
+            | Out-Null
+
+          $dll = Get-ChildItem `
+            -Path build/native `
+            -Filter bpt_core.dll `
+            -Recurse `
+            | Select-Object -First 1
+
+          if (-not $dll) {
+              Write-Error "bpt_core.dll not found"
+              exit 1
+          }
+
+          Copy-Item `
+            $dll.FullName `
+            native/bin/bpt_core.dll
+
+          Get-ChildItem native/bin
+
+
+      # -----------------------------------------------------
+      # Upload platform artifact
+      # -----------------------------------------------------
+
+      - name: Upload native binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.platform }}
+          path: native/bin/${{ matrix.library_name }}
+          if-no-files-found: error
+          retention-days: 1
+
+
+  # ---------------------------------------------------------
+  # Package Blender extension
+  # ---------------------------------------------------------
 
   package:
     name: Build Blender Extension
     runs-on: ubuntu-latest
 
     needs:
-      - test
       - validate
+      - native
 
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -96,6 +284,39 @@ jobs:
         with:
           python-version: "3.11"
 
+
+      # -----------------------------------------------------
+      # Download native binaries
+      # -----------------------------------------------------
+
+      - name: Download Linux native binary
+        uses: actions/download-artifact@v4
+        with:
+          name: native-linux
+          path: native/bin
+
+      - name: Download Windows native binary
+        uses: actions/download-artifact@v4
+        with:
+          name: native-windows
+          path: native/bin
+
+      - name: Verify native binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f native/bin/libbpt_core.so
+          test -f native/bin/bpt_core.dll
+
+          echo "Native binaries:"
+          ls -lh native/bin
+
+
+      # -----------------------------------------------------
+      # Calculate version
+      # -----------------------------------------------------
+
       - name: Calculate build version
         id: version
         shell: python
@@ -105,7 +326,10 @@ jobs:
           import os
           import tomllib
 
-          with open("blender_manifest.toml", "rb") as file:
+          with open(
+              "blender_manifest.toml",
+              "rb",
+          ) as file:
               manifest = tomllib.load(file)
 
           base_version = manifest["version"]
@@ -119,55 +343,114 @@ jobs:
 
           major = int(parts[0])
           minor = int(parts[1])
-          build = int(os.environ["BUILD_NUMBER"])
 
-          version = f"{major}.{minor}.{build}"
+          build = int(
+              os.environ["BUILD_NUMBER"]
+          )
+
+          version = (
+              f"{major}.{minor}.{build}"
+          )
 
           with open(
               os.environ["GITHUB_OUTPUT"],
               "a",
               encoding="utf-8",
           ) as output:
-              output.write(f"version={version}\n")
+              output.write(
+                  f"version={version}\n"
+              )
 
-          print(f"Build version: {version}")
+          print(
+              f"Build version: {version}"
+          )
+
 
       - name: Define package name
         id: package_info
         shell: bash
         run: |
+          set -euo pipefail
+
           ZIP_NAME="blender_projection_tool-${{ steps.version.outputs.version }}.zip"
 
-          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+          echo \
+            "zip_name=${ZIP_NAME}" \
+            >> "$GITHUB_OUTPUT"
+
+
+      # -----------------------------------------------------
+      # Build package tree
+      # -----------------------------------------------------
 
       - name: Build package directory
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
 
           PACKAGE_ROOT="dist/blender_projection_tool"
 
-          mkdir -p "$PACKAGE_ROOT/core"
+          mkdir -p \
+            "${PACKAGE_ROOT}/core" \
+            "${PACKAGE_ROOT}/native/bin"
 
-          cp blender_manifest.toml "$PACKAGE_ROOT/"
-          cp __init__.py "$PACKAGE_ROOT/"
-          cp version.py "$PACKAGE_ROOT/"
-          cp translations.py "$PACKAGE_ROOT/"
-          cp properties.py "$PACKAGE_ROOT/"
-          cp operators.py "$PACKAGE_ROOT/"
-          cp ui.py "$PACKAGE_ROOT/"
+          cp blender_manifest.toml \
+            "${PACKAGE_ROOT}/"
 
-          cp core/__init__.py "$PACKAGE_ROOT/core/"
-          cp core/masks.py "$PACKAGE_ROOT/core/"
-          cp core/visual_hull.py "$PACKAGE_ROOT/core/"
-          cp core/mesh_builder.py "$PACKAGE_ROOT/core/"
-          cp core/cleanup.py "$PACKAGE_ROOT/core/"
+          cp __init__.py \
+            "${PACKAGE_ROOT}/"
 
-          cp README.md "$PACKAGE_ROOT/"
+          cp version.py \
+            "${PACKAGE_ROOT}/"
+
+          cp translations.py \
+            "${PACKAGE_ROOT}/"
+
+          cp properties.py \
+            "${PACKAGE_ROOT}/"
+
+          cp operators.py \
+            "${PACKAGE_ROOT}/"
+
+          cp ui.py \
+            "${PACKAGE_ROOT}/"
+
+          cp README.md \
+            "${PACKAGE_ROOT}/"
+
+          cp core/__init__.py \
+            "${PACKAGE_ROOT}/core/"
+
+          cp core/image_mask.py \
+            "${PACKAGE_ROOT}/core/"
+
+          cp core/native_loader.py \
+            "${PACKAGE_ROOT}/core/"
+
+          cp core/native_bridge.py \
+            "${PACKAGE_ROOT}/core/"
+
+          cp core/native_scan.py \
+            "${PACKAGE_ROOT}/core/"
+
+          cp core/native_mesh_builder.py \
+            "${PACKAGE_ROOT}/core/"
+
+          cp native/bin/libbpt_core.so \
+            "${PACKAGE_ROOT}/native/bin/"
+
+          cp native/bin/bpt_core.dll \
+            "${PACKAGE_ROOT}/native/bin/"
 
           if [[ -f LICENSE ]]; then
-            cp LICENSE "$PACKAGE_ROOT/"
+            cp LICENSE \
+              "${PACKAGE_ROOT}/"
           fi
+
+
+      # -----------------------------------------------------
+      # Patch manifest version
+      # -----------------------------------------------------
 
       - name: Patch packaged manifest version
         shell: python
@@ -186,7 +469,9 @@ jobs:
               encoding="utf-8"
           )
 
-          version = os.environ["BUILD_VERSION"]
+          version = os.environ[
+              "BUILD_VERSION"
+          ]
 
           content, count = re.subn(
               r'^version\s*=\s*"[^"]+"',
@@ -198,7 +483,7 @@ jobs:
 
           if count != 1:
               raise RuntimeError(
-                  "Could not patch blender_manifest.toml version."
+                  "Could not patch manifest version."
               )
 
           manifest_path.write_text(
@@ -206,37 +491,15 @@ jobs:
               encoding="utf-8",
           )
 
-      - name: Validate packaged manifest
-        shell: python
-        env:
-          BUILD_VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          import os
-          import pathlib
-          import tomllib
 
-          manifest_path = pathlib.Path(
-              "dist/blender_projection_tool/blender_manifest.toml"
-          )
-
-          with manifest_path.open("rb") as file:
-              manifest = tomllib.load(file)
-
-          expected = os.environ["BUILD_VERSION"]
-          actual = manifest["version"]
-
-          if actual != expected:
-              raise RuntimeError(
-                  f"Expected packaged version {expected}, "
-                  f"found {actual}."
-              )
-
-          print(f"Validated packaged extension v{actual}")
+      # -----------------------------------------------------
+      # Validate package
+      # -----------------------------------------------------
 
       - name: Validate packaged files
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
 
           PACKAGE_ROOT="dist/blender_projection_tool"
 
@@ -248,33 +511,46 @@ jobs:
             "properties.py"
             "operators.py"
             "ui.py"
+
             "core/__init__.py"
-            "core/masks.py"
-            "core/visual_hull.py"
-            "core/mesh_builder.py"
-            "core/cleanup.py"
+            "core/image_mask.py"
+            "core/native_loader.py"
+            "core/native_bridge.py"
+            "core/native_scan.py"
+            "core/native_mesh_builder.py"
+
+            "native/bin/libbpt_core.so"
+            "native/bin/bpt_core.dll"
+
             "README.md"
           )
 
           for file in "${required_files[@]}"; do
-            if [[ ! -f "$PACKAGE_ROOT/$file" ]]; then
-              echo "Missing packaged file: $file"
+            if [[ ! -f "${PACKAGE_ROOT}/${file}" ]]; then
+              echo "Missing packaged file: ${file}"
               exit 1
             fi
           done
 
-          echo "Package contents validated."
+          echo "Package validated."
+
+
+      # -----------------------------------------------------
+      # Create ZIP
+      # -----------------------------------------------------
 
       - name: Create ZIP
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
 
           cd dist
 
-          zip -r \
+          zip \
+            -r \
             "${{ steps.package_info.outputs.zip_name }}" \
             blender_projection_tool
+
 
       - name: Upload CI artifact
         uses: actions/upload-artifact@v4
@@ -284,6 +560,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+
       - name: Store release ZIP
         uses: actions/upload-artifact@v4
         with:
@@ -292,16 +569,22 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+
+  # ---------------------------------------------------------
+  # Release
+  # ---------------------------------------------------------
+
   release:
     name: GitHub Release
+
     runs-on: ubuntu-latest
 
     needs:
       - package
 
     if: >
-      github.event_name != 'pull_request' &&
-      github.ref == 'refs/heads/main'
+      github.event_name != 'pull_request'
+      && github.ref == 'refs/heads/main'
 
     steps:
       - name: Download release ZIP
@@ -314,6 +597,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.package.outputs.version }}
+
           name: Projection Tool v${{ needs.package.outputs.version }}
 
           generate_release_notes: true
@@ -324,27 +608,29 @@ jobs:
           body: |
             ## Blender Projection Tool
 
-            Blender extension build **v${{ needs.package.outputs.version }}**.
+            Native C++ Blender extension build
+            **v${{ needs.package.outputs.version }}**.
 
-            ### Included in this build
+            ### Native platforms
 
-            - arbitrary projection views
-            - 3/4 and turntable reconstruction
-            - fixed Blender radians/degrees handling
-            - English / French interface
-            - Front + Side quick preset
-            - 4 / 8 / 16 turntable presets
-            - projection diagnostics
-            - automatic voxel remesh and smoothing
+            - Windows x64
+            - Linux x64
+
+            ### Engine
+
+            - native C++ visual hull
+            - multithreaded reconstruction
+            - arbitrary azimuth / elevation
+            - native mesh generation
+            - ctypes bridge
+            - Blender direct mesh injection
 
             ### Installation
 
-            Download:
-
-            `${{ needs.package.outputs.zip_name }}`
-
-            In Blender 5.2.1:
+            Blender 5.2.1:
 
             `Edit → Preferences → Extensions → Install from Disk`
 
-            Select the ZIP directly.
+            Select:
+
+            `${{ needs.package.outputs.zip_name }}`
