@@ -1,5 +1,3 @@
-# properties.py
-
 from __future__ import annotations
 
 import math
@@ -88,7 +86,7 @@ class BPT_PG_Settings(PropertyGroup):
 
     resolution: IntProperty(
         name="Resolution",
-        description="Voxel resolution of the generated volume",
+        description="Native voxel resolution of the generated volume",
         default=96,
         min=16,
         max=256,
@@ -109,27 +107,12 @@ class BPT_PG_Settings(PropertyGroup):
         default=False,
     )
 
-    smooth_iterations: IntProperty(
-        name="Smooth",
-        description="Number of smoothing iterations applied after mesh generation",
-        default=3,
+    thread_count: IntProperty(
+        name="Threads",
+        description="Native worker threads. 0 uses automatic CPU detection",
+        default=0,
         min=0,
-        max=20,
-    )
-
-    voxel_size: FloatProperty(
-        name="Voxel Size",
-        description="Voxel size used by Blender's voxel remesher",
-        default=0.05,
-        min=0.001,
-        max=1.0,
-        precision=3,
-    )
-
-    auto_remesh: BoolProperty(
-        name="Auto Remesh",
-        description="Automatically run Blender voxel remesh after generation",
-        default=True,
+        max=256,
     )
 
     normalize_height: BoolProperty(
@@ -147,16 +130,16 @@ class BPT_PG_Settings(PropertyGroup):
     )
 
     generation_mode: EnumProperty(
-        name="Mode",
-        description="Silhouette reconstruction strategy",
+        name="Engine",
+        description="Reconstruction engine",
         items=(
             (
-                "VISUAL_HULL",
-                "Visual Hull",
-                "Intersect arbitrary orthographic silhouette projections",
+                "NATIVE_CPP",
+                "Native C++",
+                "Multithreaded native C++ silhouette reconstruction",
             ),
         ),
-        default="VISUAL_HULL",
+        default="NATIVE_CPP",
     )
 
 

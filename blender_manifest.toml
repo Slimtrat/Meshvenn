@@ -1,12 +1,10 @@
-# blender_manifest.toml
-
 schema_version = "1.0.0"
 
 id = "blender_projection_tool"
 version = "0.1.0"
 name = "Projection Tool"
 
-tagline = "Generate 3D meshes from multiple silhouette projections"
+tagline = "Generate 3D meshes from multiple silhouette projections with a native C++ engine"
 
 maintainer = "Slimtrat"
 
@@ -26,15 +24,25 @@ license = [
 ]
 
 [permissions]
-files = "Load silhouette reference images from disk"
+
+files = "Load silhouette reference images from disk and native engine binaries"
 
 [build]
+
 paths_exclude_pattern = [
     "/.git/",
     "/.github/",
     "/tests/",
+    "/native/tests/",
+    "/native/src/",
+    "/native/include/",
+    "/build/",
     "/dist/",
+    "/example/",
+    "/scripts/",
     "__pycache__/",
     "*.pyc",
     "*.zip",
+    "*.blend",
+    "*.blend1",
 ]

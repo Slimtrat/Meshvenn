@@ -1,5 +1,3 @@
-# ui.py
-
 from __future__ import annotations
 
 import math
@@ -8,6 +6,13 @@ import bpy
 
 from bpy.types import Panel, UIList
 
+from .core.native_loader import (
+    NativeAbiMismatchError,
+    NativeLibraryLoadError,
+    NativeLibraryNotFoundError,
+    find_native_library,
+    load_native_library,
+)
 from .translations import tr
 from .version import get_version_label
 
@@ -64,12 +69,12 @@ class BPT_PT_MainPanel(Panel):
         layout = self.layout
         settings = context.scene.bpt_settings
 
-        version_row = layout.row()
-        version_row.alignment = "RIGHT"
+        self._draw_header(
+            layout
+        )
 
-        version_row.label(
-            text=get_version_label(),
-            icon="INFO",
+        self._draw_native_status(
+            layout
         )
 
         self._draw_projection_section(
@@ -87,11 +92,6 @@ class BPT_PT_MainPanel(Panel):
             settings,
         )
 
-        self._draw_cleanup_section(
-            layout,
-            settings,
-        )
-
         layout.separator()
 
         button = layout.row()
@@ -105,24 +105,139 @@ class BPT_PT_MainPanel(Panel):
 
         layout.separator()
 
-        info_box = layout.box()
+        self._draw_workflow_info(
+            layout
+        )
 
-        info_box.label(
-            text=tr("workflow"),
+    def _draw_header(
+        self,
+        layout,
+    ) -> None:
+        row = layout.row()
+
+        row.label(
+            text="Native C++",
+            icon="CONSOLE",
+        )
+
+        version_row = row.row()
+        version_row.alignment = "RIGHT"
+
+        version_row.label(
+            text=get_version_label(),
             icon="INFO",
         )
 
-        info_box.label(
-            text=tr("use_transparent"),
+    def _draw_native_status(
+        self,
+        layout,
+    ) -> None:
+        box = layout.box()
+
+        box.label(
+            text="Native Engine",
+            icon="PREFERENCES",
         )
 
-        info_box.label(
-            text=tr("more_angles"),
-        )
+        try:
+            path = find_native_library()
 
-        info_box.label(
-            text=tr("start_low"),
-        )
+            library = load_native_library(
+                path
+            )
+
+            abi = int(
+                library.bpt_abi_version()
+            )
+
+            row = box.row()
+
+            row.label(
+                text="Status",
+            )
+
+            row.label(
+                text="Ready",
+                icon="CHECKMARK",
+            )
+
+            row = box.row()
+
+            row.label(
+                text="ABI",
+            )
+
+            row.label(
+                text=str(abi),
+            )
+
+            row = box.row()
+
+            row.label(
+                text="Library",
+            )
+
+            row.label(
+                text=path.name,
+            )
+
+        except NativeLibraryNotFoundError:
+            row = box.row()
+
+            row.alert = True
+
+            row.label(
+                text="Native library not found",
+                icon="ERROR",
+            )
+
+        except NativeAbiMismatchError as exc:
+            row = box.row()
+
+            row.alert = True
+
+            row.label(
+                text="ABI mismatch",
+                icon="ERROR",
+            )
+
+            details = box.row()
+
+            details.label(
+                text=str(exc),
+            )
+
+        except NativeLibraryLoadError as exc:
+            row = box.row()
+
+            row.alert = True
+
+            row.label(
+                text="Native library failed to load",
+                icon="ERROR",
+            )
+
+            details = box.row()
+
+            details.label(
+                text=str(exc),
+            )
+
+        except Exception as exc:
+            row = box.row()
+
+            row.alert = True
+
+            row.label(
+                text="Native engine error",
+                icon="ERROR",
+            )
+
+            details = box.row()
+
+            details.label(
+                text=str(exc),
+            )
 
     def _draw_projection_section(
         self,
@@ -139,7 +254,11 @@ class BPT_PT_MainPanel(Panel):
         )
 
         header.label(
-            text=str(len(settings.projections)),
+            text=str(
+                len(
+                    settings.projections
+                )
+            ),
         )
 
         row = box.row()
@@ -171,7 +290,9 @@ class BPT_PT_MainPanel(Panel):
                 icon="REMOVE",
             )
 
-            remove.index = settings.active_projection_index
+            remove.index = (
+                settings.active_projection_index
+            )
 
         box.separator()
 
@@ -198,21 +319,25 @@ class BPT_PT_MainPanel(Panel):
             "bpt.add_turntable_preset",
             text="4",
         )
+
         preset_4.view_count = 4
 
         preset_8 = preset_row.operator(
             "bpt.add_turntable_preset",
             text="8",
         )
+
         preset_8.view_count = 8
 
         preset_16 = preset_row.operator(
             "bpt.add_turntable_preset",
             text="16",
         )
+
         preset_16.view_count = 16
 
         import_row = preset_box.row()
+
         import_row.operator(
             "bpt.import_turntable_images",
             text=tr("import_turntable_images"),
@@ -227,7 +352,11 @@ class BPT_PT_MainPanel(Panel):
             len(settings.projections) - 1,
         )
 
-        projection = settings.projections[index]
+        projection = (
+            settings.projections[
+                index
+            ]
+        )
 
         detail_box = box.box()
 
@@ -255,11 +384,13 @@ class BPT_PT_MainPanel(Panel):
         )
 
         load_row = detail_box.row()
+
         load_op = load_row.operator(
             "bpt.load_projection_image",
             text=tr("load_image"),
             icon="FILE_IMAGE",
         )
+
         load_op.index = index
 
         detail_box.prop(
@@ -286,6 +417,7 @@ class BPT_PT_MainPanel(Panel):
         settings,
     ) -> None:
         active_views = 0
+        ready_views = 0
         missing_images = 0
 
         for projection in settings.projections:
@@ -296,6 +428,8 @@ class BPT_PT_MainPanel(Panel):
 
             if projection.image is None:
                 missing_images += 1
+            else:
+                ready_views += 1
 
         box = layout.box()
 
@@ -305,14 +439,36 @@ class BPT_PT_MainPanel(Panel):
         )
 
         row = box.row()
+
         row.label(
             text=tr("active_views"),
         )
+
         row.label(
-            text=str(active_views),
+            text=str(
+                active_views
+            ),
         )
 
         row = box.row()
+
+        row.label(
+            text="Ready views",
+        )
+
+        row.label(
+            text=str(
+                ready_views
+            ),
+            icon=(
+                "CHECKMARK"
+                if ready_views >= 2
+                else "ERROR"
+            ),
+        )
+
+        row = box.row()
+
         row.label(
             text=tr("missing_images"),
         )
@@ -324,7 +480,19 @@ class BPT_PT_MainPanel(Panel):
             )
         else:
             row.label(
-                text=str(missing_images),
+                text=str(
+                    missing_images
+                ),
+                icon="ERROR",
+            )
+
+        if ready_views < 2:
+            warning = box.row()
+
+            warning.alert = True
+
+            warning.label(
+                text="At least 2 ready projections required",
                 icon="ERROR",
             )
 
@@ -343,7 +511,7 @@ class BPT_PT_MainPanel(Panel):
         box.prop(
             settings,
             "generation_mode",
-            text=tr("mode"),
+            text="Engine",
         )
 
         box.prop(
@@ -366,55 +534,77 @@ class BPT_PT_MainPanel(Panel):
             text=tr("symmetry_x"),
         )
 
-        scale_box = box.box()
+        performance_box = box.box()
 
-        scale_box.label(
-            text=tr("scale"),
-            icon="EMPTY_ARROWS",
+        performance_box.label(
+            text="Performance",
+            icon="TIME",
         )
 
-        scale_box.prop(
+        performance_box.prop(
+            settings,
+            "thread_count",
+            text="Threads",
+        )
+
+        if settings.thread_count == 0:
+            performance_box.label(
+                text="0 = automatic CPU detection",
+                icon="INFO",
+            )
+
+        quality_box = box.box()
+
+        quality_box.label(
+            text="Output",
+            icon="OBJECT_DATA",
+        )
+
+        quality_box.prop(
             settings,
             "normalize_height",
             text=tr("normalize_height"),
         )
 
         if settings.normalize_height:
-            scale_box.prop(
+            quality_box.prop(
                 settings,
                 "target_height",
                 text=tr("target_height"),
             )
 
-    def _draw_cleanup_section(
+    def _draw_workflow_info(
         self,
         layout,
-        settings,
     ) -> None:
-        box = layout.box()
+        info_box = layout.box()
 
-        box.label(
-            text=tr("cleanup"),
-            icon="MOD_REMESH",
+        info_box.label(
+            text=tr("workflow"),
+            icon="INFO",
         )
 
-        box.prop(
-            settings,
-            "auto_remesh",
-            text=tr("auto_remesh"),
+        info_box.label(
+            text=tr("use_transparent"),
         )
 
-        if settings.auto_remesh:
-            box.prop(
-                settings,
-                "voxel_size",
-                text=tr("voxel_size"),
-            )
+        info_box.label(
+            text=tr("more_angles"),
+        )
 
-        box.prop(
-            settings,
-            "smooth_iterations",
-            text=tr("smooth"),
+        info_box.label(
+            text=tr("start_low"),
+        )
+
+        info_box.separator()
+
+        info_box.label(
+            text="Native pipeline:",
+            icon="CONSOLE",
+        )
+
+        info_box.label(
+            text="Images → Masks → C++ Hull → Mesh",
         )
 
 
@@ -426,9 +616,15 @@ CLASSES = (
 
 def register() -> None:
     for cls in CLASSES:
-        bpy.utils.register_class(cls)
+        bpy.utils.register_class(
+            cls
+        )
 
 
 def unregister() -> None:
-    for cls in reversed(CLASSES):
-        bpy.utils.unregister_class(cls)
+    for cls in reversed(
+        CLASSES
+    ):
+        bpy.utils.unregister_class(
+            cls
+        )
