@@ -1,11 +1,13 @@
 name: Visual Preview
 
+
 on:
   pull_request:
     paths:
       - "native/**"
       - "core/**"
       - "scripts/render_turntable.py"
+      - "scripts/render_projection_sheet.py"
       - "scripts/generate_*native.py"
       - "example/**"
       - ".github/workflows/visual_preview.yml"
@@ -17,6 +19,7 @@ on:
       - "native/**"
       - "core/**"
       - "scripts/render_turntable.py"
+      - "scripts/render_projection_sheet.py"
       - "scripts/generate_*native.py"
       - "example/**"
       - ".github/workflows/visual_preview.yml"
@@ -34,12 +37,12 @@ on:
         default: "L2 L4 L8 L10"
 
       views:
-        description: "Views per contact sheet"
+        description: "Views per turntable contact sheet"
         required: false
         default: "8"
 
       size:
-        description: "Preview size"
+        description: "Turntable preview size"
         required: false
         default: "384"
 
@@ -73,14 +76,26 @@ env:
 
 jobs:
 
+  # =========================================================
+  # Build current branch native core
+  # =========================================================
+
   native:
     name: Build native core
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: >-
+            ${{
+              github.event_name == 'pull_request'
+              && github.event.pull_request.head.sha
+              || github.sha
+            }}
 
       - name: Verify build tools
         shell: bash
@@ -140,7 +155,9 @@ jobs:
             exit 1
           fi
 
-          cp "${LIB_PATH}" native/bin/libbpt_core.so
+          cp \
+            "${LIB_PATH}" \
+            native/bin/libbpt_core.so
 
           ls -lh native/bin/libbpt_core.so
 
@@ -153,17 +170,35 @@ jobs:
           retention-days: 2
 
 
+  # =========================================================
+  # Generate current branch previews
+  # =========================================================
+
   preview:
     name: Generate visual previews
+
     needs:
       - native
 
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
+
+      # -----------------------------------------------------
+      # Checkout
+      # -----------------------------------------------------
+
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: >-
+            ${{
+              github.event_name == 'pull_request'
+              && github.event.pull_request.head.sha
+              || github.sha
+            }}
+          fetch-depth: 0
 
       - name: Download native library
         uses: actions/download-artifact@v4
@@ -177,8 +212,14 @@ jobs:
           set -euo pipefail
 
           test -f native/bin/libbpt_core.so
-          ls -lh native/bin/libbpt_core.so
 
+          ls -lh \
+            native/bin/libbpt_core.so
+
+
+      # -----------------------------------------------------
+      # Blender
+      # -----------------------------------------------------
 
       - name: Cache Blender
         id: blender-cache
@@ -193,7 +234,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p "${BLENDER_ROOT}"
+          mkdir -p \
+            "${BLENDER_ROOT}"
 
           URL="${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
           ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
@@ -209,22 +251,30 @@ jobs:
             --output "${ARCHIVE}" \
             "${URL}"
 
-          xz --test "${ARCHIVE}"
+          xz \
+            --test \
+            "${ARCHIVE}"
 
           tar \
             -xJf "${ARCHIVE}" \
             -C "${BLENDER_ROOT}" \
             --strip-components=1
 
-          rm "${ARCHIVE}"
+          rm \
+            "${ARCHIVE}"
 
       - name: Verify Blender
         shell: bash
         run: |
           set -euo pipefail
 
-          "${BLENDER_ROOT}/blender" --version
+          "${BLENDER_ROOT}/blender" \
+            --version
 
+
+      # -----------------------------------------------------
+      # Configuration
+      # -----------------------------------------------------
 
       - name: Resolve configuration
         id: config
@@ -233,26 +283,32 @@ jobs:
           set -euo pipefail
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+
             RESOLUTION="${{ inputs.resolution }}"
             PROFILES="${{ inputs.profiles }}"
             VIEWS="${{ inputs.views }}"
             SIZE="${{ inputs.size }}"
             SAMPLES="${{ inputs.samples }}"
-          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            RESOLUTION="48"
-            PROFILES="L2"
-            VIEWS="4"
-            SIZE="256"
-            SAMPLES="1"
+
           else
+
+            # PR and main intentionally use the same
+            # visual configuration so they can be
+            # compared directly.
             RESOLUTION="64"
             PROFILES="L2 L4 L8 L10"
             VIEWS="8"
             SIZE="384"
             SAMPLES="1"
+
           fi
 
-          for VALUE in "${RESOLUTION}" "${VIEWS}" "${SIZE}" "${SAMPLES}"; do
+          for VALUE in \
+            "${RESOLUTION}" \
+            "${VIEWS}" \
+            "${SIZE}" \
+            "${SAMPLES}"
+          do
             if ! [[ "${VALUE}" =~ ^[0-9]+$ ]]; then
               echo "Invalid numeric value: ${VALUE}"
               exit 1
@@ -273,6 +329,10 @@ jobs:
           echo "Size: ${SIZE}"
           echo "Samples: ${SAMPLES}"
 
+
+      # -----------------------------------------------------
+      # Sheets
+      # -----------------------------------------------------
 
       - name: Discover sheets
         id: sheets
@@ -301,27 +361,41 @@ jobs:
           SHEET_NAMES=()
 
           for SHEET_PATH in "${SHEET_PATHS[@]}"; do
-            SHEET_NAME="$(basename "${SHEET_PATH}" .png)"
-            SHEET_NAMES+=("${SHEET_NAME}")
+            SHEET_NAME="$(
+              basename \
+                "${SHEET_PATH}" \
+                .png
+            )"
+
+            SHEET_NAMES+=(
+              "${SHEET_NAME}"
+            )
           done
 
           {
             echo "count=${#SHEET_NAMES[@]}"
             echo "sheet_names=${SHEET_NAMES[*]}"
+
             echo "sheet_paths<<EOF"
             printf '%s\n' "${SHEET_PATHS[@]}"
             echo "EOF"
           } >> "${GITHUB_OUTPUT}"
 
-          echo "Discovered ${#SHEET_NAMES[@]} sheet(s): ${SHEET_NAMES[*]}"
+          echo \
+            "Discovered ${#SHEET_NAMES[@]} sheet(s): ${SHEET_NAMES[*]}"
 
+
+      # -----------------------------------------------------
+      # Current branch reconstruction
+      # -----------------------------------------------------
 
       - name: Generate native scans
         shell: bash
         run: |
           set -euo pipefail
 
-          read -ra PROFILE_ARGS <<< "${{ steps.config.outputs.profiles }}"
+          read -ra PROFILE_ARGS \
+            <<< "${{ steps.config.outputs.profiles }}"
 
           "${BLENDER_ROOT}/blender" \
             --background \
@@ -336,18 +410,35 @@ jobs:
             --skip-blend
 
 
+      # -----------------------------------------------------
+      # Current branch rendering
+      # -----------------------------------------------------
+
       - name: Render previews
         shell: bash
         run: |
           set -euo pipefail
 
-          mkdir -p visual-preview
+          mkdir -p \
+            visual-preview
 
-          read -ra SHEETS <<< "${{ steps.sheets.outputs.sheet_names }}"
-          read -ra PROFILES <<< "${{ steps.config.outputs.profiles }}"
+          read -ra SHEETS \
+            <<< "${{ steps.sheets.outputs.sheet_names }}"
+
+          read -ra PROFILES \
+            <<< "${{ steps.config.outputs.profiles }}"
 
           for SHEET in "${SHEETS[@]}"; do
+
+            TEMPLATE="${SHEETS_DIR}/${SHEET}.png"
+
+            if [[ ! -s "${TEMPLATE}" ]]; then
+              echo "Missing source sheet: ${TEMPLATE}"
+              exit 1
+            fi
+
             for LEVEL in "${PROFILES[@]}"; do
+
               SCAN_DIR="${GENERATED_DIR}/${SHEET}/scans/${LEVEL}"
 
               if [[ ! -d "${SCAN_DIR}" ]]; then
@@ -368,12 +459,18 @@ jobs:
               fi
 
               OUTPUT_DIR="visual-preview/${SHEET}/${LEVEL}"
-              mkdir -p "${OUTPUT_DIR}"
+
+              mkdir -p \
+                "${OUTPUT_DIR}"
 
               echo
               echo "Rendering ${SHEET} ${LEVEL}"
               echo "GLB: ${GLB}"
               echo
+
+              # ---------------------------------------------
+              # Existing free turntable preview
+              # ---------------------------------------------
 
               "${BLENDER_ROOT}/blender" \
                 --background \
@@ -385,33 +482,75 @@ jobs:
                 --views "${{ steps.config.outputs.views }}" \
                 --size "${{ steps.config.outputs.size }}" \
                 --samples "${{ steps.config.outputs.samples }}"
+
+              # ---------------------------------------------
+              # Projection Tool reconstruction
+              # ---------------------------------------------
+
+              "${BLENDER_ROOT}/blender" \
+                --background \
+                --factory-startup \
+                --python scripts/render_projection_sheet.py \
+                -- \
+                --input "${GLB}" \
+                --template "${TEMPLATE}" \
+                --output "${OUTPUT_DIR}/projection_sheet.png" \
+                --samples "${{ steps.config.outputs.samples }}" \
+                --material-mode neutral
+
             done
           done
 
+
+      # -----------------------------------------------------
+      # Verify current branch
+      # -----------------------------------------------------
 
       - name: Verify previews
         shell: bash
         run: |
           set -euo pipefail
 
-          read -ra SHEETS <<< "${{ steps.sheets.outputs.sheet_names }}"
-          read -ra PROFILES <<< "${{ steps.config.outputs.profiles }}"
+          read -ra SHEETS \
+            <<< "${{ steps.sheets.outputs.sheet_names }}"
+
+          read -ra PROFILES \
+            <<< "${{ steps.config.outputs.profiles }}"
 
           for SHEET in "${SHEETS[@]}"; do
             for LEVEL in "${PROFILES[@]}"; do
+
               CONTACT="visual-preview/${SHEET}/${LEVEL}/contact_sheet.png"
+              PROJECTION="visual-preview/${SHEET}/${LEVEL}/projection_sheet.png"
 
               if [[ ! -s "${CONTACT}" ]]; then
                 echo "Missing contact sheet: ${CONTACT}"
                 exit 1
               fi
 
+              if [[ ! -s "${PROJECTION}" ]]; then
+                echo "Missing projection sheet: ${PROJECTION}"
+                exit 1
+              fi
+
               echo
               echo "${SHEET}/${LEVEL}"
-              ls -lh "${CONTACT}"
+
+              ls -lh \
+                "${CONTACT}" \
+                "${PROJECTION}"
+
             done
           done
 
+
+      # =====================================================
+      # MAIN DOCUMENTATION
+      # =====================================================
+
+      # -----------------------------------------------------
+      # Persistent preview files
+      # -----------------------------------------------------
 
       - name: Prepare documentation previews
         if: github.event_name != 'pull_request'
@@ -419,30 +558,59 @@ jobs:
         run: |
           set -euo pipefail
 
-          read -ra SHEETS <<< "${{ steps.sheets.outputs.sheet_names }}"
-          read -ra PROFILES <<< "${{ steps.config.outputs.profiles }}"
+          read -ra SHEETS \
+            <<< "${{ steps.sheets.outputs.sheet_names }}"
 
-          rm -rf docs/previews
-          mkdir -p docs/previews
+          read -ra PROFILES \
+            <<< "${{ steps.config.outputs.profiles }}"
+
+          rm -rf \
+            docs/previews
+
+          mkdir -p \
+            docs/previews
 
           for SHEET in "${SHEETS[@]}"; do
-            mkdir -p "docs/previews/${SHEET}"
+
+            SHEET_DOCS="docs/previews/${SHEET}"
+
+            mkdir -p \
+              "${SHEET_DOCS}"
+
+            cp \
+              "${SHEETS_DIR}/${SHEET}.png" \
+              "${SHEET_DOCS}/original.png"
 
             for LEVEL in "${PROFILES[@]}"; do
-              SOURCE="visual-preview/${SHEET}/${LEVEL}/contact_sheet.png"
-              DESTINATION="docs/previews/${SHEET}/${LEVEL}.png"
 
-              if [[ ! -s "${SOURCE}" ]]; then
-                echo "Missing preview source: ${SOURCE}"
-                exit 1
-              fi
+              LEVEL_DOCS="${SHEET_DOCS}/${LEVEL}"
 
-              cp "${SOURCE}" "${DESTINATION}"
+              mkdir -p \
+                "${LEVEL_DOCS}"
+
+              CONTACT_SOURCE="visual-preview/${SHEET}/${LEVEL}/contact_sheet.png"
+              PROJECTION_SOURCE="visual-preview/${SHEET}/${LEVEL}/projection_sheet.png"
+
+              cp \
+                "${CONTACT_SOURCE}" \
+                "${LEVEL_DOCS}/turntable.png"
+
+              cp \
+                "${PROJECTION_SOURCE}" \
+                "${LEVEL_DOCS}/projection.png"
+
             done
           done
 
-          find docs/previews -type f -print | sort
+          find docs/previews \
+            -type f \
+            -print \
+            | sort
 
+
+      # -----------------------------------------------------
+      # Persistent Markdown
+      # -----------------------------------------------------
 
       - name: Generate visual preview Markdown
         if: github.event_name != 'pull_request'
@@ -450,10 +618,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          read -ra SHEETS <<< "${{ steps.sheets.outputs.sheet_names }}"
-          read -ra PROFILES <<< "${{ steps.config.outputs.profiles }}"
+          read -ra SHEETS \
+            <<< "${{ steps.sheets.outputs.sheet_names }}"
 
-          mkdir -p docs
+          read -ra PROFILES \
+            <<< "${{ steps.config.outputs.profiles }}"
+
+          mkdir -p \
+            docs
 
           format_sheet_title() {
             local name="$1"
@@ -469,28 +641,42 @@ jobs:
             local level="$1"
 
             case "${level}" in
-              L2) echo "000° + 090°" ;;
-              L4) echo "000° + 090° + 180° + 270°" ;;
-              L6) echo "000° + 045° + 090° + 180° + 270° + 315°" ;;
-              L8) echo "8 horizontal views" ;;
-              L10) echo "L8 + TOP + BOT" ;;
-              *) echo "Custom profile" ;;
+              L2)
+                echo "000° + 090°"
+                ;;
+              L4)
+                echo "000° + 090° + 180° + 270°"
+                ;;
+              L6)
+                echo "000° + 045° + 090° + 180° + 270° + 315°"
+                ;;
+              L8)
+                echo "8 horizontal views"
+                ;;
+              L10)
+                echo "L8 + TOP + BOT"
+                ;;
+              *)
+                echo "Custom profile"
+                ;;
             esac
           }
 
           {
             echo "# Visual Reconstruction Preview"
             echo
-            echo "This page is generated automatically from the reference sheets."
+            echo "Automatically generated from the Projection Tool reference sheets."
             echo
-            echo "It provides a quick visual check of the native C++ reconstruction pipeline."
+            echo "Each reconstruction is rendered back into the exact same Projection Tool layout, allowing direct visual comparison with the source."
             echo
+
             echo "## Example"
             echo
             echo "- Root: \`${EXAMPLE_ROOT}/${EXAMPLE_NAME}\`"
             echo "- Sheets directory: \`${SHEETS_DIR}\`"
             echo "- Discovered sheets: **${#SHEETS[@]}**"
             echo
+
             echo "## Scan levels"
             echo
 
@@ -501,7 +687,11 @@ jobs:
             echo
 
             for SHEET in "${SHEETS[@]}"; do
-              SHEET_TITLE="$(format_sheet_title "${SHEET}")"
+
+              SHEET_TITLE="$(
+                format_sheet_title \
+                  "${SHEET}"
+              )"
 
               echo "---"
               echo
@@ -509,10 +699,21 @@ jobs:
               echo
 
               for LEVEL in "${PROFILES[@]}"; do
+
                 echo "### ${LEVEL}"
                 echo
-                echo "![${SHEET_TITLE} - ${LEVEL}](previews/${SHEET}/${LEVEL}.png)"
+                echo "| Original | Reconstruction ${LEVEL} |"
+                echo "| :---: | :---: |"
+                echo "| ![${SHEET_TITLE} original](previews/${SHEET}/original.png) | ![${SHEET_TITLE} ${LEVEL}](previews/${SHEET}/${LEVEL}/projection.png) |"
                 echo
+                echo "<details>"
+                echo "<summary>Turntable ${LEVEL}</summary>"
+                echo
+                echo "![${SHEET_TITLE} ${LEVEL} turntable](previews/${SHEET}/${LEVEL}/turntable.png)"
+                echo
+                echo "</details>"
+                echo
+
               done
             done
 
@@ -520,16 +721,749 @@ jobs:
             echo
             echo "## Generation"
             echo
-            echo "These images are generated by GitHub Actions using:"
+            echo "Generated by GitHub Actions using:"
             echo
             echo "- the native C++ visual hull engine;"
             echo "- Blender headless;"
             echo "- Cycles CPU;"
-            echo "- the example reference sheets in \`${SHEETS_DIR}/\`."
+            echo "- the Projection Tool sheets in \`${SHEETS_DIR}/\`."
             echo
             echo "The committed images represent the latest successful preview generated from \`main\`."
+
           } > docs/visual-preview.md
 
+
+      # =====================================================
+      # PR COMPARISON
+      # =====================================================
+
+      # -----------------------------------------------------
+      # Resolve current base branch
+      # -----------------------------------------------------
+
+      - name: Resolve PR base
+        if: github.event_name == 'pull_request'
+        id: base
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE_REF="${{ github.event.pull_request.base.ref }}"
+
+          git fetch \
+            origin \
+            "${BASE_REF}:refs/remotes/origin/${BASE_REF}"
+
+          BASE_SHA="$(
+            git rev-parse \
+              "refs/remotes/origin/${BASE_REF}"
+          )"
+
+          BASE_SHORT="$(
+            git rev-parse \
+              --short=8 \
+              "${BASE_SHA}"
+          )"
+
+          {
+            echo "ref=${BASE_REF}"
+            echo "sha=${BASE_SHA}"
+            echo "short_sha=${BASE_SHORT}"
+          } >> "${GITHUB_OUTPUT}"
+
+          echo "Base ref: ${BASE_REF}"
+          echo "Base SHA: ${BASE_SHA}"
+
+
+      # -----------------------------------------------------
+      # Original + PR + cached main
+      # -----------------------------------------------------
+
+      - name: Prepare PR visual comparison
+        if: github.event_name == 'pull_request'
+        id: main-baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE_SHA="${{ steps.base.outputs.sha }}"
+
+          rm -rf \
+            visual-compare
+
+          mkdir -p \
+            visual-compare/original \
+            visual-compare/main \
+            visual-compare/pr \
+            visual-compare/status
+
+          MISSING_FILE="${RUNNER_TEMP}/bpt-missing-main.tsv"
+
+          : > "${MISSING_FILE}"
+
+          read -ra SHEETS \
+            <<< "${{ steps.sheets.outputs.sheet_names }}"
+
+          read -ra PROFILES \
+            <<< "${{ steps.config.outputs.profiles }}"
+
+          for SHEET in "${SHEETS[@]}"; do
+
+            SOURCE_SHEET="${SHEETS_DIR}/${SHEET}.png"
+
+            cp \
+              "${SOURCE_SHEET}" \
+              "visual-compare/original/${SHEET}.png"
+
+            mkdir -p \
+              "visual-compare/main/${SHEET}" \
+              "visual-compare/pr/${SHEET}" \
+              "visual-compare/status/${SHEET}"
+
+            # ------------------------------------------------
+            # Has the source sheet changed compared with main?
+            # ------------------------------------------------
+
+            SOURCE_CHANGED="false"
+
+            if ! git cat-file \
+              -e \
+              "${BASE_SHA}:${SOURCE_SHEET}" \
+              2>/dev/null
+            then
+              SOURCE_CHANGED="true"
+            elif ! git diff \
+              --quiet \
+              "${BASE_SHA}" \
+              HEAD \
+              -- \
+              "${SOURCE_SHEET}"
+            then
+              SOURCE_CHANGED="true"
+            fi
+
+            for LEVEL in "${PROFILES[@]}"; do
+
+              # PR result always comes from the current run.
+
+              cp \
+                "visual-preview/${SHEET}/${LEVEL}/projection_sheet.png" \
+                "visual-compare/pr/${SHEET}/${LEVEL}.png"
+
+              MAIN_DOC_PATH="docs/previews/${SHEET}/${LEVEL}/projection.png"
+
+              MAIN_OUTPUT="visual-compare/main/${SHEET}/${LEVEL}.png"
+
+              STATUS_FILE="visual-compare/status/${SHEET}/${LEVEL}.txt"
+
+              # ------------------------------------------------
+              # Cache hit:
+              #
+              # - source sheet unchanged
+              # - preview already committed on main
+              #
+              # => do NOT rebuild main.
+              # ------------------------------------------------
+
+              if \
+                [[ "${SOURCE_CHANGED}" == "false" ]] \
+                && git cat-file \
+                  -e \
+                  "${BASE_SHA}:${MAIN_DOC_PATH}" \
+                  2>/dev/null
+              then
+
+                echo \
+                  "Reusing main preview: ${SHEET}/${LEVEL}"
+
+                git show \
+                  "${BASE_SHA}:${MAIN_DOC_PATH}" \
+                  > "${MAIN_OUTPUT}"
+
+                echo \
+                  "reused" \
+                  > "${STATUS_FILE}"
+
+                continue
+
+              fi
+
+              # ------------------------------------------------
+              # Cache miss
+              # ------------------------------------------------
+
+              printf '%s\t%s\n' \
+                "${SHEET}" \
+                "${LEVEL}" \
+                >> "${MISSING_FILE}"
+
+              if [[ "${SOURCE_CHANGED}" == "true" ]]; then
+
+                echo \
+                  "generated-input-changed" \
+                  > "${STATUS_FILE}"
+
+                echo \
+                  "Main baseline required for ${SHEET}/${LEVEL}: source sheet differs from main"
+
+              else
+
+                echo \
+                  "generated-preview-missing" \
+                  > "${STATUS_FILE}"
+
+                echo \
+                  "Main baseline required for ${SHEET}/${LEVEL}: committed preview missing"
+
+              fi
+
+            done
+          done
+
+          MISSING_COUNT="$(
+            wc -l \
+              < "${MISSING_FILE}" \
+              | tr -d ' '
+          )"
+
+          {
+            echo "missing_count=${MISSING_COUNT}"
+            echo "missing_file=${MISSING_FILE}"
+          } >> "${GITHUB_OUTPUT}"
+
+          echo
+          echo "Missing main previews: ${MISSING_COUNT}"
+
+          if [[ "${MISSING_COUNT}" -gt 0 ]]; then
+            echo
+            cat "${MISSING_FILE}"
+          fi
+
+
+      # -----------------------------------------------------
+      # Rebuild main ONLY on cache miss
+      # -----------------------------------------------------
+
+      - name: Generate missing main baselines
+        if: >-
+          github.event_name == 'pull_request'
+          && steps.main-baseline.outputs.missing_count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          BASE_SHA="${{ steps.base.outputs.sha }}"
+          MISSING_FILE="${{ steps.main-baseline.outputs.missing_file }}"
+
+          MAIN_WORKTREE="${RUNNER_TEMP}/bpt-main"
+          MAIN_BUILD="${RUNNER_TEMP}/bpt-main-build"
+          MAIN_INPUT_ROOT="${RUNNER_TEMP}/bpt-main-input"
+          MAIN_EXAMPLE="${MAIN_INPUT_ROOT}/${EXAMPLE_NAME}"
+
+          rm -rf \
+            "${MAIN_WORKTREE}" \
+            "${MAIN_BUILD}" \
+            "${MAIN_INPUT_ROOT}"
+
+          # --------------------------------------------------
+          # Checkout actual main/base code separately.
+          # --------------------------------------------------
+
+          git worktree add \
+            --detach \
+            "${MAIN_WORKTREE}" \
+            "${BASE_SHA}"
+
+          # --------------------------------------------------
+          # Copy only the sheets that need a main baseline.
+          #
+          # Important:
+          # the input comes from the PR so a new/modified
+          # sheet is evaluated by both engines identically.
+          # --------------------------------------------------
+
+          mkdir -p \
+            "${MAIN_EXAMPLE}/sheets"
+
+          mapfile -t MISSING_SHEETS < <(
+            cut \
+              -f1 \
+              "${MISSING_FILE}" \
+              | sort \
+              -u
+          )
+
+          for SHEET in "${MISSING_SHEETS[@]}"; do
+
+            cp \
+              "${SHEETS_DIR}/${SHEET}.png" \
+              "${MAIN_EXAMPLE}/sheets/${SHEET}.png"
+
+          done
+
+          # --------------------------------------------------
+          # Only request profiles that are actually missing.
+          # Preserve configured scan-level order.
+          # --------------------------------------------------
+
+          read -ra ALL_PROFILES \
+            <<< "${{ steps.config.outputs.profiles }}"
+
+          MISSING_PROFILES=()
+
+          for LEVEL in "${ALL_PROFILES[@]}"; do
+
+            if awk \
+              -F '\t' \
+              -v level="${LEVEL}" \
+              '$2 == level { found = 1 } END { exit !found }' \
+              "${MISSING_FILE}"
+            then
+              MISSING_PROFILES+=(
+                "${LEVEL}"
+              )
+            fi
+
+          done
+
+          echo
+          echo "Missing sheets: ${MISSING_SHEETS[*]}"
+          echo "Missing profiles: ${MISSING_PROFILES[*]}"
+          echo
+
+          # --------------------------------------------------
+          # Build main native core.
+          #
+          # This entire block is skipped when every baseline
+          # was already committed on main.
+          # --------------------------------------------------
+
+          cmake \
+            -S "${MAIN_WORKTREE}/native" \
+            -B "${MAIN_BUILD}" \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBPT_BUILD_TESTS=OFF
+
+          cmake \
+            --build "${MAIN_BUILD}" \
+            --parallel
+
+          MAIN_LIB="$(
+            find "${MAIN_BUILD}" \
+              -type f \
+              -name "libbpt_core.so" \
+              | head -n 1
+          )"
+
+          if [[ -z "${MAIN_LIB}" ]]; then
+            echo "Main libbpt_core.so not found"
+            exit 1
+          fi
+
+          mkdir -p \
+            "${MAIN_WORKTREE}/native/bin"
+
+          cp \
+            "${MAIN_LIB}" \
+            "${MAIN_WORKTREE}/native/bin/libbpt_core.so"
+
+          # --------------------------------------------------
+          # Generate missing baseline geometry using main code.
+          # --------------------------------------------------
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python "${MAIN_WORKTREE}/scripts/generate_example_native.py" \
+            -- \
+            "${MAIN_EXAMPLE}" \
+            "${MAIN_EXAMPLE}" \
+            --profiles "${MISSING_PROFILES[@]}" \
+            --resolution "${{ steps.config.outputs.resolution }}" \
+            --thread-count 0 \
+            --skip-blend
+
+          # --------------------------------------------------
+          # Render only missing main comparisons.
+          #
+          # We deliberately use the PR projection renderer
+          # here so the camera/layout renderer itself is
+          # identical on both sides of the comparison.
+          # --------------------------------------------------
+
+          while IFS=$'\t' read -r SHEET LEVEL; do
+
+            SCAN_DIR="${MAIN_EXAMPLE}/generated/${SHEET}/scans/${LEVEL}"
+
+            GLB="$(
+              find "${SCAN_DIR}" \
+                -type f \
+                -name "*.glb" \
+                | head -n 1
+            )"
+
+            if [[ -z "${GLB}" ]]; then
+              echo \
+                "No main GLB found for ${SHEET}/${LEVEL}"
+
+              exit 1
+            fi
+
+            MAIN_OUTPUT="visual-compare/main/${SHEET}/${LEVEL}.png"
+
+            "${BLENDER_ROOT}/blender" \
+              --background \
+              --factory-startup \
+              --python scripts/render_projection_sheet.py \
+              -- \
+              --input "${GLB}" \
+              --template "${SHEETS_DIR}/${SHEET}.png" \
+              --output "${MAIN_OUTPUT}" \
+              --samples "${{ steps.config.outputs.samples }}" \
+              --material-mode neutral
+
+          done < "${MISSING_FILE}"
+
+          git worktree remove \
+            --force \
+            "${MAIN_WORKTREE}"
+
+
+      # -----------------------------------------------------
+      # Verify Original / main / PR
+      # -----------------------------------------------------
+
+      - name: Verify PR comparison
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          read -ra SHEETS \
+            <<< "${{ steps.sheets.outputs.sheet_names }}"
+
+          read -ra PROFILES \
+            <<< "${{ steps.config.outputs.profiles }}"
+
+          for SHEET in "${SHEETS[@]}"; do
+
+            ORIGINAL="visual-compare/original/${SHEET}.png"
+
+            if [[ ! -s "${ORIGINAL}" ]]; then
+              echo "Missing original: ${ORIGINAL}"
+              exit 1
+            fi
+
+            for LEVEL in "${PROFILES[@]}"; do
+
+              MAIN="visual-compare/main/${SHEET}/${LEVEL}.png"
+              PR="visual-compare/pr/${SHEET}/${LEVEL}.png"
+              STATUS="visual-compare/status/${SHEET}/${LEVEL}.txt"
+
+              if [[ ! -s "${MAIN}" ]]; then
+                echo "Missing main comparison: ${MAIN}"
+                exit 1
+              fi
+
+              if [[ ! -s "${PR}" ]]; then
+                echo "Missing PR comparison: ${PR}"
+                exit 1
+              fi
+
+              if [[ ! -s "${STATUS}" ]]; then
+                echo "Missing baseline status: ${STATUS}"
+                exit 1
+              fi
+
+            done
+          done
+
+
+      # =====================================================
+      # PR IMAGE HOSTING
+      # =====================================================
+
+      # GitHub Actions artifacts cannot be embedded directly
+      # as images in a PR comment.
+      #
+      # Each PR therefore gets one disposable preview branch:
+      #
+      #   visual-preview-pr-3
+      #
+      # It is force-updated on every PR run, so no image
+      # history accumulates inside that branch.
+
+      - name: Publish PR preview images
+        if: >-
+          github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        id: assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          ASSET_BRANCH="visual-preview-pr-${PR_NUMBER}"
+
+          ASSET_ROOT="${RUNNER_TEMP}/bpt-preview-assets"
+
+          rm -rf \
+            "${ASSET_ROOT}"
+
+          mkdir -p \
+            "${ASSET_ROOT}"
+
+          cp -R \
+            visual-compare/original \
+            "${ASSET_ROOT}/original"
+
+          cp -R \
+            visual-compare/main \
+            "${ASSET_ROOT}/main"
+
+          cp -R \
+            visual-compare/pr \
+            "${ASSET_ROOT}/pr"
+
+          cd \
+            "${ASSET_ROOT}"
+
+          git init
+
+          git checkout \
+            -b "${ASSET_BRANCH}"
+
+          git config \
+            user.name \
+            "github-actions[bot]"
+
+          git config \
+            user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            original \
+            main \
+            pr
+
+          git commit \
+            -m "preview: PR #${PR_NUMBER} visual comparison"
+
+          git remote add \
+            origin \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          git push \
+            --force \
+            origin \
+            "HEAD:refs/heads/${ASSET_BRANCH}"
+
+          {
+            echo "branch=${ASSET_BRANCH}"
+            echo "raw_root=https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${ASSET_BRANCH}"
+          } >> "${GITHUB_OUTPUT}"
+
+
+      # =====================================================
+      # STICKY PR COMMENT
+      # =====================================================
+
+      - name: Build sticky PR comment
+        if: >-
+          github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          COMMENT_FILE="visual-compare/comment.md"
+
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          PR_SHA="${{ github.event.pull_request.head.sha }}"
+          PR_SHORT="${PR_SHA:0:8}"
+
+          BASE_REF="${{ steps.base.outputs.ref }}"
+          BASE_SHORT="${{ steps.base.outputs.short_sha }}"
+
+          RAW_ROOT="${{ steps.assets.outputs.raw_root }}"
+
+          read -ra SHEETS \
+            <<< "${{ steps.sheets.outputs.sheet_names }}"
+
+          read -ra PROFILES \
+            <<< "${{ steps.config.outputs.profiles }}"
+
+          REUSED=0
+          GENERATED=0
+
+          for SHEET in "${SHEETS[@]}"; do
+            for LEVEL in "${PROFILES[@]}"; do
+
+              STATUS="$(
+                cat \
+                  "visual-compare/status/${SHEET}/${LEVEL}.txt"
+              )"
+
+              if [[ "${STATUS}" == "reused" ]]; then
+                REUSED=$((REUSED + 1))
+              else
+                GENERATED=$((GENERATED + 1))
+              fi
+
+            done
+          done
+
+          {
+            echo "<!-- bpt-visual-preview -->"
+            echo
+            echo "## Projection Tool — Visual Comparison"
+            echo
+            echo "**Base:** \`${BASE_REF}@${BASE_SHORT}\` · **PR:** \`#${PR_NUMBER}@${PR_SHORT}\`"
+            echo
+            echo "**Sheets:** ${#SHEETS[@]} · **Profiles:** ${{ steps.config.outputs.profiles }}"
+            echo
+            echo "**main baselines:** ${REUSED} reused · ${GENERATED} generated"
+            echo
+            echo "> Existing committed \`${BASE_REF}\` previews are reused. The base engine is only rerun when a preview is missing or when the source sheet differs from \`${BASE_REF}\`."
+            echo
+
+            for SHEET in "${SHEETS[@]}"; do
+
+              if [[ "${SHEET}" =~ ^sheet([0-9]+)$ ]]; then
+                SHEET_TITLE="Sheet ${BASH_REMATCH[1]}"
+              else
+                SHEET_TITLE="${SHEET}"
+              fi
+
+              echo "---"
+              echo
+              echo "### ${SHEET_TITLE}"
+              echo
+
+              for LEVEL in "${PROFILES[@]}"; do
+
+                ORIGINAL_URL="${RAW_ROOT}/original/${SHEET}.png?v=${PR_SHA}"
+                MAIN_URL="${RAW_ROOT}/main/${SHEET}/${LEVEL}.png?v=${PR_SHA}"
+                PR_URL="${RAW_ROOT}/pr/${SHEET}/${LEVEL}.png?v=${PR_SHA}"
+
+                STATUS="$(
+                  cat \
+                    "visual-compare/status/${SHEET}/${LEVEL}.txt"
+                )"
+
+                case "${STATUS}" in
+
+                  reused)
+                    MAIN_STATUS="cached from ${BASE_REF}"
+                    ;;
+
+                  generated-input-changed)
+                    MAIN_STATUS="generated · source changed"
+                    ;;
+
+                  generated-preview-missing)
+                    MAIN_STATUS="generated · preview missing"
+                    ;;
+
+                  *)
+                    MAIN_STATUS="${STATUS}"
+                    ;;
+
+                esac
+
+                echo "#### ${LEVEL}"
+                echo
+                echo "| Original | ${BASE_REF} | PR #${PR_NUMBER} |"
+                echo "| :---: | :---: | :---: |"
+                echo "| <a href=\"${ORIGINAL_URL}\"><img src=\"${ORIGINAL_URL}\" width=\"320\"></a> | <a href=\"${MAIN_URL}\"><img src=\"${MAIN_URL}\" width=\"320\"></a> | <a href=\"${PR_URL}\"><img src=\"${PR_URL}\" width=\"320\"></a> |"
+                echo "| source | ${MAIN_STATUS} | current PR result |"
+                echo
+
+              done
+            done
+
+            echo "---"
+            echo
+            echo "<sub>Generated automatically by the Visual Preview workflow. This comment is updated in place on every PR run.</sub>"
+
+          } > "${COMMENT_FILE}"
+
+          cat \
+            "${COMMENT_FILE}"
+
+
+      - name: Update sticky PR comment
+        if: >-
+          github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require("fs");
+
+            const marker =
+              "<!-- bpt-visual-preview -->";
+
+            const body =
+              fs.readFileSync(
+                "visual-compare/comment.md",
+                "utf8"
+              );
+
+            const comments =
+              await github.paginate(
+                github.rest.issues.listComments,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number:
+                    context.issue.number,
+                  per_page: 100,
+                }
+              );
+
+            const existing =
+              comments.find(
+                (comment) =>
+                  comment.body
+                    ?.includes(marker)
+              );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+
+              core.info(
+                `Updated sticky preview comment ${existing.id}`
+              );
+            } else {
+              const created =
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number:
+                    context.issue.number,
+                  body,
+                });
+
+              core.info(
+                `Created sticky preview comment ${created.data.id}`
+              );
+            }
+
+
+      # =====================================================
+      # Actions summary
+      # =====================================================
 
       - name: Generate preview summary
         if: always()
@@ -554,7 +1488,20 @@ jobs:
             echo
             echo "Cycles samples: **${{ steps.config.outputs.samples }}**"
             echo
-            echo "Contact sheets:"
+            echo "Projection sheets:"
+            echo
+
+            find visual-preview \
+              -type f \
+              -name "projection_sheet.png" \
+              -print \
+              | sort \
+              | sed 's/^/- `/' \
+              | sed 's/$/`/' \
+              || true
+
+            echo
+            echo "Turntables:"
             echo
 
             find visual-preview \
@@ -566,8 +1513,19 @@ jobs:
               | sed 's/$/`/' \
               || true
 
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              echo
+              echo "## PR comparison"
+              echo
+              echo "main cache misses: **${{ steps.main-baseline.outputs.missing_count }}**"
+            fi
+
           } >> "${GITHUB_STEP_SUMMARY}"
 
+
+      # =====================================================
+      # Artifact
+      # =====================================================
 
       - name: Upload visual previews
         if: always()
@@ -576,10 +1534,15 @@ jobs:
           name: native-visual-preview-${{ github.run_number }}
           path: |
             visual-preview/**
+            visual-compare/**
             example/mascotte/test1/generated/**/manifest.json
           if-no-files-found: warn
           retention-days: 14
 
+
+      # =====================================================
+      # Persist main documentation
+      # =====================================================
 
       - name: Commit visual documentation
         if: >-
@@ -589,15 +1552,27 @@ jobs:
         run: |
           set -euo pipefail
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config \
+            user.name \
+            "github-actions[bot]"
 
-          git add docs/visual-preview.md docs/previews
+          git config \
+            user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
 
-          if git diff --cached --quiet; then
+          git add \
+            docs/visual-preview.md \
+            docs/previews
+
+          if git diff \
+            --cached \
+            --quiet
+          then
             echo "Visual documentation is already up to date."
             exit 0
           fi
 
-          git commit -m "docs: update visual reconstruction previews [skip ci]"
+          git commit \
+            -m "docs: update visual reconstruction previews [skip ci]"
+
           git push
