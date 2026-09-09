@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import sys
+
 from pathlib import Path
+
 
 REPO_ROOT = (
     Path(__file__)
@@ -16,6 +18,7 @@ if str(REPO_ROOT) not in sys.path:
         str(REPO_ROOT),
     )
 
+
 from scripts.generate_example_native import (
     process_sheet,
 )
@@ -23,6 +26,10 @@ from scripts.run_logger import (
     RunLogger,
 )
 
+
+# ---------------------------------------------------------
+# CLI
+# ---------------------------------------------------------
 
 def parse_args() -> argparse.Namespace:
     argv = sys.argv
@@ -122,6 +129,21 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--mesh-mode",
+        choices=(
+            "blocks",
+            "surface_nets",
+        ),
+        default="blocks",
+        help=(
+            "Mesh extraction algorithm. "
+            "blocks preserves the historical "
+            "voxel-face mesher; surface_nets "
+            "uses smooth Surface Nets extraction."
+        ),
+    )
+
+    parser.add_argument(
         "--skip-blend",
         action="store_true",
     )
@@ -140,6 +162,10 @@ def parse_args() -> argparse.Namespace:
         argv
     )
 
+
+# ---------------------------------------------------------
+# Discovery
+# ---------------------------------------------------------
 
 def discover_examples(
     examples_root: Path,
@@ -379,6 +405,10 @@ def filter_from_sheet(
     ]
 
 
+# ---------------------------------------------------------
+# Normalization / validation
+# ---------------------------------------------------------
+
 def normalize_profiles(
     profiles: list[str] | None,
 ) -> list[str] | None:
@@ -458,6 +488,10 @@ def validate_numeric_args(
         )
 
 
+# ---------------------------------------------------------
+# Execution plan
+# ---------------------------------------------------------
+
 def print_plan(
     logger: RunLogger,
     sheets: list[
@@ -494,6 +528,27 @@ def print_plan(
             )
             if args.profiles
             else "all runnable"
+        ),
+    )
+
+    logger.info(
+        "Mesh mode",
+        value=(
+            args.mesh_mode
+        ),
+    )
+
+    logger.info(
+        "Voxel size",
+        value=(
+            args.voxel_size
+        ),
+    )
+
+    logger.info(
+        "Target height",
+        value=(
+            args.target_height
         ),
     )
 
@@ -541,6 +596,10 @@ def print_plan(
             ),
         )
 
+
+# ---------------------------------------------------------
+# Main
+# ---------------------------------------------------------
 
 def main() -> None:
     args = parse_args()
@@ -709,6 +768,13 @@ def main() -> None:
         "Failed",
         count=len(
             failures
+        ),
+    )
+
+    logger.info(
+        "Mesh mode",
+        value=(
+            args.mesh_mode
         ),
     )
 

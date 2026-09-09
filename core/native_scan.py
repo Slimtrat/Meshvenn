@@ -171,6 +171,7 @@ class NativeScanner:
         build_meshes: bool = True,
         voxel_size: float = 1.0,
         center_xy: bool = True,
+        mesh_mode: str = "blocks",
     ) -> NativeScanResult:
         if resolution <= 0:
             raise ValueError(
@@ -304,6 +305,9 @@ class NativeScanner:
                             ),
                             center_xy=(
                                 center_xy
+                            ),
+                            mesh_mode=(
+                                mesh_mode
                             ),
                         )
                     )

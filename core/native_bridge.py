@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ctypes
+
 from array import array
 from dataclasses import dataclass
 from pathlib import Path
@@ -25,6 +26,22 @@ _c_uint32_p = ctypes.POINTER(
 _c_float_p = ctypes.POINTER(
     ctypes.c_float
 )
+
+
+# ---------------------------------------------------------
+# Mesh modes
+# ---------------------------------------------------------
+
+MESH_MODE_BLOCKS = 0
+MESH_MODE_SURFACE_NETS = 1
+
+MESH_MODE_BY_NAME: dict[
+    str,
+    int,
+] = {
+    "blocks": MESH_MODE_BLOCKS,
+    "surface_nets": MESH_MODE_SURFACE_NETS,
+}
 
 
 # ---------------------------------------------------------
@@ -176,6 +193,37 @@ class BptVolumeResult(
     ]
 
 
+class BptMeshOptions(
+    ctypes.Structure
+):
+    _fields_ = [
+        (
+            "voxel_size",
+            ctypes.c_float,
+        ),
+        (
+            "mode",
+            ctypes.c_int32,
+        ),
+        (
+            "center_xy",
+            ctypes.c_uint8,
+        ),
+        (
+            "reserved_0",
+            ctypes.c_uint8,
+        ),
+        (
+            "reserved_1",
+            ctypes.c_uint8,
+        ),
+        (
+            "reserved_2",
+            ctypes.c_uint8,
+        ),
+    ]
+
+
 class BptMeshResult(
     ctypes.Structure
 ):
@@ -312,6 +360,57 @@ class NativeCoreError(
 
 
 # ---------------------------------------------------------
+# Mesh mode normalization
+# ---------------------------------------------------------
+
+def normalize_mesh_mode(
+    mesh_mode: str,
+) -> tuple[
+    str,
+    int,
+]:
+    normalized = (
+        str(
+            mesh_mode
+        )
+        .strip()
+        .lower()
+        .replace(
+            "-",
+            "_",
+        )
+    )
+
+    mode = (
+        MESH_MODE_BY_NAME
+        .get(
+            normalized
+        )
+    )
+
+    if mode is None:
+        available = ", ".join(
+            sorted(
+                MESH_MODE_BY_NAME
+            )
+        )
+
+        raise ValueError(
+            (
+                "Unknown mesh mode "
+                f'"{mesh_mode}". '
+                f"Available modes: "
+                f"{available}."
+            )
+        )
+
+    return (
+        normalized,
+        mode,
+    )
+
+
+# ---------------------------------------------------------
 # Library wrapper
 # ---------------------------------------------------------
 
@@ -324,6 +423,10 @@ class NativeCore:
             load_native_library(
                 library_path
             )
+        )
+
+        self._has_extended_mesh_api = (
+            False
         )
 
         self._configure_signatures()
@@ -396,6 +499,10 @@ class NativeCore:
             ctypes.c_int32
         )
 
+        # -------------------------------------------------
+        # Historical mesh API
+        # -------------------------------------------------
+
         lib.bpt_build_surface_mesh.argtypes = [
             ctypes.POINTER(
                 BptVolumeResult
@@ -410,6 +517,45 @@ class NativeCore:
         lib.bpt_build_surface_mesh.restype = (
             ctypes.c_int32
         )
+
+        # -------------------------------------------------
+        # Extended mesh API
+        # -------------------------------------------------
+        #
+        # The C ABI version intentionally remains 1 because
+        # the change is additive.
+        #
+        # Therefore an older ABI-1 library can still be
+        # loaded. Detect the new symbol rather than assuming
+        # its presence.
+        # -------------------------------------------------
+
+        extended_mesh_api = getattr(
+            lib,
+            "bpt_build_surface_mesh_ex",
+            None,
+        )
+
+        if extended_mesh_api is not None:
+            extended_mesh_api.argtypes = [
+                ctypes.POINTER(
+                    BptVolumeResult
+                ),
+                ctypes.POINTER(
+                    BptMeshOptions
+                ),
+                ctypes.POINTER(
+                    BptMeshResult
+                ),
+            ]
+
+            extended_mesh_api.restype = (
+                ctypes.c_int32
+            )
+
+            self._has_extended_mesh_api = (
+                True
+            )
 
         lib.bpt_free_volume.argtypes = [
             ctypes.POINTER(
@@ -572,7 +718,23 @@ class NativeCore:
         *,
         voxel_size: float = 1.0,
         center_xy: bool = True,
+        mesh_mode: str = "blocks",
     ) -> NativeMesh:
+        (
+            normalized_mode,
+            native_mode,
+        ) = normalize_mesh_mode(
+            mesh_mode
+        )
+
+        if voxel_size <= 0.0:
+            raise ValueError(
+                (
+                    "voxel_size must be "
+                    "greater than zero."
+                )
+            )
+
         (
             native_volume,
             keepalive,
@@ -584,26 +746,92 @@ class NativeCore:
             BptMeshResult()
         )
 
-        code = (
-            self.lib
-            .bpt_build_surface_mesh(
-                ctypes.byref(
-                    native_volume
-                ),
-                float(
+        # -------------------------------------------------
+        # BLOCKS
+        # -------------------------------------------------
+        #
+        # Keep using the historical function for BLOCKS.
+        #
+        # This gives us two useful guarantees:
+        #
+        # 1. old ABI-1 native libraries remain compatible;
+        # 2. the legacy code path remains exactly the one
+        #    used before this feature.
+        # -------------------------------------------------
+
+        if (
+            native_mode
+            == MESH_MODE_BLOCKS
+        ):
+            code = (
+                self.lib
+                .bpt_build_surface_mesh(
+                    ctypes.byref(
+                        native_volume
+                    ),
+                    float(
+                        voxel_size
+                    ),
+                    (
+                        1
+                        if center_xy
+                        else 0
+                    ),
+                    ctypes.byref(
+                        result
+                    ),
+                )
+            )
+
+        # -------------------------------------------------
+        # Extended meshers
+        # -------------------------------------------------
+
+        else:
+            if not self._has_extended_mesh_api:
+                raise NativeCoreError(
+                    1,
+                    (
+                        "The loaded native library "
+                        "does not expose "
+                        "bpt_build_surface_mesh_ex(). "
+                        f'Mesh mode "{normalized_mode}" '
+                        "requires a newer native build."
+                    ),
+                )
+
+            options = BptMeshOptions(
+                voxel_size=float(
                     voxel_size
                 ),
-                (
+                mode=native_mode,
+                center_xy=(
                     1
                     if center_xy
                     else 0
                 ),
-                ctypes.byref(
-                    result
-                ),
+                reserved_0=0,
+                reserved_1=0,
+                reserved_2=0,
             )
-        )
 
+            code = (
+                self.lib
+                .bpt_build_surface_mesh_ex(
+                    ctypes.byref(
+                        native_volume
+                    ),
+                    ctypes.byref(
+                        options
+                    ),
+                    ctypes.byref(
+                        result
+                    ),
+                )
+            )
+
+        # Keep the dense volume backing buffer alive
+        # until the native function has completed.
         _ = keepalive
 
         self._check(

@@ -147,6 +147,21 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--mesh-mode",
+        choices=(
+            "blocks",
+            "surface_nets",
+        ),
+        default="blocks",
+        help=(
+            "Mesh extraction algorithm. "
+            "blocks preserves the historical "
+            "voxel-face mesher; surface_nets "
+            "uses smooth Surface Nets extraction."
+        ),
+    )
+
+    parser.add_argument(
         "--json-log",
         action="store_true",
     )
@@ -1193,6 +1208,9 @@ def process_sheet(
             threads=(
                 args.thread_count
             ),
+            mesh_mode=(
+                args.mesh_mode
+            ),
         )
 
         scanner = (
@@ -1222,8 +1240,17 @@ def process_sheet(
                         args.voxel_size
                     ),
                     center_xy=True,
+                    mesh_mode=(
+                        args.mesh_mode
+                    ),
                 )
             )
+
+        manifest[
+            "mesh_mode"
+        ] = (
+            args.mesh_mode
+        )
 
         manifest[
             "requested_profiles"
@@ -1258,9 +1285,15 @@ def process_sheet(
                     .volume
                     .occupied_count
                 ),
+                mesh_mode=(
+                    args.mesh_mode
+                ),
             ):
                 profile_info = {
                     "generated": False,
+                    "mesh_mode": (
+                        args.mesh_mode
+                    ),
                     "views": list(
                         snapshot
                         .applied_views
@@ -1455,6 +1488,13 @@ def main() -> None:
 
     logger.divider(
         "NATIVE C++ EXAMPLE GENERATION"
+    )
+
+    logger.info(
+        "Mesh mode",
+        value=(
+            args.mesh_mode
+        ),
     )
 
     for index, sheet_path in enumerate(
