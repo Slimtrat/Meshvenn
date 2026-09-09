@@ -1,5 +1,3 @@
-# .gitignore
-
 # Python
 __pycache__/
 *.py[cod]
@@ -12,15 +10,26 @@ __pycache__/
 venv/
 env/
 
-# Blender
+# Blender backups
 *.blend1
 *.blend2
 *.blend@
 *.autosave
 
-# Build output
+# Local Blender install
+.blender/
+
+# Generic build output
 dist/
 build/
+output/
+tmp/
+
+# Blender files generated from examples are intentionally
+# not committed. GLB, manifests and extracted PNG are tracked.
+example/**/generated/**/*.blend
+
+# Packages
 *.zip
 
 # Test / coverage

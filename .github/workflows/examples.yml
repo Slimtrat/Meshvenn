@@ -1,0 +1,468 @@
+name: Examples
+
+on:
+  pull_request:
+    paths:
+      - "core/**"
+      - "scripts/**"
+      - "example/**/sheets/**"
+      - ".github/workflows/examples.yml"
+
+  push:
+    branches:
+      - main
+    paths:
+      - "core/**"
+      - "scripts/**"
+      - "example/**/sheets/**"
+      - ".github/workflows/examples.yml"
+
+  workflow_dispatch:
+    inputs:
+      example:
+        description: >
+          Example à générer.
+          "all" ou par exemple "mascotte/test1".
+        required: true
+        default: "all"
+        type: string
+
+      start_sheet:
+        description: >
+          Commencer à partir de cette planche.
+          Vide = toutes.
+          Exemple: sheet2.png
+          ou mascotte/test1/sheets/sheet2.png
+        required: false
+        default: ""
+        type: string
+
+      profiles:
+        description: >
+          Profils séparés par espaces.
+          Exemple: L2 L4 L8 L10
+        required: true
+        default: "L2 L4 L8 L10"
+        type: string
+
+      resolution:
+        description: "Résolution voxel"
+        required: true
+        default: "64"
+        type: choice
+        options:
+          - "32"
+          - "48"
+          - "64"
+          - "96"
+          - "128"
+
+      commit_results:
+        description: >
+          Committer les GLB, manifests et découpes sur main.
+        required: true
+        default: true
+        type: boolean
+
+
+permissions:
+  contents: write
+
+
+concurrency:
+  group: >
+    examples-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+env:
+  BLENDER_VERSION: "5.2.1"
+
+  BLENDER_ARCHIVE: >
+    blender-5.2.1-linux-x64.tar.xz
+
+  BLENDER_ROOT: >
+    ${{ github.workspace }}/.blender
+
+
+jobs:
+
+  # ---------------------------------------------------------
+  # Determine what kind of generation should run.
+  # ---------------------------------------------------------
+
+  config:
+    name: Configure
+    runs-on: ubuntu-latest
+
+    outputs:
+      mode: ${{ steps.config.outputs.mode }}
+      example: ${{ steps.config.outputs.example }}
+      start_sheet: ${{ steps.config.outputs.start_sheet }}
+      profiles: ${{ steps.config.outputs.profiles }}
+      resolution: ${{ steps.config.outputs.resolution }}
+      commit_results: ${{ steps.config.outputs.commit_results }}
+
+    steps:
+      - name: Configure run
+        id: config
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+
+            echo "mode=smoke" >> "$GITHUB_OUTPUT"
+            echo "example=mascotte/test1" >> "$GITHUB_OUTPUT"
+            echo "start_sheet=sheet1.png" >> "$GITHUB_OUTPUT"
+            echo "profiles=L2" >> "$GITHUB_OUTPUT"
+            echo "resolution=32" >> "$GITHUB_OUTPUT"
+            echo "commit_results=false" >> "$GITHUB_OUTPUT"
+
+          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+
+            echo "mode=manual" >> "$GITHUB_OUTPUT"
+
+            echo \
+              "example=${{ inputs.example }}" \
+              >> "$GITHUB_OUTPUT"
+
+            echo \
+              "start_sheet=${{ inputs.start_sheet }}" \
+              >> "$GITHUB_OUTPUT"
+
+            echo \
+              "profiles=${{ inputs.profiles }}" \
+              >> "$GITHUB_OUTPUT"
+
+            echo \
+              "resolution=${{ inputs.resolution }}" \
+              >> "$GITHUB_OUTPUT"
+
+            echo \
+              "commit_results=${{ inputs.commit_results }}" \
+              >> "$GITHUB_OUTPUT"
+
+          else
+
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+            echo "example=all" >> "$GITHUB_OUTPUT"
+            echo "start_sheet=" >> "$GITHUB_OUTPUT"
+            echo "profiles=L2 L4 L8 L10" >> "$GITHUB_OUTPUT"
+            echo "resolution=64" >> "$GITHUB_OUTPUT"
+            echo "commit_results=true" >> "$GITHUB_OUTPUT"
+
+          fi
+
+
+  # ---------------------------------------------------------
+  # One Blender process.
+  # ---------------------------------------------------------
+
+  generate:
+    name: Generate examples
+    needs:
+      - config
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # -----------------------------------------------------
+      # Blender cache
+      # -----------------------------------------------------
+
+      - name: Cache Blender
+        id: blender-cache
+        uses: actions/cache@v4
+        with:
+          path: .blender
+          key: >
+            blender-linux-x64-${{ env.BLENDER_VERSION }}
+
+      - name: Download Blender
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p "${BLENDER_ROOT}"
+
+          curl \
+            --fail \
+            --location \
+            --retry 3 \
+            --retry-delay 2 \
+            --output /tmp/blender.tar.xz \
+            "https://download.blender.org/release/Blender5.2/${BLENDER_ARCHIVE}"
+
+          tar \
+            -xJf /tmp/blender.tar.xz \
+            -C "${BLENDER_ROOT}" \
+            --strip-components=1
+
+          rm \
+            /tmp/blender.tar.xz
+
+      - name: Verify Blender
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          "${BLENDER_ROOT}/blender" \
+            --version
+
+          VERSION="$(
+            "${BLENDER_ROOT}/blender" \
+              --version \
+              | head -n 1
+          )"
+
+          if [[ "${VERSION}" != *"Blender ${BLENDER_VERSION}"* ]]; then
+            echo \
+              "Expected Blender ${BLENDER_VERSION}, got ${VERSION}"
+
+            exit 1
+          fi
+
+      # -----------------------------------------------------
+      # Display plan
+      # -----------------------------------------------------
+
+      - name: Generation configuration
+        shell: bash
+        run: |
+          echo \
+            "Mode: ${{ needs.config.outputs.mode }}"
+
+          echo \
+            "Example: ${{ needs.config.outputs.example }}"
+
+          echo \
+            "Start sheet: ${{ needs.config.outputs.start_sheet }}"
+
+          echo \
+            "Profiles: ${{ needs.config.outputs.profiles }}"
+
+          echo \
+            "Resolution: ${{ needs.config.outputs.resolution }}"
+
+          echo \
+            "Commit: ${{ needs.config.outputs.commit_results }}"
+
+      # -----------------------------------------------------
+      # Generate command safely.
+      # -----------------------------------------------------
+
+      - name: Generate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          COMMAND=(
+            "${BLENDER_ROOT}/blender"
+            "--background"
+            "--factory-startup"
+            "--python"
+            "scripts/generate_all_in_blender.py"
+            "--"
+            "--examples"
+            "example"
+            "--example"
+            "${{ needs.config.outputs.example }}"
+            "--resolution"
+            "${{ needs.config.outputs.resolution }}"
+            "--continue-on-error"
+          )
+
+          START_SHEET="${{ needs.config.outputs.start_sheet }}"
+
+          if [[ -n "${START_SHEET}" ]]; then
+            COMMAND+=(
+              "--start-sheet"
+              "${START_SHEET}"
+            )
+          fi
+
+          read -r -a PROFILES <<< \
+            "${{ needs.config.outputs.profiles }}"
+
+          if [[ "${#PROFILES[@]}" -gt 0 ]]; then
+            COMMAND+=(
+              "--profiles"
+            )
+
+            for PROFILE in "${PROFILES[@]}"; do
+              COMMAND+=(
+                "${PROFILE}"
+              )
+            done
+          fi
+
+          printf \
+            '[projection-tool] command:'
+
+          printf \
+            ' %q' \
+            "${COMMAND[@]}"
+
+          echo
+
+          "${COMMAND[@]}"
+
+      # -----------------------------------------------------
+      # Diagnostics
+      # -----------------------------------------------------
+
+      - name: Show generated files
+        if: always()
+        shell: bash
+        run: |
+          find example \
+            -type f \
+            -path "*/generated/*" \
+            -print \
+            | sort \
+            || true
+
+      - name: Validate manifests
+        shell: python
+        run: |
+          import json
+          from pathlib import Path
+
+          manifests = list(
+              Path("example").rglob(
+                  "generated/*/manifest.json"
+              )
+          )
+
+          if not manifests:
+              raise SystemExit(
+                  "No manifest generated."
+              )
+
+          successful_profiles = 0
+
+          for path in manifests:
+              data = json.loads(
+                  path.read_text(
+                      encoding="utf-8"
+                  )
+              )
+
+              generated = [
+                  name
+                  for name, profile
+                  in data.get(
+                      "profiles",
+                      {}
+                  ).items()
+                  if profile.get(
+                      "generated"
+                  )
+              ]
+
+              print(
+                  f"{path}: "
+                  f"{generated}"
+              )
+
+              successful_profiles += len(
+                  generated
+              )
+
+          if successful_profiles == 0:
+              raise SystemExit(
+                  "No successful scan profile."
+              )
+
+      # -----------------------------------------------------
+      # Always keep CI artifact.
+      # -----------------------------------------------------
+
+      - name: Upload generated examples
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: >
+            projection-examples-${{ github.run_number }}
+
+          path: |
+            example/**/generated/**
+
+          if-no-files-found: warn
+
+          retention-days: 14
+
+      # -----------------------------------------------------
+      # Commit only on main or manually when requested.
+      # -----------------------------------------------------
+
+      - name: Prepare generated files for Git
+        if: >
+          needs.config.outputs.commit_results == 'true'
+          && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # We track:
+          # - extracted PNG
+          # - manifests
+          # - GLB
+          #
+          # .blend remains CI-only.
+
+          find example \
+            -type f \
+            -path "*/generated/*" \
+            -name "*.blend" \
+            -delete
+
+          git status \
+            --short
+
+      - name: Commit generated examples
+        if: >
+          needs.config.outputs.commit_results == 'true'
+          && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config \
+            user.name \
+            "projection-tool-bot"
+
+          git config \
+            user.email \
+            "projection-tool-bot@users.noreply.github.com"
+
+          git add \
+            'example/**/generated/**'
+
+          if git diff \
+            --cached \
+            --quiet
+          then
+            echo \
+              "Generated examples already up-to-date."
+
+            exit 0
+          fi
+
+          git commit \
+            -m \
+            "chore: regenerate examples [generated examples]"
+
+          git push \
+            origin \
+            HEAD:main
+  
