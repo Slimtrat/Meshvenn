@@ -6,6 +6,8 @@ import bpy
 
 from bpy.types import Panel, UIList
 
+from .version import get_version_label
+
 
 class BPT_UL_ProjectionViews(UIList):
     def draw_item(
@@ -58,6 +60,14 @@ class BPT_PT_MainPanel(Panel):
     ) -> None:
         layout = self.layout
         settings = context.scene.bpt_settings
+
+        version_row = layout.row()
+        version_row.alignment = "RIGHT"
+
+        version_row.label(
+            text=get_version_label(),
+            icon="INFO",
+        )
 
         self._draw_projection_section(
             layout,

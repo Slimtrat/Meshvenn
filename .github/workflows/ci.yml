@@ -1,3 +1,5 @@
+# .github/workflows/ci.yml
+
 name: CI
 
 on:
@@ -27,9 +29,6 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
-
       - name: Run tests
         run: |
           python -m unittest discover \
@@ -53,6 +52,7 @@ jobs:
           required_files=(
             "blender_manifest.toml"
             "__init__.py"
+            "version.py"
             "properties.py"
             "operators.py"
             "ui.py"
@@ -70,11 +70,10 @@ jobs:
             fi
           done
 
-          echo "Extension structure looks valid."
-
   package:
     name: Build Blender ZIP
     runs-on: ubuntu-latest
+
     needs:
       - test
       - validate
@@ -88,20 +87,29 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Read extension version
+      - name: Calculate build version
         id: version
         shell: python
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
         run: |
           import os
           import tomllib
 
-          with open("blender_manifest.toml", "rb") as f:
-              manifest = tomllib.load(f)
+          with open("blender_manifest.toml", "rb") as file:
+              manifest = tomllib.load(file)
 
-          version = manifest["version"]
+          base_version = manifest["version"]
+          major, minor, _patch = base_version.split(".")
 
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
-              f.write(f"version={version}\n")
+          build_number = int(os.environ["BUILD_NUMBER"])
+
+          version = f"{major}.{minor}.{build_number}"
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as file:
+              file.write(f"version={version}\n")
+
+          print(f"Build version: {version}")
 
       - name: Build package directory
         shell: bash
@@ -110,11 +118,11 @@ jobs:
 
           PACKAGE_ROOT="dist/blender_projection_tool"
 
-          mkdir -p "$PACKAGE_ROOT"
           mkdir -p "$PACKAGE_ROOT/core"
 
           cp blender_manifest.toml "$PACKAGE_ROOT/"
           cp __init__.py "$PACKAGE_ROOT/"
+          cp version.py "$PACKAGE_ROOT/"
           cp properties.py "$PACKAGE_ROOT/"
           cp operators.py "$PACKAGE_ROOT/"
           cp ui.py "$PACKAGE_ROOT/"
@@ -132,6 +140,67 @@ jobs:
           if [[ -f LICENSE ]]; then
             cp LICENSE "$PACKAGE_ROOT/"
           fi
+
+      - name: Patch packaged manifest version
+        shell: python
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          import os
+          import pathlib
+          import re
+
+          manifest_path = pathlib.Path(
+              "dist/blender_projection_tool/blender_manifest.toml"
+          )
+
+          content = manifest_path.read_text(
+              encoding="utf-8"
+          )
+
+          build_version = os.environ["BUILD_VERSION"]
+
+          content, count = re.subn(
+              r'^version\s*=\s*"[^"]+"',
+              f'version = "{build_version}"',
+              content,
+              count=1,
+              flags=re.MULTILINE,
+          )
+
+          if count != 1:
+              raise RuntimeError(
+                  "Could not patch manifest version."
+              )
+
+          manifest_path.write_text(
+              content,
+              encoding="utf-8",
+          )
+
+      - name: Validate packaged version
+        shell: python
+        env:
+          BUILD_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          import os
+          import tomllib
+
+          with open(
+              "dist/blender_projection_tool/blender_manifest.toml",
+              "rb",
+          ) as file:
+              manifest = tomllib.load(file)
+
+          expected = os.environ["BUILD_VERSION"]
+          actual = manifest["version"]
+
+          if actual != expected:
+              raise RuntimeError(
+                  f"Expected version {expected}, found {actual}"
+              )
+
+          print(f"Packaged version: {actual}")
 
       - name: Create ZIP
         shell: bash
@@ -151,4 +220,3 @@ jobs:
           path: dist/blender_projection_tool-${{ steps.version.outputs.version }}.zip
           if-no-files-found: error
           retention-days: 30
-
