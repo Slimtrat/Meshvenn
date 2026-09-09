@@ -156,6 +156,7 @@
       "mask_pixels": 16038
     }
   ],
+  "mesh_mode": "blocks",
   "requested_profiles": [
     "L2",
     "L4",
@@ -177,6 +178,7 @@
   "profiles": {
     "L2": {
       "generated": true,
+      "mesh_mode": "blocks",
       "views": [
         "000",
         "090"
@@ -202,6 +204,7 @@
     },
     "L4": {
       "generated": true,
+      "mesh_mode": "blocks",
       "views": [
         "000",
         "090",
@@ -229,6 +232,7 @@
     },
     "L8": {
       "generated": true,
+      "mesh_mode": "blocks",
       "views": [
         "000",
         "090",
@@ -260,6 +264,7 @@
     },
     "L10": {
       "generated": true,
+      "mesh_mode": "blocks",
       "views": [
         "000",
         "090",
