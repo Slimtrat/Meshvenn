@@ -34,99 +34,11 @@ from core.native_mesh_builder import (
     shade_smooth_native_object,
 )
 from core.native_scan import NativeScanner
+from core.presheet_layout import (
+    CELL_SPECS,
+    pixel_bbox,
+)
 from scripts.run_logger import RunLogger
-
-
-# ---------------------------------------------------------
-# Presheet layout
-# ---------------------------------------------------------
-
-PRESHEET_V1_COLUMNS = (
-    (0.016, 0.164),
-    (0.169, 0.317),
-    (0.324, 0.472),
-    (0.478, 0.626),
-    (0.632, 0.780),
-)
-
-PRESHEET_V1_ROWS = (
-    (0.158, 0.432),
-    (0.525, 0.801),
-)
-
-
-CELL_SPECS = (
-    (
-        "000",
-        0,
-        0,
-        0.0,
-        0.0,
-    ),
-    (
-        "045",
-        1,
-        0,
-        45.0,
-        0.0,
-    ),
-    (
-        "090",
-        2,
-        0,
-        90.0,
-        0.0,
-    ),
-    (
-        "135",
-        3,
-        0,
-        135.0,
-        0.0,
-    ),
-    (
-        "180",
-        4,
-        0,
-        180.0,
-        0.0,
-    ),
-    (
-        "225",
-        0,
-        1,
-        225.0,
-        0.0,
-    ),
-    (
-        "270",
-        1,
-        1,
-        270.0,
-        0.0,
-    ),
-    (
-        "315",
-        2,
-        1,
-        315.0,
-        0.0,
-    ),
-    (
-        "TOP",
-        3,
-        1,
-        0.0,
-        90.0,
-    ),
-    (
-        "BOT",
-        4,
-        1,
-        0.0,
-        -90.0,
-    ),
-)
 
 
 # ---------------------------------------------------------
@@ -272,67 +184,6 @@ def sha256_file(
             )
 
     return digest.hexdigest()
-
-
-# ---------------------------------------------------------
-# Sheet geometry
-# ---------------------------------------------------------
-
-def _pixel_bbox(
-    image_width: int,
-    image_height: int,
-    column: int,
-    row: int,
-) -> tuple[
-    int,
-    int,
-    int,
-    int,
-]:
-    x0n, x1n = (
-        PRESHEET_V1_COLUMNS[
-            column
-        ]
-    )
-
-    topn, bottomn = (
-        PRESHEET_V1_ROWS[
-            row
-        ]
-    )
-
-    x0 = round(
-        x0n
-        * image_width
-    )
-
-    x1 = round(
-        x1n
-        * image_width
-    )
-
-    y0 = round(
-        (
-            1.0
-            - bottomn
-        )
-        * image_height
-    )
-
-    y1 = round(
-        (
-            1.0
-            - topn
-        )
-        * image_height
-    )
-
-    return (
-        x0,
-        y0,
-        x1,
-        y1,
-    )
 
 
 # ---------------------------------------------------------
@@ -920,11 +771,11 @@ def extract_sheet(
         )
 
     # Read Blender RNA pixels once.
-    
-    #Direct repeated access through
-    #image.pixels[index] is significantly
-    #slower than foreach_get().
-    
+    #
+    # Direct repeated access through
+    # image.pixels[index] is significantly
+    # slower than foreach_get().
+
     sheet_pixels = array(
         "f",
         [0.0],
@@ -964,7 +815,7 @@ def extract_sheet(
                 f"extract {name}",
             )
 
-            bbox = _pixel_bbox(
+            bbox = pixel_bbox(
                 width,
                 height,
                 column,
