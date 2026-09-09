@@ -1,5 +1,3 @@
-# core/masks.py
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -10,55 +8,46 @@ from typing import Sequence
 class BinaryMask:
     width: int
     height: int
-    values: tuple[bool, ...]
+    values: bytes
 
     def __post_init__(self) -> None:
-        expected_size = self.width * self.height
-
         if self.width <= 0:
             raise ValueError("Mask width must be greater than zero.")
-
         if self.height <= 0:
             raise ValueError("Mask height must be greater than zero.")
 
-        if len(self.values) != expected_size:
+        expected_size = self.width * self.height
+        raw = self.values
+
+        if not isinstance(raw, bytes):
+            raw = bytes(1 if value else 0 for value in raw)
+            object.__setattr__(self, "values", raw)
+
+        if len(raw) != expected_size:
             raise ValueError(
-                f"Mask contains {len(self.values)} values, "
-                f"expected {expected_size}."
+                f"Mask contains {len(raw)} values, expected {expected_size}."
             )
 
-    def get(
-        self,
-        x: int,
-        y: int,
-    ) -> bool:
-        if x < 0 or x >= self.width:
+    def get(self, x: int, y: int) -> bool:
+        if x < 0 or x >= self.width or y < 0 or y >= self.height:
             return False
+        return bool(self.values[y * self.width + x])
 
-        if y < 0 or y >= self.height:
-            return False
+    @property
+    def occupied_count(self) -> int:
+        return sum(self.values)
 
-        return self.values[y * self.width + x]
-
-    def flipped_x(
-        self,
-    ) -> "BinaryMask":
-        result: list[bool] = []
+    def flipped_x(self) -> "BinaryMask":
+        source = self.values
+        width = self.width
+        result = bytearray(len(source))
 
         for y in range(self.height):
-            for x in range(self.width):
-                result.append(
-                    self.get(
-                        self.width - 1 - x,
-                        y,
-                    )
-                )
+            row_start = y * width
+            row = source[row_start:row_start + width]
+            result[row_start:row_start + width] = row[::-1]
 
-        return BinaryMask(
-            width=self.width,
-            height=self.height,
-            values=tuple(result),
-        )
+        return BinaryMask(self.width, self.height, bytes(result))
 
 
 def rgba_to_mask(
@@ -68,31 +57,18 @@ def rgba_to_mask(
     alpha_threshold: float = 0.1,
 ) -> BinaryMask:
     expected_length = width * height * 4
-
     if len(pixels) != expected_length:
         raise ValueError(
-            f"Expected {expected_length} RGBA values, "
-            f"received {len(pixels)}."
+            f"Expected {expected_length} RGBA values, received {len(pixels)}."
         )
 
-    values: list[bool] = []
+    values = bytearray(width * height)
+    target = 0
+    for index in range(3, expected_length, 4):
+        values[target] = 1 if pixels[index] >= alpha_threshold else 0
+        target += 1
 
-    for index in range(
-        0,
-        len(pixels),
-        4,
-    ):
-        alpha = pixels[index + 3]
-
-        values.append(
-            alpha >= alpha_threshold
-        )
-
-    return BinaryMask(
-        width=width,
-        height=height,
-        values=tuple(values),
-    )
+    return BinaryMask(width, height, bytes(values))
 
 
 def resize_mask_nearest(
@@ -101,41 +77,35 @@ def resize_mask_nearest(
     height: int,
 ) -> BinaryMask:
     if width <= 0:
-        raise ValueError(
-            "Target width must be greater than zero."
-        )
-
+        raise ValueError("Target width must be greater than zero.")
     if height <= 0:
-        raise ValueError(
-            "Target height must be greater than zero."
-        )
+        raise ValueError("Target height must be greater than zero.")
+    if width == mask.width and height == mask.height:
+        return mask
 
-    values: list[bool] = []
+    source = mask.values
+    source_width = mask.width
+    source_height = mask.height
 
-    for y in range(height):
-        source_y = min(
-            int(y * mask.height / height),
-            mask.height - 1,
-        )
+    x_map = [
+        min(int(x * source_width / width), source_width - 1)
+        for x in range(width)
+    ]
+    y_map = [
+        min(int(y * source_height / height), source_height - 1)
+        for y in range(height)
+    ]
 
-        for x in range(width):
-            source_x = min(
-                int(x * mask.width / width),
-                mask.width - 1,
-            )
+    result = bytearray(width * height)
+    target_index = 0
 
-            values.append(
-                mask.get(
-                    source_x,
-                    source_y,
-                )
-            )
+    for source_y in y_map:
+        row_start = source_y * source_width
+        for source_x in x_map:
+            result[target_index] = source[row_start + source_x]
+            target_index += 1
 
-    return BinaryMask(
-        width=width,
-        height=height,
-        values=tuple(values),
-    )
+    return BinaryMask(width, height, bytes(result))
 
 
 def fit_mask_preserve_aspect(
@@ -144,76 +114,60 @@ def fit_mask_preserve_aspect(
     height: int,
 ) -> BinaryMask:
     if width <= 0:
-        raise ValueError(
-            "Target width must be greater than zero."
-        )
-
+        raise ValueError("Target width must be greater than zero.")
     if height <= 0:
-        raise ValueError(
-            "Target height must be greater than zero."
-        )
+        raise ValueError("Target height must be greater than zero.")
 
-    scale = min(
-        width / mask.width,
-        height / mask.height,
-    )
+    scale = min(width / mask.width, height / mask.height)
+    fitted_width = max(1, min(width, round(mask.width * scale)))
+    fitted_height = max(1, min(height, round(mask.height * scale)))
 
-    fitted_width = max(
-        1,
-        min(
-            width,
-            round(mask.width * scale),
-        ),
-    )
+    resized = resize_mask_nearest(mask, fitted_width, fitted_height)
+    offset_x = (width - fitted_width) // 2
+    offset_y = (height - fitted_height) // 2
 
-    fitted_height = max(
-        1,
-        min(
-            height,
-            round(mask.height * scale),
-        ),
-    )
-
-    resized = resize_mask_nearest(
-        mask,
-        fitted_width,
-        fitted_height,
-    )
-
-    offset_x = (
-        width - fitted_width
-    ) // 2
-
-    offset_y = (
-        height - fitted_height
-    ) // 2
-
-    values = [
-        False
-        for _ in range(
-            width * height
-        )
-    ]
+    values = bytearray(width * height)
+    source = resized.values
 
     for y in range(fitted_height):
-        target_y = offset_y + y
+        source_start = y * fitted_width
+        target_start = (offset_y + y) * width + offset_x
+        values[target_start:target_start + fitted_width] = (
+            source[source_start:source_start + fitted_width]
+        )
 
-        for x in range(fitted_width):
-            target_x = offset_x + x
+    return BinaryMask(width, height, bytes(values))
 
-            values[
-                target_y * width
-                + target_x
-            ] = resized.get(
-                x,
-                y,
-            )
 
-    return BinaryMask(
-        width=width,
-        height=height,
-        values=tuple(values),
-    )
+def find_mask_bounds(
+    mask: BinaryMask,
+) -> tuple[int, int, int, int] | None:
+    width = mask.width
+    values = mask.values
+
+    min_x = width
+    min_y = mask.height
+    max_x = -1
+    max_y = -1
+
+    for index, occupied in enumerate(values):
+        if not occupied:
+            continue
+
+        y, x = divmod(index, width)
+        if x < min_x:
+            min_x = x
+        if x > max_x:
+            max_x = x
+        if y < min_y:
+            min_y = y
+        if y > max_y:
+            max_y = y
+
+    if max_x < 0:
+        return None
+
+    return min_x, max_x, min_y, max_y
 
 
 def crop_mask_to_content(
@@ -222,131 +176,31 @@ def crop_mask_to_content(
     padding: int = 0,
 ) -> BinaryMask:
     if padding < 0:
-        raise ValueError(
-            "Padding must be zero or greater."
-        )
+        raise ValueError("Padding must be zero or greater.")
 
-    bounds = find_mask_bounds(
-        mask
-    )
-
+    bounds = find_mask_bounds(mask)
     if bounds is None:
         return mask
 
-    (
-        min_x,
-        max_x,
-        min_y,
-        max_y,
-    ) = bounds
+    min_x, max_x, min_y, max_y = bounds
+    min_x = max(0, min_x - padding)
+    max_x = min(mask.width - 1, max_x + padding)
+    min_y = max(0, min_y - padding)
+    max_y = min(mask.height - 1, max_y + padding)
 
-    min_x = max(
-        0,
-        min_x - padding,
-    )
+    width = max_x - min_x + 1
+    height = max_y - min_y + 1
+    result = bytearray(width * height)
+    source = mask.values
 
-    max_x = min(
-        mask.width - 1,
-        max_x + padding,
-    )
+    for target_y, source_y in enumerate(range(min_y, max_y + 1)):
+        source_start = source_y * mask.width + min_x
+        target_start = target_y * width
+        result[target_start:target_start + width] = (
+            source[source_start:source_start + width]
+        )
 
-    min_y = max(
-        0,
-        min_y - padding,
-    )
-
-    max_y = min(
-        mask.height - 1,
-        max_y + padding,
-    )
-
-    width = (
-        max_x - min_x + 1
-    )
-
-    height = (
-        max_y - min_y + 1
-    )
-
-    values: list[bool] = []
-
-    for y in range(
-        min_y,
-        max_y + 1,
-    ):
-        for x in range(
-            min_x,
-            max_x + 1,
-        ):
-            values.append(
-                mask.get(
-                    x,
-                    y,
-                )
-            )
-
-    return BinaryMask(
-        width=width,
-        height=height,
-        values=tuple(values),
-    )
-
-
-def find_mask_bounds(
-    mask: BinaryMask,
-) -> tuple[
-    int,
-    int,
-    int,
-    int,
-] | None:
-    min_x = mask.width
-    min_y = mask.height
-
-    max_x = -1
-    max_y = -1
-
-    found = False
-
-    for y in range(mask.height):
-        for x in range(mask.width):
-            if not mask.get(
-                x,
-                y,
-            ):
-                continue
-
-            found = True
-
-            min_x = min(
-                min_x,
-                x,
-            )
-
-            max_x = max(
-                max_x,
-                x,
-            )
-
-            min_y = min(
-                min_y,
-                y,
-            )
-
-            max_y = max(
-                max_y,
-                y,
-            )
-
-    if not found:
-        return None
-
-    return (
-        min_x,
-        max_x,
-        min_y,
-        max_y,
-    )
+    return BinaryMask(width, height, bytes(result))
 
 
 def normalize_mask(
@@ -358,62 +212,26 @@ def normalize_mask(
     crop_padding: int = 0,
 ) -> BinaryMask:
     working_mask = mask
-
     if crop_content:
         working_mask = crop_mask_to_content(
             working_mask,
             padding=crop_padding,
         )
 
-    return fit_mask_preserve_aspect(
-        working_mask,
-        width,
-        height,
-    )
+    return fit_mask_preserve_aspect(working_mask, width, height)
 
 
-def enforce_horizontal_symmetry(
-    mask: BinaryMask,
-) -> BinaryMask:
-    values = list(
-        mask.values
-    )
-
-    half_width = (
-        mask.width + 1
-    ) // 2
+def enforce_horizontal_symmetry(mask: BinaryMask) -> BinaryMask:
+    width = mask.width
+    values = bytearray(mask.values)
+    half_width = (width + 1) // 2
 
     for y in range(mask.height):
-        for x in range(
-            half_width
-        ):
-            opposite_x = (
-                mask.width - 1 - x
-            )
+        row = y * width
+        for x in range(half_width):
+            opposite_x = width - 1 - x
+            occupied = values[row + x] or values[row + opposite_x]
+            values[row + x] = occupied
+            values[row + opposite_x] = occupied
 
-            occupied = (
-                mask.get(
-                    x,
-                    y,
-                )
-                or mask.get(
-                    opposite_x,
-                    y,
-                )
-            )
-
-            values[
-                y * mask.width
-                + x
-            ] = occupied
-
-            values[
-                y * mask.width
-                + opposite_x
-            ] = occupied
-
-    return BinaryMask(
-        width=mask.width,
-        height=mask.height,
-        values=tuple(values),
-    )
+    return BinaryMask(mask.width, mask.height, bytes(values))

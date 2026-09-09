@@ -17,18 +17,9 @@ def _format_duration(seconds: float) -> str:
         return f"{seconds * 1000:.0f}ms"
     if seconds < 60:
         return f"{seconds:.2f}s"
-
     minutes = int(seconds // 60)
-    remainder = seconds - (minutes * 60)
+    remainder = seconds - minutes * 60
     return f"{minutes}m{remainder:05.2f}s"
-
-
-@dataclass
-class LoggerEvent:
-    level: str
-    message: str
-    elapsed: float | None = None
-    data: dict | None = None
 
 
 @dataclass
@@ -38,7 +29,7 @@ class RunLogger:
     quiet: bool = False
     jsonl_path: Path | None = None
     _start_time: float = field(default_factory=_now)
-    _section_stack: list[tuple[str, float]] = field(default_factory=list)
+    _stack: list[tuple[str, float]] = field(default_factory=list)
 
     def _emit(
         self,
@@ -50,38 +41,25 @@ class RunLogger:
     ) -> None:
         prefix = f"[{self.name}]"
         padding = "  " * self.indent
-        suffix = ""
-
-        if elapsed is not None:
-            suffix = f" ({_format_duration(elapsed)})"
-
-        line = f"{prefix} {padding}{level}: {message}{suffix}"
+        suffix = f" ({_format_duration(elapsed)})" if elapsed is not None else ""
 
         if not self.quiet:
-            print(line)
-
+            print(f"{prefix} {padding}{level}: {message}{suffix}", flush=True)
             if data:
                 for key, value in data.items():
-                    print(f"{prefix} {padding}  - {key}: {value}")
+                    print(f"{prefix} {padding}  - {key}: {value}", flush=True)
 
         if self.jsonl_path is not None:
             self.jsonl_path.parent.mkdir(parents=True, exist_ok=True)
-            event = LoggerEvent(
-                level=level,
-                message=message,
-                elapsed=elapsed,
-                data=data,
-            )
-
             with self.jsonl_path.open("a", encoding="utf-8") as handle:
                 handle.write(
                     json.dumps(
                         {
                             "timestamp": time.time(),
-                            "level": event.level,
-                            "message": event.message,
-                            "elapsed": event.elapsed,
-                            "data": event.data,
+                            "level": level,
+                            "message": message,
+                            "elapsed": elapsed,
+                            "data": data,
                         },
                         ensure_ascii=False,
                     )
@@ -100,34 +78,27 @@ class RunLogger:
     def error(self, message: str, **data) -> None:
         self._emit("ERROR", message, data=data or None)
 
+    def progress(self, index: int, total: int, label: str) -> None:
+        self.info(f"[{index}/{total}] {label}")
+
     def divider(self, title: str = "") -> None:
-        bar = "=" * 80
+        bar = "=" * 72
+        self.info(bar)
         if title:
-            self.info(bar)
             self.info(title)
             self.info(bar)
-        else:
-            self.info(bar)
-
-    def progress(
-        self,
-        index: int,
-        total: int,
-        label: str,
-    ) -> None:
-        self.info(f"[{index}/{total}] {label}")
 
     @contextmanager
     def section(self, title: str, **data) -> Iterator[None]:
+        started = _now()
         self._emit("BEGIN", title, data=data or None)
-        self._section_stack.append((title, _now()))
+        self._stack.append((title, started))
         self.indent += 1
-
         try:
             yield
         except Exception as exc:
             self.indent = max(0, self.indent - 1)
-            _title, started = self._section_stack.pop()
+            self._stack.pop()
             self._emit(
                 "FAIL",
                 f"{title}: {exc}",
@@ -136,7 +107,7 @@ class RunLogger:
             raise
         else:
             self.indent = max(0, self.indent - 1)
-            _title, started = self._section_stack.pop()
+            self._stack.pop()
             self._emit(
                 "END",
                 title,
@@ -147,33 +118,25 @@ class RunLogger:
     def timed(self, label: str, **data) -> Iterator[None]:
         started = _now()
         self.info(label, **data)
-
         try:
             yield
         except Exception as exc:
-            self.error(
-                f"{label} failed",
-                error=str(exc),
-            )
+            self.error(f"{label} failed", error=str(exc))
             raise
         else:
-            self.success(
-                label,
-                elapsed=_now() - started,
-            )
+            self.success(label, elapsed=_now() - started)
 
     def child(
         self,
-        name: str | None = None,
         *,
         indent_offset: int = 1,
         jsonl_path: Path | None = None,
     ) -> "RunLogger":
         return RunLogger(
-            name=name or self.name,
+            name=self.name,
             indent=self.indent + indent_offset,
             quiet=self.quiet,
-            jsonl_path=jsonl_path if jsonl_path is not None else self.jsonl_path,
+            jsonl_path=self.jsonl_path if jsonl_path is None else jsonl_path,
         )
 
     def total_elapsed(self) -> float:

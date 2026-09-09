@@ -19,11 +19,11 @@ from core.mesh_builder import build_surface_mesh, scale_mesh_to_height
 from core.visual_hull import (
     ProjectionView,
     VisualHullOptions,
-    build_visual_hull,
+    VisualHullSession,
     crop_empty_bounds,
 )
 from scripts.run_logger import RunLogger
-from scripts.scan_profiles import available_profiles
+from scripts.scan_profiles import PROFILES
 
 
 PRESHEET_V1_COLUMNS = (
@@ -52,6 +52,28 @@ CELL_SPECS = (
     ("BOT", 4, 1, 0.0, -90.0),
 )
 
+# Order chosen so snapshots can reuse all work:
+# L2 -> L4 -> L8 -> L10.
+INCREMENTAL_VIEW_ORDER = (
+    "000",
+    "090",
+    "180",
+    "270",
+    "045",
+    "135",
+    "225",
+    "315",
+    "TOP",
+    "BOT",
+)
+
+PROFILE_AFTER_VIEW = {
+    "090": "L2",
+    "270": "L4",
+    "315": "L8",
+    "BOT": "L10",
+}
+
 
 @dataclass(frozen=True)
 class ExtractedView:
@@ -64,54 +86,11 @@ class ExtractedView:
     valid: bool
 
 
-def parse_args() -> argparse.Namespace:
-    argv = sys.argv
-    argv = argv[argv.index("--") + 1 :] if "--" in argv else []
-
-    parser = argparse.ArgumentParser(
-        description="Generate all scan levels from sheet*.png files."
-    )
-    parser.add_argument("example_dir", type=Path)
-    parser.add_argument("output_dir", type=Path)
-
-    parser.add_argument("--resolution", type=int, default=64)
-    parser.add_argument("--threshold", type=float, default=0.1)
-    parser.add_argument("--target-height", type=float, default=2.0)
-    parser.add_argument("--voxel-size", type=float, default=0.05)
-    parser.add_argument("--smooth", type=int, default=3)
-    parser.add_argument("--symmetry-x", action="store_true")
-    parser.add_argument("--no-remesh", action="store_true")
-
-    parser.add_argument(
-        "--sheet-white-threshold",
-        type=float,
-        default=0.94,
-        help="RGB threshold used to turn near-white cell background transparent.",
-    )
-
-    parser.add_argument(
-        "--profiles",
-        nargs="*",
-        default=None,
-        help="Optional subset, e.g. --profiles L2 L4 L8",
-    )
-
-    parser.add_argument(
-        "--json-log",
-        action="store_true",
-        help="Write JSONL logs next to generated outputs.",
-    )
-
-    return parser.parse_args(argv)
-
-
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
-
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
-
     return digest.hexdigest()
 
 
@@ -126,7 +105,6 @@ def _pixel_bbox(
 
     x0 = round(x0n * image_width)
     x1 = round(x1n * image_width)
-
     y0 = round((1.0 - bottomn) * image_height)
     y1 = round((1.0 - topn) * image_height)
 
@@ -134,15 +112,15 @@ def _pixel_bbox(
 
 
 def _largest_component(
-    foreground: list[bool],
+    foreground: bytearray,
     width: int,
     height: int,
 ) -> set[int]:
     visited = bytearray(width * height)
     largest: set[int] = set()
 
-    for start in range(width * height):
-        if visited[start] or not foreground[start]:
+    for start, is_foreground in enumerate(foreground):
+        if visited[start] or not is_foreground:
             continue
 
         visited[start] = 1
@@ -156,23 +134,29 @@ def _largest_component(
             x = index % width
             y = index // width
 
-            neighbors = []
-
             if x > 0:
-                neighbors.append(index - 1)
+                neighbor = index - 1
+                if foreground[neighbor] and not visited[neighbor]:
+                    visited[neighbor] = 1
+                    stack.append(neighbor)
+
             if x + 1 < width:
-                neighbors.append(index + 1)
+                neighbor = index + 1
+                if foreground[neighbor] and not visited[neighbor]:
+                    visited[neighbor] = 1
+                    stack.append(neighbor)
+
             if y > 0:
-                neighbors.append(index - width)
+                neighbor = index - width
+                if foreground[neighbor] and not visited[neighbor]:
+                    visited[neighbor] = 1
+                    stack.append(neighbor)
+
             if y + 1 < height:
-                neighbors.append(index + width)
-
-            for neighbor in neighbors:
-                if visited[neighbor] or not foreground[neighbor]:
-                    continue
-
-                visited[neighbor] = 1
-                stack.append(neighbor)
+                neighbor = index + width
+                if foreground[neighbor] and not visited[neighbor]:
+                    visited[neighbor] = 1
+                    stack.append(neighbor)
 
         if len(component) > len(largest):
             largest = component
@@ -188,22 +172,21 @@ def extract_cell(
     white_threshold: float,
 ) -> bool:
     x0, y0, x1, y1 = bbox
-
     width = x1 - x0
     height = y1 - y0
-
+    sheet_width = int(sheet.size[0])
     source = sheet.pixels
 
     rgba = [0.0] * (width * height * 4)
-    foreground = [False] * (width * height)
+    foreground = bytearray(width * height)
 
     for local_y in range(height):
         source_y = y0 + local_y
+        source_row = source_y * sheet_width
 
         for local_x in range(width):
             source_x = x0 + local_x
-
-            source_index = (source_y * int(sheet.size[0]) + source_x) * 4
+            source_index = (source_row + source_x) * 4
             pixel_index = local_y * width + local_x
             target_index = pixel_index * 4
 
@@ -217,23 +200,23 @@ def extract_cell(
             rgba[target_index + 2] = blue
             rgba[target_index + 3] = alpha
 
-            foreground[pixel_index] = (
+            foreground[pixel_index] = 1 if (
                 alpha > 0.01
                 and not (
                     red >= white_threshold
                     and green >= white_threshold
                     and blue >= white_threshold
                 )
-            )
+            ) else 0
 
     component = _largest_component(foreground, width, height)
-
     minimum_component = max(64, int(width * height * 0.005))
     valid = len(component) >= minimum_component
 
     if valid:
+        keep = component
         for pixel_index in range(width * height):
-            if pixel_index not in component:
+            if pixel_index not in keep:
                 rgba[pixel_index * 4 + 3] = 0.0
     else:
         for pixel_index in range(width * height):
@@ -266,29 +249,21 @@ def extract_presheet(
 ) -> tuple[list[ExtractedView], dict]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    sheet = bpy.data.images.load(
-        str(sheet_path.resolve()),
-        check_existing=False,
-    )
+    sheet = bpy.data.images.load(str(sheet_path.resolve()), check_existing=False)
     sheet.update()
 
     image_width = int(sheet.size[0])
     image_height = int(sheet.size[1])
-
-    logger.info(
-        "Sheet loaded",
-        width=image_width,
-        height=image_height,
-        source=str(sheet_path),
-    )
-
     extracted_views: list[ExtractedView] = []
 
-    try:
-        total_cells = len(CELL_SPECS)
+    logger.info("Sheet loaded", width=image_width, height=image_height)
 
-        for index, (name, column, row, azimuth, elevation) in enumerate(CELL_SPECS, start=1):
-            logger.progress(index, total_cells, f"Cut {name}")
+    try:
+        for index, (name, column, row, azimuth, elevation) in enumerate(
+            CELL_SPECS,
+            start=1,
+        ):
+            logger.progress(index, len(CELL_SPECS), f"extract {name}")
 
             bbox = _pixel_bbox(
                 image_width,
@@ -296,9 +271,7 @@ def extract_presheet(
                 column,
                 row,
             )
-
             output_path = output_dir / f"{name}.png"
-
             valid = extract_cell(
                 sheet,
                 output_path,
@@ -316,13 +289,6 @@ def extract_presheet(
                     sha256=sha256_file(output_path),
                     valid=valid,
                 )
-            )
-
-            logger.info(
-                f"Cut {name} completed",
-                valid=valid,
-                bbox=bbox,
-                output=str(output_path),
             )
     finally:
         bpy.data.images.remove(sheet)
@@ -343,56 +309,58 @@ def extract_presheet(
                 "azimuth": view.azimuth_degrees,
                 "elevation": view.elevation_degrees,
                 "bbox": list(view.bbox),
-                "output": str(view.path.name),
+                "output": view.path.name,
                 "sha256": view.sha256,
                 "valid": view.valid,
             }
             for view in extracted_views
         ],
-        "available_views": [
-            view.name
-            for view in extracted_views
-            if view.valid
-        ],
+        "available_views": [view.name for view in extracted_views if view.valid],
     }
 
     return extracted_views, manifest
 
 
 def image_to_mask(path: Path, alpha_threshold: float):
-    image = bpy.data.images.load(
-        str(path.resolve()),
-        check_existing=False,
-    )
+    image = bpy.data.images.load(str(path.resolve()), check_existing=False)
     image.update()
-
-    width = int(image.size[0])
-    height = int(image.size[1])
 
     try:
         return rgba_to_mask(
             pixels=tuple(image.pixels[:]),
-            width=width,
-            height=height,
+            width=int(image.size[0]),
+            height=int(image.size[1]),
             alpha_threshold=alpha_threshold,
         )
     finally:
         bpy.data.images.remove(image)
 
 
-def build_projection(view: ExtractedView, threshold: float) -> ProjectionView:
-    return ProjectionView(
-        mask=image_to_mask(view.path, threshold),
-        azimuth_degrees=view.azimuth_degrees,
-        elevation_degrees=view.elevation_degrees,
-        enabled=True,
-    )
+def prepare_projections(
+    views: list[ExtractedView],
+    threshold: float,
+    logger: RunLogger,
+) -> dict[str, ProjectionView]:
+    projections: dict[str, ProjectionView] = {}
+
+    valid = [view for view in views if view.valid]
+    for index, view in enumerate(valid, start=1):
+        logger.progress(index, len(valid), f"mask {view.name}")
+        mask = image_to_mask(view.path, threshold)
+
+        projections[view.name] = ProjectionView(
+            mask=mask,
+            azimuth_degrees=view.azimuth_degrees,
+            elevation_degrees=view.elevation_degrees,
+            enabled=True,
+        )
+
+    return projections
 
 
 def clear_scene() -> None:
     if bpy.context.object is not None and bpy.context.object.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
-
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
 
@@ -408,7 +376,6 @@ def create_object(vertices, faces) -> bpy.types.Object:
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
-
     return obj
 
 
@@ -422,9 +389,7 @@ def export_scan(
     blend_path = scan_dir / f"{file_stem}.blend"
     glb_path = scan_dir / f"{file_stem}.glb"
 
-    bpy.ops.wm.save_as_mainfile(
-        filepath=str(blend_path.resolve())
-    )
+    bpy.ops.wm.save_as_mainfile(filepath=str(blend_path.resolve()))
 
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
@@ -436,116 +401,182 @@ def export_scan(
         use_selection=True,
     )
 
-    dimensions = [float(value) for value in obj.dimensions]
-
     return {
         "blend": str(blend_path),
         "glb": str(glb_path),
         "vertices": len(obj.data.vertices),
         "faces": len(obj.data.polygons),
-        "dimensions": dimensions,
+        "dimensions": [float(value) for value in obj.dimensions],
     }
 
 
-def generate_profile(
-    profile,
-    views_by_name: dict[str, ExtractedView],
+def build_export_from_volume(
+    volume,
     *,
+    profile_name: str,
     scan_dir: Path,
     file_stem: str,
     args: argparse.Namespace,
     logger: RunLogger,
 ) -> dict:
-    selected_views = [
-        views_by_name[name]
-        for name in profile.views
-    ]
+    with logger.timed("crop bounds"):
+        cropped = crop_empty_bounds(volume)
+
+    with logger.timed("build surface mesh"):
+        mesh_data = build_surface_mesh(
+            cropped,
+            voxel_size=1.0,
+            center=True,
+        )
+
+    with logger.timed("scale mesh"):
+        mesh_data = scale_mesh_to_height(
+            mesh_data,
+            args.target_height,
+        )
+
+    clear_scene()
+
+    with logger.timed("create Blender object"):
+        obj = create_object(mesh_data.vertices, mesh_data.faces)
+
+    with logger.timed("cleanup mesh"):
+        cleanup_generated_object(
+            obj,
+            auto_remesh=not args.no_remesh,
+            voxel_size=args.voxel_size,
+            smooth_iterations=args.smooth,
+        )
+
+    with logger.timed("export"):
+        result = export_scan(obj, scan_dir, file_stem)
+
+    result.update(
+        {
+            "profile": profile_name,
+            "resolution": args.resolution,
+            "occupied_voxels": volume.occupied_count,
+            "occupancy_ratio": volume.occupancy_ratio,
+        }
+    )
+
+    return result
+
+
+def generate_profiles_incrementally(
+    projections: dict[str, ProjectionView],
+    *,
+    scans_root: Path,
+    sheet_name: str,
+    args: argparse.Namespace,
+    logger: RunLogger,
+) -> dict[str, dict]:
+    profiles_by_name = {profile.name: profile for profile in PROFILES}
+    requested = (
+        {name.upper() for name in args.profiles}
+        if args.profiles
+        else set(profiles_by_name)
+    )
+
+    runnable = {
+        name
+        for name in requested
+        if name in profiles_by_name
+        and set(profiles_by_name[name].views).issubset(projections)
+    }
+
+    if not runnable:
+        return {}
+
+    max_level = max(
+        ("L2", "L4", "L8", "L10").index(name)
+        for name in runnable
+    )
+    max_profile = ("L2", "L4", "L8", "L10")[max_level]
+    required_views = set(profiles_by_name[max_profile].views)
+
+    session = VisualHullSession(
+        options=VisualHullOptions(
+            resolution=args.resolution,
+            symmetry_x=args.symmetry_x,
+        )
+    )
+
+    results: dict[str, dict] = {}
+    applied = 0
 
     with logger.section(
-        f"Profile {profile.name}",
-        views=", ".join(profile.views),
-        resolution=args.resolution,
+        "incremental visual hull",
+        target=max_profile,
+        initial_voxels=args.resolution ** 3,
     ):
-        clear_scene()
+        for view_name in INCREMENTAL_VIEW_ORDER:
+            if view_name not in required_views:
+                continue
+            if view_name not in projections:
+                continue
 
-        with logger.timed("Build projections"):
-            projections = [
-                build_projection(view, args.threshold)
-                for view in selected_views
-            ]
+            before = session.alive_count
+            with logger.timed(
+                f"apply view {view_name}",
+                surviving_before=before,
+            ):
+                after = session.apply_view(
+                    projections[view_name],
+                    name=view_name,
+                )
 
-        with logger.timed("Build visual hull"):
-            volume = build_visual_hull(
-                projections,
-                options=VisualHullOptions(
-                    resolution=args.resolution,
-                    symmetry_x=args.symmetry_x,
-                ),
+            applied += 1
+            removed = before - after
+            logger.info(
+                "view result",
+                view=view_name,
+                surviving=after,
+                removed=removed,
+                removed_pct=f"{(removed / before * 100.0) if before else 0.0:.1f}%",
             )
 
-        if volume.occupied_count == 0:
-            raise RuntimeError(f"{profile.name} produced an empty volume.")
+            profile_name = PROFILE_AFTER_VIEW.get(view_name)
+            if profile_name is None or profile_name not in runnable:
+                continue
 
-        logger.info(
-            "Visual hull stats",
-            occupied_voxels=volume.occupied_count,
-            occupancy_ratio=f"{volume.occupancy_ratio:.4f}",
-        )
+            profile = profiles_by_name[profile_name]
 
-        with logger.timed("Crop occupied bounds"):
-            cropped = crop_empty_bounds(volume)
+            # Snapshot is cheap compared with rebuilding the hull and makes
+            # each generated level independent from later views.
+            volume = session.snapshot()
 
-        with logger.timed("Build surface mesh"):
-            mesh_data = build_surface_mesh(
-                cropped,
-                voxel_size=1.0,
-                center=True,
-            )
+            profile_logger = logger.child(indent_offset=1)
+            with profile_logger.section(
+                f"snapshot {profile_name}",
+                views=", ".join(profile.views),
+                occupied_voxels=volume.occupied_count,
+            ):
+                try:
+                    result = build_export_from_volume(
+                        volume,
+                        profile_name=profile_name,
+                        scan_dir=scans_root / profile_name,
+                        file_stem=f"{sheet_name}_{profile_name}",
+                        args=args,
+                        logger=profile_logger,
+                    )
+                    result["generated"] = True
+                    result["views"] = list(profile.views)
+                    result["applied_projection_count"] = applied
+                    results[profile_name] = result
+                except Exception as exc:
+                    results[profile_name] = {
+                        "generated": False,
+                        "views": list(profile.views),
+                        "error": str(exc),
+                    }
+                    profile_logger.error(
+                        f"{profile_name} export failed",
+                        error=str(exc),
+                    )
 
-        with logger.timed("Scale mesh"):
-            mesh_data = scale_mesh_to_height(
-                mesh_data,
-                args.target_height,
-            )
-
-        with logger.timed("Create Blender object"):
-            obj = create_object(
-                mesh_data.vertices,
-                mesh_data.faces,
-            )
-
-        with logger.timed("Cleanup mesh"):
-            cleanup_generated_object(
-                obj,
-                auto_remesh=not args.no_remesh,
-                voxel_size=args.voxel_size,
-                smooth_iterations=args.smooth,
-            )
-
-        with logger.timed("Export scan"):
-            result = export_scan(
-                obj,
-                scan_dir,
-                file_stem,
-            )
-
-        result.update(
-            {
-                "profile": profile.name,
-                "views": list(profile.views),
-                "resolution": args.resolution,
-                "occupied_voxels": volume.occupied_count,
-            }
-        )
-
-        logger.success(
-            f"Profile {profile.name} generated",
-            vertices=result["vertices"],
-            faces=result["faces"],
-            glb=result["glb"],
-        )
-
-        return result
+    return results
 
 
 def process_sheet(
@@ -554,22 +585,20 @@ def process_sheet(
     args: argparse.Namespace,
     logger: RunLogger | None = None,
 ) -> None:
-    generated_root.mkdir(parents=True, exist_ok=True)
-
     sheet_name = sheet_path.stem
     sheet_root = generated_root / sheet_name
     extracted_dir = sheet_root / "extracted"
     scans_root = sheet_root / "scans"
 
+    sheet_root.mkdir(parents=True, exist_ok=True)
     jsonl_path = sheet_root / "run_log.jsonl" if getattr(args, "json_log", False) else None
     logger = logger or RunLogger(jsonl_path=jsonl_path)
 
     with logger.section(
-        f"Sheet {sheet_name}",
+        f"sheet {sheet_name}",
         source=str(sheet_path),
-        output=str(sheet_root),
     ):
-        with logger.timed("Extract presheet"):
+        with logger.timed("extract sheet"):
             views, manifest = extract_presheet(
                 sheet_path,
                 extracted_dir,
@@ -577,133 +606,83 @@ def process_sheet(
                 logger=logger.child(indent_offset=1),
             )
 
-        valid_views = {
-            view.name: view
-            for view in views
-            if view.valid
-        }
+        with logger.timed("prepare masks once"):
+            projections = prepare_projections(
+                views,
+                args.threshold,
+                logger.child(indent_offset=1),
+            )
 
         logger.info(
-            "Available views",
-            count=len(valid_views),
-            views=", ".join(valid_views.keys()) if valid_views else "(none)",
+            "prepared views",
+            count=len(projections),
+            views=", ".join(projections),
         )
 
-        profiles = available_profiles(set(valid_views))
-
-        if args.profiles:
-            requested = {name.upper() for name in args.profiles}
-            profiles = [
-                profile
-                for profile in profiles
-                if profile.name in requested
-            ]
-
-        manifest["profiles"] = {}
-
-        logger.info(
-            "Profiles selected",
-            count=len(profiles),
-            profiles=", ".join(profile.name for profile in profiles) if profiles else "(none)",
-        )
-
-        for index, profile in enumerate(profiles, start=1):
-            logger.progress(index, len(profiles), f"{sheet_name} -> {profile.name}")
-
-            profile_dir = scans_root / profile.name
-
-            try:
-                result = generate_profile(
-                    profile,
-                    valid_views,
-                    scan_dir=profile_dir,
-                    file_stem=f"{sheet_name}_{profile.name}",
-                    args=args,
-                    logger=logger.child(indent_offset=1),
-                )
-
-                manifest["profiles"][profile.name] = {
-                    "generated": True,
-                    **result,
-                }
-            except Exception as exc:
-                manifest["profiles"][profile.name] = {
-                    "generated": False,
-                    "views": list(profile.views),
-                    "error": str(exc),
-                }
-
-                logger.error(
-                    f"{sheet_name}/{profile.name} failed",
-                    error=str(exc),
-                )
+        with logger.timed("generate all requested profiles incrementally"):
+            manifest["profiles"] = generate_profiles_incrementally(
+                projections,
+                scans_root=scans_root,
+                sheet_name=sheet_name,
+                args=args,
+                logger=logger.child(indent_offset=1),
+            )
 
         manifest_path = sheet_root / "manifest.json"
         manifest_path.write_text(
-            json.dumps(
-                manifest,
-                indent=2,
-                ensure_ascii=False,
-            ),
+            json.dumps(manifest, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
+        logger.success("manifest written", path=str(manifest_path))
 
-        logger.success(
-            "Manifest written",
-            path=str(manifest_path),
-        )
+
+def parse_args() -> argparse.Namespace:
+    argv = sys.argv
+    argv = argv[argv.index("--") + 1 :] if "--" in argv else []
+
+    parser = argparse.ArgumentParser(
+        description="Generate all scan levels from sheet*.png files."
+    )
+    parser.add_argument("example_dir", type=Path)
+    parser.add_argument("output_dir", type=Path)
+    parser.add_argument("--resolution", type=int, default=64)
+    parser.add_argument("--threshold", type=float, default=0.1)
+    parser.add_argument("--target-height", type=float, default=2.0)
+    parser.add_argument("--voxel-size", type=float, default=0.05)
+    parser.add_argument("--smooth", type=int, default=3)
+    parser.add_argument("--symmetry-x", action="store_true")
+    parser.add_argument("--no-remesh", action="store_true")
+    parser.add_argument("--sheet-white-threshold", type=float, default=0.94)
+    parser.add_argument("--profiles", nargs="*", default=None)
+    parser.add_argument("--json-log", action="store_true")
+    return parser.parse_args(argv)
 
 
 def main() -> None:
     args = parse_args()
-
     example_dir = args.example_dir.resolve()
     output_dir = args.output_dir.resolve()
-
     sheets_dir = example_dir / "sheets"
 
     if not sheets_dir.exists():
-        raise FileNotFoundError(
-            f"Expected sheets directory: {sheets_dir}"
-        )
+        raise FileNotFoundError(f"Expected sheets directory: {sheets_dir}")
 
-    sheet_files = sorted(
-        sheets_dir.glob("sheet*.png")
-    )
-
+    sheet_files = sorted(sheets_dir.glob("sheet*.png"))
     if not sheet_files:
-        raise RuntimeError(
-            f"No sheet*.png found in {sheets_dir}"
-        )
+        raise RuntimeError(f"No sheet*.png found in {sheets_dir}")
 
     generated_root = output_dir / "generated"
-    generated_root.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
+    generated_root.mkdir(parents=True, exist_ok=True)
 
-    logger = RunLogger(
-        jsonl_path=(generated_root / "run_log.jsonl") if args.json_log else None
-    )
-
-    logger.divider("SINGLE EXAMPLE GENERATION")
-    logger.info("Example", path=str(example_dir))
-    logger.info("Sheets found", count=len(sheet_files))
-
+    logger = RunLogger()
     for index, sheet_path in enumerate(sheet_files, start=1):
         logger.progress(index, len(sheet_files), sheet_path.name)
-
         process_sheet(
             sheet_path,
             generated_root,
             args,
             logger=logger.child(indent_offset=1),
         )
-
-    logger.success(
-        "Example generation finished",
-        elapsed=logger.total_elapsed(),
-    )
 
 
 if __name__ == "__main__":
