@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import bpy
 
 from bpy.props import (
@@ -37,20 +39,20 @@ class BPT_PG_ProjectionView(PropertyGroup):
 
     azimuth: FloatProperty(
         name="Azimuth",
-        description="Rotation around the vertical axis in degrees",
+        description="Rotation around the vertical axis",
         default=0.0,
-        min=-360.0,
-        max=360.0,
+        min=-math.tau,
+        max=math.tau,
         subtype="ANGLE",
         unit="ROTATION",
     )
 
     elevation: FloatProperty(
         name="Elevation",
-        description="Vertical camera angle in degrees",
+        description="Vertical camera angle",
         default=0.0,
-        min=-90.0,
-        max=90.0,
+        min=-math.pi / 2.0,
+        max=math.pi / 2.0,
         subtype="ANGLE",
         unit="ROTATION",
     )
@@ -173,27 +175,32 @@ def ensure_default_projections(
 
     for name, azimuth_deg, elevation_deg, flip_x in defaults:
         item = settings.projections.add()
+
         item.name = name
-        item.azimuth = azimuth_deg
-        item.elevation = elevation_deg
+        item.azimuth = math.radians(azimuth_deg)
+        item.elevation = math.radians(elevation_deg)
         item.flip_x = flip_x
         item.enabled = name in {"Front", "Right"}
 
 
-def _ensure_scene_defaults(
-    _scene: bpy.types.Scene,
-) -> None:
+def _ensure_scene_defaults() -> None:
     scene = bpy.context.scene
 
     if scene is None:
         return
 
-    settings = getattr(scene, "bpt_settings", None)
+    settings = getattr(
+        scene,
+        "bpt_settings",
+        None,
+    )
 
     if settings is None:
         return
 
-    ensure_default_projections(settings)
+    ensure_default_projections(
+        settings
+    )
 
 
 CLASSES = (
@@ -217,7 +224,10 @@ def register() -> None:
 
 
 def unregister() -> None:
-    if hasattr(bpy.types.Scene, "bpt_settings"):
+    if hasattr(
+        bpy.types.Scene,
+        "bpt_settings",
+    ):
         del bpy.types.Scene.bpt_settings
 
     for cls in reversed(CLASSES):

@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import math
+
 import bpy
 
 from bpy.types import Panel, UIList
 
+from .translations import tr
 from .version import get_version_label
 
 
@@ -42,7 +45,7 @@ class BPT_UL_ProjectionViews(UIList):
         )
 
         row.label(
-            text=f"{projection.azimuth:.1f}°",
+            text=f"{math.degrees(projection.azimuth):.1f}°",
         )
 
 
@@ -74,6 +77,11 @@ class BPT_PT_MainPanel(Panel):
             settings,
         )
 
+        self._draw_diagnostics(
+            layout,
+            settings,
+        )
+
         self._draw_generation_section(
             layout,
             settings,
@@ -91,7 +99,7 @@ class BPT_PT_MainPanel(Panel):
 
         button.operator(
             "bpt.generate_character",
-            text="Generate Scan",
+            text=tr("generate_scan"),
             icon="OUTLINER_OB_MESH",
         )
 
@@ -100,20 +108,20 @@ class BPT_PT_MainPanel(Panel):
         info_box = layout.box()
 
         info_box.label(
-            text="Workflow",
+            text=tr("workflow"),
             icon="INFO",
         )
 
         info_box.label(
-            text="Use transparent silhouettes.",
+            text=tr("use_transparent"),
         )
 
         info_box.label(
-            text="More angles = tighter visual hull.",
+            text=tr("more_angles"),
         )
 
         info_box.label(
-            text="Start at 64-96 voxels.",
+            text=tr("start_low"),
         )
 
     def _draw_projection_section(
@@ -126,7 +134,7 @@ class BPT_PT_MainPanel(Panel):
         header = box.row()
 
         header.label(
-            text="Projection Views",
+            text=tr("projection_views"),
             icon="CAMERA_DATA",
         )
 
@@ -170,8 +178,16 @@ class BPT_PT_MainPanel(Panel):
         preset_box = box.box()
 
         preset_box.label(
-            text="Turntable Presets",
+            text=tr("turntable_presets"),
             icon="FILE_REFRESH",
+        )
+
+        quick_row = preset_box.row()
+
+        quick_row.operator(
+            "bpt.add_front_side_preset",
+            text=tr("front_side_preset"),
+            icon="AXIS_FRONT",
         )
 
         preset_row = preset_box.row(
@@ -209,43 +225,93 @@ class BPT_PT_MainPanel(Panel):
         detail_box = box.box()
 
         detail_box.label(
-            text="Selected Projection",
+            text=tr("selected_projection"),
             icon="IMAGE_DATA",
         )
 
         detail_box.prop(
             projection,
             "enabled",
+            text=tr("enabled"),
         )
 
         detail_box.prop(
             projection,
             "name",
+            text=tr("name"),
         )
 
         detail_box.prop(
             projection,
             "image",
+            text=tr("image"),
         )
 
-        angle_row = detail_box.row(
-            align=True,
-        )
-
-        angle_row.prop(
+        detail_box.prop(
             projection,
             "azimuth",
+            text=tr("azimuth"),
         )
 
-        angle_row.prop(
+        detail_box.prop(
             projection,
             "elevation",
+            text=tr("elevation"),
         )
 
         detail_box.prop(
             projection,
             "flip_x",
+            text=tr("flip_x"),
         )
+
+    def _draw_diagnostics(
+        self,
+        layout,
+        settings,
+    ) -> None:
+        active_views = 0
+        missing_images = 0
+
+        for projection in settings.projections:
+            if not projection.enabled:
+                continue
+
+            active_views += 1
+
+            if projection.image is None:
+                missing_images += 1
+
+        box = layout.box()
+
+        box.label(
+            text=tr("diagnostics"),
+            icon="INFO",
+        )
+
+        row = box.row()
+        row.label(
+            text=tr("active_views"),
+        )
+        row.label(
+            text=str(active_views),
+        )
+
+        row = box.row()
+        row.label(
+            text=tr("missing_images"),
+        )
+
+        if missing_images == 0:
+            row.label(
+                text="0",
+                icon="CHECKMARK",
+            )
+        else:
+            row.label(
+                text=str(missing_images),
+                icon="ERROR",
+            )
 
     def _draw_generation_section(
         self,
@@ -255,48 +321,54 @@ class BPT_PT_MainPanel(Panel):
         box = layout.box()
 
         box.label(
-            text="Generation",
+            text=tr("generation"),
             icon="MESH_CUBE",
         )
 
         box.prop(
             settings,
             "generation_mode",
+            text=tr("mode"),
         )
 
         box.prop(
             settings,
             "resolution",
+            text=tr("resolution"),
             slider=True,
         )
 
         box.prop(
             settings,
             "alpha_threshold",
+            text=tr("threshold"),
             slider=True,
         )
 
         box.prop(
             settings,
             "symmetry_x",
+            text=tr("symmetry_x"),
         )
 
         scale_box = box.box()
 
         scale_box.label(
-            text="Scale",
+            text=tr("scale"),
             icon="EMPTY_ARROWS",
         )
 
         scale_box.prop(
             settings,
             "normalize_height",
+            text=tr("normalize_height"),
         )
 
         if settings.normalize_height:
             scale_box.prop(
                 settings,
                 "target_height",
+                text=tr("target_height"),
             )
 
     def _draw_cleanup_section(
@@ -307,24 +379,27 @@ class BPT_PT_MainPanel(Panel):
         box = layout.box()
 
         box.label(
-            text="Cleanup",
+            text=tr("cleanup"),
             icon="MOD_REMESH",
         )
 
         box.prop(
             settings,
             "auto_remesh",
+            text=tr("auto_remesh"),
         )
 
         if settings.auto_remesh:
             box.prop(
                 settings,
                 "voxel_size",
+                text=tr("voxel_size"),
             )
 
         box.prop(
             settings,
             "smooth_iterations",
+            text=tr("smooth"),
         )
 
 

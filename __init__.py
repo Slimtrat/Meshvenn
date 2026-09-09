@@ -1,6 +1,6 @@
-from __future__ import annotations
+# __init__.py
 
-import bpy
+from __future__ import annotations
 
 from . import operators
 from . import properties

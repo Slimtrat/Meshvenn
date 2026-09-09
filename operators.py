@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import bpy
 
 from bpy.props import IntProperty
@@ -102,12 +104,42 @@ class BPT_OT_AddTurntablePreset(Operator):
         for index in range(self.view_count):
             projection = settings.projections.add()
 
-            angle = index * angle_step
+            angle_deg = index * angle_step
 
-            projection.name = f"{angle:.1f}°"
-            projection.azimuth = angle
+            projection.name = f"{angle_deg:.1f}°"
+            projection.azimuth = math.radians(angle_deg)
             projection.elevation = 0.0
             projection.enabled = True
+
+        settings.active_projection_index = 0
+
+        return {"FINISHED"}
+
+
+class BPT_OT_AddFrontSidePreset(Operator):
+    bl_idname = "bpt.add_front_side_preset"
+    bl_label = "Front + Side"
+    bl_description = "Create a simple front and side projection setup"
+
+    def execute(
+        self,
+        context: bpy.types.Context,
+    ) -> set[str]:
+        settings = context.scene.bpt_settings
+
+        settings.projections.clear()
+
+        front = settings.projections.add()
+        front.name = "Front"
+        front.azimuth = math.radians(0.0)
+        front.elevation = 0.0
+        front.enabled = True
+
+        side = settings.projections.add()
+        side.name = "Right"
+        side.azimuth = math.radians(90.0)
+        side.elevation = 0.0
+        side.enabled = True
 
         settings.active_projection_index = 0
 
@@ -227,8 +259,8 @@ def _build_projection_views(
         projections.append(
             ProjectionView(
                 mask=mask,
-                azimuth_degrees=item.azimuth,
-                elevation_degrees=item.elevation,
+                azimuth_degrees=math.degrees(item.azimuth),
+                elevation_degrees=math.degrees(item.elevation),
                 flip_x=item.flip_x,
                 enabled=True,
             )
@@ -304,6 +336,7 @@ CLASSES = (
     BPT_OT_AddProjection,
     BPT_OT_RemoveProjection,
     BPT_OT_AddTurntablePreset,
+    BPT_OT_AddFrontSidePreset,
     BPT_OT_GenerateCharacter,
 )
 
