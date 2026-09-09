@@ -3,6 +3,11 @@ name: Visual Preview
 
 on:
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
     paths:
       - "native/**"
       - "core/**"
@@ -82,8 +87,112 @@ env:
   SHEETS_DIR: "example/mascotte/test1/sheets"
   GENERATED_DIR: "example/mascotte/test1/generated"
 
+  MATERIAL_MODE: "projected-color-v1"
+
+  # One technical branch for every open PR.
+  #
+  # Permanent previews are committed to main.
+  # This branch only exists so GitHub can display
+  # generated images inside PR comments.
+  ASSET_BRANCH: "visual-preview-assets"
+
 
 jobs:
+
+  # =========================================================
+  # Remove transient PR assets when a PR closes
+  # =========================================================
+
+  cleanup-pr-assets:
+    name: Clean PR preview assets
+
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.action == 'closed'
+      && github.event.pull_request.head.repo.full_name == github.repository
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+
+      - name: Remove PR assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+
+          ROOT="${RUNNER_TEMP}/bpt-preview-assets"
+
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          rm -rf \
+            "${ROOT}"
+
+          mkdir -p \
+            "${ROOT}"
+
+          cd \
+            "${ROOT}"
+
+          git init
+
+          git remote add \
+            origin \
+            "${REMOTE}"
+
+          if ! git ls-remote \
+            --exit-code \
+            --heads \
+            origin \
+            "refs/heads/${ASSET_BRANCH}" \
+            >/dev/null 2>&1
+          then
+            echo "Preview asset branch does not exist."
+            exit 0
+          fi
+
+          git fetch \
+            --depth=1 \
+            origin \
+            "${ASSET_BRANCH}"
+
+          git checkout \
+            -B "${ASSET_BRANCH}" \
+            FETCH_HEAD
+
+          git config \
+            user.name \
+            "github-actions[bot]"
+
+          git config \
+            user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          rm -rf \
+            "pr/${PR_NUMBER}"
+
+          git add \
+            -A
+
+          if git diff \
+            --cached \
+            --quiet
+          then
+            echo "No PR preview assets to remove."
+            exit 0
+          fi
+
+          git commit \
+            -m "preview: remove PR #${PR_NUMBER}"
+
+          git push \
+            origin \
+            "HEAD:refs/heads/${ASSET_BRANCH}"
+
 
   # =========================================================
   # Build current branch native core
@@ -91,6 +200,11 @@ jobs:
 
   native:
     name: Build native core
+
+    if: >-
+      github.event_name != 'pull_request'
+      || github.event.action != 'closed'
+
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -168,7 +282,8 @@ jobs:
             "${LIB_PATH}" \
             native/bin/libbpt_core.so
 
-          ls -lh native/bin/libbpt_core.so
+          ls -lh \
+            native/bin/libbpt_core.so
 
       - name: Upload native library
         uses: actions/upload-artifact@v4
@@ -185,6 +300,10 @@ jobs:
 
   preview:
     name: Generate visual previews
+
+    if: >-
+      github.event_name != 'pull_request'
+      || github.event.action != 'closed'
 
     needs:
       - native
@@ -220,7 +339,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          test -f native/bin/libbpt_core.so
+          test -f \
+            native/bin/libbpt_core.so
 
           ls -lh \
             native/bin/libbpt_core.so
@@ -302,20 +422,11 @@ jobs:
 
           else
 
-            # PR and main intentionally use the same
-            # visual configuration so they can be
-            # compared directly.
             RESOLUTION="64"
             PROFILES="L2 L4 L8 L10"
             VIEWS="8"
             SIZE="384"
             SAMPLES="1"
-
-            # Current engine candidate.
-            #
-            # Once this PR is merged, main will generate
-            # and persist Surface Nets previews, making
-            # them the natural baseline for future PRs.
             MESH_MODE="surface_nets"
 
           fi
@@ -348,6 +459,7 @@ jobs:
             echo "size=${SIZE}"
             echo "samples=${SAMPLES}"
             echo "mesh_mode=${MESH_MODE}"
+            echo "material_mode=${MATERIAL_MODE}"
           } >> "${GITHUB_OUTPUT}"
 
           echo "Resolution: ${RESOLUTION}"
@@ -356,6 +468,7 @@ jobs:
           echo "Size: ${SIZE}"
           echo "Samples: ${SAMPLES}"
           echo "Mesh mode: ${MESH_MODE}"
+          echo "Material mode: ${MATERIAL_MODE}"
 
 
       # -----------------------------------------------------
@@ -389,6 +502,7 @@ jobs:
           SHEET_NAMES=()
 
           for SHEET_PATH in "${SHEET_PATHS[@]}"; do
+
             SHEET_NAME="$(
               basename \
                 "${SHEET_PATH}" \
@@ -398,6 +512,7 @@ jobs:
             SHEET_NAMES+=(
               "${SHEET_NAME}"
             )
+
           done
 
           {
@@ -441,6 +556,14 @@ jobs:
 
       # -----------------------------------------------------
       # Current branch rendering
+      #
+      # Two independent projection sheets are generated:
+      #
+      # geometry:
+      #   forced neutral material
+      #
+      # material:
+      #   preserve the actual GLB material
       # -----------------------------------------------------
 
       - name: Render previews
@@ -498,7 +621,7 @@ jobs:
               echo
 
               # ---------------------------------------------
-              # Existing free turntable preview
+              # Neutral turntable
               # ---------------------------------------------
 
               "${BLENDER_ROOT}/blender" \
@@ -513,7 +636,7 @@ jobs:
                 --samples "${{ steps.config.outputs.samples }}"
 
               # ---------------------------------------------
-              # Projection Tool reconstruction
+              # Geometry projection sheet
               # ---------------------------------------------
 
               "${BLENDER_ROOT}/blender" \
@@ -523,9 +646,24 @@ jobs:
                 -- \
                 --input "${GLB}" \
                 --template "${TEMPLATE}" \
-                --output "${OUTPUT_DIR}/projection_sheet.png" \
+                --output "${OUTPUT_DIR}/projection_geometry.png" \
                 --samples "${{ steps.config.outputs.samples }}" \
                 --material-mode neutral
+
+              # ---------------------------------------------
+              # Material projection sheet
+              # ---------------------------------------------
+
+              "${BLENDER_ROOT}/blender" \
+                --background \
+                --factory-startup \
+                --python scripts/render_projection_sheet.py \
+                -- \
+                --input "${GLB}" \
+                --template "${TEMPLATE}" \
+                --output "${OUTPUT_DIR}/projection_material.png" \
+                --samples "${{ steps.config.outputs.samples }}" \
+                --material-mode original
 
             done
           done
@@ -550,15 +688,21 @@ jobs:
             for LEVEL in "${PROFILES[@]}"; do
 
               CONTACT="visual-preview/${SHEET}/${LEVEL}/contact_sheet.png"
-              PROJECTION="visual-preview/${SHEET}/${LEVEL}/projection_sheet.png"
+              GEOMETRY="visual-preview/${SHEET}/${LEVEL}/projection_geometry.png"
+              MATERIAL="visual-preview/${SHEET}/${LEVEL}/projection_material.png"
 
               if [[ ! -s "${CONTACT}" ]]; then
                 echo "Missing contact sheet: ${CONTACT}"
                 exit 1
               fi
 
-              if [[ ! -s "${PROJECTION}" ]]; then
-                echo "Missing projection sheet: ${PROJECTION}"
+              if [[ ! -s "${GEOMETRY}" ]]; then
+                echo "Missing geometry projection: ${GEOMETRY}"
+                exit 1
+              fi
+
+              if [[ ! -s "${MATERIAL}" ]]; then
+                echo "Missing material projection: ${MATERIAL}"
                 exit 1
               fi
 
@@ -567,22 +711,25 @@ jobs:
 
               ls -lh \
                 "${CONTACT}" \
-                "${PROJECTION}"
+                "${GEOMETRY}" \
+                "${MATERIAL}"
 
             done
           done
 
 
       # =====================================================
-      # MAIN DOCUMENTATION
+      # PERMANENT MAIN DOCUMENTATION
+      #
+      # Only main owns permanent generated previews.
+      #
+      # PR images remain transient.
       # =====================================================
 
-      # -----------------------------------------------------
-      # Persistent preview files
-      # -----------------------------------------------------
-
       - name: Prepare documentation previews
-        if: github.event_name != 'pull_request'
+        if: >-
+          github.event_name == 'push'
+          && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           set -euo pipefail
@@ -617,16 +764,17 @@ jobs:
               mkdir -p \
                 "${LEVEL_DOCS}"
 
-              CONTACT_SOURCE="visual-preview/${SHEET}/${LEVEL}/contact_sheet.png"
-              PROJECTION_SOURCE="visual-preview/${SHEET}/${LEVEL}/projection_sheet.png"
-
               cp \
-                "${CONTACT_SOURCE}" \
+                "visual-preview/${SHEET}/${LEVEL}/contact_sheet.png" \
                 "${LEVEL_DOCS}/turntable.png"
 
               cp \
-                "${PROJECTION_SOURCE}" \
-                "${LEVEL_DOCS}/projection.png"
+                "visual-preview/${SHEET}/${LEVEL}/projection_geometry.png" \
+                "${LEVEL_DOCS}/geometry.png"
+
+              cp \
+                "visual-preview/${SHEET}/${LEVEL}/projection_material.png" \
+                "${LEVEL_DOCS}/material.png"
 
             done
           done
@@ -638,11 +786,13 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Persistent Markdown
+      # Persistent Markdown on main
       # -----------------------------------------------------
 
       - name: Generate visual preview Markdown
-        if: github.event_name != 'pull_request'
+        if: >-
+          github.event_name == 'push'
+          && github.ref == 'refs/heads/main'
         shell: bash
         run: |
           set -euo pipefail
@@ -696,7 +846,7 @@ jobs:
             echo
             echo "Automatically generated from the Projection Tool reference sheets."
             echo
-            echo "Each reconstruction is rendered back into the exact same Projection Tool layout, allowing direct visual comparison with the source."
+            echo "Geometry and appearance are rendered independently so changes to the mesher and changes to the projected material remain directly comparable."
             echo
 
             echo "## Example"
@@ -705,6 +855,7 @@ jobs:
             echo "- Sheets directory: \`${SHEETS_DIR}\`"
             echo "- Discovered sheets: **${#SHEETS[@]}**"
             echo "- Mesh mode: **${{ steps.config.outputs.mesh_mode }}**"
+            echo "- Material mode: **${MATERIAL_MODE}**"
             echo
 
             echo "## Scan levels"
@@ -732,10 +883,24 @@ jobs:
 
                 echo "### ${LEVEL}"
                 echo
+
+                echo "#### Projected material"
+                echo
                 echo "| Original | Reconstruction ${LEVEL} |"
                 echo "| :---: | :---: |"
-                echo "| ![${SHEET_TITLE} original](previews/${SHEET}/original.png) | ![${SHEET_TITLE} ${LEVEL}](previews/${SHEET}/${LEVEL}/projection.png) |"
+                echo "| ![${SHEET_TITLE} original](previews/${SHEET}/original.png) | ![${SHEET_TITLE} ${LEVEL} material](previews/${SHEET}/${LEVEL}/material.png) |"
                 echo
+
+                echo "<details>"
+                echo "<summary>Geometry ${LEVEL}</summary>"
+                echo
+                echo "| Original | Neutral geometry |"
+                echo "| :---: | :---: |"
+                echo "| ![${SHEET_TITLE} original](previews/${SHEET}/original.png) | ![${SHEET_TITLE} ${LEVEL} geometry](previews/${SHEET}/${LEVEL}/geometry.png) |"
+                echo
+                echo "</details>"
+                echo
+
                 echo "<details>"
                 echo "<summary>Turntable ${LEVEL}</summary>"
                 echo
@@ -755,6 +920,7 @@ jobs:
             echo
             echo "- the native C++ visual hull engine;"
             echo "- mesh extraction: \`${{ steps.config.outputs.mesh_mode }}\`;"
+            echo "- material projection: \`${MATERIAL_MODE}\`;"
             echo "- Blender headless;"
             echo "- Cycles CPU;"
             echo "- the Projection Tool sheets in \`${SHEETS_DIR}/\`."
@@ -769,7 +935,7 @@ jobs:
       # =====================================================
 
       # -----------------------------------------------------
-      # Resolve current base branch
+      # Resolve base implementation
       # -----------------------------------------------------
 
       - name: Resolve PR base
@@ -797,16 +963,7 @@ jobs:
           )"
 
           # --------------------------------------------------
-          # Resolve the mesh mode used by the base workflow.
-          #
-          # Before this Surface Nets PR:
-          #   main has no explicit mesh mode => blocks.
-          #
-          # After this PR is merged:
-          #   main explicitly assigns surface_nets.
-          #
-          # This keeps cache-miss regeneration correct both
-          # during this transition and for following PRs.
+          # Mesh mode
           # --------------------------------------------------
 
           BASE_MESH_MODE="blocks"
@@ -824,20 +981,46 @@ jobs:
             BASE_MESH_MODE="surface_nets"
           fi
 
+          # --------------------------------------------------
+          # Material mode
+          #
+          # Current pre-material main is labelled "legacy".
+          #
+          # After this PR merges, future PRs naturally detect
+          # projected-color-v1 as their base appearance.
+          # --------------------------------------------------
+
+          BASE_MATERIAL_MODE="legacy"
+
+          BASE_GENERATOR="$(
+            git show \
+              "${BASE_SHA}:scripts/generate_example_native.py" \
+              2>/dev/null \
+              || true
+          )"
+
+          if printf '%s\n' "${BASE_GENERATOR}" \
+            | grep -q 'projected-color-v1'
+          then
+            BASE_MATERIAL_MODE="projected-color-v1"
+          fi
+
           {
             echo "ref=${BASE_REF}"
             echo "sha=${BASE_SHA}"
             echo "short_sha=${BASE_SHORT}"
             echo "mesh_mode=${BASE_MESH_MODE}"
+            echo "material_mode=${BASE_MATERIAL_MODE}"
           } >> "${GITHUB_OUTPUT}"
 
           echo "Base ref: ${BASE_REF}"
           echo "Base SHA: ${BASE_SHA}"
           echo "Base mesh mode: ${BASE_MESH_MODE}"
+          echo "Base material mode: ${BASE_MATERIAL_MODE}"
 
 
       # -----------------------------------------------------
-      # Original + PR + cached main
+      # Prepare PR + cached main comparisons
       # -----------------------------------------------------
 
       - name: Prepare PR visual comparison
@@ -881,10 +1064,6 @@ jobs:
               "visual-compare/pr/${SHEET}" \
               "visual-compare/status/${SHEET}"
 
-            # ------------------------------------------------
-            # Has the source sheet changed compared with main?
-            # ------------------------------------------------
-
             SOURCE_CHANGED="false"
 
             if ! git cat-file \
@@ -893,6 +1072,7 @@ jobs:
               2>/dev/null
             then
               SOURCE_CHANGED="true"
+
             elif ! git diff \
               --quiet \
               "${BASE_SHA}" \
@@ -905,76 +1085,148 @@ jobs:
 
             for LEVEL in "${PROFILES[@]}"; do
 
-              # PR result always comes from the current run.
+              mkdir -p \
+                "visual-compare/main/${SHEET}/${LEVEL}" \
+                "visual-compare/pr/${SHEET}/${LEVEL}" \
+                "visual-compare/status/${SHEET}/${LEVEL}"
+
+              # ---------------------------------------------
+              # Current PR always comes from this run.
+              # ---------------------------------------------
 
               cp \
-                "visual-preview/${SHEET}/${LEVEL}/projection_sheet.png" \
-                "visual-compare/pr/${SHEET}/${LEVEL}.png"
+                "visual-preview/${SHEET}/${LEVEL}/projection_geometry.png" \
+                "visual-compare/pr/${SHEET}/${LEVEL}/geometry.png"
 
-              MAIN_DOC_PATH="docs/previews/${SHEET}/${LEVEL}/projection.png"
+              cp \
+                "visual-preview/${SHEET}/${LEVEL}/projection_material.png" \
+                "visual-compare/pr/${SHEET}/${LEVEL}/material.png"
 
-              MAIN_OUTPUT="visual-compare/main/${SHEET}/${LEVEL}.png"
+              MAIN_GEOMETRY_OUTPUT="visual-compare/main/${SHEET}/${LEVEL}/geometry.png"
+              MAIN_MATERIAL_OUTPUT="visual-compare/main/${SHEET}/${LEVEL}/material.png"
 
-              STATUS_FILE="visual-compare/status/${SHEET}/${LEVEL}.txt"
+              GEOMETRY_STATUS="visual-compare/status/${SHEET}/${LEVEL}/geometry.txt"
+              MATERIAL_STATUS="visual-compare/status/${SHEET}/${LEVEL}/material.txt"
 
-              # ------------------------------------------------
-              # Cache hit:
+              NEW_GEOMETRY_DOC="docs/previews/${SHEET}/${LEVEL}/geometry.png"
+              LEGACY_GEOMETRY_DOC="docs/previews/${SHEET}/${LEVEL}/projection.png"
+              MATERIAL_DOC="docs/previews/${SHEET}/${LEVEL}/material.png"
+
+              NEED_GEOMETRY="false"
+              NEED_MATERIAL="false"
+
+              # ---------------------------------------------
+              # Geometry cache
               #
-              # - source sheet unchanged
-              # - preview already committed on main
+              # New format:
+              #   geometry.png
               #
-              # => do NOT rebuild main.
-              # ------------------------------------------------
+              # Compatibility with the previews generated
+              # before this material PR:
+              #   projection.png
+              # ---------------------------------------------
 
-              if \
-                [[ "${SOURCE_CHANGED}" == "false" ]] \
-                && git cat-file \
+              if [[ "${SOURCE_CHANGED}" == "false" ]]; then
+
+                if git cat-file \
                   -e \
-                  "${BASE_SHA}:${MAIN_DOC_PATH}" \
+                  "${BASE_SHA}:${NEW_GEOMETRY_DOC}" \
                   2>/dev/null
-              then
+                then
 
-                echo \
-                  "Reusing main preview: ${SHEET}/${LEVEL}"
+                  git show \
+                    "${BASE_SHA}:${NEW_GEOMETRY_DOC}" \
+                    > "${MAIN_GEOMETRY_OUTPUT}"
 
-                git show \
-                  "${BASE_SHA}:${MAIN_DOC_PATH}" \
-                  > "${MAIN_OUTPUT}"
+                  echo \
+                    "reused" \
+                    > "${GEOMETRY_STATUS}"
 
-                echo \
-                  "reused" \
-                  > "${STATUS_FILE}"
+                elif git cat-file \
+                  -e \
+                  "${BASE_SHA}:${LEGACY_GEOMETRY_DOC}" \
+                  2>/dev/null
+                then
 
-                continue
+                  git show \
+                    "${BASE_SHA}:${LEGACY_GEOMETRY_DOC}" \
+                    > "${MAIN_GEOMETRY_OUTPUT}"
 
-              fi
+                  echo \
+                    "reused-legacy" \
+                    > "${GEOMETRY_STATUS}"
 
-              # ------------------------------------------------
-              # Cache miss
-              # ------------------------------------------------
+                else
 
-              printf '%s\t%s\n' \
-                "${SHEET}" \
-                "${LEVEL}" \
-                >> "${MISSING_FILE}"
+                  NEED_GEOMETRY="true"
 
-              if [[ "${SOURCE_CHANGED}" == "true" ]]; then
+                  echo \
+                    "generated-preview-missing" \
+                    > "${GEOMETRY_STATUS}"
 
-                echo \
-                  "generated-input-changed" \
-                  > "${STATUS_FILE}"
-
-                echo \
-                  "Main baseline required for ${SHEET}/${LEVEL}: source sheet differs from main"
+                fi
 
               else
 
-                echo \
-                  "generated-preview-missing" \
-                  > "${STATUS_FILE}"
+                NEED_GEOMETRY="true"
 
                 echo \
-                  "Main baseline required for ${SHEET}/${LEVEL}: committed preview missing"
+                  "generated-input-changed" \
+                  > "${GEOMETRY_STATUS}"
+
+              fi
+
+              # ---------------------------------------------
+              # Material cache
+              # ---------------------------------------------
+
+              if [[ "${SOURCE_CHANGED}" == "false" ]] \
+                && git cat-file \
+                  -e \
+                  "${BASE_SHA}:${MATERIAL_DOC}" \
+                  2>/dev/null
+              then
+
+                git show \
+                  "${BASE_SHA}:${MATERIAL_DOC}" \
+                  > "${MAIN_MATERIAL_OUTPUT}"
+
+                echo \
+                  "reused" \
+                  > "${MATERIAL_STATUS}"
+
+              else
+
+                NEED_MATERIAL="true"
+
+                if [[ "${SOURCE_CHANGED}" == "true" ]]; then
+                  echo \
+                    "generated-input-changed" \
+                    > "${MATERIAL_STATUS}"
+                else
+                  echo \
+                    "generated-preview-missing" \
+                    > "${MATERIAL_STATUS}"
+                fi
+
+              fi
+
+              # ---------------------------------------------
+              # One base reconstruction can serve both
+              # missing render types.
+              # ---------------------------------------------
+
+              if \
+                [[ "${NEED_GEOMETRY}" == "true" ]] \
+                || [[ "${NEED_MATERIAL}" == "true" ]]
+              then
+
+                printf '%s\t%s\t%s\t%s\n' \
+                  "${SHEET}" \
+                  "${LEVEL}" \
+                  "${NEED_GEOMETRY}" \
+                  "${NEED_MATERIAL}" \
+                  >> "${MISSING_FILE}"
 
               fi
 
@@ -993,7 +1245,7 @@ jobs:
           } >> "${GITHUB_OUTPUT}"
 
           echo
-          echo "Missing main previews: ${MISSING_COUNT}"
+          echo "Base reconstructions required: ${MISSING_COUNT}"
 
           if [[ "${MISSING_COUNT}" -gt 0 ]]; then
             echo
@@ -1002,7 +1254,8 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Rebuild main ONLY on cache miss
+      # Rebuild main only when a persistent baseline
+      # cannot be reused.
       # -----------------------------------------------------
 
       - name: Generate missing main baselines
@@ -1028,22 +1281,10 @@ jobs:
             "${MAIN_BUILD}" \
             "${MAIN_INPUT_ROOT}"
 
-          # --------------------------------------------------
-          # Checkout actual main/base code separately.
-          # --------------------------------------------------
-
           git worktree add \
             --detach \
             "${MAIN_WORKTREE}" \
             "${BASE_SHA}"
-
-          # --------------------------------------------------
-          # Copy only the sheets that need a main baseline.
-          #
-          # Important:
-          # the input comes from the PR so a new/modified
-          # sheet is evaluated by both engines identically.
-          # --------------------------------------------------
 
           mkdir -p \
             "${MAIN_EXAMPLE}/sheets"
@@ -1064,11 +1305,6 @@ jobs:
 
           done
 
-          # --------------------------------------------------
-          # Only request profiles that are actually missing.
-          # Preserve configured scan-level order.
-          # --------------------------------------------------
-
           read -ra ALL_PROFILES \
             <<< "${{ steps.config.outputs.profiles }}"
 
@@ -1082,9 +1318,11 @@ jobs:
               '$2 == level { found = 1 } END { exit !found }' \
               "${MISSING_FILE}"
             then
+
               MISSING_PROFILES+=(
                 "${LEVEL}"
               )
+
             fi
 
           done
@@ -1095,12 +1333,9 @@ jobs:
           echo "Base mesh mode: ${BASE_MESH_MODE}"
           echo
 
-          # --------------------------------------------------
-          # Build main native core.
-          #
-          # This entire block is skipped when every baseline
-          # was already committed on main.
-          # --------------------------------------------------
+          # -----------------------------------------------
+          # Build base native core
+          # -----------------------------------------------
 
           cmake \
             -S "${MAIN_WORKTREE}/native" \
@@ -1132,15 +1367,10 @@ jobs:
             "${MAIN_LIB}" \
             "${MAIN_WORKTREE}/native/bin/libbpt_core.so"
 
-          # --------------------------------------------------
-          # Base mesh-mode compatibility.
-          #
-          # Old main does not know --mesh-mode.
-          # New main does.
-          #
-          # Only pass the option when the checked-out base
-          # implementation supports it.
-          # --------------------------------------------------
+          # -----------------------------------------------
+          # Compatibility with base versions predating
+          # --mesh-mode.
+          # -----------------------------------------------
 
           BASE_MESH_ARGS=()
 
@@ -1149,15 +1379,17 @@ jobs:
             -- '"--mesh-mode"' \
             "${MAIN_WORKTREE}/scripts/generate_example_native.py"
           then
+
             BASE_MESH_ARGS=(
               --mesh-mode
               "${BASE_MESH_MODE}"
             )
+
           fi
 
-          # --------------------------------------------------
-          # Generate missing baseline geometry using main code.
-          # --------------------------------------------------
+          # -----------------------------------------------
+          # Generate base GLBs
+          # -----------------------------------------------
 
           "${BLENDER_ROOT}/blender" \
             --background \
@@ -1172,15 +1404,20 @@ jobs:
             --thread-count 0 \
             --skip-blend
 
-          # --------------------------------------------------
-          # Render only missing main comparisons.
+          # -----------------------------------------------
+          # Render only the baseline types that were missing.
           #
-          # We deliberately use the PR projection renderer
-          # here so the camera/layout renderer itself is
-          # identical on both sides of the comparison.
-          # --------------------------------------------------
+          # The PR renderer is intentionally used on both
+          # sides so camera/layout/render changes do not
+          # contaminate engine comparison.
+          # -----------------------------------------------
 
-          while IFS=$'\t' read -r SHEET LEVEL; do
+          while IFS=$'\t' read -r \
+            SHEET \
+            LEVEL \
+            NEED_GEOMETRY \
+            NEED_MATERIAL
+          do
 
             SCAN_DIR="${MAIN_EXAMPLE}/generated/${SHEET}/scans/${LEVEL}"
 
@@ -1192,24 +1429,39 @@ jobs:
             )"
 
             if [[ -z "${GLB}" ]]; then
-              echo \
-                "No main GLB found for ${SHEET}/${LEVEL}"
-
+              echo "No base GLB found for ${SHEET}/${LEVEL}"
               exit 1
             fi
 
-            MAIN_OUTPUT="visual-compare/main/${SHEET}/${LEVEL}.png"
+            if [[ "${NEED_GEOMETRY}" == "true" ]]; then
 
-            "${BLENDER_ROOT}/blender" \
-              --background \
-              --factory-startup \
-              --python scripts/render_projection_sheet.py \
-              -- \
-              --input "${GLB}" \
-              --template "${SHEETS_DIR}/${SHEET}.png" \
-              --output "${MAIN_OUTPUT}" \
-              --samples "${{ steps.config.outputs.samples }}" \
-              --material-mode neutral
+              "${BLENDER_ROOT}/blender" \
+                --background \
+                --factory-startup \
+                --python scripts/render_projection_sheet.py \
+                -- \
+                --input "${GLB}" \
+                --template "${SHEETS_DIR}/${SHEET}.png" \
+                --output "visual-compare/main/${SHEET}/${LEVEL}/geometry.png" \
+                --samples "${{ steps.config.outputs.samples }}" \
+                --material-mode neutral
+
+            fi
+
+            if [[ "${NEED_MATERIAL}" == "true" ]]; then
+
+              "${BLENDER_ROOT}/blender" \
+                --background \
+                --factory-startup \
+                --python scripts/render_projection_sheet.py \
+                -- \
+                --input "${GLB}" \
+                --template "${SHEETS_DIR}/${SHEET}.png" \
+                --output "visual-compare/main/${SHEET}/${LEVEL}/material.png" \
+                --samples "${{ steps.config.outputs.samples }}" \
+                --material-mode original
+
+            fi
 
           done < "${MISSING_FILE}"
 
@@ -1245,24 +1497,30 @@ jobs:
 
             for LEVEL in "${PROFILES[@]}"; do
 
-              MAIN="visual-compare/main/${SHEET}/${LEVEL}.png"
-              PR="visual-compare/pr/${SHEET}/${LEVEL}.png"
-              STATUS="visual-compare/status/${SHEET}/${LEVEL}.txt"
+              MAIN_GEOMETRY="visual-compare/main/${SHEET}/${LEVEL}/geometry.png"
+              MAIN_MATERIAL="visual-compare/main/${SHEET}/${LEVEL}/material.png"
 
-              if [[ ! -s "${MAIN}" ]]; then
-                echo "Missing main comparison: ${MAIN}"
-                exit 1
-              fi
+              PR_GEOMETRY="visual-compare/pr/${SHEET}/${LEVEL}/geometry.png"
+              PR_MATERIAL="visual-compare/pr/${SHEET}/${LEVEL}/material.png"
 
-              if [[ ! -s "${PR}" ]]; then
-                echo "Missing PR comparison: ${PR}"
-                exit 1
-              fi
+              GEOMETRY_STATUS="visual-compare/status/${SHEET}/${LEVEL}/geometry.txt"
+              MATERIAL_STATUS="visual-compare/status/${SHEET}/${LEVEL}/material.txt"
 
-              if [[ ! -s "${STATUS}" ]]; then
-                echo "Missing baseline status: ${STATUS}"
-                exit 1
-              fi
+              for FILE in \
+                "${MAIN_GEOMETRY}" \
+                "${MAIN_MATERIAL}" \
+                "${PR_GEOMETRY}" \
+                "${PR_MATERIAL}" \
+                "${GEOMETRY_STATUS}" \
+                "${MATERIAL_STATUS}"
+              do
+
+                if [[ ! -s "${FILE}" ]]; then
+                  echo "Missing comparison file: ${FILE}"
+                  exit 1
+                fi
+
+              done
 
             done
           done
@@ -1270,17 +1528,20 @@ jobs:
 
       # =====================================================
       # PR IMAGE HOSTING
+      #
+      # One shared transient branch:
+      #
+      # visual-preview-assets
+      #
+      # No more:
+      #
+      # visual-preview-pr-1
+      # visual-preview-pr-2
+      # visual-preview-pr-3
+      # ...
+      #
+      # Each open PR gets one directory instead.
       # =====================================================
-
-      # GitHub Actions artifacts cannot be embedded directly
-      # as images in a PR comment.
-      #
-      # Each PR therefore gets one disposable preview branch:
-      #
-      #   visual-preview-pr-3
-      #
-      # It is force-updated on every PR run, so no image
-      # history accumulates inside that branch.
 
       - name: Publish PR preview images
         if: >-
@@ -1295,9 +1556,9 @@ jobs:
 
           PR_NUMBER="${{ github.event.pull_request.number }}"
 
-          ASSET_BRANCH="visual-preview-pr-${PR_NUMBER}"
-
           ASSET_ROOT="${RUNNER_TEMP}/bpt-preview-assets"
+
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
           rm -rf \
             "${ASSET_ROOT}"
@@ -1305,25 +1566,45 @@ jobs:
           mkdir -p \
             "${ASSET_ROOT}"
 
-          cp -R \
-            visual-compare/original \
-            "${ASSET_ROOT}/original"
-
-          cp -R \
-            visual-compare/main \
-            "${ASSET_ROOT}/main"
-
-          cp -R \
-            visual-compare/pr \
-            "${ASSET_ROOT}/pr"
-
           cd \
             "${ASSET_ROOT}"
 
           git init
 
-          git checkout \
-            -b "${ASSET_BRANCH}"
+          git remote add \
+            origin \
+            "${REMOTE}"
+
+          if git ls-remote \
+            --exit-code \
+            --heads \
+            origin \
+            "refs/heads/${ASSET_BRANCH}" \
+            >/dev/null 2>&1
+          then
+
+            git fetch \
+              --depth=1 \
+              origin \
+              "${ASSET_BRANCH}"
+
+            git checkout \
+              -B "${ASSET_BRANCH}" \
+              FETCH_HEAD
+
+          else
+
+            git checkout \
+              --orphan \
+              "${ASSET_BRANCH}"
+
+            git rm \
+              -rf \
+              . \
+              2>/dev/null \
+              || true
+
+          fi
 
           git config \
             user.name \
@@ -1333,31 +1614,94 @@ jobs:
             user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
 
+          rm -rf \
+            "pr/${PR_NUMBER}"
+
+          mkdir -p \
+            "pr/${PR_NUMBER}"
+
+          cp -R \
+            "${GITHUB_WORKSPACE}/visual-compare/original" \
+            "pr/${PR_NUMBER}/original"
+
+          cp -R \
+            "${GITHUB_WORKSPACE}/visual-compare/main" \
+            "pr/${PR_NUMBER}/main"
+
+          cp -R \
+            "${GITHUB_WORKSPACE}/visual-compare/pr" \
+            "pr/${PR_NUMBER}/pr"
+
           git add \
-            original \
-            main \
-            pr
+            -A \
+            "pr/${PR_NUMBER}"
 
-          git commit \
-            -m "preview: PR #${PR_NUMBER} visual comparison"
+          if git diff \
+            --cached \
+            --quiet
+          then
 
-          git remote add \
-            origin \
-            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            echo "PR preview assets are already current."
 
-          git push \
-            --force \
-            origin \
-            "HEAD:refs/heads/${ASSET_BRANCH}"
+          else
+
+            git commit \
+              -m "preview: update PR #${PR_NUMBER}"
+
+            # ---------------------------------------------
+            # Shared branch can be updated by several PRs.
+            #
+            # Retry after rebasing if another PR pushed
+            # between our fetch and push.
+            # ---------------------------------------------
+
+            PUSHED="false"
+
+            for ATTEMPT in 1 2 3; do
+
+              if git push \
+                origin \
+                "HEAD:refs/heads/${ASSET_BRANCH}"
+              then
+                PUSHED="true"
+                break
+              fi
+
+              echo \
+                "Asset branch changed concurrently; retry ${ATTEMPT}/3."
+
+              git fetch \
+                origin \
+                "${ASSET_BRANCH}"
+
+              git rebase \
+                "origin/${ASSET_BRANCH}"
+
+            done
+
+            if [[ "${PUSHED}" != "true" ]]; then
+              echo "Could not publish preview assets."
+              exit 1
+            fi
+
+          fi
 
           {
             echo "branch=${ASSET_BRANCH}"
-            echo "raw_root=https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${ASSET_BRANCH}"
+            echo "raw_root=https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${ASSET_BRANCH}/pr/${PR_NUMBER}"
           } >> "${GITHUB_OUTPUT}"
 
 
       # =====================================================
       # STICKY PR COMMENT
+      #
+      # L10:
+      #   open
+      #   material visible immediately
+      #   geometry folded inside
+      #
+      # L2/L4/L8:
+      #   completely folded
       # =====================================================
 
       - name: Build sticky PR comment
@@ -1377,10 +1721,11 @@ jobs:
           BASE_REF="${{ steps.base.outputs.ref }}"
           BASE_SHORT="${{ steps.base.outputs.short_sha }}"
           BASE_MESH_MODE="${{ steps.base.outputs.mesh_mode }}"
-
-          RAW_ROOT="${{ steps.assets.outputs.raw_root }}"
+          BASE_MATERIAL_MODE="${{ steps.base.outputs.material_mode }}"
 
           MESH_MODE="${{ steps.config.outputs.mesh_mode }}"
+
+          RAW_ROOT="${{ steps.assets.outputs.raw_root }}"
 
           read -ra SHEETS \
             <<< "${{ steps.sheets.outputs.sheet_names }}"
@@ -1388,15 +1733,9 @@ jobs:
           read -ra PROFILES \
             <<< "${{ steps.config.outputs.profiles }}"
 
-          # --------------------------------------------------
-          # Display order:
-          #
-          # L10 first, because it is the most complete result.
-          # All lower levels follow and start collapsed.
-          # --------------------------------------------------
-
           COMMENT_PROFILES=()
 
+          # L10 first.
           for LEVEL in "${PROFILES[@]}"; do
             if [[ "${LEVEL}" == "L10" ]]; then
               COMMENT_PROFILES+=(
@@ -1405,6 +1744,7 @@ jobs:
             fi
           done
 
+          # Then every lower level.
           for LEVEL in "${PROFILES[@]}"; do
             if [[ "${LEVEL}" != "L10" ]]; then
               COMMENT_PROFILES+=(
@@ -1413,42 +1753,99 @@ jobs:
             fi
           done
 
-          REUSED=0
-          GENERATED=0
+          GEOMETRY_REUSED=0
+          GEOMETRY_GENERATED=0
+
+          MATERIAL_REUSED=0
+          MATERIAL_GENERATED=0
 
           for SHEET in "${SHEETS[@]}"; do
             for LEVEL in "${PROFILES[@]}"; do
 
-              STATUS="$(
+              GSTATUS="$(
                 cat \
-                  "visual-compare/status/${SHEET}/${LEVEL}.txt"
+                  "visual-compare/status/${SHEET}/${LEVEL}/geometry.txt"
               )"
 
-              if [[ "${STATUS}" == "reused" ]]; then
-                REUSED=$((REUSED + 1))
-              else
-                GENERATED=$((GENERATED + 1))
-              fi
+              MSTATUS="$(
+                cat \
+                  "visual-compare/status/${SHEET}/${LEVEL}/material.txt"
+              )"
+
+              case "${GSTATUS}" in
+                reused|reused-legacy)
+                  GEOMETRY_REUSED=$((GEOMETRY_REUSED + 1))
+                  ;;
+                *)
+                  GEOMETRY_GENERATED=$((GEOMETRY_GENERATED + 1))
+                  ;;
+              esac
+
+              case "${MSTATUS}" in
+                reused)
+                  MATERIAL_REUSED=$((MATERIAL_REUSED + 1))
+                  ;;
+                *)
+                  MATERIAL_GENERATED=$((MATERIAL_GENERATED + 1))
+                  ;;
+              esac
 
             done
           done
+
+          baseline_label() {
+            local status="$1"
+
+            case "${status}" in
+
+              reused)
+                echo "cached from ${BASE_REF}"
+                ;;
+
+              reused-legacy)
+                echo "cached legacy preview from ${BASE_REF}"
+                ;;
+
+              generated-input-changed)
+                echo "generated · source changed"
+                ;;
+
+              generated-preview-missing)
+                echo "generated · preview missing"
+                ;;
+
+              *)
+                echo "${status}"
+                ;;
+
+            esac
+          }
 
           {
             echo "<!-- bpt-visual-preview -->"
             echo
             echo "## Projection Tool — Visual Comparison"
             echo
+
             echo "**Base:** \`${BASE_REF}@${BASE_SHORT}\` · **PR:** \`#${PR_NUMBER}@${PR_SHORT}\`"
             echo
-            echo "**Mesh:** \`${BASE_REF}=${BASE_MESH_MODE}\` → \`PR=${MESH_MODE}\`"
+
+            echo "**Geometry:** \`${BASE_MESH_MODE}\` → \`${MESH_MODE}\`"
             echo
+
+            echo "**Material:** \`${BASE_MATERIAL_MODE}\` → \`${MATERIAL_MODE}\`"
+            echo
+
             echo "**Sheets:** ${#SHEETS[@]} · **Profiles:** ${{ steps.config.outputs.profiles }}"
             echo
-            echo "**main baselines:** ${REUSED} reused · ${GENERATED} generated"
+
+            echo "**Geometry baselines:** ${GEOMETRY_REUSED} reused · ${GEOMETRY_GENERATED} generated"
             echo
-            echo "> Existing committed \`${BASE_REF}\` previews are reused. The base engine is only rerun when a preview is missing or when the source sheet differs from \`${BASE_REF}\`."
+
+            echo "**Material baselines:** ${MATERIAL_REUSED} reused · ${MATERIAL_GENERATED} generated"
             echo
-            echo "> **L10 is expanded by default. Lower scan levels are folded for a fast visual review.**"
+
+            echo "> **L10 is open by default. Its material comparison is immediately visible; geometry stays folded. L2/L4/L8 are folded completely.**"
             echo
 
             for SHEET in "${SHEETS[@]}"; do
@@ -1467,33 +1864,32 @@ jobs:
               for LEVEL in "${COMMENT_PROFILES[@]}"; do
 
                 ORIGINAL_URL="${RAW_ROOT}/original/${SHEET}.png?v=${PR_SHA}"
-                MAIN_URL="${RAW_ROOT}/main/${SHEET}/${LEVEL}.png?v=${PR_SHA}"
-                PR_URL="${RAW_ROOT}/pr/${SHEET}/${LEVEL}.png?v=${PR_SHA}"
 
-                STATUS="$(
+                MAIN_MATERIAL_URL="${RAW_ROOT}/main/${SHEET}/${LEVEL}/material.png?v=${PR_SHA}"
+                PR_MATERIAL_URL="${RAW_ROOT}/pr/${SHEET}/${LEVEL}/material.png?v=${PR_SHA}"
+
+                MAIN_GEOMETRY_URL="${RAW_ROOT}/main/${SHEET}/${LEVEL}/geometry.png?v=${PR_SHA}"
+                PR_GEOMETRY_URL="${RAW_ROOT}/pr/${SHEET}/${LEVEL}/geometry.png?v=${PR_SHA}"
+
+                GSTATUS="$(
                   cat \
-                    "visual-compare/status/${SHEET}/${LEVEL}.txt"
+                    "visual-compare/status/${SHEET}/${LEVEL}/geometry.txt"
                 )"
 
-                case "${STATUS}" in
+                MSTATUS="$(
+                  cat \
+                    "visual-compare/status/${SHEET}/${LEVEL}/material.txt"
+                )"
 
-                  reused)
-                    MAIN_STATUS="cached from ${BASE_REF}"
-                    ;;
+                GEOMETRY_STATUS="$(
+                  baseline_label \
+                    "${GSTATUS}"
+                )"
 
-                  generated-input-changed)
-                    MAIN_STATUS="generated · source changed"
-                    ;;
-
-                  generated-preview-missing)
-                    MAIN_STATUS="generated · preview missing"
-                    ;;
-
-                  *)
-                    MAIN_STATUS="${STATUS}"
-                    ;;
-
-                esac
+                MATERIAL_STATUS="$(
+                  baseline_label \
+                    "${MSTATUS}"
+                )"
 
                 if [[ "${LEVEL}" == "L10" ]]; then
                   echo "<details open>"
@@ -1502,13 +1898,29 @@ jobs:
                 fi
 
                 echo
-                echo "<summary><strong>${LEVEL}</strong> — ${MAIN_STATUS}</summary>"
+                echo "<summary><strong>${LEVEL}</strong> — projected material</summary>"
                 echo
+
+                echo "| Original | ${BASE_REF} · ${BASE_MATERIAL_MODE} | PR #${PR_NUMBER} · ${MATERIAL_MODE} |"
+                echo "| :---: | :---: | :---: |"
+                echo "| <a href=\"${ORIGINAL_URL}\"><img src=\"${ORIGINAL_URL}\" width=\"320\"></a> | <a href=\"${MAIN_MATERIAL_URL}\"><img src=\"${MAIN_MATERIAL_URL}\" width=\"320\"></a> | <a href=\"${PR_MATERIAL_URL}\"><img src=\"${PR_MATERIAL_URL}\" width=\"320\"></a> |"
+                echo "| source | ${MATERIAL_STATUS} | current PR material |"
+                echo
+
+                echo "<details>"
+                echo
+                echo "<summary>Geometry · ${BASE_MESH_MODE} → ${MESH_MODE}</summary>"
+                echo
+
                 echo "| Original | ${BASE_REF} · ${BASE_MESH_MODE} | PR #${PR_NUMBER} · ${MESH_MODE} |"
                 echo "| :---: | :---: | :---: |"
-                echo "| <a href=\"${ORIGINAL_URL}\"><img src=\"${ORIGINAL_URL}\" width=\"320\"></a> | <a href=\"${MAIN_URL}\"><img src=\"${MAIN_URL}\" width=\"320\"></a> | <a href=\"${PR_URL}\"><img src=\"${PR_URL}\" width=\"320\"></a> |"
-                echo "| source | ${MAIN_STATUS} | current PR result |"
+                echo "| <a href=\"${ORIGINAL_URL}\"><img src=\"${ORIGINAL_URL}\" width=\"320\"></a> | <a href=\"${MAIN_GEOMETRY_URL}\"><img src=\"${MAIN_GEOMETRY_URL}\" width=\"320\"></a> | <a href=\"${PR_GEOMETRY_URL}\"><img src=\"${PR_GEOMETRY_URL}\" width=\"320\"></a> |"
+                echo "| source | ${GEOMETRY_STATUS} | current PR geometry |"
                 echo
+
+                echo "</details>"
+                echo
+
                 echo "</details>"
                 echo
 
@@ -1517,7 +1929,7 @@ jobs:
 
             echo "---"
             echo
-            echo "<sub>Generated automatically by the Visual Preview workflow. This comment is updated in place on every PR run.</sub>"
+            echo "<sub>Generated automatically. PR assets are transient; successful main previews are committed permanently to docs/previews.</sub>"
 
           } > "${COMMENT_FILE}"
 
@@ -1564,6 +1976,7 @@ jobs:
               );
 
             if (existing) {
+
               await github.rest.issues.updateComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -1574,7 +1987,9 @@ jobs:
               core.info(
                 `Updated sticky preview comment ${existing.id}`
               );
+
             } else {
+
               const created =
                 await github.rest.issues.createComment({
                   owner: context.repo.owner,
@@ -1587,6 +2002,7 @@ jobs:
               core.info(
                 `Created sticky preview comment ${created.data.id}`
               );
+
             }
 
 
@@ -1603,28 +2019,40 @@ jobs:
           {
             echo "# Native visual preview"
             echo
+
             echo "Example: **${EXAMPLE_NAME}**"
             echo
+
             echo "Sheets: **${{ steps.sheets.outputs.sheet_names }}**"
             echo
+
             echo "Resolution: **${{ steps.config.outputs.resolution }}**"
             echo
+
             echo "Mesh mode: **${{ steps.config.outputs.mesh_mode }}**"
             echo
+
+            echo "Material mode: **${MATERIAL_MODE}**"
+            echo
+
             echo "Profiles: **${{ steps.config.outputs.profiles }}**"
             echo
+
             echo "Views: **${{ steps.config.outputs.views }}**"
             echo
+
             echo "Render: **${{ steps.config.outputs.size }} × ${{ steps.config.outputs.size }}**"
             echo
+
             echo "Cycles samples: **${{ steps.config.outputs.samples }}**"
             echo
-            echo "Projection sheets:"
+
+            echo "## Geometry projection sheets"
             echo
 
             find visual-preview \
               -type f \
-              -name "projection_sheet.png" \
+              -name "projection_geometry.png" \
               -print \
               | sort \
               | sed 's/^/- `/' \
@@ -1632,7 +2060,22 @@ jobs:
               || true
 
             echo
-            echo "Turntables:"
+
+            echo "## Material projection sheets"
+            echo
+
+            find visual-preview \
+              -type f \
+              -name "projection_material.png" \
+              -print \
+              | sort \
+              | sed 's/^/- `/' \
+              | sed 's/$/`/' \
+              || true
+
+            echo
+
+            echo "## Turntables"
             echo
 
             find visual-preview \
@@ -1645,14 +2088,25 @@ jobs:
               || true
 
             if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+
               echo
               echo "## PR comparison"
               echo
+
               echo "Base mesh mode: **${{ steps.base.outputs.mesh_mode }}**"
               echo
+
               echo "PR mesh mode: **${{ steps.config.outputs.mesh_mode }}**"
               echo
-              echo "main cache misses: **${{ steps.main-baseline.outputs.missing_count }}**"
+
+              echo "Base material mode: **${{ steps.base.outputs.material_mode }}**"
+              echo
+
+              echo "PR material mode: **${MATERIAL_MODE}**"
+              echo
+
+              echo "Base reconstructions required: **${{ steps.main-baseline.outputs.missing_count }}**"
+
             fi
 
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -1673,6 +2127,65 @@ jobs:
             example/mascotte/test1/generated/**/manifest.json
           if-no-files-found: warn
           retention-days: 14
+
+
+      # =====================================================
+      # Remove legacy per-PR branches
+      #
+      # This intentionally runs only on main.
+      #
+      # Old workflow created:
+      #
+      # visual-preview-pr-N
+      #
+      # The new workflow uses one shared branch instead.
+      # =====================================================
+
+      - name: Remove legacy preview branches
+        if: >-
+          github.event_name == 'push'
+          && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          mapfile -t LEGACY_BRANCHES < <(
+            git ls-remote \
+              --heads \
+              "${REMOTE}" \
+              "refs/heads/visual-preview-pr-*" \
+              | awk '{
+                  sub(
+                    "refs/heads/",
+                    "",
+                    $2
+                  );
+                  print $2
+                }'
+          )
+
+          if [[ "${#LEGACY_BRANCHES[@]}" -eq 0 ]]; then
+            echo "No legacy preview branches found."
+            exit 0
+          fi
+
+          echo "Removing legacy preview branches:"
+
+          printf '  - %s\n' \
+            "${LEGACY_BRANCHES[@]}"
+
+          for BRANCH in "${LEGACY_BRANCHES[@]}"; do
+
+            git push \
+              "${REMOTE}" \
+              --delete \
+              "${BRANCH}"
+
+          done
 
 
       # =====================================================
@@ -1708,6 +2221,6 @@ jobs:
           fi
 
           git commit \
-            -m "docs: update visual reconstruction previews [skip ci]"
+            -m "docs: update geometry and material previews [skip ci]"
 
           git push
