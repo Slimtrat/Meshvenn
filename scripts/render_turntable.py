@@ -81,7 +81,7 @@ def parse_args() -> argparse.Namespace:
 
 
 # ---------------------------------------------------------
-# Scene cleanup
+# Cleanup
 # ---------------------------------------------------------
 
 def clear_scene() -> None:
@@ -111,7 +111,7 @@ def clear_scene() -> None:
 
 
 # ---------------------------------------------------------
-# GLB
+# GLB import
 # ---------------------------------------------------------
 
 def import_glb(
@@ -259,7 +259,7 @@ def center_objects(
         objects
     )
 
-    size = (
+    model_size = (
         centered_max
         - centered_min
     )
@@ -272,35 +272,35 @@ def center_objects(
                 0.0,
             )
         ),
-        size,
+        model_size,
     )
 
 
 # ---------------------------------------------------------
-# Materials
+# Material
 # ---------------------------------------------------------
 
 def ensure_preview_material(
     objects: list[bpy.types.Object],
 ) -> None:
-    preview_material = (
+    material = (
         bpy.data.materials.new(
             "BPT_PreviewMaterial"
         )
     )
 
-    preview_material.diffuse_color = (
-        0.55,
-        0.58,
+    material.diffuse_color = (
+        0.52,
+        0.56,
         0.62,
         1.0,
     )
 
-    preview_material.roughness = (
-        0.7
+    material.roughness = (
+        0.72
     )
 
-    preview_material.metallic = (
+    material.metallic = (
         0.0
     )
 
@@ -310,35 +310,13 @@ def ensure_preview_material(
 
         if not obj.data.materials:
             obj.data.materials.append(
-                preview_material
+                material
             )
 
 
 # ---------------------------------------------------------
-# Camera / orbit
+# Camera
 # ---------------------------------------------------------
-
-def look_at(
-    obj: bpy.types.Object,
-    target: Vector,
-) -> None:
-    direction = (
-        target
-        - obj.matrix_world.translation
-    )
-
-    if direction.length == 0.0:
-        return
-
-    obj.rotation_euler = (
-        direction
-        .to_track_quat(
-            "-Z",
-            "Y",
-        )
-        .to_euler()
-    )
-
 
 def create_orbit_camera(
     *,
@@ -348,9 +326,11 @@ def create_orbit_camera(
     bpy.types.Object,
     bpy.types.Object,
 ]:
-    orbit = bpy.data.objects.new(
-        "BPT_TurntableOrbit",
-        None,
+    orbit = (
+        bpy.data.objects.new(
+            "BPT_TurntableOrbit",
+            None,
+        )
     )
 
     bpy.context.scene.collection.objects.link(
@@ -363,9 +343,11 @@ def create_orbit_camera(
         )
     )
 
-    camera = bpy.data.objects.new(
-        "BPT_TurntableCamera",
-        camera_data,
+    camera = (
+        bpy.data.objects.new(
+            "BPT_TurntableCamera",
+            camera_data,
+        )
     )
 
     bpy.context.scene.collection.objects.link(
@@ -425,11 +407,9 @@ def create_orbit_camera(
         0.001
     )
 
-    camera_data.clip_end = (
-        max(
-            100.0,
-            distance * 10.0,
-        )
+    camera_data.clip_end = max(
+        100.0,
+        distance * 10.0,
     )
 
     direction = (
@@ -453,10 +433,149 @@ def create_orbit_camera(
 
 
 # ---------------------------------------------------------
-# Render configuration
+# Lighting
 # ---------------------------------------------------------
 
-def setup_workbench(
+def look_at(
+    obj: bpy.types.Object,
+    target: Vector,
+) -> None:
+    direction = (
+        target
+        - obj.location
+    )
+
+    if direction.length == 0.0:
+        return
+
+    obj.rotation_euler = (
+        direction
+        .to_track_quat(
+            "-Z",
+            "Y",
+        )
+        .to_euler()
+    )
+
+
+def create_area_light(
+    *,
+    name: str,
+    location: tuple[
+        float,
+        float,
+        float,
+    ],
+    energy: float,
+    size: float,
+) -> bpy.types.Object:
+    data = (
+        bpy.data.lights.new(
+            name=name,
+            type="AREA",
+        )
+    )
+
+    data.energy = (
+        energy
+    )
+
+    data.shape = (
+        "DISK"
+    )
+
+    data.size = (
+        size
+    )
+
+    light = (
+        bpy.data.objects.new(
+            name,
+            data,
+        )
+    )
+
+    light.location = (
+        location
+    )
+
+    bpy.context.scene.collection.objects.link(
+        light
+    )
+
+    look_at(
+        light,
+        Vector(
+            (
+                0.0,
+                0.0,
+                0.0,
+            )
+        ),
+    )
+
+    return light
+
+
+def setup_lighting(
+    model_size: Vector,
+) -> None:
+    radius = max(
+        model_size.x,
+        model_size.y,
+        model_size.z,
+        1.0,
+    )
+
+    distance = (
+        radius
+        * 2.5
+    )
+
+    light_size = (
+        radius
+        * 1.5
+    )
+
+    create_area_light(
+        name="BPT_Key",
+        location=(
+            distance,
+            -distance,
+            distance * 1.4,
+        ),
+        energy=900.0,
+        size=light_size,
+    )
+
+    create_area_light(
+        name="BPT_Fill",
+        location=(
+            -distance,
+            -distance * 0.5,
+            distance,
+        ),
+        energy=450.0,
+        size=light_size,
+    )
+
+    create_area_light(
+        name="BPT_Rim",
+        location=(
+            0.0,
+            distance,
+            distance * 1.2,
+        ),
+        energy=650.0,
+        size=light_size,
+    )
+
+
+# ---------------------------------------------------------
+# Render setup
+# ---------------------------------------------------------
+
+def setup_render(
     *,
     size: int,
 ) -> None:
@@ -464,9 +583,37 @@ def setup_workbench(
         bpy.context.scene
     )
 
-    scene.render.engine = (
-        "BLENDER_WORKBENCH"
-    )
+    available_engines = {
+        item.identifier
+        for item in (
+            scene
+            .bl_rna
+            .properties["engine"]
+            .enum_items
+        )
+    }
+
+    if "BLENDER_EEVEE" in available_engines:
+        scene.render.engine = (
+            "BLENDER_EEVEE"
+        )
+
+    elif "CYCLES" in available_engines:
+        scene.render.engine = (
+            "CYCLES"
+        )
+
+        scene.cycles.device = (
+            "CPU"
+        )
+
+    else:
+        raise RuntimeError(
+            (
+                "No supported Blender "
+                "render engine available."
+            )
+        )
 
     scene.render.resolution_x = (
         size
@@ -496,62 +643,56 @@ def setup_workbench(
         True
     )
 
-    shading = (
-        scene.display.shading
-    )
-
-    shading.light = (
-        "STUDIO"
-    )
-
-    shading.color_type = (
-        "MATERIAL"
-    )
-
-    shading.show_shadows = (
-        True
-    )
-
-    shading.show_cavity = (
-        True
-    )
-
-    shading.cavity_type = (
-        "BOTH"
-    )
-
-    shading.show_specular_highlight = (
-        True
-    )
-
     world = (
         scene.world
     )
 
     if world is None:
-        world = bpy.data.worlds.new(
-            "BPT_PreviewWorld"
+        world = (
+            bpy.data.worlds.new(
+                "BPT_PreviewWorld"
+            )
         )
 
         scene.world = (
             world
         )
 
-    world.color = (
-        0.04,
-        0.04,
-        0.04,
+    world.use_nodes = (
+        True
     )
+
+    background = (
+        world.node_tree.nodes.get(
+            "Background"
+        )
+    )
+
+    if background is not None:
+        background.inputs[
+            "Color"
+        ].default_value = (
+            0.025,
+            0.025,
+            0.03,
+            1.0,
+        )
+
+        background.inputs[
+            "Strength"
+        ].default_value = (
+            0.25
+        )
 
 
 # ---------------------------------------------------------
-# Still rendering
+# Still render
 # ---------------------------------------------------------
 
 def render_still(
     *,
     orbit: bpy.types.Object,
-    angle_radians: float,
+    angle: float,
     output_path: Path,
 ) -> None:
     scene = (
@@ -559,7 +700,7 @@ def render_still(
     )
 
     orbit.rotation_euler.z = (
-        angle_radians
+        angle
     )
 
     scene.render.image_settings.file_format = (
@@ -583,10 +724,10 @@ def build_contact_sheet(
     image_paths: list[Path],
     output_path: Path,
     *,
-    columns: int = 4,
+    columns: int,
 ) -> None:
     if not image_paths:
-        raise ValueError(
+        raise RuntimeError(
             "No images for contact sheet."
         )
 
@@ -596,11 +737,13 @@ def build_contact_sheet(
 
     try:
         for path in image_paths:
-            image = bpy.data.images.load(
-                str(
-                    path.resolve()
-                ),
-                check_existing=False,
+            image = (
+                bpy.data.images.load(
+                    str(
+                        path.resolve()
+                    ),
+                    check_existing=False,
+                )
             )
 
             image.update()
@@ -616,14 +759,6 @@ def build_contact_sheet(
         tile_height = int(
             images[0].size[1]
         )
-
-        if (
-            tile_width <= 0
-            or tile_height <= 0
-        ):
-            raise RuntimeError(
-                "Invalid contact sheet tile size."
-            )
 
         rows = (
             len(images)
@@ -653,18 +788,18 @@ def build_contact_sheet(
             )
         )
 
-        tile_float_count = (
+        row_values = (
+            tile_width
+            * 4
+        )
+
+        image_values = (
             tile_width
             * tile_height
             * 4
         )
 
-        row_float_count = (
-            tile_width
-            * 4
-        )
-
-        for image_index, image in enumerate(
+        for index, image in enumerate(
             images
         ):
             if (
@@ -675,8 +810,8 @@ def build_contact_sheet(
             ):
                 raise RuntimeError(
                     (
-                        "All contact sheet images "
-                        "must use the same size."
+                        "Contact sheet source "
+                        "dimensions do not match."
                     )
                 )
 
@@ -685,7 +820,7 @@ def build_contact_sheet(
                     "f",
                     [0.0],
                 )
-                * tile_float_count
+                * image_values
             )
 
             image.pixels.foreach_get(
@@ -693,19 +828,19 @@ def build_contact_sheet(
             )
 
             column = (
-                image_index
+                index
                 % columns
             )
 
-            top_row = (
-                image_index
+            visual_row = (
+                index
                 // columns
             )
 
-            destination_row = (
+            destination_tile_row = (
                 rows
                 - 1
-                - top_row
+                - visual_row
             )
 
             for local_y in range(
@@ -713,23 +848,23 @@ def build_contact_sheet(
             ):
                 source_start = (
                     local_y
-                    * row_float_count
+                    * row_values
                 )
 
                 source_end = (
                     source_start
-                    + row_float_count
+                    + row_values
                 )
 
-                sheet_y = (
-                    destination_row
+                destination_y = (
+                    destination_tile_row
                     * tile_height
                     + local_y
                 )
 
                 destination_start = (
                     (
-                        sheet_y
+                        destination_y
                         * sheet_width
                         + column
                         * tile_width
@@ -739,7 +874,7 @@ def build_contact_sheet(
 
                 destination_end = (
                     destination_start
-                    + row_float_count
+                    + row_values
                 )
 
                 sheet_pixels[
@@ -803,7 +938,9 @@ def render_contact_sheet(
         exist_ok=True,
     )
 
-    paths: list[Path] = []
+    image_paths: list[
+        Path
+    ] = []
 
     for index in range(
         views
@@ -821,19 +958,19 @@ def render_contact_sheet(
             / views
         )
 
-        path = (
+        output_path = (
             stills_dir
             / f"view_{degrees:03d}.png"
         )
 
         render_still(
             orbit=orbit,
-            angle_radians=angle,
-            output_path=path,
+            angle=angle,
+            output_path=output_path,
         )
 
-        paths.append(
-            path
+        image_paths.append(
+            output_path
         )
 
     contact_path = (
@@ -841,10 +978,15 @@ def render_contact_sheet(
         / "contact_sheet.png"
     )
 
+    columns = min(
+        4,
+        views,
+    )
+
     build_contact_sheet(
-        paths,
+        image_paths,
         contact_path,
-        columns=4,
+        columns=columns,
     )
 
     return contact_path
@@ -854,11 +996,10 @@ def render_contact_sheet(
 # Video
 # ---------------------------------------------------------
 
-def configure_video_output(
+def configure_orbit_animation(
+    orbit: bpy.types.Object,
     *,
-    output_path: Path,
     frames: int,
-    fps: int,
 ) -> None:
     scene = (
         bpy.context.scene
@@ -872,20 +1013,69 @@ def configure_video_output(
         frames
     )
 
+    orbit.rotation_mode = (
+        "XYZ"
+    )
+
+    for frame in (
+        1,
+        frames + 1,
+    ):
+        progress = (
+            frame - 1
+        ) / frames
+
+        orbit.rotation_euler.z = (
+            progress
+            * 2.0
+            * math.pi
+        )
+
+        orbit.keyframe_insert(
+            data_path="rotation_euler",
+            index=2,
+            frame=frame,
+        )
+
+    if orbit.animation_data is None:
+        return
+
+    action = (
+        orbit.animation_data.action
+    )
+
+    if action is None:
+        return
+
+    for curve in action.fcurves:
+        for point in curve.keyframe_points:
+            point.interpolation = (
+                "LINEAR"
+            )
+
+
+def render_video(
+    *,
+    orbit: bpy.types.Object,
+    output_dir: Path,
+    frames: int,
+    fps: int,
+) -> Path:
+    scene = (
+        bpy.context.scene
+    )
+
+    configure_orbit_animation(
+        orbit,
+        frames=frames,
+    )
+
     scene.render.fps = (
         fps
     )
 
     scene.render.image_settings.file_format = (
         "FFMPEG"
-    )
-
-    scene.render.filepath = str(
-        output_path.resolve()
-    )
-
-    scene.render.use_file_extension = (
-        True
     )
 
     scene.render.ffmpeg.format = (
@@ -900,98 +1090,51 @@ def configure_video_output(
         "MEDIUM"
     )
 
-
-def configure_orbit_driver(
-    orbit: bpy.types.Object,
-    *,
-    frames: int,
-) -> None:
-    try:
-        orbit.driver_remove(
-            "rotation_euler",
-            2,
-        )
-    except TypeError:
-        pass
-
-    curve = orbit.driver_add(
-        "rotation_euler",
-        2,
+    scene.render.ffmpeg.audio_codec = (
+        "NONE"
     )
 
-    driver = (
-        curve.driver
-    )
-
-    driver.type = (
-        "SCRIPTED"
-    )
-
-    full_rotation = (
-        2.0
-        * math.pi
-    )
-
-    driver.expression = (
-        f"{full_rotation}"
-        f" * (frame - 1)"
-        f" / {frames}"
-    )
-
-
-def render_video(
-    *,
-    orbit: bpy.types.Object,
-    output_dir: Path,
-    frames: int,
-    fps: int,
-) -> Path:
-    video_path = (
+    video_stem = (
         output_dir
-        / "turntable.mp4"
+        / "turntable"
     )
 
-    configure_orbit_driver(
-        orbit,
-        frames=frames,
-    )
-
-    configure_video_output(
-        output_path=video_path,
-        frames=frames,
-        fps=fps,
+    scene.render.filepath = str(
+        video_stem.resolve()
     )
 
     bpy.ops.render.render(
         animation=True
     )
 
-    if not video_path.exists():
-        candidates = sorted(
-            output_dir.glob(
-                "turntable*.mp4"
-            )
+    expected = (
+        output_dir
+        / "turntable.mp4"
+    )
+
+    if expected.exists():
+        return expected
+
+    candidates = sorted(
+        output_dir.glob(
+            "turntable*.mp4"
         )
+    )
 
-        if candidates:
-            candidate = (
-                candidates[0]
-            )
-
-            if candidate != video_path:
-                candidate.replace(
-                    video_path
-                )
-
-    if not video_path.exists():
+    if not candidates:
         raise RuntimeError(
             (
-                "Blender video rendering "
-                "did not produce turntable.mp4"
+                "Blender did not generate "
+                "the expected MP4."
             )
         )
 
-    return video_path
+    if candidates[0] != expected:
+        candidates[0].replace(
+            expected
+        )
+
+    return expected
 
 
 # ---------------------------------------------------------
@@ -1011,9 +1154,10 @@ def main() -> None:
             "size must be >= 128"
         )
 
-    if (
-        args.contact_views < 4
-        or args.contact_views > 16
+    if not (
+        4
+        <= args.contact_views
+        <= 16
     ):
         raise ValueError(
             (
@@ -1065,7 +1209,11 @@ def main() -> None:
         model_size=model_size,
     )
 
-    setup_workbench(
+    setup_lighting(
+        model_size
+    )
+
+    setup_render(
         size=args.size
     )
 
@@ -1077,11 +1225,13 @@ def main() -> None:
         )
     )
 
-    video_path = render_video(
-        orbit=orbit,
-        output_dir=output_dir,
-        frames=args.frames,
-        fps=args.fps,
+    video_path = (
+        render_video(
+            orbit=orbit,
+            output_dir=output_dir,
+            frames=args.frames,
+            fps=args.fps,
+        )
     )
 
     if not args.keep_stills:
@@ -1095,8 +1245,18 @@ def main() -> None:
                 stills_dir
             )
 
+    if not contact_path.exists():
+        raise RuntimeError(
+            "Contact sheet was not generated."
+        )
+
+    if not video_path.exists():
+        raise RuntimeError(
+            "Turntable MP4 was not generated."
+        )
+
     print(
-        "Visual preview generated"
+        "Visual preview generated."
     )
 
     print(

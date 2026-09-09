@@ -56,20 +56,17 @@ concurrency:
 env:
   BLENDER_VERSION: "5.2.1"
 
-  BLENDER_ARCHIVE: >-
-    blender-5.2.1-linux-x64.tar.xz
+  BLENDER_ARCHIVE: "blender-5.2.1-linux-x64.tar.xz"
 
-  BLENDER_BASE_URL: >-
-    https://download.blender.org/release/Blender5.2
+  BLENDER_BASE_URL: "https://download.blender.org/release/Blender5.2"
 
-  BLENDER_ROOT: >-
-    ${{ github.workspace }}/.blender
+  BLENDER_ROOT: "${{ github.workspace }}/.blender"
 
 
 jobs:
 
   # ---------------------------------------------------------
-  # Native build
+  # Native
   # ---------------------------------------------------------
 
   native:
@@ -127,8 +124,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p \
-            native/bin
+          mkdir -p native/bin
 
           LIB_PATH="$(
             find build/native \
@@ -171,6 +167,9 @@ jobs:
     runs-on: ubuntu-latest
 
     timeout-minutes: 20
+
+    env:
+      LIBGL_ALWAYS_SOFTWARE: "1"
 
     steps:
       - name: Checkout
@@ -255,6 +254,35 @@ jobs:
 
 
       # -----------------------------------------------------
+      # Headless OpenGL
+      # -----------------------------------------------------
+
+      - name: Install headless OpenGL runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            libegl1 \
+            libegl-mesa0 \
+            libgl1 \
+            libglx-mesa0
+
+      - name: Verify EGL runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ldconfig -p \
+            | grep "libEGL.so.1"
+
+          ldconfig -p \
+            | grep "libGL.so.1"
+
+
+      # -----------------------------------------------------
       # Configuration
       # -----------------------------------------------------
 
@@ -295,7 +323,7 @@ jobs:
           fi
 
           if ! [[ "${FRAMES}" =~ ^[0-9]+$ ]]; then
-            echo "Invalid frame count: ${FRAMES}"
+            echo "Invalid frames: ${FRAMES}"
             exit 1
           fi
 
@@ -327,7 +355,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Native generation
+      # Native reconstruction
       # -----------------------------------------------------
 
       - name: Generate native scans
@@ -354,7 +382,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Visual rendering
+      # Preview render
       # -----------------------------------------------------
 
       - name: Render previews
@@ -394,6 +422,7 @@ jobs:
 
             echo
             echo "Rendering ${LEVEL}"
+            echo
             echo "GLB: ${GLB}"
             echo
 
@@ -413,7 +442,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Verify
+      # Validation
       # -----------------------------------------------------
 
       - name: Verify previews
@@ -427,24 +456,22 @@ jobs:
             DIR="visual-preview/${LEVEL}"
 
             CONTACT="${DIR}/contact_sheet.png"
+
             VIDEO="${DIR}/turntable.mp4"
 
             if [[ ! -s "${CONTACT}" ]]; then
-              echo \
-                "Missing contact sheet for ${LEVEL}"
-
+              echo "Missing contact sheet for ${LEVEL}"
               exit 1
             fi
 
             if [[ ! -s "${VIDEO}" ]]; then
-              echo \
-                "Missing turntable video for ${LEVEL}"
-
+              echo "Missing turntable video for ${LEVEL}"
               exit 1
             fi
 
             echo
-            echo "${LEVEL}:"
+            echo "${LEVEL}"
+
             ls -lh \
               "${CONTACT}" \
               "${VIDEO}"
@@ -453,7 +480,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # GitHub summary
+      # Summary
       # -----------------------------------------------------
 
       - name: Generate preview summary
@@ -482,7 +509,7 @@ jobs:
             echo
 
             echo \
-              "Render size: **${{ steps.config.outputs.size }} × ${{ steps.config.outputs.size }}**"
+              "Render: **${{ steps.config.outputs.size }} × ${{ steps.config.outputs.size }}**"
 
             echo
             echo "Generated previews:"
@@ -506,7 +533,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Debug
+      # Diagnostics
       # -----------------------------------------------------
 
       - name: Show generated files
@@ -516,6 +543,7 @@ jobs:
 
         run: |
           echo "Visual previews:"
+          echo
 
           find visual-preview \
             -type f \
@@ -524,8 +552,8 @@ jobs:
             || true
 
           echo
-
           echo "Generated scans:"
+          echo
 
           find example/mascotte/test1/generated \
             -type f \
