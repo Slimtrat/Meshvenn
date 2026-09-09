@@ -26,6 +26,7 @@ add_library(
     src/api.cpp
     src/visual_hull.cpp
     src/mesh.cpp
+    src/surface_nets.cpp
 )
 
 target_include_directories(
@@ -107,29 +108,100 @@ if(BPT_BUILD_TESTS)
 
     enable_testing()
 
-    add_executable(
-        bpt_core_tests
+    # -----------------------------------------------------
+    # Test helper
+    # -----------------------------------------------------
 
+    function(
+        bpt_add_test
+        target_name
+        source_file
+    )
+
+        add_executable(
+            ${target_name}
+            ${source_file}
+        )
+
+        target_link_libraries(
+            ${target_name}
+
+            PRIVATE
+                bpt_core
+        )
+
+        target_include_directories(
+            ${target_name}
+
+            PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/include
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests
+        )
+
+        if(MSVC)
+
+            target_compile_options(
+                ${target_name}
+
+                PRIVATE
+                    /W4
+                    /permissive-
+            )
+
+        else()
+
+            target_compile_options(
+                ${target_name}
+
+                PRIVATE
+                    -Wall
+                    -Wextra
+                    -Wpedantic
+            )
+
+        endif()
+
+        add_test(
+            NAME ${target_name}
+            COMMAND ${target_name}
+        )
+
+    endfunction()
+
+    # -----------------------------------------------------
+    # Visual Hull
+    # -----------------------------------------------------
+
+    bpt_add_test(
+        bpt_visual_hull_tests
         tests/test_visual_hull.cpp
     )
 
-    target_link_libraries(
-        bpt_core_tests
+    # -----------------------------------------------------
+    # Historical block mesher
+    # -----------------------------------------------------
 
-        PRIVATE
-            bpt_core
+    bpt_add_test(
+        bpt_mesh_blocks_tests
+        tests/test_mesh_blocks.cpp
     )
 
-    target_include_directories(
-        bpt_core_tests
+    # -----------------------------------------------------
+    # Surface Nets
+    # -----------------------------------------------------
 
-        PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/include
+    bpt_add_test(
+        bpt_surface_nets_tests
+        tests/test_surface_nets.cpp
     )
 
-    add_test(
-        NAME bpt_core_tests
-        COMMAND bpt_core_tests
+    # -----------------------------------------------------
+    # Public mesh API
+    # -----------------------------------------------------
+
+    bpt_add_test(
+        bpt_mesh_api_tests
+        tests/test_mesh_api.cpp
     )
 
 endif()

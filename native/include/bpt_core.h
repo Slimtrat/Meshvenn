@@ -136,6 +136,52 @@ struct BptVolumeResult
 
 
 // ---------------------------------------------------------
+// Mesh mode
+// ---------------------------------------------------------
+
+enum BptMeshMode : std::int32_t
+{
+    // Historical mesher.
+    //
+    // Emits exposed voxel faces directly.
+    //
+    // This mode must remain bit-for-bit compatible with
+    // the previous bpt_build_surface_mesh behaviour.
+    BPT_MESH_BLOCKS = 0,
+
+    // Smooth surface reconstruction from the binary volume.
+    //
+    // One representative vertex is generated for each
+    // boundary cell and connected across sign-changing
+    // voxel edges.
+    BPT_MESH_SURFACE_NETS = 1,
+};
+
+
+// ---------------------------------------------------------
+// Mesh options
+// ---------------------------------------------------------
+
+struct BptMeshOptions
+{
+    // World-space size of one voxel.
+    float voxel_size;
+
+    // BptMeshMode encoded as int32 for a stable C ABI.
+    std::int32_t mode;
+
+    // 0 = keep native grid coordinates
+    // non-zero = center the mesh on X/Y
+    std::uint8_t center_xy;
+
+    // Reserved for future meshing parameters.
+    std::uint8_t reserved_0;
+    std::uint8_t reserved_1;
+    std::uint8_t reserved_2;
+};
+
+
+// ---------------------------------------------------------
 // Mesh result
 // ---------------------------------------------------------
 
@@ -149,8 +195,6 @@ struct BptMeshResult
     std::size_t vertex_float_count;
 
     // Flat polygon vertex indices.
-    //
-    // V1 currently generates quads only.
     std::uint32_t* indices;
 
     std::size_t index_count;
@@ -159,7 +203,11 @@ struct BptMeshResult
     std::uint32_t* polygon_starts;
 
     // Number of corners for every polygon.
-    // V1 normally contains 4.
+    //
+    // BLOCKS normally contains 4.
+    //
+    // SURFACE_NETS may also emit quads, but callers must
+    // rely on this array rather than assuming polygon size.
     std::uint8_t* polygon_sizes;
 
     std::size_t polygon_count;
@@ -175,7 +223,8 @@ struct BptVisualHullSession;
 
 // Creates an incremental visual hull session.
 //
-// The session initially contains a fully occupied resolution³ cube.
+// The session initially contains a fully occupied
+// resolution³ cube.
 BPT_API
 BptResultCode
 bpt_visual_hull_create(
@@ -251,12 +300,54 @@ bpt_build_visual_hull(
 // Mesh generation
 // ---------------------------------------------------------
 
+// Legacy mesh API.
+//
+// This function intentionally keeps the historical
+// signature and behaviour.
+//
+// It is equivalent to:
+//
+// BptMeshOptions options {};
+// options.voxel_size = voxel_size;
+// options.mode = BPT_MESH_BLOCKS;
+// options.center_xy = center_xy;
+//
+// bpt_build_surface_mesh_ex(
+//     volume,
+//     &options,
+//     out_mesh
+// );
+//
+// Existing callers therefore do not need to migrate.
 BPT_API
 BptResultCode
 bpt_build_surface_mesh(
     const BptVolumeResult* volume,
     float voxel_size,
     std::uint8_t center_xy,
+    BptMeshResult* out_mesh
+);
+
+
+// Extended mesh API.
+//
+// Selects the meshing algorithm through BptMeshOptions.
+//
+// Current modes:
+//
+// BPT_MESH_BLOCKS
+//     Historical exposed-voxel-face mesher.
+//
+// BPT_MESH_SURFACE_NETS
+//     Smooth Surface Nets reconstruction.
+//
+// Invalid or unsupported modes return
+// BPT_ERROR_INVALID_ARGUMENT.
+BPT_API
+BptResultCode
+bpt_build_surface_mesh_ex(
+    const BptVolumeResult* volume,
+    const BptMeshOptions* options,
     BptMeshResult* out_mesh
 );
 
@@ -292,8 +383,11 @@ bpt_result_message(
 
 // ABI version.
 //
-// Increment if one of the public structs/functions becomes
-// binary incompatible.
+// Increment if one of the existing public structs/functions
+// becomes binary incompatible.
+//
+// Adding a new symbol or a new independent struct does not
+// require an ABI bump.
 BPT_API
 std::uint32_t
 bpt_abi_version();
