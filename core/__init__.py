@@ -17,13 +17,10 @@ from .native_loader import (
     NativeAbiMismatchError,
     NativeLibraryLoadError,
     NativeLibraryNotFoundError,
+    current_platform,
     find_native_library,
+    library_filename,
     load_native_library,
-)
-from .native_mesh_builder import (
-    create_blender_mesh_from_native,
-    shade_smooth_native_object,
-    update_blender_mesh_from_native,
 )
 from .native_scan import (
     NativeScanner,
@@ -49,12 +46,10 @@ __all__ = (
     "NativeAbiMismatchError",
     "NativeLibraryLoadError",
     "NativeLibraryNotFoundError",
+    "current_platform",
     "find_native_library",
+    "library_filename",
     "load_native_library",
-
-    "create_blender_mesh_from_native",
-    "shade_smooth_native_object",
-    "update_blender_mesh_from_native",
 
     "NativeScanner",
     "NativeScanResult",
