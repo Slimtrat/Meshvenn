@@ -51,6 +51,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 
 concurrency:
@@ -64,18 +65,17 @@ env:
   BLENDER_BASE_URL: "https://download.blender.org/release/Blender5.2"
   BLENDER_ROOT: "${{ github.workspace }}/.blender"
 
+  EXAMPLE_ROOT: "example"
+  EXAMPLE_NAME: "mascotte/test1"
+  SHEETS_DIR: "example/mascotte/test1/sheets"
+  GENERATED_DIR: "example/mascotte/test1/generated"
+
 
 jobs:
 
-  # ---------------------------------------------------------
-  # Native
-  # ---------------------------------------------------------
-
   native:
     name: Build native core
-
     runs-on: ubuntu-latest
-
     timeout-minutes: 10
 
     steps:
@@ -126,8 +126,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          mkdir -p \
-            native/bin
+          mkdir -p native/bin
 
           LIB_PATH="$(
             find build/native \
@@ -141,12 +140,9 @@ jobs:
             exit 1
           fi
 
-          cp \
-            "${LIB_PATH}" \
-            native/bin/libbpt_core.so
+          cp "${LIB_PATH}" native/bin/libbpt_core.so
 
-          ls -lh \
-            native/bin/libbpt_core.so
+          ls -lh native/bin/libbpt_core.so
 
       - name: Upload native library
         uses: actions/upload-artifact@v4
@@ -157,18 +153,12 @@ jobs:
           retention-days: 2
 
 
-  # ---------------------------------------------------------
-  # Preview
-  # ---------------------------------------------------------
-
   preview:
     name: Generate visual previews
-
     needs:
       - native
 
     runs-on: ubuntu-latest
-
     timeout-minutes: 30
 
     steps:
@@ -186,39 +176,26 @@ jobs:
         run: |
           set -euo pipefail
 
-          test \
-            -f native/bin/libbpt_core.so
+          test -f native/bin/libbpt_core.so
+          ls -lh native/bin/libbpt_core.so
 
-          ls -lh \
-            native/bin/libbpt_core.so
-
-
-      # -----------------------------------------------------
-      # Blender
-      # -----------------------------------------------------
 
       - name: Cache Blender
         id: blender-cache
-
         uses: actions/cache@v4
-
         with:
           path: .blender
           key: blender-linux-x64-${{ env.BLENDER_VERSION }}
 
       - name: Download Blender
         if: steps.blender-cache.outputs.cache-hit != 'true'
-
         shell: bash
-
         run: |
           set -euo pipefail
 
-          mkdir -p \
-            "${BLENDER_ROOT}"
+          mkdir -p "${BLENDER_ROOT}"
 
           URL="${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
-
           ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
 
           curl \
@@ -232,96 +209,63 @@ jobs:
             --output "${ARCHIVE}" \
             "${URL}"
 
-          xz \
-            --test \
-            "${ARCHIVE}"
+          xz --test "${ARCHIVE}"
 
           tar \
             -xJf "${ARCHIVE}" \
             -C "${BLENDER_ROOT}" \
             --strip-components=1
 
-          rm \
-            "${ARCHIVE}"
+          rm "${ARCHIVE}"
 
       - name: Verify Blender
         shell: bash
         run: |
           set -euo pipefail
 
-          "${BLENDER_ROOT}/blender" \
-            --version
+          "${BLENDER_ROOT}/blender" --version
 
-
-      # -----------------------------------------------------
-      # Configuration
-      # -----------------------------------------------------
 
       - name: Resolve configuration
         id: config
-
         shell: bash
-
         run: |
           set -euo pipefail
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-
             RESOLUTION="${{ inputs.resolution }}"
             PROFILES="${{ inputs.profiles }}"
             VIEWS="${{ inputs.views }}"
             SIZE="${{ inputs.size }}"
             SAMPLES="${{ inputs.samples }}"
-
           elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
-
             RESOLUTION="48"
             PROFILES="L2"
             VIEWS="4"
             SIZE="256"
             SAMPLES="1"
-
           else
-
             RESOLUTION="64"
             PROFILES="L2 L4 L8 L10"
             VIEWS="8"
             SIZE="384"
             SAMPLES="1"
-
           fi
 
-          for VALUE in \
-            "${RESOLUTION}" \
-            "${VIEWS}" \
-            "${SIZE}" \
-            "${SAMPLES}"
-          do
+          for VALUE in "${RESOLUTION}" "${VIEWS}" "${SIZE}" "${SAMPLES}"; do
             if ! [[ "${VALUE}" =~ ^[0-9]+$ ]]; then
               echo "Invalid numeric value: ${VALUE}"
               exit 1
             fi
           done
 
-          echo \
-            "resolution=${RESOLUTION}" \
-            >> "${GITHUB_OUTPUT}"
-
-          echo \
-            "profiles=${PROFILES}" \
-            >> "${GITHUB_OUTPUT}"
-
-          echo \
-            "views=${VIEWS}" \
-            >> "${GITHUB_OUTPUT}"
-
-          echo \
-            "size=${SIZE}" \
-            >> "${GITHUB_OUTPUT}"
-
-          echo \
-            "samples=${SAMPLES}" \
-            >> "${GITHUB_OUTPUT}"
+          {
+            echo "resolution=${RESOLUTION}"
+            echo "profiles=${PROFILES}"
+            echo "views=${VIEWS}"
+            echo "size=${SIZE}"
+            echo "samples=${SAMPLES}"
+          } >> "${GITHUB_OUTPUT}"
 
           echo "Resolution: ${RESOLUTION}"
           echo "Profiles: ${PROFILES}"
@@ -330,50 +274,81 @@ jobs:
           echo "Samples: ${SAMPLES}"
 
 
-      # -----------------------------------------------------
-      # Generate sheets
-      # -----------------------------------------------------
-
-      - name: Generate native scans
+      - name: Discover sheets
+        id: sheets
         shell: bash
-
         run: |
           set -euo pipefail
 
-          read -ra PROFILE_ARGS \
-            <<< "${{ steps.config.outputs.profiles }}"
+          if [[ ! -d "${SHEETS_DIR}" ]]; then
+            echo "Missing sheets directory: ${SHEETS_DIR}"
+            exit 1
+          fi
+
+          mapfile -t SHEET_PATHS < <(
+            find "${SHEETS_DIR}" \
+              -maxdepth 1 \
+              -type f \
+              -name "sheet*.png" \
+              | sort
+          )
+
+          if [[ "${#SHEET_PATHS[@]}" -eq 0 ]]; then
+            echo "No sheet*.png found in ${SHEETS_DIR}"
+            exit 1
+          fi
+
+          SHEET_NAMES=()
+
+          for SHEET_PATH in "${SHEET_PATHS[@]}"; do
+            SHEET_NAME="$(basename "${SHEET_PATH}" .png)"
+            SHEET_NAMES+=("${SHEET_NAME}")
+          done
+
+          {
+            echo "count=${#SHEET_NAMES[@]}"
+            echo "sheet_names=${SHEET_NAMES[*]}"
+            echo "sheet_paths<<EOF"
+            printf '%s\n' "${SHEET_PATHS[@]}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+          echo "Discovered ${#SHEET_NAMES[@]} sheet(s): ${SHEET_NAMES[*]}"
+
+
+      - name: Generate native scans
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          read -ra PROFILE_ARGS <<< "${{ steps.config.outputs.profiles }}"
 
           "${BLENDER_ROOT}/blender" \
             --background \
             --factory-startup \
             --python scripts/generate_all_native.py \
             -- \
-            --examples example \
-            --example mascotte/test1 \
+            --examples "${EXAMPLE_ROOT}" \
+            --example "${EXAMPLE_NAME}" \
             --profiles "${PROFILE_ARGS[@]}" \
             --resolution "${{ steps.config.outputs.resolution }}" \
             --thread-count 0 \
             --skip-blend
 
 
-      # -----------------------------------------------------
-      # Render sheets
-      # -----------------------------------------------------
-
       - name: Render previews
         shell: bash
-
         run: |
           set -euo pipefail
 
-          mkdir -p \
-            visual-preview
+          mkdir -p visual-preview
 
-          for SHEET in sheet1 sheet2; do
+          read -ra SHEETS <<< "${{ steps.sheets.outputs.sheet_names }}"
+          read -ra PROFILES <<< "${{ steps.config.outputs.profiles }}"
 
-            for LEVEL in ${{ steps.config.outputs.profiles }}; do
-
-              SCAN_DIR="example/mascotte/test1/generated/${SHEET}/scans/${LEVEL}"
+          for SHEET in "${SHEETS[@]}"; do
+            for LEVEL in "${PROFILES[@]}"; do
+              SCAN_DIR="${GENERATED_DIR}/${SHEET}/scans/${LEVEL}"
 
               if [[ ! -d "${SCAN_DIR}" ]]; then
                 echo "Missing scan directory: ${SCAN_DIR}"
@@ -393,9 +368,7 @@ jobs:
               fi
 
               OUTPUT_DIR="visual-preview/${SHEET}/${LEVEL}"
-
-              mkdir -p \
-                "${OUTPUT_DIR}"
+              mkdir -p "${OUTPUT_DIR}"
 
               echo
               echo "Rendering ${SHEET} ${LEVEL}"
@@ -412,26 +385,20 @@ jobs:
                 --views "${{ steps.config.outputs.views }}" \
                 --size "${{ steps.config.outputs.size }}" \
                 --samples "${{ steps.config.outputs.samples }}"
-
             done
-
           done
 
 
-      # -----------------------------------------------------
-      # Verify
-      # -----------------------------------------------------
-
       - name: Verify previews
         shell: bash
-
         run: |
           set -euo pipefail
 
-          for SHEET in sheet1 sheet2; do
+          read -ra SHEETS <<< "${{ steps.sheets.outputs.sheet_names }}"
+          read -ra PROFILES <<< "${{ steps.config.outputs.profiles }}"
 
-            for LEVEL in ${{ steps.config.outputs.profiles }}; do
-
+          for SHEET in "${SHEETS[@]}"; do
+            for LEVEL in "${PROFILES[@]}"; do
               CONTACT="visual-preview/${SHEET}/${LEVEL}/contact_sheet.png"
 
               if [[ ! -s "${CONTACT}" ]]; then
@@ -441,39 +408,28 @@ jobs:
 
               echo
               echo "${SHEET}/${LEVEL}"
-
-              ls -lh \
-                "${CONTACT}"
-
+              ls -lh "${CONTACT}"
             done
-
           done
 
-
-      # -----------------------------------------------------
-      # Prepare persistent docs
-      # -----------------------------------------------------
 
       - name: Prepare documentation previews
         if: github.event_name != 'pull_request'
         shell: bash
-
         run: |
           set -euo pipefail
 
-          rm -rf \
-            docs/previews
+          read -ra SHEETS <<< "${{ steps.sheets.outputs.sheet_names }}"
+          read -ra PROFILES <<< "${{ steps.config.outputs.profiles }}"
 
-          mkdir -p \
-            docs/previews/sheet1 \
-            docs/previews/sheet2
+          rm -rf docs/previews
+          mkdir -p docs/previews
 
-          for SHEET in sheet1 sheet2; do
+          for SHEET in "${SHEETS[@]}"; do
+            mkdir -p "docs/previews/${SHEET}"
 
-            for LEVEL in ${{ steps.config.outputs.profiles }}; do
-
+            for LEVEL in "${PROFILES[@]}"; do
               SOURCE="visual-preview/${SHEET}/${LEVEL}/contact_sheet.png"
-
               DESTINATION="docs/previews/${SHEET}/${LEVEL}.png"
 
               if [[ ! -s "${SOURCE}" ]]; then
@@ -481,140 +437,122 @@ jobs:
                 exit 1
               fi
 
-              cp \
-                "${SOURCE}" \
-                "${DESTINATION}"
-
+              cp "${SOURCE}" "${DESTINATION}"
             done
-
           done
 
-          find docs/previews \
-            -type f \
-            -print \
-            | sort
+          find docs/previews -type f -print | sort
 
-
-      # -----------------------------------------------------
-      # Generate Markdown documentation
-      # -----------------------------------------------------
 
       - name: Generate visual preview Markdown
         if: github.event_name != 'pull_request'
         shell: bash
-
         run: |
           set -euo pipefail
 
-          mkdir -p \
-            docs
+          read -ra SHEETS <<< "${{ steps.sheets.outputs.sheet_names }}"
+          read -ra PROFILES <<< "${{ steps.config.outputs.profiles }}"
 
-          cat > docs/visual-preview.md <<'EOF'
-          # Visual Reconstruction Preview
+          mkdir -p docs
 
-          This page is generated automatically from the reference sheets.
+          format_sheet_title() {
+            local name="$1"
 
-          It provides a quick visual check of the native C++ reconstruction pipeline.
+            if [[ "${name}" =~ ^sheet([0-9]+)$ ]]; then
+              echo "Sheet ${BASH_REMATCH[1]}"
+            else
+              echo "${name}"
+            fi
+          }
 
-          ## Scan levels
+          describe_level() {
+            local level="$1"
 
-          - **L2** — 000° + 090°
-          - **L4** — 000° + 090° + 180° + 270°
-          - **L8** — 8 horizontal views
-          - **L10** — L8 + TOP + BOT
+            case "${level}" in
+              L2) echo "000° + 090°" ;;
+              L4) echo "000° + 090° + 180° + 270°" ;;
+              L6) echo "000° + 045° + 090° + 180° + 270° + 315°" ;;
+              L8) echo "8 horizontal views" ;;
+              L10) echo "L8 + TOP + BOT" ;;
+              *) echo "Custom profile" ;;
+            esac
+          }
 
-          ---
+          {
+            echo "# Visual Reconstruction Preview"
+            echo
+            echo "This page is generated automatically from the reference sheets."
+            echo
+            echo "It provides a quick visual check of the native C++ reconstruction pipeline."
+            echo
+            echo "## Example"
+            echo
+            echo "- Root: \`${EXAMPLE_ROOT}/${EXAMPLE_NAME}\`"
+            echo "- Sheets directory: \`${SHEETS_DIR}\`"
+            echo "- Discovered sheets: **${#SHEETS[@]}**"
+            echo
+            echo "## Scan levels"
+            echo
 
-          ## Sheet 1
+            for LEVEL in "${PROFILES[@]}"; do
+              echo "- **${LEVEL}** — $(describe_level "${LEVEL}")"
+            done
 
-          ### L2
+            echo
 
-          ![Sheet 1 - L2](previews/sheet1/L2.png)
+            for SHEET in "${SHEETS[@]}"; do
+              SHEET_TITLE="$(format_sheet_title "${SHEET}")"
 
-          ### L4
+              echo "---"
+              echo
+              echo "## ${SHEET_TITLE}"
+              echo
 
-          ![Sheet 1 - L4](previews/sheet1/L4.png)
+              for LEVEL in "${PROFILES[@]}"; do
+                echo "### ${LEVEL}"
+                echo
+                echo "![${SHEET_TITLE} - ${LEVEL}](previews/${SHEET}/${LEVEL}.png)"
+                echo
+              done
+            done
 
-          ### L8
+            echo "---"
+            echo
+            echo "## Generation"
+            echo
+            echo "These images are generated by GitHub Actions using:"
+            echo
+            echo "- the native C++ visual hull engine;"
+            echo "- Blender headless;"
+            echo "- Cycles CPU;"
+            echo "- the example reference sheets in \`${SHEETS_DIR}/\`."
+            echo
+            echo "The committed images represent the latest successful preview generated from \`main\`."
+          } > docs/visual-preview.md
 
-          ![Sheet 1 - L8](previews/sheet1/L8.png)
-
-          ### L10
-
-          ![Sheet 1 - L10](previews/sheet1/L10.png)
-
-          ---
-
-          ## Sheet 2
-
-          ### L2
-
-          ![Sheet 2 - L2](previews/sheet2/L2.png)
-
-          ### L4
-
-          ![Sheet 2 - L4](previews/sheet2/L4.png)
-
-          ### L8
-
-          ![Sheet 2 - L8](previews/sheet2/L8.png)
-
-          ### L10
-
-          ![Sheet 2 - L10](previews/sheet2/L10.png)
-
-          ---
-
-          ## Generation
-
-          These images are generated by GitHub Actions using:
-
-          - the native C++ visual hull engine;
-          - Blender headless;
-          - Cycles CPU;
-          - the example reference sheets in `example/mascotte/test1/sheets/`.
-
-          The committed images represent the latest successful preview generated from `main`.
-          EOF
-
-
-      # -----------------------------------------------------
-      # Summary
-      # -----------------------------------------------------
 
       - name: Generate preview summary
         if: always()
-
         shell: bash
-
         run: |
+          set -euo pipefail
+
           {
             echo "# Native visual preview"
             echo
-
-            echo \
-              "Resolution: **${{ steps.config.outputs.resolution }}**"
-
+            echo "Example: **${EXAMPLE_NAME}**"
             echo
-
-            echo \
-              "Profiles: **${{ steps.config.outputs.profiles }}**"
-
+            echo "Sheets: **${{ steps.sheets.outputs.sheet_names }}**"
             echo
-
-            echo \
-              "Views: **${{ steps.config.outputs.views }}**"
-
+            echo "Resolution: **${{ steps.config.outputs.resolution }}**"
             echo
-
-            echo \
-              "Render: **${{ steps.config.outputs.size }} × ${{ steps.config.outputs.size }}**"
-
+            echo "Profiles: **${{ steps.config.outputs.profiles }}**"
             echo
-
-            echo \
-              "Cycles samples: **${{ steps.config.outputs.samples }}**"
-
+            echo "Views: **${{ steps.config.outputs.views }}**"
+            echo
+            echo "Render: **${{ steps.config.outputs.size }} × ${{ steps.config.outputs.size }}**"
+            echo
+            echo "Cycles samples: **${{ steps.config.outputs.samples }}**"
             echo
             echo "Contact sheets:"
             echo
@@ -631,66 +569,35 @@ jobs:
           } >> "${GITHUB_STEP_SUMMARY}"
 
 
-      # -----------------------------------------------------
-      # Artifact
-      # -----------------------------------------------------
-
       - name: Upload visual previews
         if: always()
-
         uses: actions/upload-artifact@v4
-
         with:
           name: native-visual-preview-${{ github.run_number }}
-
           path: |
             visual-preview/**
-            example/mascotte/test1/generated/sheet1/manifest.json
-            example/mascotte/test1/generated/sheet2/manifest.json
-
+            example/mascotte/test1/generated/**/manifest.json
           if-no-files-found: warn
-
           retention-days: 14
 
-
-      # -----------------------------------------------------
-      # Persist previews on main
-      # -----------------------------------------------------
 
       - name: Commit visual documentation
         if: >-
           github.event_name == 'push'
           && github.ref == 'refs/heads/main'
-
         shell: bash
-
         run: |
           set -euo pipefail
 
-          git config \
-            user.name \
-            "github-actions[bot]"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git config \
-            user.email \
-            "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/visual-preview.md docs/previews
 
-          git add \
-            docs/visual-preview.md \
-            docs/previews
-
-          if git diff \
-            --cached \
-            --quiet
-          then
-            echo \
-              "Visual documentation is already up to date."
-
+          if git diff --cached --quiet; then
+            echo "Visual documentation is already up to date."
             exit 0
           fi
 
-          git commit \
-            -m \
-            "docs: update visual reconstruction previews [skip ci]"
-
+          git commit -m "docs: update visual reconstruction previews [skip ci]"
           git push
