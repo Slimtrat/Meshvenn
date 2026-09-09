@@ -4,13 +4,24 @@ import argparse
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parents[1]
+)
 
 if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+    sys.path.insert(
+        0,
+        str(REPO_ROOT),
+    )
 
-from scripts.generate_example_native import process_sheet
-from scripts.run_logger import RunLogger
+from scripts.generate_example_native import (
+    process_sheet,
+)
+from scripts.run_logger import (
+    RunLogger,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -18,32 +29,34 @@ def parse_args() -> argparse.Namespace:
 
     if "--" in argv:
         argv = argv[
-            argv.index("--") + 1 :
+            argv.index("--") + 1:
         ]
     else:
         argv = []
 
     parser = argparse.ArgumentParser(
         description=(
-            "Generate all Projection Tool examples "
-            "using the native C++ engine inside "
-            "a single Blender process."
+            "Generate Projection Tool examples "
+            "with the native C++ engine inside "
+            "one Blender process."
         )
     )
 
     parser.add_argument(
         "--examples",
         type=Path,
-        default=REPO_ROOT / "example",
-        help="Root example directory.",
+        default=(
+            REPO_ROOT
+            / "example"
+        ),
     )
 
     parser.add_argument(
         "--example",
         default="all",
         help=(
-            'Example relative path, e.g. "mascotte/test1", '
-            'or "all".'
+            '"all" or an example path '
+            'such as "mascotte/test1".'
         ),
     )
 
@@ -51,9 +64,8 @@ def parse_args() -> argparse.Namespace:
         "--start-sheet",
         default="",
         help=(
-            "Start from this sheet. "
-            'Examples: "sheet2.png" or '
-            '"mascotte/test1/sheets/sheet2.png".'
+            "Optional sheet name/path "
+            "to resume generation from."
         ),
     )
 
@@ -61,7 +73,10 @@ def parse_args() -> argparse.Namespace:
         "--profiles",
         nargs="*",
         default=None,
-        help="Profiles to generate: L2 L4 L8 L10.",
+        help=(
+            "Optional scan levels: "
+            "L2 L4 L8 L10."
+        ),
     )
 
     parser.add_argument(
@@ -86,7 +101,7 @@ def parse_args() -> argparse.Namespace:
         "--thread-count",
         type=int,
         default=0,
-        help="0 = native auto detection.",
+        help="0 = automatic CPU detection.",
     )
 
     parser.add_argument(
@@ -121,16 +136,25 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
     )
 
-    return parser.parse_args(argv)
+    return parser.parse_args(
+        argv
+    )
 
 
 def discover_examples(
     examples_root: Path,
     requested_example: str,
 ) -> list[Path]:
+    examples_root = (
+        examples_root.resolve()
+    )
+
     if not examples_root.exists():
         raise FileNotFoundError(
-            f"Examples root does not exist: {examples_root}"
+            (
+                "Examples root does not exist: "
+                f"{examples_root}"
+            )
         )
 
     if requested_example != "all":
@@ -139,63 +163,83 @@ def discover_examples(
             / requested_example
         ).resolve()
 
-        root = examples_root.resolve()
-
         try:
-            example_dir.relative_to(root)
+            example_dir.relative_to(
+                examples_root
+            )
+
         except ValueError as exc:
             raise ValueError(
-                "Requested example must be inside the examples root."
+                (
+                    "Requested example must be "
+                    "inside the examples root."
+                )
             ) from exc
 
-        if not example_dir.exists():
-            raise FileNotFoundError(
-                f"Example does not exist: {example_dir}"
-            )
-
-        sheets_dir = (
+        _validate_example_dir(
             example_dir
-            / "sheets"
         )
-
-        if not sheets_dir.exists():
-            raise FileNotFoundError(
-                f"Missing sheets directory: {sheets_dir}"
-            )
-
-        if not any(
-            sheets_dir.glob(
-                "sheet*.png"
-            )
-        ):
-            raise RuntimeError(
-                f"No sheet*.png found in {sheets_dir}"
-            )
 
         return [
             example_dir
         ]
 
-    result: list[Path] = []
-
-    for sheets_dir in examples_root.rglob(
-        "sheets"
-    ):
-        if not sheets_dir.is_dir():
-            continue
-
-        if any(
-            sheets_dir.glob(
-                "sheet*.png"
+    result = [
+        sheets_dir.parent
+        for sheets_dir
+        in examples_root.rglob(
+            "sheets"
+        )
+        if (
+            sheets_dir.is_dir()
+            and any(
+                sheets_dir.glob(
+                    "sheet*.png"
+                )
             )
-        ):
-            result.append(
-                sheets_dir.parent
-            )
+        )
+    ]
 
     return sorted(
         result
     )
+
+
+def _validate_example_dir(
+    example_dir: Path,
+) -> None:
+    if not example_dir.exists():
+        raise FileNotFoundError(
+            (
+                "Example does not exist: "
+                f"{example_dir}"
+            )
+        )
+
+    sheets_dir = (
+        example_dir
+        / "sheets"
+    )
+
+    if not sheets_dir.exists():
+        raise FileNotFoundError(
+            (
+                "Missing sheets directory: "
+                f"{sheets_dir}"
+            )
+        )
+
+    if not any(
+        sheets_dir.glob(
+            "sheet*.png"
+        )
+    ):
+        raise RuntimeError(
+            (
+                "No sheet*.png found in "
+                f"{sheets_dir}"
+            )
+        )
 
 
 def discover_sheets(
@@ -206,7 +250,7 @@ def discover_sheets(
         Path,
     ]
 ]:
-    result: list[
+    sheets: list[
         tuple[
             Path,
             Path,
@@ -214,24 +258,22 @@ def discover_sheets(
     ] = []
 
     for example_dir in example_dirs:
-        sheets_dir = (
-            example_dir
-            / "sheets"
-        )
-
         for sheet_path in sorted(
-            sheets_dir.glob(
+            (
+                example_dir
+                / "sheets"
+            ).glob(
                 "sheet*.png"
             )
         ):
-            result.append(
+            sheets.append(
                 (
                     example_dir,
                     sheet_path,
                 )
             )
 
-    return result
+    return sheets
 
 
 def filter_from_sheet(
@@ -241,6 +283,7 @@ def filter_from_sheet(
             Path,
         ]
     ],
+    *,
     examples_root: Path,
     start_sheet: str,
 ) -> list[
@@ -254,7 +297,10 @@ def filter_from_sheet(
 
     normalized = (
         start_sheet
-        .replace("\\", "/")
+        .replace(
+            "\\",
+            "/",
+        )
         .strip()
     )
 
@@ -285,127 +331,131 @@ def filter_from_sheet(
 
     if not matches:
         available = "\n".join(
-            "  - "
-            + sheet_path
-            .relative_to(
-                examples_root
+            (
+                "  - "
+                + sheet_path
+                .relative_to(
+                    examples_root
+                )
+                .as_posix()
             )
-            .as_posix()
             for _, sheet_path
             in sheets
         )
 
         raise ValueError(
-            f'Could not find start sheet "{start_sheet}".\n'
-            f"Available sheets:\n{available}"
+            (
+                f'Could not find start sheet '
+                f'"{start_sheet}".\n'
+                f"Available sheets:\n"
+                f"{available}"
+            )
         )
 
     if len(matches) > 1:
-        available = "\n".join(
-            "  - "
-            + sheets[index][1]
-            .relative_to(
-                examples_root
+        ambiguous = "\n".join(
+            (
+                "  - "
+                + sheets[index][1]
+                .relative_to(
+                    examples_root
+                )
+                .as_posix()
             )
-            .as_posix()
-            for index
-            in matches
+            for index in matches
         )
 
         raise ValueError(
-            f'Sheet "{start_sheet}" is ambiguous.\n'
-            "Use a path relative to example/:\n"
-            f"{available}"
+            (
+                f'Sheet "{start_sheet}" '
+                "is ambiguous.\n"
+                "Use a path relative to example/:\n"
+                f"{ambiguous}"
+            )
         )
 
     return sheets[
-        matches[0] :
+        matches[0]:
     ]
 
 
-def validate_profiles(
+def normalize_profiles(
     profiles: list[str] | None,
 ) -> list[str] | None:
     if not profiles:
         return None
 
-    allowed = {
-        "L2",
-        "L4",
-        "L8",
-        "L10",
-    }
-
-    normalized: list[str] = []
-
-    for profile in profiles:
-        name = (
-            profile
-            .upper()
-            .strip()
-        )
-
-        if name not in allowed:
-            raise ValueError(
-                f"Unknown profile: {profile}"
-            )
-
-        if name not in normalized:
-            normalized.append(
-                name
-            )
-
-    return normalized
+    return [
+        profile
+        .strip()
+        .upper()
+        for profile in profiles
+        if profile.strip()
+    ]
 
 
-def create_sheet_args(
+def validate_numeric_args(
     args: argparse.Namespace,
-) -> argparse.Namespace:
-    result = argparse.Namespace()
-
-    result.resolution = (
-        args.resolution
-    )
-
-    result.threshold = (
-        args.threshold
-    )
-
-    result.sheet_white_threshold = (
-        args.sheet_white_threshold
-    )
-
-    result.thread_count = (
-        args.thread_count
-    )
-
-    result.symmetry_x = (
-        args.symmetry_x
-    )
-
-    result.voxel_size = (
-        args.voxel_size
-    )
-
-    result.target_height = (
-        args.target_height
-    )
-
-    result.profiles = (
-        validate_profiles(
-            args.profiles
+) -> None:
+    if not (
+        8
+        <= args.resolution
+        <= 256
+    ):
+        raise ValueError(
+            (
+                "Resolution must be "
+                "between 8 and 256."
+            )
         )
-    )
 
-    result.skip_blend = (
-        args.skip_blend
-    )
+    if not (
+        0.0
+        <= args.threshold
+        <= 1.0
+    ):
+        raise ValueError(
+            (
+                "Threshold must be "
+                "between 0 and 1."
+            )
+        )
 
-    result.json_log = (
-        args.json_log
-    )
+    if not (
+        0.0
+        <= args.sheet_white_threshold
+        <= 1.0
+    ):
+        raise ValueError(
+            (
+                "Sheet white threshold must be "
+                "between 0 and 1."
+            )
+        )
 
-    return result
+    if args.thread_count < 0:
+        raise ValueError(
+            (
+                "Thread count cannot "
+                "be negative."
+            )
+        )
+
+    if args.voxel_size <= 0.0:
+        raise ValueError(
+            (
+                "Voxel size must be "
+                "greater than zero."
+            )
+        )
+
+    if args.target_height <= 0.0:
+        raise ValueError(
+            (
+                "Target height must be "
+                "greater than zero."
+            )
+        )
 
 
 def print_plan(
@@ -431,7 +481,9 @@ def print_plan(
 
     logger.info(
         "Resolution",
-        value=args.resolution,
+        value=(
+            args.resolution
+        ),
     )
 
     logger.info(
@@ -441,7 +493,7 @@ def print_plan(
                 args.profiles
             )
             if args.profiles
-            else "automatic"
+            else "all runnable"
         ),
     )
 
@@ -451,6 +503,13 @@ def print_plan(
             args.thread_count
             if args.thread_count > 0
             else "auto"
+        ),
+    )
+
+    logger.info(
+        "Symmetry X",
+        value=(
+            args.symmetry_x
         ),
     )
 
@@ -473,27 +532,31 @@ def print_plan(
             len(
                 sheets
             ),
-            sheet_path
-            .relative_to(
-                examples_root
-            )
-            .as_posix(),
+            (
+                sheet_path
+                .relative_to(
+                    examples_root
+                )
+                .as_posix()
+            ),
         )
 
 
 def main() -> None:
     args = parse_args()
 
-    examples_root = (
+    validate_numeric_args(
         args
-        .examples
-        .resolve()
     )
 
     args.profiles = (
-        validate_profiles(
+        normalize_profiles(
             args.profiles
         )
+    )
+
+    examples_root = (
+        args.examples.resolve()
     )
 
     example_dirs = (
@@ -514,17 +577,22 @@ def main() -> None:
             "No sheet*.png found."
         )
 
-    sheets = (
-        filter_from_sheet(
-            sheets,
-            examples_root,
-            args.start_sheet,
-        )
+    sheets = filter_from_sheet(
+        sheets,
+        examples_root=(
+            examples_root
+        ),
+        start_sheet=(
+            args.start_sheet
+        ),
     )
 
     if not sheets:
         raise RuntimeError(
-            "No sheets remain after filtering."
+            (
+                "No sheets remain "
+                "after filtering."
+            )
         )
 
     logger = RunLogger(
@@ -543,12 +611,6 @@ def main() -> None:
             examples_root
         ),
         args=args,
-    )
-
-    sheet_args = (
-        create_sheet_args(
-            args
-        )
     )
 
     failures: list[
@@ -592,7 +654,7 @@ def main() -> None:
             process_sheet(
                 sheet_path,
                 generated_root,
-                sheet_args,
+                args,
                 logger=(
                     logger.child()
                 ),
@@ -607,14 +669,27 @@ def main() -> None:
             )
 
             logger.error(
-                f"FAILED {relative_sheet}",
+                (
+                    f"FAILED "
+                    f"{relative_sheet}"
+                ),
                 error=str(
                     exc
                 ),
             )
 
-            if not args.continue_on_error:
+            if (
+                not args
+                .continue_on_error
+            ):
                 raise
+
+    succeeded = (
+        total
+        - len(
+            failures
+        )
+    )
 
     logger.divider(
         "NATIVE GENERATION SUMMARY"
@@ -627,12 +702,7 @@ def main() -> None:
 
     logger.info(
         "Succeeded",
-        count=(
-            total
-            - len(
-                failures
-            )
-        ),
+        count=succeeded,
     )
 
     logger.info(
@@ -647,11 +717,13 @@ def main() -> None:
         error,
     ) in failures:
         logger.error(
-            sheet_path
-            .relative_to(
-                examples_root
-            )
-            .as_posix(),
+            (
+                sheet_path
+                .relative_to(
+                    examples_root
+                )
+                .as_posix()
+            ),
             error=str(
                 error
             ),
@@ -665,8 +737,7 @@ def main() -> None:
     logger.success(
         "Native batch completed",
         elapsed=(
-            logger
-            .total_elapsed()
+            logger.total_elapsed()
         ),
     )
 

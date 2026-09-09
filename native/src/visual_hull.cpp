@@ -1,7 +1,6 @@
 #include "bpt_core.h"
 
 #include <algorithm>
-#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -17,15 +16,29 @@ namespace
 {
 
 
-constexpr float kEpsilon = 1e-9f;
+constexpr float kEpsilon =
+    1e-9f;
+
+
+/*
+ * Do not spawn a large number of worker threads
+ * once only a small number of voxels remain.
+ */
+constexpr std::size_t
+    kMinVoxelsPerWorker =
+        32768;
 
 
 struct CompiledProjection
 {
-    const std::uint8_t* mask = nullptr;
+    const std::uint8_t* mask =
+        nullptr;
 
     std::int32_t width = 0;
     std::int32_t height = 0;
+
+    float width_minus_one = 0.0f;
+    float height_minus_one = 0.0f;
 
     float cos_az = 1.0f;
     float sin_az = 0.0f;
@@ -53,6 +66,7 @@ struct BoundsAccumulator
     std::int32_t min_z = 0;
     std::int32_t max_z = 0;
 
+
     void add(
         const std::int32_t x,
         const std::int32_t y,
@@ -70,15 +84,43 @@ struct BoundsAccumulator
             return;
         }
 
-        min_x = std::min(min_x, x);
-        max_x = std::max(max_x, x);
+        min_x =
+            std::min(
+                min_x,
+                x
+            );
 
-        min_y = std::min(min_y, y);
-        max_y = std::max(max_y, y);
+        max_x =
+            std::max(
+                max_x,
+                x
+            );
 
-        min_z = std::min(min_z, z);
-        max_z = std::max(max_z, z);
+        min_y =
+            std::min(
+                min_y,
+                y
+            );
+
+        max_y =
+            std::max(
+                max_y,
+                y
+            );
+
+        min_z =
+            std::min(
+                min_z,
+                z
+            );
+
+        max_z =
+            std::max(
+                max_z,
+                z
+            );
     }
+
 
     void merge(
         const BoundsAccumulator& other
@@ -95,21 +137,50 @@ struct BoundsAccumulator
             return;
         }
 
-        min_x = std::min(min_x, other.min_x);
-        max_x = std::max(max_x, other.max_x);
+        min_x =
+            std::min(
+                min_x,
+                other.min_x
+            );
 
-        min_y = std::min(min_y, other.min_y);
-        max_y = std::max(max_y, other.max_y);
+        max_x =
+            std::max(
+                max_x,
+                other.max_x
+            );
 
-        min_z = std::min(min_z, other.min_z);
-        max_z = std::max(max_z, other.max_z);
+        min_y =
+            std::min(
+                min_y,
+                other.min_y
+            );
+
+        max_y =
+            std::max(
+                max_y,
+                other.max_y
+            );
+
+        min_z =
+            std::min(
+                min_z,
+                other.min_z
+            );
+
+        max_z =
+            std::max(
+                max_z,
+                other.max_z
+            );
     }
 };
 
 
 struct WorkerResult
 {
-    std::vector<std::uint32_t> alive_indices;
+    std::size_t begin = 0;
+    std::size_t survivor_count = 0;
+
     BoundsAccumulator bounds;
 };
 
@@ -120,18 +191,64 @@ std::int32_t resolve_thread_count(
 {
     if (requested > 0)
     {
-        return requested;
+        return std::max(
+            1,
+            requested
+        );
     }
 
-    const auto detected = std::thread::hardware_concurrency();
+    const auto detected =
+        std::thread::hardware_concurrency();
 
     if (detected == 0)
     {
         return 1;
     }
 
-    return static_cast<std::int32_t>(
+    return static_cast<
+        std::int32_t
+    >(
         detected
+    );
+}
+
+
+std::size_t resolve_worker_count(
+    const std::size_t alive_count,
+    const std::int32_t thread_limit
+)
+{
+    if (alive_count == 0)
+    {
+        return 0;
+    }
+
+    const auto useful_workers =
+        std::max<
+            std::size_t
+        >(
+            1,
+            (
+                alive_count
+                + kMinVoxelsPerWorker
+                - 1
+            )
+            / kMinVoxelsPerWorker
+        );
+
+    return std::min(
+        alive_count,
+        std::min(
+            useful_workers,
+            static_cast<
+                std::size_t
+            >(
+                std::max(
+                    1,
+                    thread_limit
+                )
+            )
+        )
     );
 }
 
@@ -143,7 +260,11 @@ float radians(
     constexpr float kPi =
         3.14159265358979323846f;
 
-    return degrees * kPi / 180.0f;
+    return (
+        degrees
+        * kPi
+        / 180.0f
+    );
 }
 
 
@@ -158,9 +279,17 @@ float grid_to_normalized(
     }
 
     return (
-        static_cast<float>(value)
-        / static_cast<float>(size - 1)
-    ) * 2.0f - 1.0f;
+        (
+            static_cast<float>(
+                value
+            )
+            / static_cast<float>(
+                size - 1
+            )
+        )
+        * 2.0f
+        - 1.0f
+    );
 }
 
 
@@ -170,7 +299,9 @@ BptResultCode validate_options(
 {
     if (options == nullptr)
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     if (
@@ -178,7 +309,9 @@ BptResultCode validate_options(
         || options->resolution > 256
     )
     {
-        return BPT_ERROR_INVALID_RESOLUTION;
+        return (
+            BPT_ERROR_INVALID_RESOLUTION
+        );
     }
 
     return BPT_OK;
@@ -191,12 +324,16 @@ BptResultCode validate_projection(
 {
     if (projection == nullptr)
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     if (projection->mask == nullptr)
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     if (
@@ -204,7 +341,9 @@ BptResultCode validate_projection(
         || projection->height <= 0
     )
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     return BPT_OK;
@@ -225,36 +364,48 @@ CompiledProjection compile_projection(
             projection.elevation_degrees
         );
 
-    const float cos_az_abs =
-        std::abs(
-            std::cos(azimuth)
+    const float cos_az =
+        std::cos(
+            azimuth
         );
 
-    const float sin_az_abs =
-        std::abs(
-            std::sin(azimuth)
+    const float sin_az =
+        std::sin(
+            azimuth
+        );
+
+    const float cos_el =
+        std::cos(
+            elevation
+        );
+
+    const float sin_el =
+        std::sin(
+            elevation
         );
 
     const float horizontal_extent =
         std::max(
-            cos_az_abs + sin_az_abs,
+            std::abs(
+                cos_az
+            )
+            + std::abs(
+                sin_az
+            ),
             kEpsilon
-        );
-
-    const float cos_el_abs =
-        std::abs(
-            std::cos(elevation)
-        );
-
-    const float sin_el_abs =
-        std::abs(
-            std::sin(elevation)
         );
 
     const float vertical_extent =
         std::max(
-            horizontal_extent * sin_el_abs
-                + cos_el_abs,
+            (
+                horizontal_extent
+                * std::abs(
+                    sin_el
+                )
+            )
+            + std::abs(
+                cos_el
+            ),
             kEpsilon
         );
 
@@ -269,17 +420,32 @@ CompiledProjection compile_projection(
     result.height =
         projection.height;
 
+    result.width_minus_one =
+        static_cast<float>(
+            projection.width - 1
+        );
+
+    result.height_minus_one =
+        static_cast<float>(
+            projection.height - 1
+        );
+
+    /*
+     * Same convention as the previous
+     * implementation: rotate the volume by
+     * the inverse camera transform.
+     */
     result.cos_az =
-        std::cos(-azimuth);
+        cos_az;
 
     result.sin_az =
-        std::sin(-azimuth);
+        -sin_az;
 
     result.cos_el =
-        std::cos(-elevation);
+        cos_el;
 
     result.sin_el =
-        std::sin(-elevation);
+        -sin_el;
 
     result.horizontal_extent =
         horizontal_extent;
@@ -294,7 +460,7 @@ CompiledProjection compile_projection(
 }
 
 
-bool sample_projection(
+inline bool sample_projection(
     const CompiledProjection& projection,
     const float nx,
     const float ny,
@@ -315,22 +481,29 @@ bool sample_projection(
 
     float u =
         (
-            x1
-            / projection.horizontal_extent
+            (
+                x1
+                / projection.horizontal_extent
+            )
             + 1.0f
-        ) * 0.5f;
+        )
+        * 0.5f;
 
     const float v =
         (
-            z2
-            / projection.vertical_extent
+            (
+                z2
+                / projection.vertical_extent
+            )
             + 1.0f
-        ) * 0.5f;
+        )
+        * 0.5f;
 
     if (projection.flip_x)
     {
         u =
-            1.0f - u;
+            1.0f
+            - u;
     }
 
     if (
@@ -344,41 +517,98 @@ bool sample_projection(
     }
 
     const auto x =
-        std::min(
-            static_cast<std::int32_t>(
+        std::clamp(
+            static_cast<
+                std::int32_t
+            >(
                 u
-                * static_cast<float>(
-                    projection.width - 1
-                )
+                * projection.width_minus_one
                 + 0.5f
             ),
+            0,
             projection.width - 1
         );
 
     const auto y =
-        std::min(
-            static_cast<std::int32_t>(
+        std::clamp(
+            static_cast<
+                std::int32_t
+            >(
                 v
-                * static_cast<float>(
-                    projection.height - 1
-                )
+                * projection.height_minus_one
                 + 0.5f
             ),
+            0,
             projection.height - 1
         );
 
     const auto index =
-        static_cast<std::size_t>(
+        static_cast<
+            std::size_t
+        >(
             y
         )
-        * static_cast<std::size_t>(
+        * static_cast<
+            std::size_t
+        >(
             projection.width
         )
-        + static_cast<std::size_t>(
+        + static_cast<
+            std::size_t
+        >(
             x
         );
 
-    return projection.mask[index] != 0;
+    return (
+        projection.mask[index]
+        != 0
+    );
+}
+
+
+inline bool survives_projection(
+    const CompiledProjection& projection,
+    const float nx,
+    const float ny,
+    const float nz,
+    const bool symmetry_x
+)
+{
+    if (
+        !sample_projection(
+            projection,
+            nx,
+            ny,
+            nz
+        )
+    )
+    {
+        return false;
+    }
+
+    if (!symmetry_x)
+    {
+        return true;
+    }
+
+    /*
+     * Conservative X symmetry:
+     *
+     * a voxel survives only when both it and
+     * its mirrored X position satisfy the
+     * silhouette.
+     *
+     * Therefore x and -x always receive the
+     * same result and the volume stays
+     * symmetrical without creating geometry
+     * outside the source silhouettes.
+     */
+    return sample_projection(
+        projection,
+        -nx,
+        ny,
+        nz
+    );
 }
 
 
@@ -425,7 +655,7 @@ void write_volume_bounds(
 }
 
 
-}
+} // namespace
 
 
 struct BptVisualHullSession
@@ -436,12 +666,23 @@ struct BptVisualHullSession
     std::int32_t depth = 0;
     std::int32_t height = 0;
 
-    std::vector<std::uint8_t> values;
-    std::vector<std::uint32_t> alive_indices;
+    /*
+     * Dense voxel storage is intentionally
+     * NOT kept during reconstruction.
+     *
+     * The list continuously shrinks as
+     * projections are applied.
+     */
+    std::vector<
+        std::uint32_t
+    > alive_indices;
 
-    std::vector<float> normalized_coords;
+    std::vector<float>
+        normalized_coords;
 
     BoundsAccumulator bounds;
+
+    std::int32_t thread_limit = 1;
 };
 
 
@@ -460,13 +701,18 @@ bpt_visual_hull_create(
         || out_session == nullptr
     )
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
-    *out_session = nullptr;
+    *out_session =
+        nullptr;
 
     const auto validation =
-        validate_options(options);
+        validate_options(
+            options
+        );
 
     if (validation != BPT_OK)
     {
@@ -492,8 +738,15 @@ bpt_visual_hull_create(
         session->height =
             options->resolution;
 
+        session->thread_limit =
+            resolve_thread_count(
+                options->thread_count
+            );
+
         const auto resolution =
-            static_cast<std::size_t>(
+            static_cast<
+                std::size_t
+            >(
                 options->resolution
             );
 
@@ -502,14 +755,11 @@ bpt_visual_hull_create(
             * resolution
             * resolution;
 
-        session->values.assign(
-            voxel_count,
-            1
-        );
-
-        session->alive_indices.resize(
-            voxel_count
-        );
+        session
+            ->alive_indices
+            .resize(
+                voxel_count
+            );
 
         for (
             std::size_t index = 0;
@@ -517,15 +767,22 @@ bpt_visual_hull_create(
             ++index
         )
         {
-            session->alive_indices[index] =
-                static_cast<std::uint32_t>(
+            session
+                ->alive_indices[
                     index
-                );
+                ] =
+                    static_cast<
+                        std::uint32_t
+                    >(
+                        index
+                    );
         }
 
-        session->normalized_coords.resize(
-            resolution
-        );
+        session
+            ->normalized_coords
+            .resize(
+                resolution
+            );
 
         for (
             std::int32_t index = 0;
@@ -533,18 +790,22 @@ bpt_visual_hull_create(
             ++index
         )
         {
-            session->normalized_coords[
-                static_cast<std::size_t>(
-                    index
-                )
-            ] =
-                grid_to_normalized(
-                    index,
-                    options->resolution
-                );
+            session
+                ->normalized_coords[
+                    static_cast<
+                        std::size_t
+                    >(
+                        index
+                    )
+                ] =
+                    grid_to_normalized(
+                        index,
+                        options->resolution
+                    );
         }
 
-        session->bounds.found = true;
+        session->bounds.found =
+            true;
 
         session->bounds.min_x = 0;
         session->bounds.max_x =
@@ -563,13 +824,19 @@ bpt_visual_hull_create(
 
         return BPT_OK;
     }
-    catch (const std::bad_alloc&)
+    catch (
+        const std::bad_alloc&
+    )
     {
-        return BPT_ERROR_ALLOCATION_FAILED;
+        return (
+            BPT_ERROR_ALLOCATION_FAILED
+        );
     }
     catch (...)
     {
-        return BPT_ERROR_INTERNAL;
+        return (
+            BPT_ERROR_INTERNAL
+        );
     }
 }
 
@@ -586,11 +853,15 @@ bpt_visual_hull_apply_projection(
         || projection == nullptr
     )
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     const auto validation =
-        validate_projection(projection);
+        validate_projection(
+            projection
+        );
 
     if (validation != BPT_OK)
     {
@@ -599,9 +870,10 @@ bpt_visual_hull_apply_projection(
 
     try
     {
-        if (
-            session->alive_indices.empty()
-        )
+        auto& alive =
+            session->alive_indices;
+
+        if (alive.empty())
         {
             session->bounds =
                 BoundsAccumulator {};
@@ -611,7 +883,8 @@ bpt_visual_hull_apply_projection(
                 != nullptr
             )
             {
-                *out_surviving_voxels = 0;
+                *out_surviving_voxels =
+                    0;
             }
 
             return BPT_OK;
@@ -622,34 +895,16 @@ bpt_visual_hull_apply_projection(
                 *projection
             );
 
-        const auto thread_count =
-            std::max(
-                1,
-                resolve_thread_count(
-                    session
-                        ->options
-                        .thread_count
-                )
+        const std::size_t alive_count =
+            alive.size();
+
+        const std::size_t worker_count =
+            resolve_worker_count(
+                alive_count,
+                session->thread_limit
             );
 
-        const auto alive_count =
-            session
-                ->alive_indices
-                .size();
-
-        const auto worker_count =
-            std::min<
-                std::size_t
-            >(
-                static_cast<
-                    std::size_t
-                >(
-                    thread_count
-                ),
-                alive_count
-            );
-
-        const auto chunk_size =
+        const std::size_t chunk_size =
             (
                 alive_count
                 + worker_count
@@ -658,225 +913,401 @@ bpt_visual_hull_apply_projection(
             / worker_count;
 
         const auto width =
-            session->width;
-
-        const auto depth =
-            session->depth;
-
-        const auto plane =
-            static_cast<std::uint32_t>(
-                width
-                * depth
+            static_cast<
+                std::uint32_t
+            >(
+                session->width
             );
 
-        std::vector<
-            std::future<
-                WorkerResult
-            >
-        > futures;
+        const auto depth =
+            static_cast<
+                std::uint32_t
+            >(
+                session->depth
+            );
 
-        futures.reserve(
-            worker_count
-        );
+        const auto plane =
+            width
+            * depth;
 
-        for (
-            std::size_t worker = 0;
-            worker < worker_count;
-            ++worker
-        )
+        const auto& coords =
+            session->normalized_coords;
+
+        const bool symmetry_x =
+            session
+                ->options
+                .symmetry_x
+            != 0;
+
+
+        /*
+         * Small workloads stay on the current
+         * thread. This avoids std::async
+         * overhead after the hull has already
+         * become sparse.
+         */
+        if (worker_count == 1)
         {
-            const auto begin =
-                worker * chunk_size;
+            std::size_t write = 0;
 
-            const auto end =
-                std::min(
-                    begin + chunk_size,
-                    alive_count
-                );
+            BoundsAccumulator next_bounds;
 
-            if (begin >= end)
+            for (
+                std::size_t i = 0;
+                i < alive_count;
+                ++i
+            )
             {
-                continue;
+                const auto index =
+                    alive[i];
+
+                const auto z =
+                    static_cast<
+                        std::int32_t
+                    >(
+                        index
+                        / plane
+                    );
+
+                const auto remainder =
+                    index
+                    % plane;
+
+                const auto y =
+                    static_cast<
+                        std::int32_t
+                    >(
+                        remainder
+                        / width
+                    );
+
+                const auto x =
+                    static_cast<
+                        std::int32_t
+                    >(
+                        remainder
+                        % width
+                    );
+
+                const float nx =
+                    coords[
+                        static_cast<
+                            std::size_t
+                        >(
+                            x
+                        )
+                    ];
+
+                const float ny =
+                    coords[
+                        static_cast<
+                            std::size_t
+                        >(
+                            y
+                        )
+                    ];
+
+                const float nz =
+                    coords[
+                        static_cast<
+                            std::size_t
+                        >(
+                            z
+                        )
+                    ];
+
+                if (
+                    !survives_projection(
+                        compiled,
+                        nx,
+                        ny,
+                        nz,
+                        symmetry_x
+                    )
+                )
+                {
+                    continue;
+                }
+
+                alive[
+                    write
+                ] =
+                    index;
+
+                ++write;
+
+                next_bounds.add(
+                    x,
+                    y,
+                    z
+                );
             }
 
-            futures.emplace_back(
-                std::async(
-                    std::launch::async,
-                    [
-                        session,
-                        compiled,
-                        begin,
-                        end,
-                        width,
-                        depth,
-                        plane
-                    ]()
-                    {
-                        WorkerResult result;
+            alive.resize(
+                write
+            );
 
-                        result
-                            .alive_indices
-                            .reserve(
-                                end - begin
-                            );
+            session->bounds =
+                next_bounds;
+        }
+        else
+        {
+            std::vector<
+                std::future<
+                    WorkerResult
+                >
+            > futures;
 
-                        const auto& coords =
-                            session
-                                ->normalized_coords;
+            futures.reserve(
+                worker_count
+            );
 
-                        const auto& alive =
-                            session
-                                ->alive_indices;
+            for (
+                std::size_t worker = 0;
+                worker < worker_count;
+                ++worker
+            )
+            {
+                const auto begin =
+                    worker
+                    * chunk_size;
 
-                        for (
-                            std::size_t i =
-                                begin;
-                            i < end;
-                            ++i
-                        )
+                const auto end =
+                    std::min(
+                        begin
+                        + chunk_size,
+                        alive_count
+                    );
+
+                if (begin >= end)
+                {
+                    break;
+                }
+
+                futures.emplace_back(
+                    std::async(
+                        std::launch::async,
+                        [
+                            &alive,
+                            &coords,
+                            compiled,
+                            symmetry_x,
+                            begin,
+                            end,
+                            width,
+                            plane
+                        ]()
                         {
-                            const auto index =
-                                alive[i];
+                            WorkerResult result;
 
-                            const auto z =
-                                static_cast<
-                                    std::int32_t
-                                >(
-                                    index
-                                    / plane
-                                );
+                            result.begin =
+                                begin;
 
-                            const auto remainder =
-                                index
-                                % plane;
+                            std::size_t write =
+                                begin;
 
-                            const auto y =
-                                static_cast<
-                                    std::int32_t
-                                >(
-                                    remainder
-                                    / width
-                                );
-
-                            const auto x =
-                                static_cast<
-                                    std::int32_t
-                                >(
-                                    remainder
-                                    % width
-                                );
-
-                            const float nx =
-                                coords[
-                                    static_cast<
-                                        std::size_t
-                                    >(x)
-                                ];
-
-                            const float ny =
-                                coords[
-                                    static_cast<
-                                        std::size_t
-                                    >(y)
-                                ];
-
-                            const float nz =
-                                coords[
-                                    static_cast<
-                                        std::size_t
-                                    >(z)
-                                ];
-
-                            if (
-                                !sample_projection(
-                                    compiled,
-                                    nx,
-                                    ny,
-                                    nz
-                                )
+                            for (
+                                std::size_t i =
+                                    begin;
+                                i < end;
+                                ++i
                             )
                             {
-                                continue;
-                            }
+                                const auto index =
+                                    alive[i];
 
-                            result
-                                .alive_indices
-                                .push_back(
+                                const auto z =
+                                    static_cast<
+                                        std::int32_t
+                                    >(
+                                        index
+                                        / plane
+                                    );
+
+                                const auto remainder =
                                     index
-                                );
+                                    % plane;
 
-                            result
-                                .bounds
-                                .add(
+                                const auto y =
+                                    static_cast<
+                                        std::int32_t
+                                    >(
+                                        remainder
+                                        / width
+                                    );
+
+                                const auto x =
+                                    static_cast<
+                                        std::int32_t
+                                    >(
+                                        remainder
+                                        % width
+                                    );
+
+                                const float nx =
+                                    coords[
+                                        static_cast<
+                                            std::size_t
+                                        >(
+                                            x
+                                        )
+                                    ];
+
+                                const float ny =
+                                    coords[
+                                        static_cast<
+                                            std::size_t
+                                        >(
+                                            y
+                                        )
+                                    ];
+
+                                const float nz =
+                                    coords[
+                                        static_cast<
+                                            std::size_t
+                                        >(
+                                            z
+                                        )
+                                    ];
+
+                                if (
+                                    !survives_projection(
+                                        compiled,
+                                        nx,
+                                        ny,
+                                        nz,
+                                        symmetry_x
+                                    )
+                                )
+                                {
+                                    continue;
+                                }
+
+                                /*
+                                 * Each worker only writes
+                                 * inside its own source
+                                 * range, so no synchronization
+                                 * is required.
+                                 */
+                                alive[
+                                    write
+                                ] =
+                                    index;
+
+                                ++write;
+
+                                result.bounds.add(
                                     x,
                                     y,
                                     z
                                 );
+                            }
+
+                            result.survivor_count =
+                                write
+                                - begin;
+
+                            return result;
                         }
+                    )
+                );
+            }
 
-                        return result;
-                    }
+            std::vector<
+                WorkerResult
+            > results;
+
+            results.reserve(
+                futures.size()
+            );
+
+            BoundsAccumulator next_bounds;
+
+            for (
+                auto& future :
+                futures
+            )
+            {
+                auto result =
+                    future.get();
+
+                next_bounds.merge(
+                    result.bounds
+                );
+
+                results.push_back(
+                    result
+                );
+            }
+
+            /*
+             * Workers compacted their own
+             * independent ranges.
+             *
+             * Now pack those surviving ranges
+             * together at the beginning of the
+             * same vector.
+             *
+             * No second survivor vector and no
+             * resolution^3 fill are required.
+             */
+            std::size_t write = 0;
+
+            for (
+                const auto& result :
+                results
+            )
+            {
+                if (
+                    result.survivor_count
+                    == 0
                 )
-            );
-        }
+                {
+                    continue;
+                }
 
-        std::vector<
-            std::uint32_t
-        > next_alive;
-
-        next_alive.reserve(
-            alive_count
-        );
-
-        BoundsAccumulator next_bounds;
-
-        for (auto& future : futures)
-        {
-            auto worker_result =
-                future.get();
-
-            next_bounds.merge(
-                worker_result.bounds
-            );
-
-            next_alive.insert(
-                next_alive.end(),
-                std::make_move_iterator(
-                    worker_result
-                        .alive_indices
-                        .begin()
-                ),
-                std::make_move_iterator(
-                    worker_result
-                        .alive_indices
-                        .end()
+                if (
+                    write
+                    != result.begin
                 )
+                {
+                    std::move(
+                        alive.begin()
+                            + static_cast<
+                                std::ptrdiff_t
+                            >(
+                                result.begin
+                            ),
+                        alive.begin()
+                            + static_cast<
+                                std::ptrdiff_t
+                            >(
+                                result.begin
+                                + result
+                                    .survivor_count
+                            ),
+                        alive.begin()
+                            + static_cast<
+                                std::ptrdiff_t
+                            >(
+                                write
+                            )
+                    );
+                }
+
+                write +=
+                    result
+                        .survivor_count;
+            }
+
+            alive.resize(
+                write
             );
+
+            session->bounds =
+                next_bounds;
         }
-
-        std::fill(
-            session->values.begin(),
-            session->values.end(),
-            0
-        );
-
-        for (
-            const auto index :
-            next_alive
-        )
-        {
-            session->values[
-                index
-            ] = 1;
-        }
-
-        session->alive_indices =
-            std::move(
-                next_alive
-            );
-
-        session->bounds =
-            next_bounds;
 
         if (
             out_surviving_voxels
@@ -884,20 +1315,24 @@ bpt_visual_hull_apply_projection(
         )
         {
             *out_surviving_voxels =
-                session
-                    ->alive_indices
-                    .size();
+                alive.size();
         }
 
         return BPT_OK;
     }
-    catch (const std::bad_alloc&)
+    catch (
+        const std::bad_alloc&
+    )
     {
-        return BPT_ERROR_ALLOCATION_FAILED;
+        return (
+            BPT_ERROR_ALLOCATION_FAILED
+        );
     }
     catch (...)
     {
-        return BPT_ERROR_INTERNAL;
+        return (
+            BPT_ERROR_INTERNAL
+        );
     }
 }
 
@@ -913,7 +1348,9 @@ bpt_visual_hull_snapshot(
         || out_volume == nullptr
     )
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     try
@@ -930,36 +1367,61 @@ bpt_visual_hull_snapshot(
         out_volume->height =
             session->height;
 
+        const auto width =
+            static_cast<
+                std::size_t
+            >(
+                session->width
+            );
+
+        const auto depth =
+            static_cast<
+                std::size_t
+            >(
+                session->depth
+            );
+
+        const auto height =
+            static_cast<
+                std::size_t
+            >(
+                session->height
+            );
+
+        const auto voxel_count =
+            width
+            * depth
+            * height;
+
         out_volume->value_count =
-            session->values.size();
+            voxel_count;
 
         out_volume->occupied_count =
             session
                 ->alive_indices
                 .size();
 
-        if (
-            !session
-                ->values
-                .empty()
-        )
+        if (voxel_count > 0)
         {
+            /*
+             * Dense representation is created
+             * only when somebody explicitly
+             * requests a snapshot.
+             */
             out_volume->values =
                 new std::uint8_t[
-                    session
-                        ->values
-                        .size()
-                ];
+                    voxel_count
+                ]();
 
-            std::copy(
-                session
-                    ->values
-                    .begin(),
-                session
-                    ->values
-                    .end(),
-                out_volume->values
-            );
+            for (
+                const auto index :
+                session->alive_indices
+            )
+            {
+                out_volume->values[
+                    index
+                ] = 1;
+            }
         }
 
         write_volume_bounds(
@@ -969,13 +1431,17 @@ bpt_visual_hull_snapshot(
 
         return BPT_OK;
     }
-    catch (const std::bad_alloc&)
+    catch (
+        const std::bad_alloc&
+    )
     {
         bpt_free_volume(
             out_volume
         );
 
-        return BPT_ERROR_ALLOCATION_FAILED;
+        return (
+            BPT_ERROR_ALLOCATION_FAILED
+        );
     }
     catch (...)
     {
@@ -983,7 +1449,9 @@ bpt_visual_hull_snapshot(
             out_volume
         );
 
-        return BPT_ERROR_INTERNAL;
+        return (
+            BPT_ERROR_INTERNAL
+        );
     }
 }
 
@@ -1011,12 +1479,16 @@ bpt_build_visual_hull(
         || out_volume == nullptr
     )
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     if (projection_count < 2)
     {
-        return BPT_ERROR_NOT_ENOUGH_PROJECTIONS;
+        return (
+            BPT_ERROR_NOT_ENOUGH_PROJECTIONS
+        );
     }
 
     BptVisualHullSession* session =
@@ -1042,7 +1514,9 @@ bpt_build_visual_hull(
         result =
             bpt_visual_hull_apply_projection(
                 session,
-                &projections[index],
+                &projections[
+                    index
+                ],
                 nullptr
             );
 
@@ -1053,6 +1527,19 @@ bpt_build_visual_hull(
             );
 
             return result;
+        }
+
+        /*
+         * No point evaluating further views
+         * after the hull became empty.
+         */
+        if (
+            session
+                ->alive_indices
+                .empty()
+        )
+        {
+            break;
         }
     }
 
@@ -1070,4 +1557,4 @@ bpt_build_visual_hull(
 }
 
 
-}
+} // extern "C"

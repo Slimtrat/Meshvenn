@@ -75,21 +75,34 @@ struct VertexKeyHash
 
 struct MeshBuilder
 {
-    float voxel_size = 1.0f;
+    float voxel_size =
+        1.0f;
 
-    std::vector<float> vertices;
+    float offset_x =
+        0.0f;
 
-    std::vector<std::uint32_t> indices;
+    float offset_y =
+        0.0f;
 
-    std::vector<std::uint32_t> polygon_starts;
+    std::vector<float>
+        vertices;
 
-    std::vector<std::uint8_t> polygon_sizes;
+    std::vector<std::uint32_t>
+        indices;
+
+    std::vector<std::uint32_t>
+        polygon_starts;
+
+    std::vector<std::uint8_t>
+        polygon_sizes;
 
     std::unordered_map<
         VertexKey,
         std::uint32_t,
         VertexKeyHash
-    > vertex_cache;
+    >
+        vertex_cache;
+
 
     std::uint32_t get_vertex(
         const std::int32_t x,
@@ -113,7 +126,9 @@ struct MeshBuilder
             != vertex_cache.end()
         )
         {
-            return found->second;
+            return (
+                found->second
+            );
         }
 
         const auto vertex_index =
@@ -125,17 +140,25 @@ struct MeshBuilder
             );
 
         vertices.push_back(
-            static_cast<float>(x)
+            static_cast<float>(
+                x
+            )
             * voxel_size
+            - offset_x
         );
 
         vertices.push_back(
-            static_cast<float>(y)
+            static_cast<float>(
+                y
+            )
             * voxel_size
+            - offset_y
         );
 
         vertices.push_back(
-            static_cast<float>(z)
+            static_cast<float>(
+                z
+            )
             * voxel_size
         );
 
@@ -146,6 +169,7 @@ struct MeshBuilder
 
         return vertex_index;
     }
+
 
     void add_quad(
         const std::uint32_t a,
@@ -174,116 +198,15 @@ struct MeshBuilder
 };
 
 
-bool occupied(
-    const BptVolumeResult& volume,
-    const std::int32_t x,
-    const std::int32_t y,
-    const std::int32_t z
-)
-{
-    if (
-        x < 0
-        || x >= volume.width
-        || y < 0
-        || y >= volume.depth
-        || z < 0
-        || z >= volume.height
-    )
-    {
-        return false;
-    }
-
-    const auto index =
-        static_cast<
-            std::size_t
-        >(
-            z
-        )
-        * static_cast<
-            std::size_t
-        >(
-            volume.depth
-        )
-        * static_cast<
-            std::size_t
-        >(
-            volume.width
-        )
-        + static_cast<
-            std::size_t
-        >(
-            y
-        )
-        * static_cast<
-            std::size_t
-        >(
-            volume.width
-        )
-        + static_cast<
-            std::size_t
-        >(
-            x
-        );
-
-    return (
-        volume.values[index]
-        != 0
-    );
-}
-
-
-void center_xy(
-    MeshBuilder& builder,
-    const BptVolumeResult& volume
-)
-{
-    if (
-        builder.vertices.empty()
-    )
-    {
-        return;
-    }
-
-    const float center_x =
-        static_cast<float>(
-            volume.width
-        )
-        * builder.voxel_size
-        * 0.5f;
-
-    const float center_y =
-        static_cast<float>(
-            volume.depth
-        )
-        * builder.voxel_size
-        * 0.5f;
-
-    for (
-        std::size_t index = 0;
-        index < builder.vertices.size();
-        index += 3
-    )
-    {
-        builder.vertices[
-            index
-        ] -= center_x;
-
-        builder.vertices[
-            index + 1
-        ] -= center_y;
-    }
-}
-
-
 BptResultCode validate_volume(
     const BptVolumeResult* volume
 )
 {
-    if (
-        volume == nullptr
-    )
+    if (volume == nullptr)
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     if (
@@ -292,7 +215,9 @@ BptResultCode validate_volume(
         || volume->height <= 0
     )
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     const auto expected =
@@ -313,11 +238,13 @@ BptResultCode validate_volume(
         );
 
     if (
-        volume->values == nullptr
-        && expected > 0
+        expected > 0
+        && volume->values == nullptr
     )
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     if (
@@ -325,7 +252,9 @@ BptResultCode validate_volume(
         != expected
     )
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     return BPT_OK;
@@ -349,15 +278,11 @@ void copy_to_result(
     out_mesh->polygon_count =
         builder.polygon_sizes.size();
 
-    if (
-        !builder.vertices.empty()
-    )
+    if (!builder.vertices.empty())
     {
         out_mesh->vertices =
             new float[
-                builder
-                    .vertices
-                    .size()
+                builder.vertices.size()
             ];
 
         std::copy(
@@ -367,15 +292,11 @@ void copy_to_result(
         );
     }
 
-    if (
-        !builder.indices.empty()
-    )
+    if (!builder.indices.empty())
     {
         out_mesh->indices =
             new std::uint32_t[
-                builder
-                    .indices
-                    .size()
+                builder.indices.size()
             ];
 
         std::copy(
@@ -399,9 +320,14 @@ void copy_to_result(
             ];
 
         std::copy(
-            builder.polygon_starts.begin(),
-            builder.polygon_starts.end(),
-            out_mesh->polygon_starts
+            builder
+                .polygon_starts
+                .begin(),
+            builder
+                .polygon_starts
+                .end(),
+            out_mesh
+                ->polygon_starts
         );
     }
 
@@ -419,15 +345,20 @@ void copy_to_result(
             ];
 
         std::copy(
-            builder.polygon_sizes.begin(),
-            builder.polygon_sizes.end(),
-            out_mesh->polygon_sizes
+            builder
+                .polygon_sizes
+                .begin(),
+            builder
+                .polygon_sizes
+                .end(),
+            out_mesh
+                ->polygon_sizes
         );
     }
 }
 
 
-}
+} // namespace
 
 
 extern "C"
@@ -442,11 +373,11 @@ bpt_build_surface_mesh(
     BptMeshResult* out_mesh
 )
 {
-    if (
-        out_mesh == nullptr
-    )
+    if (out_mesh == nullptr)
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
     }
 
     *out_mesh =
@@ -457,19 +388,27 @@ bpt_build_surface_mesh(
             volume
         );
 
-    if (
-        validation
-        != BPT_OK
-    )
+    if (validation != BPT_OK)
     {
         return validation;
     }
 
+    if (voxel_size <= 0.0f)
+    {
+        return (
+            BPT_ERROR_INVALID_ARGUMENT
+        );
+    }
+
+    /*
+     * Empty volume = valid empty mesh.
+     */
     if (
-        voxel_size <= 0.0f
+        volume->occupied_count == 0
+        || volume->has_bounds == 0
     )
     {
-        return BPT_ERROR_INVALID_ARGUMENT;
+        return BPT_OK;
     }
 
     try
@@ -478,6 +417,29 @@ bpt_build_surface_mesh(
 
         builder.voxel_size =
             voxel_size;
+
+        if (center_xy_enabled != 0)
+        {
+            /*
+             * Same world-space centering as
+             * before, but applied while vertices
+             * are emitted instead of doing a
+             * second pass over the vertex buffer.
+             */
+            builder.offset_x =
+                static_cast<float>(
+                    volume->width
+                )
+                * voxel_size
+                * 0.5f;
+
+            builder.offset_y =
+                static_cast<float>(
+                    volume->depth
+                )
+                * voxel_size
+                * 0.5f;
+        }
 
         const auto occupied_count =
             volume->occupied_count;
@@ -516,53 +478,118 @@ bpt_build_surface_mesh(
         const auto height =
             volume->height;
 
-        const auto plane =
+        const auto width_size =
             static_cast<
                 std::size_t
             >(
                 width
-            )
-            * static_cast<
+            );
+
+        const auto depth_size =
+            static_cast<
                 std::size_t
             >(
                 depth
             );
 
+        const auto plane =
+            width_size
+            * depth_size;
+
+        const auto* values =
+            volume->values;
+
+        /*
+         * Clamp bounds defensively.
+         */
+        const auto min_x =
+            std::clamp(
+                volume->min_x,
+                0,
+                width - 1
+            );
+
+        const auto max_x =
+            std::clamp(
+                volume->max_x,
+                0,
+                width - 1
+            );
+
+        const auto min_y =
+            std::clamp(
+                volume->min_y,
+                0,
+                depth - 1
+            );
+
+        const auto max_y =
+            std::clamp(
+                volume->max_y,
+                0,
+                depth - 1
+            );
+
+        const auto min_z =
+            std::clamp(
+                volume->min_z,
+                0,
+                height - 1
+            );
+
+        const auto max_z =
+            std::clamp(
+                volume->max_z,
+                0,
+                height - 1
+            );
+
+        if (
+            min_x > max_x
+            || min_y > max_y
+            || min_z > max_z
+        )
+        {
+            return BPT_OK;
+        }
+
         for (
-            std::int32_t z = 0;
-            z < height;
+            std::int32_t z = min_z;
+            z <= max_z;
             ++z
         )
         {
+            const auto z_offset =
+                static_cast<
+                    std::size_t
+                >(
+                    z
+                )
+                * plane;
+
             for (
-                std::int32_t y = 0;
-                y < depth;
+                std::int32_t y = min_y;
+                y <= max_y;
                 ++y
             )
             {
+                const auto row_offset =
+                    z_offset
+                    + static_cast<
+                        std::size_t
+                    >(
+                        y
+                    )
+                    * width_size;
+
                 for (
-                    std::int32_t x = 0;
-                    x < width;
+                    std::int32_t x = min_x;
+                    x <= max_x;
                     ++x
                 )
                 {
                     const auto index =
-                        static_cast<
-                            std::size_t
-                        >(
-                            z
-                        )
-                        * plane
-                        + static_cast<
-                            std::size_t
-                        >(
-                            y
-                        )
-                        * static_cast<
-                            std::size_t
-                        >(
-                            width
-                        )
+                        row_offset
                         + static_cast<
                             std::size_t
                         >(
@@ -570,60 +597,70 @@ bpt_build_surface_mesh(
                         );
 
                     if (
-                        volume->values[
-                            index
-                        ] == 0
+                        values[index]
+                        == 0
                     )
                     {
                         continue;
                     }
 
+                    /*
+                     * Direct neighbour accesses.
+                     *
+                     * We avoid six calls to a helper
+                     * that recalculated the complete
+                     * 3D index every time.
+                     */
                     const bool neg_x =
-                        occupied(
-                            *volume,
-                            x - 1,
-                            y,
-                            z
+                        (
+                            x > 0
+                            && values[
+                                index - 1
+                            ] != 0
                         );
 
                     const bool pos_x =
-                        occupied(
-                            *volume,
-                            x + 1,
-                            y,
-                            z
+                        (
+                            x + 1 < width
+                            && values[
+                                index + 1
+                            ] != 0
                         );
 
                     const bool neg_y =
-                        occupied(
-                            *volume,
-                            x,
-                            y - 1,
-                            z
+                        (
+                            y > 0
+                            && values[
+                                index
+                                - width_size
+                            ] != 0
                         );
 
                     const bool pos_y =
-                        occupied(
-                            *volume,
-                            x,
-                            y + 1,
-                            z
+                        (
+                            y + 1 < depth
+                            && values[
+                                index
+                                + width_size
+                            ] != 0
                         );
 
                     const bool neg_z =
-                        occupied(
-                            *volume,
-                            x,
-                            y,
-                            z - 1
+                        (
+                            z > 0
+                            && values[
+                                index
+                                - plane
+                            ] != 0
                         );
 
                     const bool pos_z =
-                        occupied(
-                            *volume,
-                            x,
-                            y,
-                            z + 1
+                        (
+                            z + 1 < height
+                            && values[
+                                index
+                                + plane
+                            ] != 0
                         );
 
                     if (!neg_x)
@@ -785,17 +822,6 @@ bpt_build_surface_mesh(
             }
         }
 
-        if (
-            center_xy_enabled
-            != 0
-        )
-        {
-            center_xy(
-                builder,
-                *volume
-            );
-        }
-
         copy_to_result(
             builder,
             out_mesh
@@ -811,7 +837,9 @@ bpt_build_surface_mesh(
             out_mesh
         );
 
-        return BPT_ERROR_ALLOCATION_FAILED;
+        return (
+            BPT_ERROR_ALLOCATION_FAILED
+        );
     }
     catch (...)
     {
@@ -819,9 +847,11 @@ bpt_build_surface_mesh(
             out_mesh
         );
 
-        return BPT_ERROR_INTERNAL;
+        return (
+            BPT_ERROR_INTERNAL
+        );
     }
 }
 
 
-}
+} // extern "C"

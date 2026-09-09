@@ -4,17 +4,30 @@ import argparse
 import hashlib
 import json
 import sys
+
+from array import array
 from dataclasses import dataclass
 from pathlib import Path
 
 import bpy
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+from mathutils import Matrix
+
+
+REPO_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parents[1]
+)
 
 if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+    sys.path.insert(
+        0,
+        str(REPO_ROOT),
+    )
 
-from core.image_mask import rgba_to_mask
+
+from core.image_mask import BinaryMask
 from core.native_bridge import NativeProjection
 from core.native_mesh_builder import (
     create_blender_mesh_from_native,
@@ -23,6 +36,10 @@ from core.native_mesh_builder import (
 from core.native_scan import NativeScanner
 from scripts.run_logger import RunLogger
 
+
+# ---------------------------------------------------------
+# Presheet layout
+# ---------------------------------------------------------
 
 PRESHEET_V1_COLUMNS = (
     (0.016, 0.164),
@@ -37,45 +54,126 @@ PRESHEET_V1_ROWS = (
     (0.525, 0.801),
 )
 
+
 CELL_SPECS = (
-    ("000", 0, 0, 0.0, 0.0),
-    ("045", 1, 0, 45.0, 0.0),
-    ("090", 2, 0, 90.0, 0.0),
-    ("135", 3, 0, 135.0, 0.0),
-    ("180", 4, 0, 180.0, 0.0),
-    ("225", 0, 1, 225.0, 0.0),
-    ("270", 1, 1, 270.0, 0.0),
-    ("315", 2, 1, 315.0, 0.0),
-    ("TOP", 3, 1, 0.0, 90.0),
-    ("BOT", 4, 1, 0.0, -90.0),
+    (
+        "000",
+        0,
+        0,
+        0.0,
+        0.0,
+    ),
+    (
+        "045",
+        1,
+        0,
+        45.0,
+        0.0,
+    ),
+    (
+        "090",
+        2,
+        0,
+        90.0,
+        0.0,
+    ),
+    (
+        "135",
+        3,
+        0,
+        135.0,
+        0.0,
+    ),
+    (
+        "180",
+        4,
+        0,
+        180.0,
+        0.0,
+    ),
+    (
+        "225",
+        0,
+        1,
+        225.0,
+        0.0,
+    ),
+    (
+        "270",
+        1,
+        1,
+        270.0,
+        0.0,
+    ),
+    (
+        "315",
+        2,
+        1,
+        315.0,
+        0.0,
+    ),
+    (
+        "TOP",
+        3,
+        1,
+        0.0,
+        90.0,
+    ),
+    (
+        "BOT",
+        4,
+        1,
+        0.0,
+        -90.0,
+    ),
 )
 
+
+# ---------------------------------------------------------
+# Data
+# ---------------------------------------------------------
 
 @dataclass(frozen=True)
 class ExtractedView:
     name: str
     path: Path
+
     azimuth_degrees: float
     elevation_degrees: float
-    bbox: tuple[int, int, int, int]
+
+    bbox: tuple[
+        int,
+        int,
+        int,
+        int,
+    ]
+
     sha256: str
+
     valid: bool
 
+    mask: BinaryMask
+
+
+# ---------------------------------------------------------
+# CLI
+# ---------------------------------------------------------
 
 def parse_args() -> argparse.Namespace:
     argv = sys.argv
 
     if "--" in argv:
         argv = argv[
-            argv.index("--") + 1 :
+            argv.index("--") + 1:
         ]
     else:
         argv = []
 
     parser = argparse.ArgumentParser(
         description=(
-            "Generate Projection Tool examples "
-            "using the native C++ engine."
+            "Generate Projection Tool "
+            "examples using the native "
+            "C++ engine."
         )
     )
 
@@ -151,6 +249,10 @@ def parse_args() -> argparse.Namespace:
     )
 
 
+# ---------------------------------------------------------
+# Hashing
+# ---------------------------------------------------------
+
 def sha256_file(
     path: Path,
 ) -> str:
@@ -172,12 +274,21 @@ def sha256_file(
     return digest.hexdigest()
 
 
+# ---------------------------------------------------------
+# Sheet geometry
+# ---------------------------------------------------------
+
 def _pixel_bbox(
     image_width: int,
     image_height: int,
     column: int,
     row: int,
-) -> tuple[int, int, int, int]:
+) -> tuple[
+    int,
+    int,
+    int,
+    int,
+]:
     x0n, x1n = (
         PRESHEET_V1_COLUMNS[
             column
@@ -191,20 +302,28 @@ def _pixel_bbox(
     )
 
     x0 = round(
-        x0n * image_width
+        x0n
+        * image_width
     )
 
     x1 = round(
-        x1n * image_width
+        x1n
+        * image_width
     )
 
     y0 = round(
-        (1.0 - bottomn)
+        (
+            1.0
+            - bottomn
+        )
         * image_height
     )
 
     y1 = round(
-        (1.0 - topn)
+        (
+            1.0
+            - topn
+        )
         * image_height
     )
 
@@ -216,23 +335,40 @@ def _pixel_bbox(
     )
 
 
+# ---------------------------------------------------------
+# Connected component
+# ---------------------------------------------------------
+
 def _largest_component(
     foreground: bytearray,
     width: int,
     height: int,
-) -> set[int]:
-    visited = bytearray(
-        width * height
+) -> list[int]:
+    """
+    Return indices belonging to the largest
+    4-connected foreground component.
+
+    Uses bytearray + list rather than Python
+    sets to avoid large per-pixel objects.
+    """
+
+    pixel_count = (
+        width
+        * height
     )
 
-    largest: set[int] = set()
+    visited = bytearray(
+        pixel_count
+    )
 
-    for start, value in enumerate(
-        foreground
+    largest: list[int] = []
+
+    for start in range(
+        pixel_count
     ):
         if (
             visited[start]
-            or not value
+            or not foreground[start]
         ):
             continue
 
@@ -242,12 +378,14 @@ def _largest_component(
             start
         ]
 
-        component: set[int] = set()
+        component: list[int] = []
 
         while stack:
-            index = stack.pop()
+            index = (
+                stack.pop()
+            )
 
-            component.add(
+            component.append(
                 index
             )
 
@@ -256,14 +394,10 @@ def _largest_component(
                 % width
             )
 
-            y = (
-                index
-                // width
-            )
-
             if x > 0:
                 neighbor = (
-                    index - 1
+                    index
+                    - 1
                 )
 
                 if (
@@ -282,9 +416,13 @@ def _largest_component(
                         neighbor
                     )
 
-            if x + 1 < width:
+            if (
+                x + 1
+                < width
+            ):
                 neighbor = (
-                    index + 1
+                    index
+                    + 1
                 )
 
                 if (
@@ -303,9 +441,10 @@ def _largest_component(
                         neighbor
                     )
 
-            if y > 0:
+            if index >= width:
                 neighbor = (
-                    index - width
+                    index
+                    - width
                 )
 
                 if (
@@ -324,26 +463,28 @@ def _largest_component(
                         neighbor
                     )
 
-            if y + 1 < height:
-                neighbor = (
-                    index + width
+            neighbor = (
+                index
+                + width
+            )
+
+            if (
+                neighbor
+                < pixel_count
+                and foreground[
+                    neighbor
+                ]
+                and not visited[
+                    neighbor
+                ]
+            ):
+                visited[
+                    neighbor
+                ] = 1
+
+                stack.append(
+                    neighbor
                 )
-
-                if (
-                    foreground[
-                        neighbor
-                    ]
-                    and not visited[
-                        neighbor
-                    ]
-                ):
-                    visited[
-                        neighbor
-                    ] = 1
-
-                    stack.append(
-                        neighbor
-                    )
 
         if (
             len(component)
@@ -356,18 +497,24 @@ def _largest_component(
     return largest
 
 
-def extract_cell(
-    sheet: bpy.types.Image,
-    output_path: Path,
-    *,
+# ---------------------------------------------------------
+# Cell extraction
+# ---------------------------------------------------------
+
+def _copy_cell_pixels(
+    sheet_pixels: array,
+    sheet_width: int,
     bbox: tuple[
         int,
         int,
         int,
         int,
     ],
-    white_threshold: float,
-) -> bool:
+) -> tuple[
+    array,
+    int,
+    int,
+]:
     (
         x0,
         y0,
@@ -376,178 +523,224 @@ def extract_cell(
     ) = bbox
 
     width = (
-        x1 - x0
+        x1
+        - x0
     )
 
     height = (
-        y1 - y0
+        y1
+        - y0
     )
 
-    sheet_width = int(
-        sheet.size[0]
-    )
-
-    source = (
-        sheet.pixels
-    )
-
-    rgba = [
-        0.0
-    ] * (
+    rgba = array(
+        "f",
+        [0.0],
+    ) * (
         width
         * height
         * 4
     )
 
-    foreground = bytearray(
+    row_float_count = (
         width
-        * height
+        * 4
     )
 
     for local_y in range(
         height
     ):
-        source_y = (
-            y0 + local_y
-        )
-
-        source_row = (
-            source_y
+        source_pixel = (
+            (
+                y0
+                + local_y
+            )
             * sheet_width
+            + x0
         )
 
-        for local_x in range(
-            width
-        ):
-            source_x = (
-                x0 + local_x
-            )
+        source_start = (
+            source_pixel
+            * 4
+        )
 
-            source_index = (
-                source_row
-                + source_x
-            ) * 4
+        source_end = (
+            source_start
+            + row_float_count
+        )
 
-            pixel_index = (
-                local_y
-                * width
-                + local_x
-            )
+        target_start = (
+            local_y
+            * row_float_count
+        )
 
-            target_index = (
-                pixel_index
-                * 4
-            )
+        target_end = (
+            target_start
+            + row_float_count
+        )
 
-            red = float(
-                source[
-                    source_index
-                ]
-            )
+        rgba[
+            target_start:
+            target_end
+        ] = sheet_pixels[
+            source_start:
+            source_end
+        ]
 
-            green = float(
-                source[
-                    source_index
-                    + 1
-                ]
-            )
+    return (
+        rgba,
+        width,
+        height,
+    )
 
-            blue = float(
-                source[
-                    source_index
-                    + 2
-                ]
-            )
 
-            alpha = float(
-                source[
-                    source_index
-                    + 3
-                ]
-            )
+def _foreground_from_rgba(
+    rgba: array,
+    width: int,
+    height: int,
+    *,
+    white_threshold: float,
+) -> bytearray:
+    pixel_count = (
+        width
+        * height
+    )
 
-            rgba[
-                target_index
-            ] = red
+    foreground = bytearray(
+        pixel_count
+    )
 
-            rgba[
-                target_index + 1
-            ] = green
+    source_index = 0
 
-            rgba[
-                target_index + 2
-            ] = blue
+    for pixel_index in range(
+        pixel_count
+    ):
+        red = rgba[
+            source_index
+        ]
 
-            rgba[
-                target_index + 3
-            ] = alpha
+        green = rgba[
+            source_index + 1
+        ]
 
-            foreground[
-                pixel_index
-            ] = (
-                1
-                if (
-                    alpha > 0.01
-                    and not (
-                        red
-                        >= white_threshold
-                        and green
-                        >= white_threshold
-                        and blue
-                        >= white_threshold
-                    )
+        blue = rgba[
+            source_index + 2
+        ]
+
+        alpha = rgba[
+            source_index + 3
+        ]
+
+        foreground[
+            pixel_index
+        ] = (
+            1
+            if (
+                alpha > 0.01
+                and not (
+                    red
+                    >= white_threshold
+                    and green
+                    >= white_threshold
+                    and blue
+                    >= white_threshold
                 )
-                else 0
             )
-
-    component = (
-        _largest_component(
-            foreground,
-            width,
-            height,
+            else 0
         )
+
+        source_index += 4
+
+    return foreground
+
+
+def _apply_component_alpha(
+    rgba: array,
+    width: int,
+    height: int,
+    component: list[int],
+    *,
+    valid: bool,
+) -> bytearray:
+    pixel_count = (
+        width
+        * height
     )
 
-    minimum_component = max(
-        64,
-        int(
-            width
-            * height
-            * 0.005
-        ),
-    )
-
-    valid = (
-        len(component)
-        >= minimum_component
+    keep = bytearray(
+        pixel_count
     )
 
     if valid:
-        keep = component
+        for index in component:
+            keep[index] = 1
 
-        for pixel_index in range(
-            width * height
+    for pixel_index in range(
+        pixel_count
+    ):
+        if keep[
+            pixel_index
+        ]:
+            continue
+
+        rgba[
+            pixel_index
+            * 4
+            + 3
+        ] = 0.0
+
+    return keep
+
+
+def _mask_from_component(
+    rgba: array,
+    keep: bytearray,
+    width: int,
+    height: int,
+    *,
+    alpha_threshold: float,
+) -> BinaryMask:
+    pixel_count = (
+        width
+        * height
+    )
+
+    values = bytearray(
+        pixel_count
+    )
+
+    alpha_index = 3
+
+    for pixel_index in range(
+        pixel_count
+    ):
+        if (
+            keep[pixel_index]
+            and rgba[
+                alpha_index
+            ]
+            >= alpha_threshold
         ):
-            if (
+            values[
                 pixel_index
-                not in keep
-            ):
-                rgba[
-                    pixel_index
-                    * 4
-                    + 3
-                ] = 0.0
+            ] = 1
 
-    else:
-        for pixel_index in range(
-            width * height
-        ):
-            rgba[
-                pixel_index
-                * 4
-                + 3
-            ] = 0.0
+        alpha_index += 4
 
+    return BinaryMask(
+        width=width,
+        height=height,
+        values=bytes(
+            values
+        ),
+    )
+
+
+def _save_extracted_png(
+    rgba: array,
+    width: int,
+    height: int,
+    output_path: Path,
+) -> None:
     image = bpy.data.images.new(
         name=(
             "BPT_"
@@ -578,14 +771,112 @@ def extract_cell(
             image
         )
 
-    return valid
 
+def extract_cell(
+    sheet_pixels: array,
+    sheet_width: int,
+    output_path: Path,
+    *,
+    bbox: tuple[
+        int,
+        int,
+        int,
+        int,
+    ],
+    white_threshold: float,
+    alpha_threshold: float,
+) -> tuple[
+    bool,
+    BinaryMask,
+]:
+    (
+        rgba,
+        width,
+        height,
+    ) = _copy_cell_pixels(
+        sheet_pixels,
+        sheet_width,
+        bbox,
+    )
+
+    foreground = (
+        _foreground_from_rgba(
+            rgba,
+            width,
+            height,
+            white_threshold=(
+                white_threshold
+            ),
+        )
+    )
+
+    component = (
+        _largest_component(
+            foreground,
+            width,
+            height,
+        )
+    )
+
+    minimum_component = max(
+        64,
+        int(
+            width
+            * height
+            * 0.005
+        ),
+    )
+
+    valid = (
+        len(component)
+        >= minimum_component
+    )
+
+    keep = (
+        _apply_component_alpha(
+            rgba,
+            width,
+            height,
+            component,
+            valid=valid,
+        )
+    )
+
+    mask = (
+        _mask_from_component(
+            rgba,
+            keep,
+            width,
+            height,
+            alpha_threshold=(
+                alpha_threshold
+            ),
+        )
+    )
+
+    _save_extracted_png(
+        rgba,
+        width,
+        height,
+        output_path,
+    )
+
+    return (
+        valid,
+        mask,
+    )
+
+
+# ---------------------------------------------------------
+# Sheet extraction
+# ---------------------------------------------------------
 
 def extract_sheet(
     sheet_path: Path,
     output_dir: Path,
     *,
     white_threshold: float,
+    alpha_threshold: float,
     logger: RunLogger,
 ) -> tuple[
     list[ExtractedView],
@@ -611,6 +902,40 @@ def extract_sheet(
 
     height = int(
         sheet.size[1]
+    )
+
+    if (
+        width <= 0
+        or height <= 0
+    ):
+        bpy.data.images.remove(
+            sheet
+        )
+
+        raise ValueError(
+            (
+                f"Invalid sheet size: "
+                f"{width}x{height}"
+            )
+        )
+
+    # Read Blender RNA pixels once.
+    
+    #Direct repeated access through
+    #image.pixels[index] is significantly
+    #slower than foreach_get().
+    
+    sheet_pixels = array(
+        "f",
+        [0.0],
+    ) * (
+        width
+        * height
+        * 4
+    )
+
+    sheet.pixels.foreach_get(
+        sheet_pixels
     )
 
     views: list[
@@ -651,12 +976,19 @@ def extract_sheet(
                 / f"{name}.png"
             )
 
-            valid = extract_cell(
-                sheet,
+            (
+                valid,
+                mask,
+            ) = extract_cell(
+                sheet_pixels,
+                width,
                 output_path,
                 bbox=bbox,
                 white_threshold=(
                     white_threshold
+                ),
+                alpha_threshold=(
+                    alpha_threshold
                 ),
             )
 
@@ -675,6 +1007,7 @@ def extract_sheet(
                         output_path
                     ),
                     valid=valid,
+                    mask=mask,
                 )
             )
 
@@ -699,12 +1032,10 @@ def extract_sheet(
             {
                 "view": view.name,
                 "azimuth": (
-                    view
-                    .azimuth_degrees
+                    view.azimuth_degrees
                 ),
                 "elevation": (
-                    view
-                    .elevation_degrees
+                    view.elevation_degrees
                 ),
                 "bbox": list(
                     view.bbox
@@ -718,8 +1049,12 @@ def extract_sheet(
                 "valid": (
                     view.valid
                 ),
+                "mask_pixels": (
+                    view.mask.occupied_count
+                ),
             }
-            for view in views
+            for view
+            in views
         ],
     }
 
@@ -729,67 +1064,15 @@ def extract_sheet(
     )
 
 
-def image_to_native_projection(
-    view: ExtractedView,
-    *,
-    threshold: float,
-) -> NativeProjection:
-    image = bpy.data.images.load(
-        str(
-            view.path.resolve()
-        ),
-        check_existing=False,
-    )
-
-    image.update()
-
-    try:
-        width = int(
-            image.size[0]
-        )
-
-        height = int(
-            image.size[1]
-        )
-
-        pixels = tuple(
-            image.pixels[:]
-        )
-
-        mask = rgba_to_mask(
-            pixels=pixels,
-            width=width,
-            height=height,
-            alpha_threshold=(
-                threshold
-            ),
-        )
-
-    finally:
-        bpy.data.images.remove(
-            image
-        )
-
-    return NativeProjection(
-        mask=mask,
-        azimuth_degrees=(
-            view
-            .azimuth_degrees
-        ),
-        elevation_degrees=(
-            view
-            .elevation_degrees
-        ),
-        flip_x=False,
-    )
-
+# ---------------------------------------------------------
+# Native projections
+# ---------------------------------------------------------
 
 def prepare_projections(
     views: list[
         ExtractedView
     ],
     *,
-    threshold: float,
     logger: RunLogger,
 ) -> dict[
     str,
@@ -798,10 +1081,13 @@ def prepare_projections(
     valid_views = [
         view
         for view in views
-        if view.valid
+        if (
+            view.valid
+            and view.mask.occupied_count > 0
+        )
     ]
 
-    result: dict[
+    projections: dict[
         str,
         NativeProjection,
     ] = {}
@@ -818,26 +1104,34 @@ def prepare_projections(
             f"mask {view.name}",
         )
 
-        result[
+        projections[
             view.name
-        ] = (
-            image_to_native_projection(
-                view,
-                threshold=threshold,
-            )
+        ] = NativeProjection(
+            mask=view.mask,
+            azimuth_degrees=(
+                view.azimuth_degrees
+            ),
+            elevation_degrees=(
+                view.elevation_degrees
+            ),
+            flip_x=False,
         )
 
-    return result
+    return projections
 
+
+# ---------------------------------------------------------
+# Blender scene
+# ---------------------------------------------------------
 
 def clear_scene() -> None:
-    bpy.ops.object.select_all(
-        action="SELECT"
-    )
-
-    bpy.ops.object.delete(
-        use_global=False
-    )
+    for obj in tuple(
+        bpy.data.objects
+    ):
+        bpy.data.objects.remove(
+            obj,
+            do_unlink=True,
+        )
 
 
 def scale_object_to_height(
@@ -846,41 +1140,56 @@ def scale_object_to_height(
 ) -> None:
     if target_height <= 0.0:
         raise ValueError(
-            "Target height must be greater than zero."
+            (
+                "Target height must be "
+                "greater than zero."
+            )
         )
 
-    height = float(
+    current_height = float(
         obj.dimensions.z
     )
 
-    if height <= 0.0:
+    if current_height <= 0.0:
         return
 
     scale = (
         target_height
-        / height
+        / current_height
     )
 
-    obj.scale = (
-        scale,
-        scale,
-        scale,
+    obj.data.transform(
+        Matrix.Scale(
+            scale,
+            4,
+        )
+    )
+
+    obj.data.update()
+
+
+def _select_only(
+    obj: bpy.types.Object,
+) -> None:
+    for selected in tuple(
+        bpy.context.selected_objects
+    ):
+        selected.select_set(
+            False
+        )
+
+    obj.select_set(
+        True
     )
 
     bpy.context.view_layer.objects.active = (
         obj
     )
 
-    obj.select_set(
-        True
-    )
 
-    bpy.ops.object.transform_apply(
-        location=False,
-        rotation=False,
-        scale=True,
-    )
-
+# ---------------------------------------------------------
+# Export
+# ---------------------------------------------------------
 
 def export_object(
     obj: bpy.types.Object,
@@ -904,15 +1213,7 @@ def export_object(
         / f"{stem}.blend"
     )
 
-    bpy.ops.object.select_all(
-        action="DESELECT"
-    )
-
-    obj.select_set(
-        True
-    )
-
-    bpy.context.view_layer.objects.active = (
+    _select_only(
         obj
     )
 
@@ -949,14 +1250,16 @@ def export_object(
             obj.data.polygons
         ),
         "dimensions": [
-            float(
-                value
-            )
+            float(value)
             for value
             in obj.dimensions
         ],
     }
 
+
+# ---------------------------------------------------------
+# Sheet pipeline
+# ---------------------------------------------------------
 
 def process_sheet(
     sheet_path: Path,
@@ -1008,7 +1311,12 @@ def process_sheet(
                     args
                     .sheet_white_threshold
                 ),
-                logger=logger.child(),
+                alpha_threshold=(
+                    args.threshold
+                ),
+                logger=(
+                    logger.child()
+                ),
             )
 
         with logger.timed(
@@ -1017,9 +1325,6 @@ def process_sheet(
             projections = (
                 prepare_projections(
                     views,
-                    threshold=(
-                        args.threshold
-                    ),
                     logger=(
                         logger.child()
                     ),
@@ -1029,10 +1334,7 @@ def process_sheet(
         logger.info(
             "native scan input",
             views=", ".join(
-                sorted(
-                    projections
-                    .keys()
-                )
+                projections.keys()
             ),
             resolution=(
                 args.resolution
@@ -1049,26 +1351,40 @@ def process_sheet(
         with logger.timed(
             "native scan"
         ):
-            result = scanner.scan_levels(
-                projections,
-                resolution=(
-                    args.resolution
-                ),
-                levels=(
-                    args.profiles
-                ),
-                symmetry_x=(
-                    args.symmetry_x
-                ),
-                thread_count=(
-                    args.thread_count
-                ),
-                build_meshes=True,
-                voxel_size=(
-                    args.voxel_size
-                ),
-                center_xy=True,
+            result = (
+                scanner.scan_levels(
+                    projections,
+                    resolution=(
+                        args.resolution
+                    ),
+                    levels=(
+                        args.profiles
+                    ),
+                    symmetry_x=(
+                        args.symmetry_x
+                    ),
+                    thread_count=(
+                        args.thread_count
+                    ),
+                    build_meshes=True,
+                    voxel_size=(
+                        args.voxel_size
+                    ),
+                    center_xy=True,
+                )
             )
+
+        manifest[
+            "requested_profiles"
+        ] = list(
+            result.requested_levels
+        )
+
+        manifest[
+            "available_views"
+        ] = list(
+            result.available_views
+        )
 
         manifest[
             "profiles"
@@ -1077,7 +1393,9 @@ def process_sheet(
         for (
             level_name,
             snapshot,
-        ) in result.snapshots.items():
+        ) in (
+            result.snapshots.items()
+        ):
             level_logger = (
                 logger.child()
             )
@@ -1090,10 +1408,42 @@ def process_sheet(
                     .occupied_count
                 ),
             ):
+                profile_info = {
+                    "generated": False,
+                    "views": list(
+                        snapshot
+                        .applied_views
+                    ),
+                    "occupied_voxels": (
+                        snapshot
+                        .volume
+                        .occupied_count
+                    ),
+                    "bounds": (
+                        list(
+                            snapshot
+                            .volume
+                            .bounds
+                        )
+                        if (
+                            snapshot
+                            .volume
+                            .bounds
+                        )
+                        else None
+                    ),
+                }
+
                 if (
                     snapshot.mesh
                     is None
                 ):
+                    manifest[
+                        "profiles"
+                    ][
+                        level_name
+                    ] = profile_info
+
                     continue
 
                 clear_scene()
@@ -1105,10 +1455,14 @@ def process_sheet(
                         create_blender_mesh_from_native(
                             snapshot.mesh,
                             mesh_name=(
-                                f"BPT_{sheet_name}_{level_name}"
+                                f"BPT_"
+                                f"{sheet_name}_"
+                                f"{level_name}"
                             ),
                             object_name=(
-                                f"BPT_{sheet_name}_{level_name}"
+                                f"BPT_"
+                                f"{sheet_name}_"
+                                f"{level_name}"
                             ),
                         )
                     )
@@ -1139,7 +1493,8 @@ def process_sheet(
                                 / level_name
                             ),
                             stem=(
-                                f"{sheet_name}_{level_name}"
+                                f"{sheet_name}_"
+                                f"{level_name}"
                             ),
                             save_blend=(
                                 not args.skip_blend
@@ -1147,34 +1502,18 @@ def process_sheet(
                         )
                     )
 
+                profile_info.update(
+                    {
+                        "generated": True,
+                        **export_info,
+                    }
+                )
+
                 manifest[
                     "profiles"
                 ][
                     level_name
-                ] = {
-                    "generated": True,
-                    "views": list(
-                        snapshot
-                        .applied_views
-                    ),
-                    "occupied_voxels": (
-                        snapshot
-                        .volume
-                        .occupied_count
-                    ),
-                    "bounds": (
-                        list(
-                            snapshot
-                            .volume
-                            .bounds
-                        )
-                        if snapshot
-                        .volume
-                        .bounds
-                        else None
-                    ),
-                    **export_info,
-                }
+                ] = profile_info
 
         manifest_path = (
             sheet_root
@@ -1198,6 +1537,10 @@ def process_sheet(
         )
 
 
+# ---------------------------------------------------------
+# Main
+# ---------------------------------------------------------
+
 def main() -> None:
     args = parse_args()
 
@@ -1220,7 +1563,10 @@ def main() -> None:
 
     if not sheets_dir.exists():
         raise FileNotFoundError(
-            f"Missing sheets directory: {sheets_dir}"
+            (
+                "Missing sheets directory: "
+                f"{sheets_dir}"
+            )
         )
 
     sheets = sorted(
@@ -1231,7 +1577,10 @@ def main() -> None:
 
     if not sheets:
         raise RuntimeError(
-            f"No sheet*.png found in {sheets_dir}"
+            (
+                "No sheet*.png found in "
+                f"{sheets_dir}"
+            )
         )
 
     generated_root = (
@@ -1263,7 +1612,9 @@ def main() -> None:
     ):
         logger.progress(
             index,
-            len(sheets),
+            len(
+                sheets
+            ),
             sheet_path.name,
         )
 
@@ -1271,7 +1622,9 @@ def main() -> None:
             sheet_path,
             generated_root,
             args,
-            logger=logger.child(),
+            logger=(
+                logger.child()
+            ),
         )
 
     logger.success(
