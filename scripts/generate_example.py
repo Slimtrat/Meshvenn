@@ -3,9 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import sys
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,12 +22,10 @@ from core.visual_hull import (
     build_visual_hull,
     crop_empty_bounds,
 )
+from scripts.run_logger import RunLogger
 from scripts.scan_profiles import available_profiles
 
 
-# Presheet V1 geometry, normalized against the full template image.
-# This matches the "Projection Tool - Fiche de prise de vues" template:
-# 5 cells on the first row + 5 cells on the second row, with sidebar preserved.
 PRESHEET_V1_COLUMNS = (
     (0.016, 0.164),
     (0.169, 0.317),
@@ -100,6 +96,12 @@ def parse_args() -> argparse.Namespace:
         help="Optional subset, e.g. --profiles L2 L4 L8",
     )
 
+    parser.add_argument(
+        "--json-log",
+        action="store_true",
+        help="Write JSONL logs next to generated outputs.",
+    )
+
     return parser.parse_args(argv)
 
 
@@ -125,7 +127,6 @@ def _pixel_bbox(
     x0 = round(x0n * image_width)
     x1 = round(x1n * image_width)
 
-    # Blender image pixels use bottom-left origin.
     y0 = round((1.0 - bottomn) * image_height)
     y1 = round((1.0 - topn) * image_height)
 
@@ -227,7 +228,6 @@ def extract_cell(
 
     component = _largest_component(foreground, width, height)
 
-    # Reject nearly-empty cells.
     minimum_component = max(64, int(width * height * 0.005))
     valid = len(component) >= minimum_component
 
@@ -262,6 +262,7 @@ def extract_presheet(
     output_dir: Path,
     *,
     white_threshold: float,
+    logger: RunLogger,
 ) -> tuple[list[ExtractedView], dict]:
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -274,10 +275,21 @@ def extract_presheet(
     image_width = int(sheet.size[0])
     image_height = int(sheet.size[1])
 
+    logger.info(
+        "Sheet loaded",
+        width=image_width,
+        height=image_height,
+        source=str(sheet_path),
+    )
+
     extracted_views: list[ExtractedView] = []
 
     try:
-        for name, column, row, azimuth, elevation in CELL_SPECS:
+        total_cells = len(CELL_SPECS)
+
+        for index, (name, column, row, azimuth, elevation) in enumerate(CELL_SPECS, start=1):
+            logger.progress(index, total_cells, f"Cut {name}")
+
             bbox = _pixel_bbox(
                 image_width,
                 image_height,
@@ -306,9 +318,11 @@ def extract_presheet(
                 )
             )
 
-            print(
-                f"[projection-tool] cut {name}: "
-                f"{'valid' if valid else 'empty'} bbox={bbox}"
+            logger.info(
+                f"Cut {name} completed",
+                valid=valid,
+                bbox=bbox,
+                output=str(output_path),
             )
     finally:
         bpy.data.images.remove(sheet)
@@ -440,152 +454,204 @@ def generate_profile(
     scan_dir: Path,
     file_stem: str,
     args: argparse.Namespace,
+    logger: RunLogger,
 ) -> dict:
     selected_views = [
         views_by_name[name]
         for name in profile.views
     ]
 
-    clear_scene()
+    with logger.section(
+        f"Profile {profile.name}",
+        views=", ".join(profile.views),
+        resolution=args.resolution,
+    ):
+        clear_scene()
 
-    projections = [
-        build_projection(view, args.threshold)
-        for view in selected_views
-    ]
+        with logger.timed("Build projections"):
+            projections = [
+                build_projection(view, args.threshold)
+                for view in selected_views
+            ]
 
-    volume = build_visual_hull(
-        projections,
-        options=VisualHullOptions(
-            resolution=args.resolution,
-            symmetry_x=args.symmetry_x,
-        ),
-    )
+        with logger.timed("Build visual hull"):
+            volume = build_visual_hull(
+                projections,
+                options=VisualHullOptions(
+                    resolution=args.resolution,
+                    symmetry_x=args.symmetry_x,
+                ),
+            )
 
-    if volume.occupied_count == 0:
-        raise RuntimeError(
-            f"{profile.name} produced an empty volume."
+        if volume.occupied_count == 0:
+            raise RuntimeError(f"{profile.name} produced an empty volume.")
+
+        logger.info(
+            "Visual hull stats",
+            occupied_voxels=volume.occupied_count,
+            occupancy_ratio=f"{volume.occupancy_ratio:.4f}",
         )
 
-    cropped = crop_empty_bounds(volume)
+        with logger.timed("Crop occupied bounds"):
+            cropped = crop_empty_bounds(volume)
 
-    mesh_data = build_surface_mesh(
-        cropped,
-        voxel_size=1.0,
-        center=True,
-    )
+        with logger.timed("Build surface mesh"):
+            mesh_data = build_surface_mesh(
+                cropped,
+                voxel_size=1.0,
+                center=True,
+            )
 
-    mesh_data = scale_mesh_to_height(
-        mesh_data,
-        args.target_height,
-    )
+        with logger.timed("Scale mesh"):
+            mesh_data = scale_mesh_to_height(
+                mesh_data,
+                args.target_height,
+            )
 
-    obj = create_object(
-        mesh_data.vertices,
-        mesh_data.faces,
-    )
+        with logger.timed("Create Blender object"):
+            obj = create_object(
+                mesh_data.vertices,
+                mesh_data.faces,
+            )
 
-    cleanup_generated_object(
-        obj,
-        auto_remesh=not args.no_remesh,
-        voxel_size=args.voxel_size,
-        smooth_iterations=args.smooth,
-    )
+        with logger.timed("Cleanup mesh"):
+            cleanup_generated_object(
+                obj,
+                auto_remesh=not args.no_remesh,
+                voxel_size=args.voxel_size,
+                smooth_iterations=args.smooth,
+            )
 
-    result = export_scan(
-        obj,
-        scan_dir,
-        file_stem,
-    )
+        with logger.timed("Export scan"):
+            result = export_scan(
+                obj,
+                scan_dir,
+                file_stem,
+            )
 
-    result.update(
-        {
-            "profile": profile.name,
-            "views": list(profile.views),
-            "resolution": args.resolution,
-            "occupied_voxels": volume.occupied_count,
-        }
-    )
+        result.update(
+            {
+                "profile": profile.name,
+                "views": list(profile.views),
+                "resolution": args.resolution,
+                "occupied_voxels": volume.occupied_count,
+            }
+        )
 
-    return result
+        logger.success(
+            f"Profile {profile.name} generated",
+            vertices=result["vertices"],
+            faces=result["faces"],
+            glb=result["glb"],
+        )
+
+        return result
 
 
 def process_sheet(
     sheet_path: Path,
     generated_root: Path,
     args: argparse.Namespace,
+    logger: RunLogger | None = None,
 ) -> None:
+    generated_root.mkdir(parents=True, exist_ok=True)
+
     sheet_name = sheet_path.stem
     sheet_root = generated_root / sheet_name
     extracted_dir = sheet_root / "extracted"
     scans_root = sheet_root / "scans"
 
-    views, manifest = extract_presheet(
-        sheet_path,
-        extracted_dir,
-        white_threshold=args.sheet_white_threshold,
-    )
+    jsonl_path = sheet_root / "run_log.jsonl" if getattr(args, "json_log", False) else None
+    logger = logger or RunLogger(jsonl_path=jsonl_path)
 
-    valid_views = {
-        view.name: view
-        for view in views
-        if view.valid
-    }
+    with logger.section(
+        f"Sheet {sheet_name}",
+        source=str(sheet_path),
+        output=str(sheet_root),
+    ):
+        with logger.timed("Extract presheet"):
+            views, manifest = extract_presheet(
+                sheet_path,
+                extracted_dir,
+                white_threshold=args.sheet_white_threshold,
+                logger=logger.child(indent_offset=1),
+            )
 
-    profiles = available_profiles(set(valid_views))
+        valid_views = {
+            view.name: view
+            for view in views
+            if view.valid
+        }
 
-    if args.profiles:
-        requested = {name.upper() for name in args.profiles}
-        profiles = [
-            profile
-            for profile in profiles
-            if profile.name in requested
-        ]
-
-    manifest["profiles"] = {}
-
-    for profile in profiles:
-        print(
-            f"[projection-tool] {sheet_name} -> {profile.name}: "
-            f"{', '.join(profile.views)}"
+        logger.info(
+            "Available views",
+            count=len(valid_views),
+            views=", ".join(valid_views.keys()) if valid_views else "(none)",
         )
 
-        profile_dir = scans_root / profile.name
+        profiles = available_profiles(set(valid_views))
 
-        try:
-            result = generate_profile(
-                profile,
-                valid_views,
-                scan_dir=profile_dir,
-                file_stem=f"{sheet_name}_{profile.name}",
-                args=args,
-            )
+        if args.profiles:
+            requested = {name.upper() for name in args.profiles}
+            profiles = [
+                profile
+                for profile in profiles
+                if profile.name in requested
+            ]
 
-            manifest["profiles"][profile.name] = {
-                "generated": True,
-                **result,
-            }
-        except Exception as exc:
-            manifest["profiles"][profile.name] = {
-                "generated": False,
-                "views": list(profile.views),
-                "error": str(exc),
-            }
+        manifest["profiles"] = {}
 
-            print(
-                f"[projection-tool] ERROR {sheet_name}/{profile.name}: {exc}"
-            )
+        logger.info(
+            "Profiles selected",
+            count=len(profiles),
+            profiles=", ".join(profile.name for profile in profiles) if profiles else "(none)",
+        )
 
-    manifest_path = sheet_root / "manifest.json"
-    manifest_path.write_text(
-        json.dumps(
-            manifest,
-            indent=2,
-            ensure_ascii=False,
-        ),
-        encoding="utf-8",
-    )
+        for index, profile in enumerate(profiles, start=1):
+            logger.progress(index, len(profiles), f"{sheet_name} -> {profile.name}")
 
-    print(f"[projection-tool] manifest -> {manifest_path}")
+            profile_dir = scans_root / profile.name
+
+            try:
+                result = generate_profile(
+                    profile,
+                    valid_views,
+                    scan_dir=profile_dir,
+                    file_stem=f"{sheet_name}_{profile.name}",
+                    args=args,
+                    logger=logger.child(indent_offset=1),
+                )
+
+                manifest["profiles"][profile.name] = {
+                    "generated": True,
+                    **result,
+                }
+            except Exception as exc:
+                manifest["profiles"][profile.name] = {
+                    "generated": False,
+                    "views": list(profile.views),
+                    "error": str(exc),
+                }
+
+                logger.error(
+                    f"{sheet_name}/{profile.name} failed",
+                    error=str(exc),
+                )
+
+        manifest_path = sheet_root / "manifest.json"
+        manifest_path.write_text(
+            json.dumps(
+                manifest,
+                indent=2,
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+
+        logger.success(
+            "Manifest written",
+            path=str(manifest_path),
+        )
 
 
 def main() -> None:
@@ -616,16 +682,28 @@ def main() -> None:
         exist_ok=True,
     )
 
-    for sheet_path in sheet_files:
-        print("=" * 80)
-        print(f"[projection-tool] PROCESS {sheet_path.name}")
-        print("=" * 80)
+    logger = RunLogger(
+        jsonl_path=(generated_root / "run_log.jsonl") if args.json_log else None
+    )
+
+    logger.divider("SINGLE EXAMPLE GENERATION")
+    logger.info("Example", path=str(example_dir))
+    logger.info("Sheets found", count=len(sheet_files))
+
+    for index, sheet_path in enumerate(sheet_files, start=1):
+        logger.progress(index, len(sheet_files), sheet_path.name)
 
         process_sheet(
             sheet_path,
             generated_root,
             args,
+            logger=logger.child(indent_offset=1),
         )
+
+    logger.success(
+        "Example generation finished",
+        elapsed=logger.total_elapsed(),
+    )
 
 
 if __name__ == "__main__":

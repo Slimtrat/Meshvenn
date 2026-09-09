@@ -4,14 +4,13 @@ import argparse
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-
 from scripts.generate_example import process_sheet
+from scripts.run_logger import RunLogger
 
 
 def parse_args() -> argparse.Namespace:
@@ -115,9 +114,13 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
     )
 
-    return parser.parse_args(
-        argv
+    parser.add_argument(
+        "--json-log",
+        action="store_true",
+        help="Write JSONL logs into each generated sheet folder.",
     )
+
+    return parser.parse_args(argv)
 
 
 def discover_examples(
@@ -331,43 +334,16 @@ def create_process_args(
 ) -> argparse.Namespace:
     process_args = argparse.Namespace()
 
-    process_args.resolution = (
-        args.resolution
-    )
-
-    process_args.threshold = (
-        args.threshold
-    )
-
-    process_args.target_height = (
-        args.target_height
-    )
-
-    process_args.voxel_size = (
-        args.voxel_size
-    )
-
-    process_args.smooth = (
-        args.smooth
-    )
-
-    process_args.symmetry_x = (
-        args.symmetry_x
-    )
-
-    process_args.no_remesh = (
-        args.no_remesh
-    )
-
-    process_args.sheet_white_threshold = (
-        args.sheet_white_threshold
-    )
-
-    process_args.profiles = (
-        validate_profiles(
-            args.profiles
-        )
-    )
+    process_args.resolution = args.resolution
+    process_args.threshold = args.threshold
+    process_args.target_height = args.target_height
+    process_args.voxel_size = args.voxel_size
+    process_args.smooth = args.smooth
+    process_args.symmetry_x = args.symmetry_x
+    process_args.no_remesh = args.no_remesh
+    process_args.sheet_white_threshold = args.sheet_white_threshold
+    process_args.profiles = validate_profiles(args.profiles)
+    process_args.json_log = args.json_log
 
     return process_args
 
@@ -378,42 +354,21 @@ def print_plan(
     ],
     examples_root: Path,
     args: argparse.Namespace,
+    logger: RunLogger,
 ) -> None:
-    print()
-    print("=" * 80)
-    print(
-        "[projection-tool] "
-        "GENERATION PLAN"
+    logger.divider("GENERATION PLAN")
+    logger.info("Resolution", value=args.resolution)
+    logger.info(
+        "Profiles",
+        value=", ".join(args.profiles) if args.profiles else "automatic",
     )
-    print("=" * 80)
+    logger.info("Sheets", count=len(sheets))
 
-    print(
-        f"Resolution: {args.resolution}"
-    )
-
-    print(
-        "Profiles: "
-        + (
-            ", ".join(
-                args.profiles
-            )
-            if args.profiles
-            else "automatic"
-        )
-    )
-
-    print(
-        f"Sheets: {len(sheets)}"
-    )
-
-    for _example_dir, sheet in sheets:
-        print(
-            "  - "
-            + sheet
-            .relative_to(
-                examples_root
-            )
-            .as_posix()
+    for index, (_example_dir, sheet) in enumerate(sheets, start=1):
+        logger.progress(
+            index,
+            len(sheets),
+            sheet.relative_to(examples_root).as_posix(),
         )
 
 
@@ -430,6 +385,8 @@ def main() -> None:
             args.profiles
         )
     )
+
+    logger = RunLogger()
 
     example_dirs = discover_examples(
         examples_root,
@@ -460,22 +417,18 @@ def main() -> None:
         sheets,
         examples_root,
         args,
+        logger,
     )
 
-    process_args = (
-        create_process_args(
-            args
-        )
-    )
+    process_args = create_process_args(args)
 
     failures: list[
         tuple[Path, Exception]
     ] = []
 
-    for (
-        example_dir,
-        sheet_path,
-    ) in sheets:
+    total_sheets = len(sheets)
+
+    for index, (example_dir, sheet_path) in enumerate(sheets, start=1):
         relative_sheet = (
             sheet_path
             .relative_to(
@@ -484,13 +437,7 @@ def main() -> None:
             .as_posix()
         )
 
-        print()
-        print("=" * 80)
-        print(
-            "[projection-tool] "
-            f"PROCESS {relative_sheet}"
-        )
-        print("=" * 80)
+        logger.progress(index, total_sheets, relative_sheet)
 
         try:
             generated_root = (
@@ -502,6 +449,7 @@ def main() -> None:
                 sheet_path,
                 generated_root,
                 process_args,
+                logger=logger.child(indent_offset=1),
             )
 
         except Exception as exc:
@@ -512,45 +460,31 @@ def main() -> None:
                 )
             )
 
-            print(
-                "[projection-tool] "
-                f"FAILED {relative_sheet}: "
-                f"{exc}"
+            logger.error(
+                f"FAILED {relative_sheet}",
+                error=str(exc),
             )
 
             if not args.continue_on_error:
                 raise
 
-    print()
-    print("=" * 80)
-    print(
-        "[projection-tool] "
-        "GENERATION SUMMARY"
-    )
-    print("=" * 80)
-
-    print(
-        f"Processed: {len(sheets)}"
-    )
-
-    print(
-        f"Failed: {len(failures)}"
-    )
+    logger.divider("GENERATION SUMMARY")
+    logger.info("Processed", count=len(sheets))
+    logger.info("Failed", count=len(failures))
 
     if failures:
         for sheet_path, exc in failures:
-            print(
-                "  - "
-                + sheet_path
-                .relative_to(
-                    examples_root
-                )
-                .as_posix()
-                + ": "
-                + str(exc)
+            logger.error(
+                sheet_path.relative_to(examples_root).as_posix(),
+                error=str(exc),
             )
 
         raise SystemExit(1)
+
+    logger.success(
+        "All sheets generated successfully",
+        elapsed=logger.total_elapsed(),
+    )
 
 
 if __name__ == "__main__":
