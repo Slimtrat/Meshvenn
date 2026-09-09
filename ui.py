@@ -212,6 +212,13 @@ class BPT_PT_MainPanel(Panel):
         )
         preset_16.view_count = 16
 
+        import_row = preset_box.row()
+        import_row.operator(
+            "bpt.import_turntable_images",
+            text=tr("import_turntable_images"),
+            icon="FILE_FOLDER",
+        )
+
         if not settings.projections:
             return
 
@@ -246,6 +253,14 @@ class BPT_PT_MainPanel(Panel):
             "image",
             text=tr("image"),
         )
+
+        load_row = detail_box.row()
+        load_op = load_row.operator(
+            "bpt.load_projection_image",
+            text=tr("load_image"),
+            icon="FILE_IMAGE",
+        )
+        load_op.index = index
 
         detail_box.prop(
             projection,

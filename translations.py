@@ -1,3 +1,5 @@
+# translations.py
+
 from __future__ import annotations
 
 import bpy
@@ -45,6 +47,10 @@ TRANSLATIONS = {
         "diagnostics": "Diagnostics",
         "active_views": "Active views",
         "missing_images": "Missing images",
+
+        "load_image": "Load Image",
+        "import_turntable_images": "Import Turntable Images",
+        "clear_before_import": "Clear before import",
     },
 
     "fr": {
@@ -88,6 +94,10 @@ TRANSLATIONS = {
         "diagnostics": "Diagnostic",
         "active_views": "Vues actives",
         "missing_images": "Images manquantes",
+
+        "load_image": "Charger une image",
+        "import_turntable_images": "Importer des images de rotation",
+        "clear_before_import": "Vider avant import",
     },
 }
 
