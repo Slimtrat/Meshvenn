@@ -6,6 +6,7 @@ from collections.abc import (
 
 from ..core.pipeline_contracts import (
     PipelineImplementation,
+    PipelineStage,
 )
 from ..core.pipeline_registry import (
     PIPELINE_REGISTRY,
@@ -15,16 +16,11 @@ from ..core.pipeline_registry import (
 # ---------------------------------------------------------
 # Built-in implementation imports
 #
-# These modules are the adapters around Meshvenn's current
-# production pipeline.
+# core/
+#     owns algorithms
 #
-# Do not move algorithmic code here:
-#
-#     core/
-#         owns algorithms
-#
-#     implementations/
-#         adapts algorithms to PipelineImplementation
+# implementations/
+#     adapts algorithms to PipelineImplementation
 # ---------------------------------------------------------
 
 from .projection_images import (
@@ -50,6 +46,11 @@ ImplementationFactory = Callable[
 
 # ---------------------------------------------------------
 # Built-in catalog
+#
+# Registration order controls UI ordering only.
+#
+# It MUST NOT control which implementation becomes the
+# default for a stage.
 # ---------------------------------------------------------
 
 BUILTIN_IMPLEMENTATION_FACTORIES: tuple[
@@ -63,12 +64,197 @@ BUILTIN_IMPLEMENTATION_FACTORIES: tuple[
 
 
 # ---------------------------------------------------------
+# Explicit defaults
+#
+# This mapping is the single source of truth for registry
+# defaults.
+#
+# Adding another implementation to a stage must therefore
+# never accidentally change the default simply because its
+# factory appears later in the catalog.
+#
+# Example:
+#
+#     MATERIAL
+#
+#       projected-color-v1.2  <- default
+#       uv-bake-v2
+#
+# ---------------------------------------------------------
+
+BUILTIN_DEFAULT_IMPLEMENTATION_IDS: dict[
+    PipelineStage,
+    str,
+] = {
+    PipelineStage.INPUT:
+        "projection-images",
+
+    PipelineStage.GEOMETRY:
+        "native-visual-hull",
+
+    PipelineStage.MATERIAL:
+        "projected-color-v1.2",
+}
+
+
+# ---------------------------------------------------------
 # Registration state
 # ---------------------------------------------------------
 
 _registered_implementation_ids: list[
     str
 ] = []
+
+
+# ---------------------------------------------------------
+# Catalog helpers
+# ---------------------------------------------------------
+
+def _instantiate_builtin_implementations(
+) -> tuple[
+    PipelineImplementation,
+    ...
+]:
+    return tuple(
+        factory()
+        for factory
+        in BUILTIN_IMPLEMENTATION_FACTORIES
+    )
+
+
+def _validate_builtin_catalog(
+    implementations: tuple[
+        PipelineImplementation,
+        ...
+    ],
+) -> None:
+    """
+    Validate static catalog invariants before mutating the
+    global registry.
+
+    This prevents a partially-registered built-in catalog
+    when its configuration is invalid.
+    """
+
+    ids: set[
+        str
+    ] = set()
+
+    ids_by_stage: dict[
+        PipelineStage,
+        set[
+            str
+        ],
+    ] = {
+        stage: set()
+        for stage
+        in PipelineStage
+    }
+
+    for implementation in (
+        implementations
+    ):
+        descriptor = (
+            implementation
+            .descriptor
+        )
+
+        implementation_id = (
+            descriptor.identifier
+        )
+
+        if implementation_id in ids:
+            raise RuntimeError(
+                (
+                    "Duplicate built-in implementation "
+                    f'id: "{implementation_id}".'
+                )
+            )
+
+        ids.add(
+            implementation_id
+        )
+
+        ids_by_stage[
+            descriptor.stage
+        ].add(
+            implementation_id
+        )
+
+    # -----------------------------------------------------
+    # Every explicitly configured default must:
+    #
+    #   1. exist in the built-in catalog;
+    #   2. belong to the configured stage.
+    # -----------------------------------------------------
+
+    for (
+        stage,
+        implementation_id,
+    ) in (
+        BUILTIN_DEFAULT_IMPLEMENTATION_IDS
+        .items()
+    ):
+        if (
+            implementation_id
+            not in ids
+        ):
+            raise RuntimeError(
+                (
+                    "Built-in default implementation "
+                    f'"{implementation_id}" for stage '
+                    f'"{stage.value}" is not present '
+                    "in the built-in catalog."
+                )
+            )
+
+        if (
+            implementation_id
+            not in ids_by_stage[
+                stage
+            ]
+        ):
+            raise RuntimeError(
+                (
+                    "Built-in default implementation "
+                    f'"{implementation_id}" does not '
+                    "belong to pipeline stage "
+                    f'"{stage.value}".'
+                )
+            )
+
+
+# ---------------------------------------------------------
+# Defaults
+# ---------------------------------------------------------
+
+def _apply_builtin_defaults() -> None:
+    """
+    Apply defaults only after every built-in implementation
+    has been registered.
+
+    PipelineRegistry currently promotes the first
+    implementation registered for an empty stage to default.
+
+    That behaviour remains useful for third-party registries,
+    but Meshvenn's built-ins must not rely on registration
+    order.
+
+    Therefore this function explicitly overwrites the final
+    default of every built-in stage.
+    """
+
+    for (
+        stage,
+        implementation_id,
+    ) in (
+        BUILTIN_DEFAULT_IMPLEMENTATION_IDS
+        .items()
+    ):
+        PIPELINE_REGISTRY.set_default(
+            stage,
+            implementation_id,
+        )
 
 
 # ---------------------------------------------------------
@@ -92,8 +278,8 @@ def register_builtin_implementations(
     global registry module may remain alive depending on how
     Blender performs the reload.
 
-    Stable implementation ids therefore remain the source of
-    truth.
+    Stable implementation ids therefore remain the source
+    of truth.
 
     Current built-ins:
 
@@ -106,10 +292,25 @@ def register_builtin_implementations(
         MATERIAL
             projected-color-v1.2
 
-    RIG and EXPORT intentionally have no implementation yet.
-    The general pipeline supports them already; concrete
-    implementations can be added independently later.
+    Future example:
+
+        MATERIAL
+            projected-color-v1.2
+            uv-bake-v2
+
+    Adding that second MATERIAL implementation must not
+    change the existing default unless
+    BUILTIN_DEFAULT_IMPLEMENTATION_IDS is modified
+    explicitly.
     """
+
+    implementations = (
+        _instantiate_builtin_implementations()
+    )
+
+    _validate_builtin_catalog(
+        implementations
+    )
 
     registered: list[
         PipelineImplementation
@@ -119,13 +320,19 @@ def register_builtin_implementations(
         str
     ] = []
 
-    for factory in (
-        BUILTIN_IMPLEMENTATION_FACTORIES
-    ):
-        implementation = (
-            factory()
-        )
+    # -----------------------------------------------------
+    # Register without relying on the `default` argument.
+    #
+    # PipelineRegistry may temporarily assign the first
+    # implementation of a stage as its default.
+    #
+    # _apply_builtin_defaults() below establishes the final
+    # authoritative state.
+    # -----------------------------------------------------
 
+    for implementation in (
+        implementations
+    ):
         descriptor = (
             implementation
             .descriptor
@@ -133,7 +340,7 @@ def register_builtin_implementations(
 
         PIPELINE_REGISTRY.register(
             implementation,
-            default=True,
+            default=False,
             replace=replace,
         )
 
@@ -146,25 +353,24 @@ def register_builtin_implementations(
         )
 
     # -----------------------------------------------------
-    # Remove ids remembered from a previous bootstrap which
-    # are no longer part of the built-in catalog.
+    # Remove built-ins remembered from a previous Blender
+    # reload but no longer present in the catalog.
     #
-    # This matters during development:
+    # Example:
     #
-    #     projected-color-v1.2
-    #         ↓ rename
+    #     uv-bake-v1
+    #         ↓ reload after rename
     #     uv-bake-v2
-    #
-    # Without cleanup, a stale implementation could remain
-    # visible in the UI until Blender restarts.
     # -----------------------------------------------------
 
     stale_ids = [
         implementation_id
         for implementation_id
         in _registered_implementation_ids
-        if implementation_id
-        not in current_ids
+        if (
+            implementation_id
+            not in current_ids
+        )
     ]
 
     for implementation_id in (
@@ -173,6 +379,13 @@ def register_builtin_implementations(
         PIPELINE_REGISTRY.unregister(
             implementation_id
         )
+
+    # -----------------------------------------------------
+    # Defaults are applied only after registration + stale
+    # cleanup so their final state is deterministic.
+    # -----------------------------------------------------
+
+    _apply_builtin_defaults()
 
     _registered_implementation_ids.clear()
 
@@ -185,11 +398,12 @@ def register_builtin_implementations(
     )
 
 
-def unregister_builtin_implementations() -> None:
+def unregister_builtin_implementations(
+) -> None:
     """
-    Remove only implementations registered by this package.
+    Remove only implementations owned by Meshvenn.
 
-    Third-party/future implementations registered elsewhere
+    External implementations registered by another package
     are deliberately left untouched.
     """
 
@@ -209,9 +423,7 @@ def unregister_builtin_implementations() -> None:
 
 def register() -> None:
     """
-    Blender add-on registration entry point.
-
-    The root __init__.py will eventually register modules in:
+    Root registration order:
 
         properties
             ↓
@@ -220,9 +432,6 @@ def register() -> None:
         operators
             ↓
         ui
-
-    This guarantees implementation availability checks can
-    inspect Blender settings if needed.
     """
 
     register_builtin_implementations(
@@ -238,22 +447,36 @@ def unregister() -> None:
 # Diagnostics
 # ---------------------------------------------------------
 
-def registered_builtin_ids() -> tuple[
+def registered_builtin_ids(
+) -> tuple[
     str,
     ...
 ]:
-    """
-    Return stable ids currently bootstrapped by Meshvenn.
-
-    Useful for diagnostics and the future UI.
-    """
-
     return tuple(
         _registered_implementation_ids
     )
 
 
-def builtin_implementation_count() -> int:
+def builtin_implementation_count(
+) -> int:
     return len(
         _registered_implementation_ids
+    )
+
+
+def builtin_default_id(
+    stage: PipelineStage,
+) -> str | None:
+    """
+    Return Meshvenn's configured default independently from
+    the current runtime registry state.
+    """
+
+    return (
+        BUILTIN_DEFAULT_IMPLEMENTATION_IDS
+        .get(
+            PipelineStage(
+                stage
+            )
+        )
     )
