@@ -81,6 +81,13 @@ jobs:
 
             "core/__init__.py"
 
+            "core/pipeline_contracts.py"
+            "core/pipeline_registry.py"
+            "core/pipeline_runner.py"
+
+            # Generic GEOMETRY contract
+            "core/geometry_contracts.py"
+
             "core/image_mask.py"
 
             "core/native_loader.py"
@@ -93,15 +100,6 @@ jobs:
             "core/projected_material.py"
             "core/material_visibility.py"
             "core/material_blend.py"
-
-            "core/pipeline_contracts.py"
-            "core/pipeline_registry.py"
-            "core/pipeline_runner.py"
-
-
-            # -----------------------------------------------
-            # UV Bake V2
-            # -----------------------------------------------
 
             "core/uv_bake.py"
 
@@ -145,6 +143,9 @@ jobs:
             "tests/test_pipeline_registry.py"
             "tests/test_pipeline_runner.py"
 
+            # Generic GEOMETRY contract
+            "tests/test_geometry_contracts.py"
+
             "tests/test_uv_bake.py"
 
 
@@ -181,6 +182,10 @@ jobs:
 
       # -----------------------------------------------------
       # Pure Python suite
+      #
+      # Includes:
+      #
+      #   test_geometry_contracts.py
       #
       # Blender-specific smoke files deliberately do not
       # match test_*.py.
@@ -620,7 +625,10 @@ jobs:
           # -------------------------------------------------
           # Runtime Python core
           #
-          # Includes core/uv_bake.py automatically.
+          # Includes:
+          #
+          #   geometry_contracts.py
+          #   uv_bake.py
           # -------------------------------------------------
 
           cp \
@@ -630,8 +638,6 @@ jobs:
 
           # -------------------------------------------------
           # Pipeline implementations
-          #
-          # Includes implementations/uv_bake.py automatically.
           # -------------------------------------------------
 
           cp \
@@ -753,6 +759,13 @@ jobs:
 
             "core/__init__.py"
 
+            "core/pipeline_contracts.py"
+            "core/pipeline_registry.py"
+            "core/pipeline_runner.py"
+
+            # Generic GEOMETRY contract
+            "core/geometry_contracts.py"
+
             "core/image_mask.py"
 
             "core/native_loader.py"
@@ -765,10 +778,6 @@ jobs:
             "core/projected_material.py"
             "core/material_visibility.py"
             "core/material_blend.py"
-
-            "core/pipeline_contracts.py"
-            "core/pipeline_registry.py"
-            "core/pipeline_runner.py"
 
             "core/uv_bake.py"
 
@@ -1065,6 +1074,13 @@ jobs:
 
 
             # -----------------------------------------------
+            # Generic GEOMETRY contract
+            # -----------------------------------------------
+
+            "blender_projection_tool/core/geometry_contracts.py"
+
+
+            # -----------------------------------------------
             # UV Bake V2
             # -----------------------------------------------
 
@@ -1218,10 +1234,19 @@ jobs:
             "${PACKAGE_ROOT}/__init__.py"
 
           test -f \
+            "${PACKAGE_ROOT}/core/geometry_contracts.py"
+
+          test -f \
             "${PACKAGE_ROOT}/core/uv_bake.py"
 
           test -f \
             "${PACKAGE_ROOT}/implementations/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/native_visual_hull.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/projected_color.py"
 
           test -f \
             "${PACKAGE_ROOT}/implementations/uv_bake.py"
@@ -1240,9 +1265,11 @@ jobs:
       # General extension lifecycle smoke
       #
       # import
+      # generic geometry contract
       # register
       # registry
       # properties
+      # generic GEOMETRY -> MATERIAL compatibility
       # operators
       # UI
       # unregister
@@ -1394,12 +1421,15 @@ jobs:
 
             - Native C++ Visual Hull
             - Surface Nets
+            - Generic GeometrySurfaceOutput contract
+            - Generic projection-space contract
 
             **Material**
 
             - Projected Color V1.2
               - visibility-aware projection
               - adaptive multi-view blending
+              - generic geometry compatible
 
             - UV Bake V2
               - Blender Smart UV unwrap
@@ -1407,6 +1437,7 @@ jobs:
               - visibility-aware texture bake
               - UV island padding
               - portable image texture material
+              - generic geometry compatible
 
             **Rig**
 
@@ -1423,6 +1454,8 @@ jobs:
             The release package has passed:
 
             - pure Python tests
+            - generic GEOMETRY contract tests
+            - non-Visual-Hull GEOMETRY compatibility tests
             - UV Bake V2 rasterization tests
             - Linux native tests
             - Windows native tests
@@ -1430,6 +1463,7 @@ jobs:
             - source/package parity validation
             - ZIP integrity validation
             - Blender 5.2.1 extension lifecycle smoke test
+            - Blender 5.2.1 generic GEOMETRY → MATERIAL smoke test
             - Blender 5.2.1 UV Bake V2 functional smoke test
 
             ### Installation

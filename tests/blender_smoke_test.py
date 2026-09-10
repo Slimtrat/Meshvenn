@@ -7,6 +7,7 @@ import sys
 import traceback
 
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import bpy
@@ -31,30 +32,50 @@ REQUIRED_PACKAGE_FILES = (
     "version.py",
     "translations.py",
 
+    # -----------------------------------------------------
     # Core
+    # -----------------------------------------------------
+
     "core/__init__.py",
+
     "core/pipeline_contracts.py",
     "core/pipeline_registry.py",
     "core/pipeline_runner.py",
+
+    # Generic GEOMETRY contract
+    "core/geometry_contracts.py",
+
     "core/image_mask.py",
+
     "core/native_loader.py",
     "core/native_bridge.py",
     "core/native_mesh_builder.py",
     "core/native_scan.py",
+
     "core/projection_math.py",
+
     "core/projected_material.py",
     "core/material_visibility.py",
     "core/material_blend.py",
+
     "core/uv_bake.py",
 
+    # -----------------------------------------------------
     # Implementations
+    # -----------------------------------------------------
+
     "implementations/__init__.py",
+
     "implementations/projection_images.py",
     "implementations/native_visual_hull.py",
+
     "implementations/projected_color.py",
     "implementations/uv_bake.py",
 
+    # -----------------------------------------------------
     # Native binaries
+    # -----------------------------------------------------
+
     "native/bin/libbpt_core.so",
     "native/bin/bpt_core.dll",
 )
@@ -100,7 +121,9 @@ EXPECTED_UV_BAKE_UV_LAYER_NAME = (
     "MeshvennUV"
 )
 
-EXPECTED_UV_BAKE_ISLAND_MARGIN = 0.02
+EXPECTED_UV_BAKE_ISLAND_MARGIN = (
+    0.02
+)
 
 EXPECTED_UV_BAKE_ANGLE_LIMIT_DEGREES = (
     66.0
@@ -112,6 +135,19 @@ EXPECTED_UV_BAKE_REUSE_EXISTING_UV = (
 
 EXPECTED_SMART_PROJECT_MARGIN_PIXELS = (
     0.5
+)
+
+
+# =========================================================
+# Generic GEOMETRY expected values
+# =========================================================
+
+EXPECTED_GEOMETRY_CONTRACT = (
+    "surface-envelope-v1"
+)
+
+FAKE_GEOMETRY_IMPLEMENTATION_ID = (
+    "sdf-reconstruction-v1"
 )
 
 
@@ -529,6 +565,157 @@ def _load_extension(
 
 
 # =========================================================
+# Generic GEOMETRY core
+# =========================================================
+
+def _validate_geometry_contract_core(
+    package_name: str,
+) -> None:
+    _section(
+        "generic GEOMETRY contract"
+    )
+
+    module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.geometry_contracts"
+            )
+        )
+    )
+
+    required_symbols = (
+        "GeometryProjectionConvention",
+        "GeometryProjectionSpace",
+        "GeometrySurfaceOutput",
+        "require_geometry_surface_output",
+        "validate_geometry_surface_output",
+    )
+
+    for symbol in (
+        required_symbols
+    ):
+        _require(
+            hasattr(
+                module,
+                symbol,
+            ),
+            (
+                "Generic GEOMETRY symbol "
+                "missing from packaged "
+                "extension: "
+                f"{symbol}"
+            ),
+        )
+
+    convention = (
+        module
+        .GeometryProjectionConvention
+        .SURFACE_ENVELOPE_V1
+    )
+
+    _require(
+        convention.value
+        == EXPECTED_GEOMETRY_CONTRACT,
+        (
+            "Unexpected generic projection "
+            "coordinate convention.\n"
+            f"Expected: "
+            f"{EXPECTED_GEOMETRY_CONTRACT}\n"
+            f"Actual:   "
+            f"{convention.value}"
+        ),
+    )
+
+    projection_space = (
+        module
+        .GeometryProjectionSpace(
+            width=16,
+            depth=24,
+            height=32,
+            voxel_size=0.5,
+            center_xy=True,
+        )
+    )
+
+    _require(
+        projection_space.dimensions
+        == (
+            16,
+            24,
+            32,
+        ),
+        (
+            "Unexpected GeometryProjectionSpace "
+            "dimensions."
+        ),
+    )
+
+    _require(
+        projection_space
+        .as_projection_kwargs()
+        == {
+            "width": 16,
+            "depth": 24,
+            "height": 32,
+            "voxel_size": 0.5,
+            "center_xy": True,
+        },
+        (
+            "GeometryProjectionSpace does not "
+            "produce the projection arguments "
+            "expected by MATERIAL."
+        ),
+    )
+
+    _require(
+        projection_space
+        .minimum_local_point
+        == (
+            -4.0,
+            -6.0,
+            0.0,
+        ),
+        (
+            "Unexpected generic GEOMETRY "
+            "minimum local bound."
+        ),
+    )
+
+    _require(
+        projection_space
+        .maximum_local_point
+        == (
+            4.0,
+            6.0,
+            16.0,
+        ),
+        (
+            "Unexpected generic GEOMETRY "
+            "maximum local bound."
+        ),
+    )
+
+    print(
+        "Generic GEOMETRY core: OK"
+    )
+
+    print(
+        (
+            "  convention: "
+            f"{convention.value}"
+        )
+    )
+
+    print(
+        (
+            "  dimensions: "
+            f"{projection_space.dimensions}"
+        )
+    )
+
+
+# =========================================================
 # Core UV Bake
 # =========================================================
 
@@ -576,10 +763,6 @@ def _validate_uv_bake_core(
             ),
         )
 
-    # -----------------------------------------------------
-    # Product default.
-    # -----------------------------------------------------
-
     _require(
         module.DEFAULT_TEXTURE_SIZE
         == EXPECTED_UV_BAKE_TEXTURE_SIZE_INT,
@@ -616,11 +799,6 @@ def _validate_uv_bake_core(
             "does not match product default."
         ),
     )
-
-    # -----------------------------------------------------
-    # Explicit configurations must remain independent of
-    # the default.
-    # -----------------------------------------------------
 
     explicit_config = (
         module.UVBakeConfig(
@@ -933,7 +1111,10 @@ def _validate_pipeline_defaults(
     )
 
     print(
-        "            uv-bake-v2 available but not default"
+        (
+            "            uv-bake-v2 "
+            "available but not default"
+        )
     )
 
     print(
@@ -1051,7 +1232,7 @@ def _validate_uv_bake_properties(
     )
 
     # -----------------------------------------------------
-    # Higher-quality modes must remain selectable.
+    # Higher-quality modes remain selectable.
     # -----------------------------------------------------
 
     for value in (
@@ -1166,10 +1347,6 @@ def _validate_uv_bake_default_alignment(
         EXPECTED_UV_BAKE_TEXTURE_SIZE
     )
 
-    # -----------------------------------------------------
-    # Constants
-    # -----------------------------------------------------
-
     _require(
         core_module.DEFAULT_TEXTURE_SIZE
         == expected_int,
@@ -1206,10 +1383,6 @@ def _validate_uv_bake_default_alignment(
             f"{properties_module.DEFAULT_UV_BAKE_TEXTURE_SIZE!r}"
         ),
     )
-
-    # -----------------------------------------------------
-    # Instantiated configs
-    # -----------------------------------------------------
 
     core_config = (
         core_module.UVBakeConfig()
@@ -1278,14 +1451,6 @@ def _validate_uv_bake_default_alignment(
             "is out of sync."
         ),
     )
-
-    # -----------------------------------------------------
-    # Smart Project guard.
-    #
-    # For the current default:
-    #
-    #   min(0.02, 0.5 / 512) * 512 == 0.5 px
-    # -----------------------------------------------------
 
     _require_close(
         material_config
@@ -1551,6 +1716,503 @@ def _validate_registry(
 
 
 # =========================================================
+# Generic GEOMETRY -> MATERIAL compatibility
+# =========================================================
+
+def _validate_generic_geometry_material_compatibility(
+    package_name: str,
+    settings,
+) -> None:
+    """
+    Critical architecture smoke test.
+
+    Build a real Blender mesh but wrap it only in the generic
+    GeometrySurfaceOutput contract.
+
+    The fake implementation deliberately identifies itself as:
+
+        sdf-reconstruction-v1
+
+    and is NOT a NativeVisualHullOutput.
+
+    Both current MATERIAL implementations must still report:
+
+        READY
+
+    This proves that MATERIAL no longer requires:
+
+        NativeVisualHullOutput
+        NativeVolume
+        NativeMesh
+    """
+
+    _section(
+        "generic GEOMETRY -> MATERIAL"
+    )
+
+    geometry_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.geometry_contracts"
+            )
+        )
+    )
+
+    contracts_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.pipeline_contracts"
+            )
+        )
+    )
+
+    registry_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.pipeline_registry"
+            )
+        )
+    )
+
+    native_geometry_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "implementations."
+                "native_visual_hull"
+            )
+        )
+    )
+
+    GeometryProjectionSpace = (
+        geometry_module
+        .GeometryProjectionSpace
+    )
+
+    GeometrySurfaceOutput = (
+        geometry_module
+        .GeometrySurfaceOutput
+    )
+
+    PipelineContext = (
+        contracts_module
+        .PipelineContext
+    )
+
+    PipelineStage = (
+        contracts_module
+        .PipelineStage
+    )
+
+    NativeVisualHullOutput = (
+        native_geometry_module
+        .NativeVisualHullOutput
+    )
+
+    registry = (
+        registry_module
+        .PIPELINE_REGISTRY
+    )
+
+    mesh = None
+
+    obj = None
+
+    try:
+        # -------------------------------------------------
+        # Tiny real Blender surface.
+        #
+        # Availability validation checks:
+        #
+        #     MESH object
+        #     vertices
+        #     polygons
+        #     loops
+        #
+        # It does NOT execute projection or UV bake here.
+        # -------------------------------------------------
+
+        mesh = (
+            bpy.data.meshes.new(
+                (
+                    "Meshvenn "
+                    "Generic Geometry "
+                    "Smoke Mesh"
+                )
+            )
+        )
+
+        mesh.from_pydata(
+            [
+                (
+                    0.0,
+                    0.0,
+                    0.0,
+                ),
+                (
+                    1.0,
+                    0.0,
+                    0.0,
+                ),
+                (
+                    0.0,
+                    1.0,
+                    0.0,
+                ),
+            ],
+            [],
+            [
+                (
+                    0,
+                    1,
+                    2,
+                )
+            ],
+        )
+
+        mesh.update()
+
+        obj = (
+            bpy.data.objects.new(
+                (
+                    "Meshvenn "
+                    "Generic Geometry "
+                    "Smoke Object"
+                ),
+                mesh,
+            )
+        )
+
+        scene = (
+            bpy.context.scene
+        )
+
+        _require(
+            scene is not None,
+            (
+                "No Blender scene available "
+                "for generic GEOMETRY smoke."
+            ),
+        )
+
+        scene.collection.objects.link(
+            obj
+        )
+
+        # -------------------------------------------------
+        # Fake INPUT capability.
+        #
+        # Availability only requires a non-empty iterable.
+        # The actual ProjectedMaterialView contents are
+        # validated when MATERIAL executes.
+        # -------------------------------------------------
+
+        fake_source = (
+            SimpleNamespace(
+                material_views=(
+                    object(),
+                    object(),
+                ),
+            )
+        )
+
+        projection_space = (
+            GeometryProjectionSpace(
+                width=16,
+                depth=16,
+                height=16,
+                voxel_size=1.0,
+                center_xy=True,
+            )
+        )
+
+        geometry_output = (
+            GeometrySurfaceOutput(
+                blender_object=obj,
+
+                source=(
+                    fake_source
+                ),
+
+                projection_space=(
+                    projection_space
+                ),
+
+                implementation_id=(
+                    FAKE_GEOMETRY_IMPLEMENTATION_ID
+                ),
+
+                metrics={
+                    "vertex_count": (
+                        len(
+                            mesh.vertices
+                        )
+                    ),
+
+                    "polygon_count": (
+                        len(
+                            mesh.polygons
+                        )
+                    ),
+                },
+
+                metadata={
+                    "smoke_test": True,
+
+                    "algorithm": (
+                        "fake-sdf"
+                    ),
+                },
+            )
+        )
+
+        # -------------------------------------------------
+        # Critical proof:
+        #
+        # the fake SDF contract is generic and must NOT be
+        # a NativeVisualHullOutput.
+        # -------------------------------------------------
+
+        _require(
+            isinstance(
+                geometry_output,
+                GeometrySurfaceOutput,
+            ),
+            (
+                "Fake SDF geometry does not "
+                "implement GeometrySurfaceOutput."
+            ),
+        )
+
+        _require(
+            not isinstance(
+                geometry_output,
+                NativeVisualHullOutput,
+            ),
+            (
+                "Generic MATERIAL smoke accidentally "
+                "used NativeVisualHullOutput."
+            ),
+        )
+
+        _require(
+            not hasattr(
+                geometry_output,
+                "volume",
+            ),
+            (
+                "Generic fake SDF geometry "
+                "unexpectedly exposes NativeVolume."
+            ),
+        )
+
+        _require(
+            not hasattr(
+                geometry_output,
+                "native_mesh",
+            ),
+            (
+                "Generic fake SDF geometry "
+                "unexpectedly exposes NativeMesh."
+            ),
+        )
+
+        # -------------------------------------------------
+        # Context
+        # -------------------------------------------------
+
+        context = (
+            PipelineContext(
+                scene=scene,
+                settings=settings,
+            )
+        )
+
+        context.set_output(
+            PipelineStage.GEOMETRY,
+            geometry_output,
+        )
+
+        resolved_geometry = (
+            geometry_module
+            .require_geometry_surface_output(
+                context
+            )
+        )
+
+        _require(
+            resolved_geometry
+            is geometry_output,
+            (
+                "Generic GEOMETRY accessor did "
+                "not return the supplied output."
+            ),
+        )
+
+        # -------------------------------------------------
+        # Projected Color V1.2
+        # -------------------------------------------------
+
+        projected_color = (
+            registry.require(
+                "projected-color-v1.2",
+                stage=(
+                    PipelineStage.MATERIAL
+                ),
+            )
+        )
+
+        projected_availability = (
+            projected_color
+            .availability(
+                context
+            )
+        )
+
+        _require(
+            projected_availability.ready,
+            (
+                "Projected Color V1.2 rejected "
+                "generic non-Visual-Hull geometry.\n"
+                f"State: "
+                f"{projected_availability.state.value}\n"
+                f"Reason: "
+                f"{projected_availability.reason}\n"
+                f"Details: "
+                f"{dict(projected_availability.details)}"
+            ),
+        )
+
+        # -------------------------------------------------
+        # UV Bake V2
+        # -------------------------------------------------
+
+        uv_bake = (
+            registry.require(
+                "uv-bake-v2",
+                stage=(
+                    PipelineStage.MATERIAL
+                ),
+            )
+        )
+
+        uv_availability = (
+            uv_bake
+            .availability(
+                context
+            )
+        )
+
+        _require(
+            uv_availability.ready,
+            (
+                "UV Bake V2 rejected generic "
+                "non-Visual-Hull geometry.\n"
+                f"State: "
+                f"{uv_availability.state.value}\n"
+                f"Reason: "
+                f"{uv_availability.reason}\n"
+                f"Details: "
+                f"{dict(uv_availability.details)}"
+            ),
+        )
+
+        # -------------------------------------------------
+        # Availability diagnostics should expose the actual
+        # GEOMETRY implementation, not assume visual hull.
+        # -------------------------------------------------
+
+        _require(
+            (
+                projected_availability
+                .details
+                .get(
+                    "geometry_implementation"
+                )
+                == FAKE_GEOMETRY_IMPLEMENTATION_ID
+            ),
+            (
+                "Projected Color availability "
+                "did not preserve generic "
+                "GEOMETRY implementation identity."
+            ),
+        )
+
+        _require(
+            (
+                uv_availability
+                .details
+                .get(
+                    "geometry_implementation"
+                )
+                == FAKE_GEOMETRY_IMPLEMENTATION_ID
+            ),
+            (
+                "UV Bake availability "
+                "did not preserve generic "
+                "GEOMETRY implementation identity."
+            ),
+        )
+
+        print(
+            "Generic GEOMETRY compatibility: OK"
+        )
+
+        print(
+            (
+                "  geometry: "
+                f"{FAKE_GEOMETRY_IMPLEMENTATION_ID}"
+            )
+        )
+
+        print(
+            (
+                "  contract: "
+                f"{projection_space.convention.value}"
+            )
+        )
+
+        print(
+            "  projected-color-v1.2: READY"
+        )
+
+        print(
+            "  uv-bake-v2:             READY"
+        )
+
+    finally:
+        # -------------------------------------------------
+        # Smoke-test temporary Blender data must not leak
+        # into later registration/unregistration checks.
+        # -------------------------------------------------
+
+        if obj is not None:
+            try:
+                bpy.data.objects.remove(
+                    obj,
+                    do_unlink=True,
+                )
+
+            except Exception:
+                pass
+
+        if (
+            mesh is not None
+            and mesh.users == 0
+        ):
+            try:
+                bpy.data.meshes.remove(
+                    mesh
+                )
+
+            except Exception:
+                pass
+
+
+# =========================================================
 # Built-in catalog
 # =========================================================
 
@@ -1650,7 +2312,8 @@ def _validate_builtin_catalog(
 # Operators
 # =========================================================
 
-def _validate_operators_registered() -> None:
+def _validate_operators_registered(
+) -> None:
     _section(
         "operators"
     )
@@ -1715,7 +2378,8 @@ def _validate_operators_registered() -> None:
 # UI
 # =========================================================
 
-def _validate_ui_registered() -> None:
+def _validate_ui_registered(
+) -> None:
     _section(
         "ui"
     )
@@ -1972,7 +2636,7 @@ def main() -> None:
 
     try:
         # -------------------------------------------------
-        # Validate packaged ZIP contents.
+        # Validate extracted ZIP, not repository source.
         # -------------------------------------------------
 
         _validate_package_tree(
@@ -1989,8 +2653,12 @@ def main() -> None:
         )
 
         # -------------------------------------------------
-        # Pure core.
+        # Pure packaged core.
         # -------------------------------------------------
+
+        _validate_geometry_contract_core(
+            package_name
+        )
 
         _validate_uv_bake_core(
             package_name
@@ -2034,10 +2702,6 @@ def main() -> None:
             settings
         )
 
-        # -------------------------------------------------
-        # Critical product-default consistency guard.
-        # -------------------------------------------------
-
         _validate_uv_bake_default_alignment(
             package_name,
             settings,
@@ -2045,6 +2709,18 @@ def main() -> None:
 
         _validate_registry(
             package_name
+        )
+
+        # -------------------------------------------------
+        # Critical architecture regression test.
+        #
+        # MATERIAL must accept generic GEOMETRY, not only
+        # NativeVisualHullOutput.
+        # -------------------------------------------------
+
+        _validate_generic_geometry_material_compatibility(
+            package_name,
+            settings,
         )
 
         _validate_builtin_catalog(

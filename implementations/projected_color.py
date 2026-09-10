@@ -3,10 +3,17 @@ from __future__ import annotations
 import math
 
 from dataclasses import dataclass
-from typing import Any
+from typing import (
+    Any,
+    Sequence,
+)
 
 import bpy
 
+from ..core.geometry_contracts import (
+    GeometrySurfaceOutput,
+    require_geometry_surface_output,
+)
 from ..core.material_blend import (
     MaterialBlendConfig,
 )
@@ -26,15 +33,10 @@ from ..core.projected_material import (
     apply_projected_material,
 )
 
-from .native_visual_hull import (
-    NativeVisualHullOutput,
-    require_native_visual_hull_output,
-)
 
-
-# ---------------------------------------------------------
+# =========================================================
 # Constants
-# ---------------------------------------------------------
+# =========================================================
 
 IMPLEMENTATION_ID = (
     "projected-color-v1.2"
@@ -55,9 +57,9 @@ DEFAULT_MAX_CONTRIBUTORS = 3
 DEFAULT_WEIGHT_POWER = 1.5
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Configuration
-# ---------------------------------------------------------
+# =========================================================
 
 @dataclass(frozen=True)
 class ProjectedColorConfig:
@@ -146,30 +148,39 @@ class ProjectedColorConfig:
         )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Material output
-# ---------------------------------------------------------
+# =========================================================
 
 @dataclass(frozen=True)
 class ProjectedColorOutput:
     """
     Output contract of projected-color-v1.2.
 
-    The Blender object is the SAME object produced by the
-    GEOMETRY stage.
+    The Blender object is the SAME surface object produced
+    by the GEOMETRY stage.
 
-    Material does not create a second mesh.
+        any GeometrySurfaceOutput
+                 ↓
+        Projected Color V1.2
+                 ↓
+        same Blender object
+        + CORNER color attribute
 
-        Geometry object
-              ↓
-        projected-color
-              ↓
-        same object + material/color attributes
+    This output is intentionally geometry-implementation
+    agnostic.
+
+    geometry may therefore originate from:
+
+        Native Visual Hull
+        SDF Reconstruction
+        imported surface
+        future reconstruction engine
     """
 
     blender_object: bpy.types.Object
 
-    geometry: NativeVisualHullOutput
+    geometry: GeometrySurfaceOutput
 
     stats: MaterialProjectionStats
 
@@ -229,9 +240,9 @@ class ProjectedColorOutput:
         )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Context helpers
-# ---------------------------------------------------------
+# =========================================================
 
 def _resolve_settings(
     context: PipelineContext,
@@ -283,9 +294,9 @@ def require_projected_color_output(
     return output
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Configuration resolution
-# ---------------------------------------------------------
+# =========================================================
 
 def _read_setting(
     settings: Any,
@@ -295,12 +306,11 @@ def _read_setting(
     """
     Read an optional implementation-specific setting.
 
-    The properties layer does not expose these controls yet,
-    so V1 uses the stable defaults below.
+    The settings object may be:
 
-    When the Material implementation receives its own UI
-    configuration later, no pipeline-core changes will be
-    required.
+        Blender BPT_PG_Settings
+        SimpleNamespace from diagnostic scripts
+        future implementation-specific settings adapter
     """
 
     if settings is None:
@@ -325,6 +335,7 @@ def _config_from_settings(
                     DEFAULT_ENABLE_VISIBILITY,
                 )
             ),
+
             allow_backface_fallback=bool(
                 _read_setting(
                     settings,
@@ -332,6 +343,7 @@ def _config_from_settings(
                     DEFAULT_ALLOW_BACKFACE_FALLBACK,
                 )
             ),
+
             facing_power=float(
                 _read_setting(
                     settings,
@@ -339,6 +351,7 @@ def _config_from_settings(
                     DEFAULT_FACING_POWER,
                 )
             ),
+
             min_facing=float(
                 _read_setting(
                     settings,
@@ -346,6 +359,7 @@ def _config_from_settings(
                     DEFAULT_MIN_FACING,
                 )
             ),
+
             relative_score_cutoff=float(
                 _read_setting(
                     settings,
@@ -353,6 +367,7 @@ def _config_from_settings(
                     DEFAULT_RELATIVE_SCORE_CUTOFF,
                 )
             ),
+
             max_contributors=int(
                 _read_setting(
                     settings,
@@ -360,6 +375,7 @@ def _config_from_settings(
                     DEFAULT_MAX_CONTRIBUTORS,
                 )
             ),
+
             weight_power=float(
                 _read_setting(
                     settings,
@@ -375,23 +391,115 @@ def _config_from_settings(
     return config
 
 
-# ---------------------------------------------------------
+# =========================================================
+# Source material-view capability
+# =========================================================
+
+def _material_views_from_geometry(
+    geometry: GeometrySurfaceOutput,
+) -> tuple[
+    Any,
+    ...
+]:
+    """
+    Resolve projection-material views from the INPUT source
+    without requiring ProjectionImagesOutput.
+
+    This is intentionally capability-based.
+
+    Projected Color needs:
+
+        geometry.source.material_views
+
+    It does NOT need to know the concrete INPUT or GEOMETRY
+    class which supplied them.
+
+    A future input implementation can therefore participate
+    simply by exposing a compatible material_views sequence.
+    """
+
+    source = (
+        geometry.source
+    )
+
+    material_views = getattr(
+        source,
+        "material_views",
+        None,
+    )
+
+    if material_views is None:
+        raise TypeError(
+            (
+                "GEOMETRY source does not expose "
+                "material_views required by "
+                "Projected Color."
+            )
+        )
+
+    try:
+        resolved = tuple(
+            material_views
+        )
+
+    except TypeError as exc:
+        raise TypeError(
+            (
+                "GEOMETRY source material_views "
+                "is not iterable."
+            )
+        ) from exc
+
+    if not resolved:
+        raise ValueError(
+            (
+                "No material projection views "
+                "are available."
+            )
+        )
+
+    return resolved
+
+
+# =========================================================
 # Geometry validation
-# ---------------------------------------------------------
+# =========================================================
 
 def _validate_geometry(
-    geometry: NativeVisualHullOutput,
+    geometry: GeometrySurfaceOutput,
 ) -> None:
+    """
+    Validate only the generic surface requirements needed by
+    Projected Color.
+
+    There must be no knowledge of:
+
+        NativeVolume
+        NativeMesh
+        Visual Hull
+        SDF internals
+    """
+
     obj = (
         geometry.blender_object
     )
 
     if obj is None:
         raise ValueError(
-            "Geometry has no Blender object."
+            (
+                "Geometry has no "
+                "Blender object."
+            )
         )
 
-    if obj.type != "MESH":
+    if (
+        getattr(
+            obj,
+            "type",
+            None,
+        )
+        != "MESH"
+    ):
         raise TypeError(
             (
                 "Projected Color requires "
@@ -399,15 +507,17 @@ def _validate_geometry(
             )
         )
 
-    mesh = (
-        obj.data
+    mesh = getattr(
+        obj,
+        "data",
+        None,
     )
 
     if mesh is None:
         raise ValueError(
             (
-                "Geometry object has no "
-                "mesh data."
+                "Geometry object has "
+                "no mesh data."
             )
         )
 
@@ -441,35 +551,63 @@ def _validate_geometry(
             )
         )
 
+    # -----------------------------------------------------
+    # Projection-space validation.
+    #
+    # require_geometry_surface_output() already validates
+    # the generic contract, but keeping this explicit here
+    # makes errors produced by this implementation easier
+    # to diagnose.
+    # -----------------------------------------------------
+
+    projection_space = (
+        geometry.projection_space
+    )
+
     if (
-        geometry.volume.width <= 0
-        or geometry.volume.depth <= 0
-        or geometry.volume.height <= 0
+        projection_space.width <= 0
+        or projection_space.depth <= 0
+        or projection_space.height <= 0
     ):
         raise ValueError(
             (
                 "Geometry contains invalid "
-                "visual-hull dimensions."
+                "projection-space dimensions."
             )
         )
 
     if (
         not math.isfinite(
-            geometry.voxel_size
+            projection_space
+            .voxel_size
         )
-        or geometry.voxel_size <= 0.0
+        or projection_space
+        .voxel_size
+        <= 0.0
     ):
         raise ValueError(
             (
                 "Geometry contains an invalid "
-                "voxel size."
+                "projection-space voxel size."
             )
         )
 
+    # Validate that the convention is supported by the
+    # current projection stack.
 
-# ---------------------------------------------------------
+    projection_space.as_projection_kwargs()
+
+    # Validate source capability as part of the complete
+    # Projected Color compatibility check.
+
+    _material_views_from_geometry(
+        geometry
+    )
+
+
+# =========================================================
 # Metadata
-# ---------------------------------------------------------
+# =========================================================
 
 def _write_material_metadata(
     obj: bpy.types.Object,
@@ -479,8 +617,8 @@ def _write_material_metadata(
     """
     Add generic Meshvenn metadata.
 
-    apply_projected_material() already writes all detailed
-    BPT material/visibility/blend statistics.
+    apply_projected_material() already writes detailed BPT
+    material / visibility / blend statistics.
     """
 
     obj[
@@ -517,10 +655,28 @@ def _write_material_metadata(
         output.color_attribute
     )
 
+    obj[
+        "meshvenn_material_geometry_implementation"
+    ] = (
+        output
+        .geometry
+        .implementation_id
+    )
 
-# ---------------------------------------------------------
+    obj[
+        "meshvenn_material_projection_convention"
+    ] = (
+        output
+        .geometry
+        .projection_space
+        .convention
+        .value
+    )
+
+
+# =========================================================
 # Statistics
-# ---------------------------------------------------------
+# =========================================================
 
 def _stats_metrics(
     stats: MaterialProjectionStats,
@@ -539,80 +695,100 @@ def _stats_metrics(
         "vertices": (
             stats.vertex_count
         ),
+
         "loops": (
             stats.loop_count
         ),
+
         "views": (
             stats.view_count
         ),
+
         "projected_vertices": (
             stats.projected_vertices
         ),
+
         "fallback_vertices": (
             stats.fallback_vertices
         ),
+
         "projected_fallback_vertices": (
             stats
             .projected_fallback_vertices
         ),
+
         "neutral_fallback_vertices": (
             stats
             .neutral_fallback_vertices
         ),
+
         "candidate_samples": (
             stats.candidate_samples
         ),
+
         "source_rejected_samples": (
             stats
             .source_rejected_samples
         ),
+
         "visible_samples": (
             stats.visible_samples
         ),
+
         "occluded_samples": (
             stats.occluded_samples
         ),
+
         "front_facing_samples": (
             stats.front_facing_samples
         ),
+
         "backface_samples": (
             stats.backface_samples
         ),
+
         "grazing_rejected_samples": (
             stats
             .grazing_rejected_samples
         ),
+
         "relative_rejected_samples": (
             stats
             .relative_rejected_samples
         ),
+
         "top_k_rejected_samples": (
             stats
             .top_k_rejected_samples
         ),
+
         "selected_samples": (
             stats.selected_samples
         ),
+
         "accepted_samples": (
             stats.accepted_samples
         ),
+
         "rejected_samples": (
             stats.rejected_samples
         ),
     }
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Implementation
-# ---------------------------------------------------------
+# =========================================================
 
 class ProjectedColorImplementation:
     """
     Built-in MATERIAL implementation.
 
-        NativeVisualHullOutput
+        GeometrySurfaceOutput
                 ↓
-        prepared RGB projection views
+        source.material_views
+                ↓
+        GeometryProjectionSpace
                 ↓
         V1.1 visibility
                 ↓
@@ -622,10 +798,15 @@ class ProjectedColorImplementation:
                 ↓
         ProjectedColorOutput
 
-    This adapter knows how to connect the generic pipeline
-    to projected_material.py.
+    The implementation does not know whether the surface was
+    created by:
 
-    The actual projection/blending algorithm remains in core/.
+        Native Visual Hull
+        SDF Reconstruction
+        another future geometry engine
+
+    The actual projection/blending algorithm remains in
+    core/projected_material.py.
     """
 
     _descriptor = (
@@ -633,18 +814,27 @@ class ProjectedColorImplementation:
             identifier=(
                 IMPLEMENTATION_ID
             ),
+
             stage=(
                 PipelineStage.MATERIAL
             ),
-            label="Projected Color V1.2",
+
+            label=(
+                "Projected Color V1.2"
+            ),
+
             description=(
                 "Project source images onto the generated "
                 "mesh using visibility-aware adaptive "
                 "multi-view blending."
             ),
+
             version="1.2",
+
             experimental=False,
+
             supports_headless=True,
+
             capabilities=(
                 "projected-color",
                 "vertex-color",
@@ -653,6 +843,8 @@ class ProjectedColorImplementation:
                 "adaptive-blend",
                 "top-k",
                 "grazing-rejection",
+                "generic-geometry",
+                "projection-space",
             ),
         )
     )
@@ -675,7 +867,7 @@ class ProjectedColorImplementation:
     ) -> ImplementationAvailability:
         try:
             geometry = (
-                require_native_visual_hull_output(
+                require_geometry_surface_output(
                     context
                 )
             )
@@ -685,7 +877,7 @@ class ProjectedColorImplementation:
                 ImplementationAvailability
                 .unavailable(
                     (
-                        "Native Visual Hull geometry "
+                        "Compatible GEOMETRY surface "
                         "is unavailable."
                     ),
                     details={
@@ -701,33 +893,30 @@ class ProjectedColorImplementation:
                 geometry
             )
 
+            material_views = (
+                _material_views_from_geometry(
+                    geometry
+                )
+            )
+
         except Exception as exc:
             return (
                 ImplementationAvailability
                 .unavailable(
-                    "Geometry is incompatible.",
+                    (
+                        "Geometry is incompatible "
+                        "with Projected Color."
+                    ),
                     details={
+                        "geometry_implementation": (
+                            geometry
+                            .implementation_id
+                        ),
+
                         "error": str(
                             exc
                         ),
                     },
-                )
-            )
-
-        material_views = (
-            geometry
-            .source
-            .material_views
-        )
-
-        if not material_views:
-            return (
-                ImplementationAvailability
-                .unavailable(
-                    (
-                        "No material projection "
-                        "views are available."
-                    )
                 )
             )
 
@@ -760,21 +949,33 @@ class ProjectedColorImplementation:
                 )
             )
 
+        projection_space = (
+            geometry
+            .projection_space
+        )
+
         return (
             ImplementationAvailability
             .ready_state(
                 details={
                     "object": (
                         geometry
-                        .blender_object
-                        .name
+                        .object_name
                     ),
+
+                    "geometry_implementation": (
+                        geometry
+                        .implementation_id
+                    ),
+
                     "views": len(
                         material_views
                     ),
+
                     "material_mode": (
                         MATERIAL_MODE
                     ),
+
                     "visibility_mode": (
                         VISIBILITY_MODE
                         if (
@@ -783,9 +984,43 @@ class ProjectedColorImplementation:
                         )
                         else "disabled"
                     ),
+
                     "blend_mode": (
                         BLEND_MODE
                     ),
+
+                    "projection_space": {
+                        "width": (
+                            projection_space
+                            .width
+                        ),
+
+                        "depth": (
+                            projection_space
+                            .depth
+                        ),
+
+                        "height": (
+                            projection_space
+                            .height
+                        ),
+
+                        "voxel_size": (
+                            projection_space
+                            .voxel_size
+                        ),
+
+                        "center_xy": (
+                            projection_space
+                            .center_xy
+                        ),
+
+                        "convention": (
+                            projection_space
+                            .convention
+                            .value
+                        ),
+                    },
                 }
             )
         )
@@ -798,9 +1033,16 @@ class ProjectedColorImplementation:
         self,
         context: PipelineContext,
     ) -> StageExecutionResult:
+        # -------------------------------------------------
+        # Generic GEOMETRY contract.
+        #
+        # There must be no NativeVisualHullOutput dependency
+        # below this point.
+        # -------------------------------------------------
+
         try:
             geometry = (
-                require_native_visual_hull_output(
+                require_geometry_surface_output(
                     context
                 )
             )
@@ -812,11 +1054,13 @@ class ProjectedColorImplementation:
                     stage=(
                         PipelineStage.MATERIAL
                     ),
+
                     implementation_id=(
                         IMPLEMENTATION_ID
                     ),
+
                     message=(
-                        "Native Visual Hull geometry "
+                        "Compatible GEOMETRY surface "
                         f"is unavailable: {exc}"
                     ),
                 )
@@ -827,6 +1071,12 @@ class ProjectedColorImplementation:
                 geometry
             )
 
+            material_views = list(
+                _material_views_from_geometry(
+                    geometry
+                )
+            )
+
         except Exception as exc:
             return (
                 StageExecutionResult
@@ -834,36 +1084,22 @@ class ProjectedColorImplementation:
                     stage=(
                         PipelineStage.MATERIAL
                     ),
+
                     implementation_id=(
                         IMPLEMENTATION_ID
                     ),
+
                     message=(
                         "Geometry is incompatible with "
                         f"Projected Color: {exc}"
                     ),
-                )
-            )
 
-        material_views = list(
-            geometry
-            .source
-            .material_views
-        )
-
-        if not material_views:
-            return (
-                StageExecutionResult
-                .failed_result(
-                    stage=(
-                        PipelineStage.MATERIAL
-                    ),
-                    implementation_id=(
-                        IMPLEMENTATION_ID
-                    ),
-                    message=(
-                        "No material projection "
-                        "views are available."
-                    ),
+                    metadata={
+                        "geometry_implementation": (
+                            geometry
+                            .implementation_id
+                        ),
+                    },
                 )
             )
 
@@ -887,16 +1123,22 @@ class ProjectedColorImplementation:
                     stage=(
                         PipelineStage.MATERIAL
                     ),
+
                     implementation_id=(
                         IMPLEMENTATION_ID
                     ),
+
                     message=(
                         "Invalid Projected Color "
                         f"configuration: {exc}"
                     ),
+
                     metadata={
                         "exception_type": (
-                            type(exc).__name__
+                            type(
+                                exc
+                            )
+                            .__name__
                         ),
                     },
                 )
@@ -905,6 +1147,11 @@ class ProjectedColorImplementation:
         obj = (
             geometry
             .blender_object
+        )
+
+        projection_space = (
+            geometry
+            .projection_space
         )
 
         blend_config = (
@@ -917,61 +1164,67 @@ class ProjectedColorImplementation:
         #
         # IMPORTANT:
         #
-        # GEOMETRY may already have normalized the visible
-        # object through obj.scale.
+        # GEOMETRY may normalize the visible object via
+        # object-level scale.
         #
-        # obj.data vertex coordinates remain untouched and
-        # therefore still match:
+        # obj.data vertex coordinates MUST remain in the
+        # GeometryProjectionSpace declared by GEOMETRY.
         #
-        #     NativeVolume
-        #     projection_math.py
-        #     material visibility BVH
+        # This rule now applies identically to Visual Hull,
+        # SDF and future reconstruction implementations.
         #
-        # No transform must be applied here before material
-        # projection.
+        # Do not apply transforms before this projection.
         # -------------------------------------------------
 
         stats = (
             apply_projected_material(
                 obj,
                 material_views,
+
                 volume_width=(
-                    geometry
-                    .volume
+                    projection_space
                     .width
                 ),
+
                 volume_depth=(
-                    geometry
-                    .volume
+                    projection_space
                     .depth
                 ),
+
                 volume_height=(
-                    geometry
-                    .volume
+                    projection_space
                     .height
                 ),
+
                 voxel_size=(
-                    geometry
+                    projection_space
                     .voxel_size
                 ),
+
                 center_xy=(
-                    geometry
+                    projection_space
                     .center_xy
                 ),
+
                 attribute_name=(
                     COLOR_ATTRIBUTE_NAME
                 ),
+
                 facing_power=(
-                    config.facing_power
+                    config
+                    .facing_power
                 ),
+
                 allow_backface_fallback=(
                     config
                     .allow_backface_fallback
                 ),
+
                 enable_visibility=(
                     config
                     .enable_visibility
                 ),
+
                 blend_config=(
                     blend_config
                 ),
@@ -987,18 +1240,25 @@ class ProjectedColorImplementation:
         output = (
             ProjectedColorOutput(
                 blender_object=obj,
+
                 geometry=geometry,
+
                 stats=stats,
+
                 config=config,
+
                 material_mode=(
                     MATERIAL_MODE
                 ),
+
                 visibility_mode=(
                     effective_visibility_mode
                 ),
+
                 blend_mode=(
                     BLEND_MODE
                 ),
+
                 color_attribute=(
                     COLOR_ATTRIBUTE_NAME
                 ),
@@ -1039,6 +1299,21 @@ class ProjectedColorImplementation:
         )
 
         context.metadata[
+            "material_geometry_implementation"
+        ] = (
+            geometry
+            .implementation_id
+        )
+
+        context.metadata[
+            "material_projection_convention"
+        ] = (
+            projection_space
+            .convention
+            .value
+        )
+
+        context.metadata[
             "material_selected_samples"
         ] = (
             stats.selected_samples
@@ -1050,16 +1325,23 @@ class ProjectedColorImplementation:
             stats.fallback_vertices
         )
 
+        # -------------------------------------------------
+        # Result
+        # -------------------------------------------------
+
         return (
             StageExecutionResult
             .succeeded(
                 stage=(
                     PipelineStage.MATERIAL
                 ),
+
                 implementation_id=(
                     IMPLEMENTATION_ID
                 ),
+
                 payload=output,
+
                 message=(
                     "Projected material generated: "
                     f"{stats.projected_vertices} direct "
@@ -1069,50 +1351,103 @@ class ProjectedColorImplementation:
                     f"{stats.selected_samples} selected "
                     "samples."
                 ),
+
                 metrics=(
                     _stats_metrics(
                         stats
                     )
                 ),
+
                 metadata={
                     "object_name": (
                         obj.name
                     ),
+
+                    "geometry_implementation": (
+                        geometry
+                        .implementation_id
+                    ),
+
                     "material_mode": (
                         MATERIAL_MODE
                     ),
+
                     "visibility_mode": (
                         effective_visibility_mode
                     ),
+
                     "blend_mode": (
                         BLEND_MODE
                     ),
+
                     "color_attribute": (
                         COLOR_ATTRIBUTE_NAME
                     ),
+
+                    "projection_space": {
+                        "width": (
+                            projection_space
+                            .width
+                        ),
+
+                        "depth": (
+                            projection_space
+                            .depth
+                        ),
+
+                        "height": (
+                            projection_space
+                            .height
+                        ),
+
+                        "voxel_size": (
+                            projection_space
+                            .voxel_size
+                        ),
+
+                        "center_xy": (
+                            projection_space
+                            .center_xy
+                        ),
+
+                        "convention": (
+                            projection_space
+                            .convention
+                            .value
+                        ),
+                    },
+
                     "configuration": {
                         "enable_visibility": (
                             config
                             .enable_visibility
                         ),
+
                         "allow_backface_fallback": (
                             config
                             .allow_backface_fallback
                         ),
+
                         "min_facing": (
-                            config.min_facing
+                            config
+                            .min_facing
                         ),
+
                         "facing_power": (
-                            config.facing_power
+                            config
+                            .facing_power
                         ),
+
                         "relative_score_cutoff": (
                             config
                             .relative_score_cutoff
                         ),
+
                         "max_contributors": (
                             config
                             .max_contributors
                         ),
+
                         "weight_power": (
                             config
                             .weight_power
