@@ -1,0 +1,1822 @@
+name: UV Bake Resolution Benchmark
+
+run-name: >-
+  UV Bake Benchmark |
+  ${{ github.event_name }} |
+  ${{ github.event_name == 'workflow_dispatch' && inputs.texture_sizes || '256 512 1024' }}
+
+
+on:
+  # --------------------------------------------------------
+  # This primarily allows the benchmark workflow itself to
+  # be validated before it reaches main.
+  #
+  # Once merged, normal usage is workflow_dispatch.
+  # --------------------------------------------------------
+
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+    branches:
+      - main
+
+    paths:
+      - "scripts/benchmark_uv_bake_resolution.py"
+      - ".github/workflows/uv_bake_benchmark.yml"
+
+
+  workflow_dispatch:
+    inputs:
+
+      sheet:
+        description: "Sheet to benchmark"
+        required: false
+        default: "sheet1"
+
+      profiles:
+        description: "Space-separated scan profiles"
+        required: false
+        default: "L2 L10"
+
+      texture_sizes:
+        description: "Space-separated UV texture sizes"
+        required: false
+        default: "256 512 1024"
+
+      resolution:
+        description: "Visual Hull geometry resolution"
+        required: false
+        default: "64"
+
+      mesh_mode:
+        description: "Geometry extraction mode"
+        required: true
+        default: "surface_nets"
+        type: choice
+        options:
+          - surface_nets
+          - blocks
+
+      padding:
+        description: "UV texture padding in pixels"
+        required: false
+        default: "4"
+
+      samples_per_axis:
+        description: "UV raster supersampling"
+        required: true
+        default: "1"
+        type: choice
+        options:
+          - "1"
+          - "2"
+          - "3"
+          - "4"
+
+      render_size:
+        description: "Turntable tile size"
+        required: false
+        default: "256"
+
+      views:
+        description: "Turntable view count"
+        required: false
+        default: "4"
+
+      render_samples:
+        description: "Cycles samples"
+        required: false
+        default: "1"
+
+      max_subpixel_ratio:
+        description: "Technical subpixel target, 0..1"
+        required: false
+        default: "0.10"
+
+
+permissions:
+  contents: read
+
+
+concurrency:
+  group: >-
+    uv-bake-benchmark-${{ github.event_name }}-${{ github.ref }}
+
+  cancel-in-progress: true
+
+
+env:
+  BLENDER_VERSION: "5.2.1"
+
+  BLENDER_ARCHIVE: >-
+    blender-5.2.1-linux-x64.tar.xz
+
+  BLENDER_BASE_URL: >-
+    https://download.blender.org/release/Blender5.2
+
+  BLENDER_ROOT: >-
+    ${{ github.workspace }}/.blender
+
+  EXAMPLE_DIR: >-
+    example/mascotte/test1
+
+
+jobs:
+
+  benchmark:
+    name: Benchmark UV Bake resolutions
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 60
+
+
+    steps:
+
+      # ====================================================
+      # Checkout
+      # ====================================================
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: >-
+            ${{
+              github.event_name == 'pull_request'
+              && github.event.pull_request.head.sha
+              || github.sha
+            }}
+
+          fetch-depth: 1
+
+
+      # ====================================================
+      # Configuration
+      # ====================================================
+
+      - name: Resolve benchmark configuration
+        id: config
+        shell: bash
+        run: |
+          set -euo pipefail
+
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+
+            SHEET="${{ inputs.sheet }}"
+
+            PROFILES="${{ inputs.profiles }}"
+
+            TEXTURE_SIZES="${{ inputs.texture_sizes }}"
+
+            RESOLUTION="${{ inputs.resolution }}"
+
+            MESH_MODE="${{ inputs.mesh_mode }}"
+
+            PADDING="${{ inputs.padding }}"
+
+            SAMPLES_PER_AXIS="${{ inputs.samples_per_axis }}"
+
+            RENDER_SIZE="${{ inputs.render_size }}"
+
+            VIEWS="${{ inputs.views }}"
+
+            RENDER_SAMPLES="${{ inputs.render_samples }}"
+
+            MAX_SUBPIXEL_RATIO="${{ inputs.max_subpixel_ratio }}"
+
+          else
+
+            # ----------------------------------------------
+            # Initial PR benchmark.
+            #
+            # This is the benchmark we currently need to
+            # choose between 256 / 512 / 1024.
+            # ----------------------------------------------
+
+            SHEET="sheet1"
+
+            PROFILES="L2 L10"
+
+            TEXTURE_SIZES="256 512 1024"
+
+            RESOLUTION="64"
+
+            MESH_MODE="surface_nets"
+
+            PADDING="4"
+
+            SAMPLES_PER_AXIS="1"
+
+            RENDER_SIZE="256"
+
+            VIEWS="4"
+
+            RENDER_SAMPLES="1"
+
+            MAX_SUBPIXEL_RATIO="0.10"
+
+          fi
+
+
+          # ------------------------------------------------
+          # Validate everything with Python rather than
+          # duplicating fragile Bash arithmetic/parsing.
+          # ------------------------------------------------
+
+          export SHEET
+          export PROFILES
+          export TEXTURE_SIZES
+          export RESOLUTION
+          export MESH_MODE
+          export PADDING
+          export SAMPLES_PER_AXIS
+          export RENDER_SIZE
+          export VIEWS
+          export RENDER_SAMPLES
+          export MAX_SUBPIXEL_RATIO
+
+
+          python - <<'PY'
+          from __future__ import annotations
+
+          import os
+          import re
+
+          from pathlib import Path
+
+
+          sheet = os.environ[
+              "SHEET"
+          ].strip()
+
+          profiles = (
+              os.environ[
+                  "PROFILES"
+              ]
+              .upper()
+              .split()
+          )
+
+          texture_sizes = [
+              int(value)
+              for value
+              in os.environ[
+                  "TEXTURE_SIZES"
+              ]
+              .split()
+          ]
+
+          resolution = int(
+              os.environ[
+                  "RESOLUTION"
+              ]
+          )
+
+          mesh_mode = os.environ[
+              "MESH_MODE"
+          ].strip()
+
+          padding = int(
+              os.environ[
+                  "PADDING"
+              ]
+          )
+
+          samples_per_axis = int(
+              os.environ[
+                  "SAMPLES_PER_AXIS"
+              ]
+          )
+
+          render_size = int(
+              os.environ[
+                  "RENDER_SIZE"
+              ]
+          )
+
+          views = int(
+              os.environ[
+                  "VIEWS"
+              ]
+          )
+
+          render_samples = int(
+              os.environ[
+                  "RENDER_SAMPLES"
+              ]
+          )
+
+          max_subpixel_ratio = float(
+              os.environ[
+                  "MAX_SUBPIXEL_RATIO"
+              ]
+          )
+
+
+          if not re.fullmatch(
+              r"sheet[A-Za-z0-9_-]+",
+              sheet,
+          ):
+              raise ValueError(
+                  f"Invalid sheet: {sheet!r}"
+              )
+
+
+          sheet_path = (
+              Path(
+                  "example/mascotte/test1/sheets"
+              )
+              / f"{sheet}.png"
+          )
+
+
+          if not sheet_path.is_file():
+              raise FileNotFoundError(
+                  (
+                      "Missing sheet: "
+                      f"{sheet_path}"
+                  )
+              )
+
+
+          valid_profiles = {
+              "L2",
+              "L4",
+              "L8",
+              "L10",
+          }
+
+
+          if not profiles:
+              raise ValueError(
+                  "At least one profile is required."
+              )
+
+
+          for profile in profiles:
+
+              if profile not in valid_profiles:
+
+                  raise ValueError(
+                      (
+                          "Unsupported profile: "
+                          f"{profile}"
+                      )
+                  )
+
+
+          if len(
+              set(
+                  profiles
+              )
+          ) != len(
+              profiles
+          ):
+              raise ValueError(
+                  "Profiles must be unique."
+              )
+
+
+          valid_texture_sizes = {
+              64,
+              128,
+              256,
+              512,
+              1024,
+              2048,
+              4096,
+          }
+
+
+          if not texture_sizes:
+              raise ValueError(
+                  (
+                      "At least one texture "
+                      "size is required."
+                  )
+              )
+
+
+          if len(
+              set(
+                  texture_sizes
+              )
+          ) != len(
+              texture_sizes
+          ):
+              raise ValueError(
+                  (
+                      "Texture sizes must "
+                      "be unique."
+                  )
+              )
+
+
+          for size in texture_sizes:
+
+              if size not in valid_texture_sizes:
+
+                  raise ValueError(
+                      (
+                          "Unsupported texture "
+                          f"size: {size}"
+                      )
+                  )
+
+
+          if not (
+              8
+              <= resolution
+              <= 256
+          ):
+              raise ValueError(
+                  (
+                      "Geometry resolution must "
+                      "be between 8 and 256."
+                  )
+              )
+
+
+          if mesh_mode not in {
+              "surface_nets",
+              "blocks",
+          }:
+              raise ValueError(
+                  (
+                      "Unsupported mesh mode: "
+                      f"{mesh_mode}"
+                  )
+              )
+
+
+          if not (
+              0
+              <= padding
+              <= 128
+          ):
+              raise ValueError(
+                  (
+                      "Padding must be "
+                      "between 0 and 128."
+                  )
+              )
+
+
+          if samples_per_axis not in {
+              1,
+              2,
+              3,
+              4,
+          }:
+              raise ValueError(
+                  (
+                      "samples_per_axis must "
+                      "be 1, 2, 3 or 4."
+                  )
+              )
+
+
+          if not (
+              128
+              <= render_size
+              <= 2048
+          ):
+              raise ValueError(
+                  (
+                      "Render size must be "
+                      "between 128 and 2048."
+                  )
+              )
+
+
+          if not (
+              4
+              <= views
+              <= 16
+          ):
+              raise ValueError(
+                  (
+                      "Views must be "
+                      "between 4 and 16."
+                  )
+              )
+
+
+          if not (
+              1
+              <= render_samples
+              <= 128
+          ):
+              raise ValueError(
+                  (
+                      "Render samples must be "
+                      "between 1 and 128."
+                  )
+              )
+
+
+          if not (
+              0.0
+              <= max_subpixel_ratio
+              <= 1.0
+          ):
+              raise ValueError(
+                  (
+                      "max_subpixel_ratio must "
+                      "be inside [0, 1]."
+                  )
+              )
+
+
+          print(
+              "Benchmark configuration: OK"
+          )
+
+          print(
+              f"  sheet:            {sheet}"
+          )
+
+          print(
+              (
+                  "  profiles:         "
+                  + " ".join(
+                      profiles
+                  )
+              )
+          )
+
+          print(
+              (
+                  "  texture sizes:    "
+                  + " ".join(
+                      str(
+                          value
+                      )
+                      for value
+                      in texture_sizes
+                  )
+              )
+          )
+
+          print(
+              f"  resolution:       {resolution}"
+          )
+
+          print(
+              f"  mesh mode:        {mesh_mode}"
+          )
+
+          print(
+              f"  padding:          {padding}"
+          )
+
+          print(
+              (
+                  "  samples per axis: "
+                  f"{samples_per_axis}"
+              )
+          )
+
+          print(
+              f"  render size:      {render_size}"
+          )
+
+          print(
+              f"  views:            {views}"
+          )
+
+          print(
+              (
+                  "  render samples:   "
+                  f"{render_samples}"
+              )
+          )
+
+          print(
+              (
+                  "  subpixel target:  "
+                  f"{max_subpixel_ratio:.2%}"
+              )
+          )
+          PY
+
+
+          # ------------------------------------------------
+          # Normalize lists before exporting step outputs.
+          # ------------------------------------------------
+
+          PROFILES="$(
+            echo "${PROFILES}" \
+              | tr \
+                '[:lower:]' \
+                '[:upper:]' \
+              | xargs
+          )"
+
+
+          TEXTURE_SIZES="$(
+            echo "${TEXTURE_SIZES}" \
+              | xargs
+          )"
+
+
+          {
+            echo "sheet=${SHEET}"
+
+            echo "profiles=${PROFILES}"
+
+            echo "texture_sizes=${TEXTURE_SIZES}"
+
+            echo "resolution=${RESOLUTION}"
+
+            echo "mesh_mode=${MESH_MODE}"
+
+            echo "padding=${PADDING}"
+
+            echo "samples_per_axis=${SAMPLES_PER_AXIS}"
+
+            echo "render_size=${RENDER_SIZE}"
+
+            echo "views=${VIEWS}"
+
+            echo "render_samples=${RENDER_SAMPLES}"
+
+            echo "max_subpixel_ratio=${MAX_SUBPIXEL_RATIO}"
+
+          } >> "${GITHUB_OUTPUT}"
+
+
+      # ====================================================
+      # Native core
+      # ====================================================
+
+      - name: Install native build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            g++
+
+
+      - name: Configure native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            -S native \
+            -B build/native-uv-benchmark \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBPT_BUILD_TESTS=ON
+
+
+      - name: Build native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            --build build/native-uv-benchmark \
+            --parallel
+
+
+      - name: Test native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ctest \
+            --test-dir build/native-uv-benchmark \
+            --output-on-failure
+
+
+      - name: Stage native library
+        shell: bash
+        run: |
+          set -euo pipefail
+
+
+          mkdir -p \
+            native/bin
+
+
+          LIBRARY="$(
+            find \
+              build/native-uv-benchmark \
+              -type f \
+              -name "libbpt_core.so" \
+              | head -n 1
+          )"
+
+
+          if [[ -z "${LIBRARY}" ]]; then
+
+            echo \
+              "libbpt_core.so not found."
+
+            exit 1
+
+          fi
+
+
+          cp \
+            "${LIBRARY}" \
+            native/bin/libbpt_core.so
+
+
+          test -s \
+            native/bin/libbpt_core.so
+
+
+          ls -lh \
+            native/bin/libbpt_core.so
+
+
+      # ====================================================
+      # Blender
+      # ====================================================
+
+      - name: Cache Blender
+        id: blender-cache
+        uses: actions/cache@v4
+        with:
+          path: .blender
+
+          key: >-
+            blender-linux-x64-${{ env.BLENDER_VERSION }}
+
+
+      - name: Download Blender
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+
+          mkdir -p \
+            "${BLENDER_ROOT}"
+
+
+          URL="${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
+
+          ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
+
+
+          echo \
+            "Downloading ${URL}"
+
+
+          curl \
+            --fail \
+            --show-error \
+            --location \
+            --retry 5 \
+            --retry-all-errors \
+            --connect-timeout 20 \
+            --max-time 900 \
+            --output "${ARCHIVE}" \
+            "${URL}"
+
+
+          xz \
+            --test \
+            "${ARCHIVE}"
+
+
+          tar \
+            -xJf "${ARCHIVE}" \
+            -C "${BLENDER_ROOT}" \
+            --strip-components=1
+
+
+          rm \
+            "${ARCHIVE}"
+
+
+      - name: Verify Blender
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          "${BLENDER_ROOT}/blender" \
+            --version
+
+
+      # ====================================================
+      # Existing UV Bake test suite
+      # ====================================================
+
+      - name: Test UV Bake core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python \
+            -m unittest \
+            tests.test_uv_bake \
+            -v
+
+
+      # ====================================================
+      # Run benchmark
+      # ====================================================
+
+      - name: Run UV Bake resolution benchmark
+        shell: bash
+        env:
+          OUTPUT_ROOT: >-
+            ${{ runner.temp }}/meshvenn-uv-bake-resolution-benchmark
+
+        run: |
+          set -euo pipefail
+
+
+          rm -rf \
+            "${OUTPUT_ROOT}"
+
+
+          mkdir -p \
+            "${OUTPUT_ROOT}"
+
+
+          read -ra PROFILE_ARGS \
+            <<< "${{ steps.config.outputs.profiles }}"
+
+
+          read -ra TEXTURE_ARGS \
+            <<< "${{ steps.config.outputs.texture_sizes }}"
+
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python \
+              scripts/benchmark_uv_bake_resolution.py \
+            -- \
+            --example-dir \
+              "${EXAMPLE_DIR}" \
+            --output \
+              "${OUTPUT_ROOT}" \
+            --sheets \
+              "${{ steps.config.outputs.sheet }}" \
+            --profiles \
+              "${PROFILE_ARGS[@]}" \
+            --texture-sizes \
+              "${TEXTURE_ARGS[@]}" \
+            --resolution \
+              "${{ steps.config.outputs.resolution }}" \
+            --mesh-mode \
+              "${{ steps.config.outputs.mesh_mode }}" \
+            --padding \
+              "${{ steps.config.outputs.padding }}" \
+            --samples-per-axis \
+              "${{ steps.config.outputs.samples_per_axis }}" \
+            --render-size \
+              "${{ steps.config.outputs.render_size }}" \
+            --views \
+              "${{ steps.config.outputs.views }}" \
+            --render-samples \
+              "${{ steps.config.outputs.render_samples }}" \
+            --max-subpixel-ratio \
+              "${{ steps.config.outputs.max_subpixel_ratio }}"
+
+
+      # ====================================================
+      # Benchmark validation
+      #
+      # This validates benchmark integrity, not a specific
+      # quality winner.
+      #
+      # We do NOT fail CI because 256 or 512 has a worse
+      # quality metric. The whole purpose of this run is to
+      # discover that.
+      # ====================================================
+
+      - name: Validate benchmark results
+        shell: bash
+        env:
+          OUTPUT_ROOT: >-
+            ${{ runner.temp }}/meshvenn-uv-bake-resolution-benchmark
+
+          SHEET: >-
+            ${{ steps.config.outputs.sheet }}
+
+          PROFILES: >-
+            ${{ steps.config.outputs.profiles }}
+
+          TEXTURE_SIZES: >-
+            ${{ steps.config.outputs.texture_sizes }}
+
+        run: |
+          set -euo pipefail
+
+
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+
+          from pathlib import Path
+
+
+          root = Path(
+              os.environ[
+                  "OUTPUT_ROOT"
+              ]
+          )
+
+          sheet = os.environ[
+              "SHEET"
+          ]
+
+          profiles = (
+              os.environ[
+                  "PROFILES"
+              ]
+              .split()
+          )
+
+          texture_sizes = [
+              int(
+                  value
+              )
+              for value
+              in os.environ[
+                  "TEXTURE_SIZES"
+              ]
+              .split()
+          ]
+
+
+          # ================================================
+          # Main result files
+          # ================================================
+
+          benchmark_json = (
+              root
+              / "benchmark.json"
+          )
+
+          benchmark_md = (
+              root
+              / "BENCHMARK.md"
+          )
+
+          matrix = (
+              root
+              / "benchmark_matrix.png"
+          )
+
+
+          for path in (
+              benchmark_json,
+              benchmark_md,
+              matrix,
+          ):
+
+              if not path.is_file():
+
+                  raise RuntimeError(
+                      (
+                          "Missing benchmark output: "
+                          f"{path}"
+                      )
+                  )
+
+
+          if matrix.stat().st_size < 1024:
+
+              raise RuntimeError(
+                  (
+                      "Benchmark matrix is "
+                      "unexpectedly small: "
+                      f"{matrix.stat().st_size} bytes"
+                  )
+              )
+
+
+          # ================================================
+          # Manifest
+          # ================================================
+
+          manifest = json.loads(
+              benchmark_json.read_text(
+                  encoding="utf-8"
+              )
+          )
+
+
+          if not manifest.get(
+              "success",
+              False,
+          ):
+
+              raise RuntimeError(
+                  (
+                      "Benchmark manifest "
+                      "reports failure."
+                  )
+              )
+
+
+          rows = (
+              manifest.get(
+                  "rows"
+              )
+          )
+
+
+          if not isinstance(
+              rows,
+              list,
+          ):
+
+              raise RuntimeError(
+                  (
+                      "benchmark.json does not "
+                      "contain a rows array."
+                  )
+              )
+
+
+          # ================================================
+          # Index rows
+          # ================================================
+
+          indexed = {}
+
+
+          for row in rows:
+
+              key = (
+                  row.get(
+                      "profile"
+                  ),
+
+                  row.get(
+                      "implementation"
+                  ),
+
+                  row.get(
+                      "texture_size"
+                  ),
+              )
+
+              indexed[
+                  key
+              ] = row
+
+
+          # ================================================
+          # Every profile needs exactly one projected
+          # baseline and all requested UV sizes.
+          # ================================================
+
+          geometry_by_profile = {}
+
+
+          for profile in profiles:
+
+              baseline_key = (
+                  profile,
+                  "projected-color-v1.2",
+                  None,
+              )
+
+
+              if baseline_key not in indexed:
+
+                  raise RuntimeError(
+                      (
+                          "Missing projected-color "
+                          f"baseline for {profile}."
+                      )
+                  )
+
+
+              baseline = (
+                  indexed[
+                      baseline_key
+                  ]
+              )
+
+
+              geometry_signature = (
+                  int(
+                      baseline[
+                          "vertices"
+                      ]
+                  ),
+
+                  int(
+                      baseline[
+                          "faces"
+                      ]
+                  ),
+              )
+
+
+              geometry_by_profile[
+                  profile
+              ] = (
+                  geometry_signature
+              )
+
+
+              for texture_size in texture_sizes:
+
+                  key = (
+                      profile,
+                      "uv-bake-v2",
+                      texture_size,
+                  )
+
+
+                  if key not in indexed:
+
+                      raise RuntimeError(
+                          (
+                              "Missing UV benchmark "
+                              f"row for {profile} / "
+                              f"{texture_size}."
+                          )
+                      )
+
+
+                  row = (
+                      indexed[
+                          key
+                      ]
+                  )
+
+
+                  candidate_geometry = (
+                      int(
+                          row[
+                              "vertices"
+                          ]
+                      ),
+
+                      int(
+                          row[
+                              "faces"
+                          ]
+                      ),
+                  )
+
+
+                  if (
+                      candidate_geometry
+                      != geometry_signature
+                  ):
+
+                      raise RuntimeError(
+                          (
+                              "Geometry changed between "
+                              "benchmark variants.\n"
+                              f"Profile: {profile}\n"
+                              f"Expected: "
+                              f"{geometry_signature}\n"
+                              f"Actual:   "
+                              f"{candidate_geometry}"
+                          )
+                      )
+
+
+                  coverage = (
+                      row.get(
+                          "coverage_ratio"
+                      )
+                  )
+
+
+                  covered_pixels = (
+                      row.get(
+                          "covered_pixels"
+                      )
+                  )
+
+
+                  surface_samples = (
+                      row.get(
+                          "surface_samples"
+                      )
+                  )
+
+
+                  if (
+                      coverage is None
+                      or float(
+                          coverage
+                      )
+                      <= 0.0
+                  ):
+
+                      raise RuntimeError(
+                          (
+                              "Invalid UV coverage for "
+                              f"{profile} / "
+                              f"{texture_size}."
+                          )
+                      )
+
+
+                  if (
+                      covered_pixels is None
+                      or int(
+                          covered_pixels
+                      )
+                      <= 0
+                  ):
+
+                      raise RuntimeError(
+                          (
+                              "Zero covered texels for "
+                              f"{profile} / "
+                              f"{texture_size}."
+                          )
+                      )
+
+
+                  if (
+                      surface_samples is None
+                      or int(
+                          surface_samples
+                      )
+                      <= 0
+                  ):
+
+                      raise RuntimeError(
+                          (
+                              "Zero surface samples for "
+                              f"{profile} / "
+                              f"{texture_size}."
+                          )
+                      )
+
+
+                  model_path = Path(
+                      row[
+                          "model"
+                      ]
+                  )
+
+
+                  render_path = Path(
+                      row[
+                          "render"
+                      ]
+                  )
+
+
+                  texture_path = (
+                      Path(
+                          row[
+                              "texture"
+                          ]
+                      )
+                      if row.get(
+                          "texture"
+                      )
+                      else None
+                  )
+
+
+                  if not model_path.is_file():
+
+                      raise RuntimeError(
+                          (
+                              "Missing GLB: "
+                              f"{model_path}"
+                          )
+                      )
+
+
+                  if not render_path.is_file():
+
+                      raise RuntimeError(
+                          (
+                              "Missing render: "
+                              f"{render_path}"
+                          )
+                      )
+
+
+                  if (
+                      texture_path is None
+                      or not texture_path.is_file()
+                  ):
+
+                      raise RuntimeError(
+                          (
+                              "Missing baked texture "
+                              f"for {profile} / "
+                              f"{texture_size}."
+                          )
+                      )
+
+
+          # ================================================
+          # Recommendation should exist, but is NOT required
+          # to meet its target.
+          # ================================================
+
+          recommendation = (
+              manifest.get(
+                  "recommendation"
+              )
+          )
+
+
+          if not isinstance(
+              recommendation,
+              dict,
+          ):
+
+              raise RuntimeError(
+                  (
+                      "Benchmark has no technical "
+                      "recommendation."
+                  )
+              )
+
+
+          suggested_size = (
+              recommendation.get(
+                  "texture_size"
+              )
+          )
+
+
+          if suggested_size not in texture_sizes:
+
+              raise RuntimeError(
+                  (
+                      "Benchmark recommendation "
+                      "is not one of the requested "
+                      f"sizes: {suggested_size}"
+                  )
+              )
+
+
+          print()
+
+          print(
+              "UV Bake resolution benchmark validation: OK"
+          )
+
+          print()
+
+          print(
+              (
+                  "Technical candidate: "
+                  f"{suggested_size}²"
+              )
+          )
+
+          print(
+              (
+                  "Target met: "
+                  f"{recommendation.get('target_met')}"
+              )
+          )
+
+          print()
+
+          print(
+              f"Visual matrix: {matrix}"
+          )
+          PY
+
+
+      # ====================================================
+      # Artifact
+      # ====================================================
+
+      - name: Upload UV Bake benchmark
+        id: artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: >-
+            meshvenn-uv-bake-benchmark-${{ github.run_id }}
+
+          path: >-
+            ${{ runner.temp }}/meshvenn-uv-bake-resolution-benchmark
+
+          if-no-files-found: warn
+
+          retention-days: 14
+
+
+      # ====================================================
+      # GitHub summary
+      # ====================================================
+
+      - name: Write benchmark summary
+        if: always()
+        shell: bash
+        env:
+          OUTPUT_ROOT: >-
+            ${{ runner.temp }}/meshvenn-uv-bake-resolution-benchmark
+
+          ARTIFACT_URL: >-
+            ${{ steps.artifact.outputs.artifact-url }}
+
+          SHEET: >-
+            ${{ steps.config.outputs.sheet }}
+
+          PROFILES: >-
+            ${{ steps.config.outputs.profiles }}
+
+          TEXTURE_SIZES: >-
+            ${{ steps.config.outputs.texture_sizes }}
+
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import math
+          import os
+
+          from pathlib import Path
+
+
+          output_root = Path(
+              os.environ.get(
+                  "OUTPUT_ROOT",
+                  "",
+              )
+          )
+
+          artifact_url = (
+              os.environ.get(
+                  "ARTIFACT_URL",
+                  "",
+              )
+              .strip()
+          )
+
+          sheet = (
+              os.environ.get(
+                  "SHEET",
+                  "",
+              )
+              .strip()
+          )
+
+          profiles = (
+              os.environ.get(
+                  "PROFILES",
+                  "",
+              )
+              .strip()
+          )
+
+          texture_sizes = (
+              os.environ.get(
+                  "TEXTURE_SIZES",
+                  "",
+              )
+              .strip()
+          )
+
+          summary_path = Path(
+              os.environ[
+                  "GITHUB_STEP_SUMMARY"
+              ]
+          )
+
+
+          lines = [
+              "# Meshvenn — UV Bake Resolution Benchmark",
+              "",
+          ]
+
+
+          if sheet:
+
+              lines.extend(
+                  [
+                      (
+                          "**Sheet:** "
+                          f"`{sheet}`"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          if profiles:
+
+              lines.extend(
+                  [
+                      (
+                          "**Profiles:** "
+                          f"`{profiles}`"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          if texture_sizes:
+
+              lines.extend(
+                  [
+                      (
+                          "**Texture sizes:** "
+                          f"`{texture_sizes}`"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          if artifact_url:
+
+              lines.extend(
+                  [
+                      (
+                          "[Download benchmark artifact]"
+                          f"({artifact_url})"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          benchmark_path = (
+              output_root
+              / "benchmark.json"
+          )
+
+          matrix_path = (
+              output_root
+              / "benchmark_matrix.png"
+          )
+
+
+          if not benchmark_path.is_file():
+
+              lines.extend(
+                  [
+                      "## Result",
+                      "",
+                      (
+                          "The benchmark did not produce "
+                          "`benchmark.json`."
+                      ),
+                      "",
+                  ]
+              )
+
+              summary_path.write_text(
+                  "\n".join(
+                      lines
+                  ),
+                  encoding="utf-8",
+              )
+
+              raise SystemExit(
+                  0
+              )
+
+
+          manifest = json.loads(
+              benchmark_path.read_text(
+                  encoding="utf-8"
+              )
+          )
+
+
+          recommendation = (
+              manifest.get(
+                  "recommendation",
+                  {},
+              )
+          )
+
+
+          lines.extend(
+              [
+                  "## Technical candidate",
+                  "",
+                  (
+                      "**Resolution:** "
+                      f"`{recommendation.get('texture_size')}²`"
+                  ),
+                  "",
+                  (
+                      "**Subpixel target met:** "
+                      f"`{recommendation.get('target_met')}`"
+                  ),
+                  "",
+              ]
+          )
+
+
+          if matrix_path.is_file():
+
+              lines.extend(
+                  [
+                      (
+                          "Visual matrix: "
+                          "`benchmark_matrix.png`"
+                      ),
+                      "",
+                      (
+                          "Matrix size: "
+                          f"`{matrix_path.stat().st_size:,} bytes`"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          rows = (
+              manifest.get(
+                  "rows",
+                  [],
+              )
+          )
+
+
+          if rows:
+
+              lines.extend(
+                  [
+                      "## Measurements",
+                      "",
+                      (
+                          "| Profile | Variant | Bake | "
+                          "Coverage | Filled | Subpixel tris | "
+                          "Mean tri px² | GLB MiB | RGB MAE | PSNR |"
+                      ),
+                      (
+                          "| --- | --- | ---: | ---: | ---: | "
+                          "---: | ---: | ---: | ---: | ---: |"
+                      ),
+                  ]
+              )
+
+
+              for row in rows:
+
+                  implementation = (
+                      row.get(
+                          "implementation"
+                      )
+                  )
+
+
+                  if (
+                      implementation
+                      == "projected-color-v1.2"
+                  ):
+
+                      label = (
+                          "Projected V1.2"
+                      )
+
+                  else:
+
+                      label = (
+                          "UV "
+                          f"{row.get('texture_size')}²"
+                      )
+
+
+                  material_seconds = float(
+                      row.get(
+                          "material_seconds",
+                          0.0,
+                      )
+                  )
+
+
+                  coverage = (
+                      row.get(
+                          "coverage_ratio"
+                      )
+                  )
+
+
+                  filled = (
+                      row.get(
+                          "filled_ratio"
+                      )
+                  )
+
+
+                  subpixel = (
+                      row.get(
+                          "subpixel_triangle_ratio"
+                      )
+                  )
+
+
+                  mean_area = (
+                      row.get(
+                          "mean_triangle_area_pixels"
+                      )
+                  )
+
+
+                  glb_bytes = float(
+                      row.get(
+                          "glb_bytes",
+                          0,
+                      )
+                  )
+
+
+                  mae = (
+                      row.get(
+                          "rgb_mae_vs_projected"
+                      )
+                  )
+
+
+                  psnr = (
+                      row.get(
+                          "psnr_vs_projected"
+                      )
+                  )
+
+
+                  def percent(
+                      value,
+                  ) -> str:
+
+                      if value is None:
+                          return "-"
+
+                      return (
+                          f"{float(value) * 100.0:.2f}%"
+                      )
+
+
+                  def number(
+                      value,
+                      digits: int,
+                  ) -> str:
+
+                      if value is None:
+                          return "-"
+
+                      value = float(
+                          value
+                      )
+
+                      if math.isinf(
+                          value
+                      ):
+                          return "∞"
+
+                      return (
+                          f"{value:.{digits}f}"
+                      )
+
+
+                  lines.append(
+                      (
+                          f"| {row.get('profile')} "
+                          f"| {label} "
+                          f"| {material_seconds:.2f}s "
+                          f"| {percent(coverage)} "
+                          f"| {percent(filled)} "
+                          f"| {percent(subpixel)} "
+                          f"| {number(mean_area, 2)} "
+                          f"| {glb_bytes / 1048576.0:.2f} "
+                          f"| {number(mae, 5)} "
+                          f"| {number(psnr, 2)} |"
+                      )
+                  )
+
+
+              lines.append(
+                  ""
+              )
+
+
+          summary_path.write_text(
+              "\n".join(
+                  lines
+              ),
+              encoding="utf-8",
+          )
+          PY
