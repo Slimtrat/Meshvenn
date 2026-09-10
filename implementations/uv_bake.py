@@ -52,7 +52,26 @@ MATERIAL_MODE = (
 )
 
 
-DEFAULT_TEXTURE_SIZE = 1024
+# ---------------------------------------------------------
+# Product texture default
+#
+# Resolution benchmark:
+#
+#     256
+#         insufficient UV density on generated meshes
+#
+#     512
+#         current interactive/product default
+#
+#     1024+
+#         explicit high-quality modes
+#
+# 512 keeps subpixel triangles below the current benchmark
+# target while avoiding the ~4× bake-time increase observed
+# when moving from 512 to 1024.
+# ---------------------------------------------------------
+
+DEFAULT_TEXTURE_SIZE = 512
 
 DEFAULT_PADDING_PIXELS = 8
 
@@ -82,6 +101,7 @@ DEFAULT_UV_LAYER_NAME = (
 # We cap Smart Project spacing to half a texture texel:
 #
 #     256  -> 0.001953125
+#     512  -> 0.0009765625
 #     1024 -> 0.00048828125
 #     4096 -> 0.0001220703125
 #
@@ -1160,8 +1180,6 @@ def _resolve_uv_layer(
         ),
 
         # -------------------------------------------------
-        # Critical V2 fix.
-        #
         # Never send the raw 0.02-style fraction directly
         # to Smart Project on dense generated meshes.
         # -------------------------------------------------

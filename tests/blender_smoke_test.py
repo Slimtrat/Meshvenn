@@ -31,47 +31,30 @@ REQUIRED_PACKAGE_FILES = (
     "version.py",
     "translations.py",
 
-    # -----------------------------------------------------
     # Core
-    # -----------------------------------------------------
-
     "core/__init__.py",
     "core/pipeline_contracts.py",
     "core/pipeline_registry.py",
     "core/pipeline_runner.py",
-
     "core/image_mask.py",
-
     "core/native_loader.py",
     "core/native_bridge.py",
     "core/native_mesh_builder.py",
     "core/native_scan.py",
-
     "core/projection_math.py",
-
     "core/projected_material.py",
     "core/material_visibility.py",
     "core/material_blend.py",
-
-    # UV Bake V2
     "core/uv_bake.py",
 
-    # -----------------------------------------------------
     # Implementations
-    # -----------------------------------------------------
-
     "implementations/__init__.py",
     "implementations/projection_images.py",
     "implementations/native_visual_hull.py",
     "implementations/projected_color.py",
-
-    # UV Bake V2
     "implementations/uv_bake.py",
 
-    # -----------------------------------------------------
     # Native binaries
-    # -----------------------------------------------------
-
     "native/bin/libbpt_core.so",
     "native/bin/bpt_core.dll",
 )
@@ -97,11 +80,21 @@ EXPECTED_PROJECTION_NAMES = (
 # UV Bake expected defaults
 # =========================================================
 
-EXPECTED_UV_BAKE_TEXTURE_SIZE = "1024"
+EXPECTED_UV_BAKE_TEXTURE_SIZE = (
+    "512"
+)
+
+EXPECTED_UV_BAKE_TEXTURE_SIZE_INT = (
+    int(
+        EXPECTED_UV_BAKE_TEXTURE_SIZE
+    )
+)
 
 EXPECTED_UV_BAKE_PADDING_PIXELS = 8
 
-EXPECTED_UV_BAKE_SAMPLES_PER_AXIS = "1"
+EXPECTED_UV_BAKE_SAMPLES_PER_AXIS = (
+    "1"
+)
 
 EXPECTED_UV_BAKE_UV_LAYER_NAME = (
     "MeshvennUV"
@@ -109,9 +102,17 @@ EXPECTED_UV_BAKE_UV_LAYER_NAME = (
 
 EXPECTED_UV_BAKE_ISLAND_MARGIN = 0.02
 
-EXPECTED_UV_BAKE_ANGLE_LIMIT_DEGREES = 66.0
+EXPECTED_UV_BAKE_ANGLE_LIMIT_DEGREES = (
+    66.0
+)
 
-EXPECTED_UV_BAKE_REUSE_EXISTING_UV = False
+EXPECTED_UV_BAKE_REUSE_EXISTING_UV = (
+    False
+)
+
+EXPECTED_SMART_PROJECT_MARGIN_PIXELS = (
+    0.5
+)
 
 
 # =========================================================
@@ -157,7 +158,6 @@ EXPECTED_OPERATOR_IDNAMES = (
 MAIN_PANEL_RNA_ID = (
     "BPT_PT_main_panel"
 )
-
 
 PROJECTION_UI_LIST_RNA_ID = (
     "BPT_UL_ProjectionViews"
@@ -247,8 +247,12 @@ def _require_close(
     tolerance: float = 1e-6,
 ) -> None:
     if not math.isclose(
-        float(actual),
-        float(expected),
+        float(
+            actual
+        ),
+        float(
+            expected
+        ),
         rel_tol=tolerance,
         abs_tol=tolerance,
     ):
@@ -525,7 +529,7 @@ def _load_extension(
 
 
 # =========================================================
-# Core UV Bake import
+# Core UV Bake
 # =========================================================
 
 def _validate_uv_bake_core(
@@ -545,6 +549,7 @@ def _validate_uv_bake_core(
     )
 
     required_symbols = (
+        "DEFAULT_TEXTURE_SIZE",
         "UVBakeVertex",
         "UVBakeTriangle",
         "UVBakeConfig",
@@ -553,6 +558,8 @@ def _validate_uv_bake_core(
         "TextureBuffer",
         "SurfaceColorSample",
         "bake_uv_texture",
+        "square_texture_config",
+        "texture_memory_bytes",
     )
 
     for symbol in (
@@ -569,7 +576,53 @@ def _validate_uv_bake_core(
             ),
         )
 
-    config = (
+    # -----------------------------------------------------
+    # Product default.
+    # -----------------------------------------------------
+
+    _require(
+        module.DEFAULT_TEXTURE_SIZE
+        == EXPECTED_UV_BAKE_TEXTURE_SIZE_INT,
+        (
+            "Unexpected core UV Bake "
+            "texture-size default.\n"
+            f"Expected: "
+            f"{EXPECTED_UV_BAKE_TEXTURE_SIZE_INT}\n"
+            f"Actual:   "
+            f"{module.DEFAULT_TEXTURE_SIZE}"
+        ),
+    )
+
+    default_config = (
+        module.UVBakeConfig()
+    )
+
+    default_config.validate()
+
+    _require(
+        default_config.width
+        == EXPECTED_UV_BAKE_TEXTURE_SIZE_INT,
+        (
+            "UVBakeConfig default width "
+            "does not match product default."
+        ),
+    )
+
+    _require(
+        default_config.height
+        == EXPECTED_UV_BAKE_TEXTURE_SIZE_INT,
+        (
+            "UVBakeConfig default height "
+            "does not match product default."
+        ),
+    )
+
+    # -----------------------------------------------------
+    # Explicit configurations must remain independent of
+    # the default.
+    # -----------------------------------------------------
+
+    explicit_config = (
         module.UVBakeConfig(
             width=8,
             height=8,
@@ -578,7 +631,47 @@ def _validate_uv_bake_core(
         )
     )
 
-    config.validate()
+    explicit_config.validate()
+
+    _require(
+        explicit_config.width == 8,
+        (
+            "Explicit UV Bake width "
+            "was unexpectedly overridden."
+        ),
+    )
+
+    _require(
+        explicit_config.height == 8,
+        (
+            "Explicit UV Bake height "
+            "was unexpectedly overridden."
+        ),
+    )
+
+    high_quality_config = (
+        module.square_texture_config(
+            1024
+        )
+    )
+
+    _require(
+        high_quality_config.width
+        == 1024,
+        (
+            "Explicit 1024 UV Bake mode "
+            "is no longer available."
+        ),
+    )
+
+    _require(
+        high_quality_config.height
+        == 1024,
+        (
+            "Explicit 1024 UV Bake mode "
+            "is no longer available."
+        ),
+    )
 
     _require(
         module.texture_memory_bytes(
@@ -599,6 +692,17 @@ def _validate_uv_bake_core(
 
     print(
         "UV Bake V2 core import: OK"
+    )
+
+    print(
+        (
+            "  default texture: "
+            f"{module.DEFAULT_TEXTURE_SIZE}²"
+        )
+    )
+
+    print(
+        "  explicit 1024²: available"
     )
 
 
@@ -692,7 +796,8 @@ def _validate_projection_defaults(
         == EXPECTED_PROJECTION_NAMES,
         (
             "Unexpected default projections.\n"
-            f"Expected: {EXPECTED_PROJECTION_NAMES}\n"
+            f"Expected: "
+            f"{EXPECTED_PROJECTION_NAMES}\n"
             f"Actual:   {actual_names}"
         ),
     )
@@ -880,7 +985,11 @@ def _validate_uv_bake_properties(
         == EXPECTED_UV_BAKE_TEXTURE_SIZE,
         (
             "Unexpected UV Bake texture "
-            "size default."
+            "size default.\n"
+            f"Expected: "
+            f"{EXPECTED_UV_BAKE_TEXTURE_SIZE}\n"
+            f"Actual:   "
+            f"{settings.uv_bake_texture_size}"
         ),
     )
 
@@ -924,34 +1033,45 @@ def _validate_uv_bake_properties(
     )
 
     _require_close(
-        settings.uv_bake_island_margin,
+        settings
+        .uv_bake_island_margin,
         EXPECTED_UV_BAKE_ISLAND_MARGIN,
-        name="UV Bake island margin",
+        name=(
+            "UV Bake island margin"
+        ),
     )
 
     _require_close(
         settings
         .uv_bake_angle_limit_degrees,
         EXPECTED_UV_BAKE_ANGLE_LIMIT_DEGREES,
-        name="UV Bake angle limit",
-    )
-
-    # -----------------------------------------------------
-    # Verify enum values are writable, then restore defaults.
-    # -----------------------------------------------------
-
-    settings.uv_bake_texture_size = (
-        "2048"
-    )
-
-    _require(
-        settings.uv_bake_texture_size
-        == "2048",
-        (
-            "UV Bake texture size EnumProperty "
-            "could not be changed."
+        name=(
+            "UV Bake angle limit"
         ),
     )
+
+    # -----------------------------------------------------
+    # Higher-quality modes must remain selectable.
+    # -----------------------------------------------------
+
+    for value in (
+        "1024",
+        "2048",
+        "4096",
+    ):
+        settings.uv_bake_texture_size = (
+            value
+        )
+
+        _require(
+            settings.uv_bake_texture_size
+            == value,
+            (
+                "UV Bake texture-size "
+                "EnumProperty rejected "
+                f"{value}."
+            ),
+        )
 
     settings.uv_bake_texture_size = (
         EXPECTED_UV_BAKE_TEXTURE_SIZE
@@ -976,6 +1096,261 @@ def _validate_uv_bake_properties(
 
     print(
         "UV Bake V2 properties: OK"
+    )
+
+    print(
+        (
+            "  default: "
+            f"{EXPECTED_UV_BAKE_TEXTURE_SIZE}²"
+        )
+    )
+
+    print(
+        "  HQ:      1024² / 2048² / 4096²"
+    )
+
+
+# =========================================================
+# UV Bake default alignment
+# =========================================================
+
+def _validate_uv_bake_default_alignment(
+    package_name: str,
+    settings,
+) -> None:
+    """
+    Prevent four independent surfaces from drifting apart:
+
+        pure core
+        Blender implementation
+        Blender property definition
+        instantiated scene RNA
+    """
+
+    _section(
+        "UV Bake default alignment"
+    )
+
+    core_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.uv_bake"
+            )
+        )
+    )
+
+    implementation_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "implementations.uv_bake"
+            )
+        )
+    )
+
+    properties_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "properties"
+            )
+        )
+    )
+
+    expected_int = (
+        EXPECTED_UV_BAKE_TEXTURE_SIZE_INT
+    )
+
+    expected_string = (
+        EXPECTED_UV_BAKE_TEXTURE_SIZE
+    )
+
+    # -----------------------------------------------------
+    # Constants
+    # -----------------------------------------------------
+
+    _require(
+        core_module.DEFAULT_TEXTURE_SIZE
+        == expected_int,
+        (
+            "core.uv_bake DEFAULT_TEXTURE_SIZE "
+            "is out of sync.\n"
+            f"Expected: {expected_int}\n"
+            f"Actual:   "
+            f"{core_module.DEFAULT_TEXTURE_SIZE}"
+        ),
+    )
+
+    _require(
+        implementation_module.DEFAULT_TEXTURE_SIZE
+        == expected_int,
+        (
+            "implementations.uv_bake "
+            "DEFAULT_TEXTURE_SIZE is out of sync.\n"
+            f"Expected: {expected_int}\n"
+            f"Actual:   "
+            f"{implementation_module.DEFAULT_TEXTURE_SIZE}"
+        ),
+    )
+
+    _require(
+        properties_module
+        .DEFAULT_UV_BAKE_TEXTURE_SIZE
+        == expected_string,
+        (
+            "properties.py UV Bake default "
+            "is out of sync.\n"
+            f"Expected: {expected_string!r}\n"
+            "Actual:   "
+            f"{properties_module.DEFAULT_UV_BAKE_TEXTURE_SIZE!r}"
+        ),
+    )
+
+    # -----------------------------------------------------
+    # Instantiated configs
+    # -----------------------------------------------------
+
+    core_config = (
+        core_module.UVBakeConfig()
+    )
+
+    material_config = (
+        implementation_module
+        .UVBakeMaterialConfig()
+    )
+
+    bake_config = (
+        material_config
+        .to_bake_config()
+    )
+
+    _require(
+        core_config.width
+        == expected_int,
+        (
+            "Core UVBakeConfig width "
+            "is out of sync."
+        ),
+    )
+
+    _require(
+        core_config.height
+        == expected_int,
+        (
+            "Core UVBakeConfig height "
+            "is out of sync."
+        ),
+    )
+
+    _require(
+        material_config.texture_size
+        == expected_int,
+        (
+            "UVBakeMaterialConfig default "
+            "is out of sync."
+        ),
+    )
+
+    _require(
+        bake_config.width
+        == expected_int,
+        (
+            "UVBakeMaterialConfig.to_bake_config() "
+            "has wrong width."
+        ),
+    )
+
+    _require(
+        bake_config.height
+        == expected_int,
+        (
+            "UVBakeMaterialConfig.to_bake_config() "
+            "has wrong height."
+        ),
+    )
+
+    _require(
+        settings.uv_bake_texture_size
+        == expected_string,
+        (
+            "Instantiated Blender scene setting "
+            "is out of sync."
+        ),
+    )
+
+    # -----------------------------------------------------
+    # Smart Project guard.
+    #
+    # For the current default:
+    #
+    #   min(0.02, 0.5 / 512) * 512 == 0.5 px
+    # -----------------------------------------------------
+
+    _require_close(
+        material_config
+        .effective_island_margin_pixels,
+        EXPECTED_SMART_PROJECT_MARGIN_PIXELS,
+        name=(
+            "effective Smart Project "
+            "margin in pixels"
+        ),
+    )
+
+    expected_fraction = (
+        EXPECTED_SMART_PROJECT_MARGIN_PIXELS
+        / float(
+            expected_int
+        )
+    )
+
+    _require_close(
+        material_config
+        .effective_island_margin_fraction,
+        expected_fraction,
+        name=(
+            "effective Smart Project "
+            "margin fraction"
+        ),
+    )
+
+    print(
+        "UV Bake defaults aligned: OK"
+    )
+
+    print(
+        (
+            "  core:           "
+            f"{core_module.DEFAULT_TEXTURE_SIZE}"
+        )
+    )
+
+    print(
+        (
+            "  implementation: "
+            f"{implementation_module.DEFAULT_TEXTURE_SIZE}"
+        )
+    )
+
+    print(
+        (
+            "  properties:     "
+            f"{properties_module.DEFAULT_UV_BAKE_TEXTURE_SIZE}"
+        )
+    )
+
+    print(
+        (
+            "  scene RNA:      "
+            f"{settings.uv_bake_texture_size}"
+        )
+    )
+
+    print(
+        (
+            "  Smart margin:   "
+            f"{material_config.effective_island_margin_pixels:.2f}px"
+        )
     )
 
 
@@ -1029,7 +1404,8 @@ def _validate_registry(
         (
             "Unexpected registered "
             "implementations.\n"
-            f"Expected: {EXPECTED_IMPLEMENTATIONS}\n"
+            f"Expected: "
+            f"{EXPECTED_IMPLEMENTATIONS}\n"
             f"Actual:   {actual_ids}"
         ),
     )
@@ -1073,13 +1449,6 @@ def _validate_registry(
             ),
         )
 
-    # -----------------------------------------------------
-    # Critical V2 check:
-    #
-    # uv-bake-v2 exists as MATERIAL but must NOT replace
-    # projected-color-v1.2 as default.
-    # -----------------------------------------------------
-
     uv_bake = (
         registry.require(
             "uv-bake-v2",
@@ -1106,8 +1475,8 @@ def _validate_registry(
         descriptor.stage
         == PipelineStage.MATERIAL,
         (
-            "UV Bake V2 must belong to "
-            "MATERIAL stage."
+            "UV Bake V2 must belong "
+            "to MATERIAL stage."
         ),
     )
 
@@ -1115,59 +1484,37 @@ def _validate_registry(
         descriptor.label
         == "UV Bake V2",
         (
-            "Unexpected UV Bake V2 label."
+            "Unexpected UV Bake "
+            "V2 label."
         ),
     )
 
     _require(
         descriptor.experimental,
         (
-            "UV Bake V2 should remain marked "
+            "UV Bake V2 should remain "
             "experimental during V2 development."
         ),
     )
 
-    _require(
-        callable(
-            getattr(
-                uv_bake,
-                "execute",
-                None,
-            )
-        ),
-        (
-            "UV Bake V2 has no "
-            "execute(context)."
-        ),
-    )
-
-    _require(
-        callable(
-            getattr(
-                uv_bake,
-                "availability",
-                None,
-            )
-        ),
-        (
-            "UV Bake V2 has no "
-            "availability(context)."
-        ),
-    )
-
-    _require(
-        callable(
-            getattr(
-                uv_bake,
-                "draw_settings",
-                None,
-            )
-        ),
-        (
-            "UV Bake V2 has no "
-            "generic UI settings hook."
-        ),
-    )
+    for method_name in (
+        "execute",
+        "availability",
+        "draw_settings",
+    ):
+        _require(
+            callable(
+                getattr(
+                    uv_bake,
+                    method_name,
+                    None,
+                )
+            ),
+            (
+                "UV Bake V2 missing "
+                f"{method_name}()."
+            ),
+        )
 
     print(
         "Registry: OK"
@@ -1195,12 +1542,16 @@ def _validate_registry(
             )
 
         print(
-            f"  OK  {implementation_id}{suffix}"
+            (
+                f"  OK  "
+                f"{implementation_id}"
+                f"{suffix}"
+            )
         )
 
 
 # =========================================================
-# Built-in catalog configuration
+# Built-in catalog
 # =========================================================
 
 def _validate_builtin_catalog(
@@ -1241,17 +1592,18 @@ def _validate_builtin_catalog(
         registered_ids
         == EXPECTED_IMPLEMENTATIONS,
         (
-            "Unexpected built-in implementation "
-            "catalog."
+            "Unexpected built-in "
+            "implementation catalog."
         ),
     )
 
     _require(
-        module.builtin_implementation_count()
+        module
+        .builtin_implementation_count()
         == 4,
         (
-            "Built-in implementation count "
-            "must be 4."
+            "Built-in implementation "
+            "count must be 4."
         ),
     )
 
@@ -1283,8 +1635,9 @@ def _validate_builtin_catalog(
         )
         == "projected-color-v1.2",
         (
-            "UV Bake V2 accidentally replaced "
-            "the MATERIAL built-in default."
+            "UV Bake V2 accidentally "
+            "replaced the MATERIAL "
+            "built-in default."
         ),
     )
 
@@ -1297,8 +1650,7 @@ def _validate_builtin_catalog(
 # Operators
 # =========================================================
 
-def _validate_operators_registered(
-) -> None:
+def _validate_operators_registered() -> None:
     _section(
         "operators"
     )
@@ -1321,8 +1673,8 @@ def _validate_operators_registered(
             operator_class
             is not None,
             (
-                "Operator RNA class was not "
-                "registered: "
+                "Operator RNA class was "
+                "not registered: "
                 f"{rna_identifier}"
             ),
         )
@@ -1344,7 +1696,8 @@ def _validate_operators_registered(
                 idname
             ),
             (
-                "bpy.ops operator is unavailable: "
+                "bpy.ops operator "
+                "is unavailable: "
                 f"{idname}"
             ),
         )
@@ -1362,8 +1715,7 @@ def _validate_operators_registered(
 # UI
 # =========================================================
 
-def _validate_ui_registered(
-) -> None:
+def _validate_ui_registered() -> None:
     _section(
         "ui"
     )
@@ -1395,8 +1747,8 @@ def _validate_ui_registered(
         panel.bl_space_type
         == "VIEW_3D",
         (
-            "Meshvenn panel must use "
-            "VIEW_3D."
+            "Meshvenn panel must "
+            "use VIEW_3D."
         ),
     )
 
@@ -1404,8 +1756,8 @@ def _validate_ui_registered(
         panel.bl_region_type
         == "UI",
         (
-            "Meshvenn panel must use "
-            "the UI region."
+            "Meshvenn panel must "
+            "use the UI region."
         ),
     )
 
@@ -1427,8 +1779,8 @@ def _validate_ui_registered(
             )
         ),
         (
-            "Meshvenn panel does not "
-            "expose draw()."
+            "Meshvenn panel does "
+            "not expose draw()."
         ),
     )
 
@@ -1441,8 +1793,8 @@ def _validate_ui_registered(
     _require(
         ui_list is not None,
         (
-            "Projection UIList was "
-            "not registered."
+            "Projection UIList "
+            "was not registered."
         ),
     )
 
@@ -1455,8 +1807,8 @@ def _validate_ui_registered(
             )
         ),
         (
-            "Projection UIList does not "
-            "expose draw_item()."
+            "Projection UIList does "
+            "not expose draw_item()."
         ),
     )
 
@@ -1620,7 +1972,7 @@ def main() -> None:
 
     try:
         # -------------------------------------------------
-        # Validate the extracted ZIP, not repository source.
+        # Validate packaged ZIP contents.
         # -------------------------------------------------
 
         _validate_package_tree(
@@ -1637,7 +1989,7 @@ def main() -> None:
         )
 
         # -------------------------------------------------
-        # Pure/core UV Bake import from packaged artifact.
+        # Pure core.
         # -------------------------------------------------
 
         _validate_uv_bake_core(
@@ -1680,6 +2032,15 @@ def main() -> None:
 
         _validate_uv_bake_properties(
             settings
+        )
+
+        # -------------------------------------------------
+        # Critical product-default consistency guard.
+        # -------------------------------------------------
+
+        _validate_uv_bake_default_alignment(
+            package_name,
+            settings,
         )
 
         _validate_registry(
