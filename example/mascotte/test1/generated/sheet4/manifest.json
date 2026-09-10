@@ -157,8 +157,9 @@
     }
   ],
   "mesh_mode": "blocks",
-  "material_mode": "projected-color-v1.1",
+  "material_mode": "projected-color-v1.2",
   "material_visibility_mode": "raycast-v1",
+  "material_blend_mode": "adaptive-topk-v1",
   "material_views": [
     "000",
     "045",
@@ -193,8 +194,9 @@
     "L2": {
       "generated": true,
       "mesh_mode": "blocks",
-      "material_mode": "projected-color-v1.1",
+      "material_mode": "projected-color-v1.2",
       "material_visibility_mode": "raycast-v1",
+      "material_blend_mode": "adaptive-topk-v1",
       "views": [
         "000",
         "090"
@@ -213,7 +215,7 @@
         61
       ],
       "material": {
-        "mode": "projected-color-v1.1",
+        "mode": "projected-color-v1.2",
         "attribute": "bpt_projected_color",
         "views": [
           "000",
@@ -222,13 +224,54 @@
         "view_count": 2,
         "projected_vertices": 5701,
         "fallback_vertices": 12301,
-        "accepted_samples": 14574,
-        "rejected_samples": 30104,
+        "accepted_samples": 14517,
+        "rejected_samples": 21487,
+        "projected_fallback_vertices": 8674,
+        "neutral_fallback_vertices": 3627,
+        "candidate_samples": 27699,
+        "source_rejected_samples": 8305,
+        "visible_samples": 17822,
+        "occluded_samples": 9877,
+        "front_facing_samples": 7958,
+        "backface_samples": 9864,
+        "grazing_rejected_samples": 2058,
+        "relative_rejected_samples": 57,
+        "top_k_rejected_samples": 0,
+        "selected_samples": 14517,
         "visibility": {
           "enabled": true,
           "mode": "raycast-v1",
           "epsilon": 0.0008750999942863674,
           "max_distance": 175.01999885727346
+        },
+        "blend": {
+          "mode": "adaptive-topk-v1",
+          "min_facing": 0.1,
+          "facing_power": 2.0,
+          "relative_score_cutoff": 0.2,
+          "max_contributors": 3,
+          "weight_power": 1.5
+        },
+        "statistics": {
+          "vertex_count": 18002,
+          "loop_count": 72712,
+          "view_count": 2,
+          "projected_vertices": 5701,
+          "fallback_vertices": 12301,
+          "projected_fallback_vertices": 8674,
+          "neutral_fallback_vertices": 3627,
+          "accepted_samples": 14517,
+          "rejected_samples": 21487,
+          "candidate_samples": 27699,
+          "source_rejected_samples": 8305,
+          "visible_samples": 17822,
+          "occluded_samples": 9877,
+          "front_facing_samples": 7958,
+          "backface_samples": 9864,
+          "grazing_rejected_samples": 2058,
+          "relative_rejected_samples": 57,
+          "top_k_rejected_samples": 0,
+          "selected_samples": 14517
         }
       },
       "glb": "/home/runner/work/Meshvenn/Meshvenn/example/mascotte/test1/generated/sheet4/scans/L2/sheet4_L2.glb",
@@ -250,8 +293,9 @@
     "L4": {
       "generated": true,
       "mesh_mode": "blocks",
-      "material_mode": "projected-color-v1.1",
+      "material_mode": "projected-color-v1.2",
       "material_visibility_mode": "raycast-v1",
+      "material_blend_mode": "adaptive-topk-v1",
       "views": [
         "000",
         "090",
@@ -274,7 +318,7 @@
         54
       ],
       "material": {
-        "mode": "projected-color-v1.1",
+        "mode": "projected-color-v1.2",
         "attribute": "bpt_projected_color",
         "views": [
           "000",
@@ -285,13 +329,54 @@
         "view_count": 4,
         "projected_vertices": 6167,
         "fallback_vertices": 4941,
-        "accepted_samples": 11083,
-        "rejected_samples": 37779,
+        "accepted_samples": 10935,
+        "rejected_samples": 33497,
+        "projected_fallback_vertices": 4430,
+        "neutral_fallback_vertices": 511,
+        "candidate_samples": 38729,
+        "source_rejected_samples": 5703,
+        "visible_samples": 24255,
+        "occluded_samples": 14474,
+        "front_facing_samples": 11540,
+        "backface_samples": 12715,
+        "grazing_rejected_samples": 4887,
+        "relative_rejected_samples": 148,
+        "top_k_rejected_samples": 0,
+        "selected_samples": 10935,
         "visibility": {
           "enabled": true,
           "mode": "raycast-v1",
           "epsilon": 0.0007638062581571325,
           "max_distance": 152.7612516314265
+        },
+        "blend": {
+          "mode": "adaptive-topk-v1",
+          "min_facing": 0.1,
+          "facing_power": 2.0,
+          "relative_score_cutoff": 0.2,
+          "max_contributors": 3,
+          "weight_power": 1.5
+        },
+        "statistics": {
+          "vertex_count": 11108,
+          "loop_count": 45016,
+          "view_count": 4,
+          "projected_vertices": 6167,
+          "fallback_vertices": 4941,
+          "projected_fallback_vertices": 4430,
+          "neutral_fallback_vertices": 511,
+          "accepted_samples": 10935,
+          "rejected_samples": 33497,
+          "candidate_samples": 38729,
+          "source_rejected_samples": 5703,
+          "visible_samples": 24255,
+          "occluded_samples": 14474,
+          "front_facing_samples": 11540,
+          "backface_samples": 12715,
+          "grazing_rejected_samples": 4887,
+          "relative_rejected_samples": 148,
+          "top_k_rejected_samples": 0,
+          "selected_samples": 10935
         }
       },
       "glb": "/home/runner/work/Meshvenn/Meshvenn/example/mascotte/test1/generated/sheet4/scans/L4/sheet4_L4.glb",
@@ -313,8 +398,9 @@
     "L8": {
       "generated": true,
       "mesh_mode": "blocks",
-      "material_mode": "projected-color-v1.1",
+      "material_mode": "projected-color-v1.2",
       "material_visibility_mode": "raycast-v1",
+      "material_blend_mode": "adaptive-topk-v1",
       "views": [
         "000",
         "090",
@@ -345,7 +431,7 @@
         54
       ],
       "material": {
-        "mode": "projected-color-v1.1",
+        "mode": "projected-color-v1.2",
         "attribute": "bpt_projected_color",
         "views": [
           "000",
@@ -360,13 +446,54 @@
         "view_count": 8,
         "projected_vertices": 6488,
         "fallback_vertices": 3749,
-        "accepted_samples": 19319,
-        "rejected_samples": 65833,
+        "accepted_samples": 18330,
+        "rejected_samples": 63566,
+        "projected_fallback_vertices": 3256,
+        "neutral_fallback_vertices": 493,
+        "candidate_samples": 76561,
+        "source_rejected_samples": 5335,
+        "visible_samples": 32238,
+        "occluded_samples": 44323,
+        "front_facing_samples": 19767,
+        "backface_samples": 12471,
+        "grazing_rejected_samples": 3704,
+        "relative_rejected_samples": 989,
+        "top_k_rejected_samples": 0,
+        "selected_samples": 18330,
         "visibility": {
           "enabled": true,
           "mode": "raycast-v1",
           "epsilon": 0.0007107038764492565,
           "max_distance": 142.1407752898513
+        },
+        "blend": {
+          "mode": "adaptive-topk-v1",
+          "min_facing": 0.1,
+          "facing_power": 2.0,
+          "relative_score_cutoff": 0.2,
+          "max_contributors": 3,
+          "weight_power": 1.5
+        },
+        "statistics": {
+          "vertex_count": 10237,
+          "loop_count": 41912,
+          "view_count": 8,
+          "projected_vertices": 6488,
+          "fallback_vertices": 3749,
+          "projected_fallback_vertices": 3256,
+          "neutral_fallback_vertices": 493,
+          "accepted_samples": 18330,
+          "rejected_samples": 63566,
+          "candidate_samples": 76561,
+          "source_rejected_samples": 5335,
+          "visible_samples": 32238,
+          "occluded_samples": 44323,
+          "front_facing_samples": 19767,
+          "backface_samples": 12471,
+          "grazing_rejected_samples": 3704,
+          "relative_rejected_samples": 989,
+          "top_k_rejected_samples": 0,
+          "selected_samples": 18330
         }
       },
       "glb": "/home/runner/work/Meshvenn/Meshvenn/example/mascotte/test1/generated/sheet4/scans/L8/sheet4_L8.glb",
@@ -388,8 +515,9 @@
     "L10": {
       "generated": true,
       "mesh_mode": "blocks",
-      "material_mode": "projected-color-v1.1",
+      "material_mode": "projected-color-v1.2",
       "material_visibility_mode": "raycast-v1",
+      "material_blend_mode": "adaptive-topk-v1",
       "views": [
         "000",
         "090",
@@ -424,7 +552,7 @@
         54
       ],
       "material": {
-        "mode": "projected-color-v1.1",
+        "mode": "projected-color-v1.2",
         "attribute": "bpt_projected_color",
         "views": [
           "000",
@@ -441,13 +569,54 @@
         "view_count": 10,
         "projected_vertices": 6928,
         "fallback_vertices": 457,
-        "accepted_samples": 17605,
-        "rejected_samples": 56652,
+        "accepted_samples": 15317,
+        "rejected_samples": 58533,
+        "projected_fallback_vertices": 407,
+        "neutral_fallback_vertices": 50,
+        "candidate_samples": 69814,
+        "source_rejected_samples": 4036,
+        "visible_samples": 38498,
+        "occluded_samples": 31316,
+        "front_facing_samples": 21936,
+        "backface_samples": 16562,
+        "grazing_rejected_samples": 4738,
+        "relative_rejected_samples": 1128,
+        "top_k_rejected_samples": 1160,
+        "selected_samples": 15317,
         "visibility": {
           "enabled": true,
           "mode": "raycast-v1",
           "epsilon": 0.0006646051459325305,
           "max_distance": 132.92102918650608
+        },
+        "blend": {
+          "mode": "adaptive-topk-v1",
+          "min_facing": 0.1,
+          "facing_power": 2.0,
+          "relative_score_cutoff": 0.2,
+          "max_contributors": 3,
+          "weight_power": 1.5
+        },
+        "statistics": {
+          "vertex_count": 7385,
+          "loop_count": 30016,
+          "view_count": 10,
+          "projected_vertices": 6928,
+          "fallback_vertices": 457,
+          "projected_fallback_vertices": 407,
+          "neutral_fallback_vertices": 50,
+          "accepted_samples": 15317,
+          "rejected_samples": 58533,
+          "candidate_samples": 69814,
+          "source_rejected_samples": 4036,
+          "visible_samples": 38498,
+          "occluded_samples": 31316,
+          "front_facing_samples": 21936,
+          "backface_samples": 16562,
+          "grazing_rejected_samples": 4738,
+          "relative_rejected_samples": 1128,
+          "top_k_rejected_samples": 1160,
+          "selected_samples": 15317
         }
       },
       "glb": "/home/runner/work/Meshvenn/Meshvenn/example/mascotte/test1/generated/sheet4/scans/L10/sheet4_L10.glb",
