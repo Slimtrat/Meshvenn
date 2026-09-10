@@ -3,11 +3,17 @@ from __future__ import annotations
 import math
 
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
+from typing import (
+    Any,
+    Mapping,
+)
 
 import bpy
 
+from ..core.geometry_contracts import (
+    GeometryProjectionSpace,
+    GeometrySurfaceOutput,
+)
 from ..core.native_bridge import (
     NativeCore,
     NativeMesh,
@@ -40,9 +46,9 @@ from .projection_images import (
 )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Constants
-# ---------------------------------------------------------
+# =========================================================
 
 IMPLEMENTATION_ID = (
     "native-visual-hull"
@@ -65,43 +71,90 @@ DEFAULT_MESH_NAME = (
 )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Geometry output
-# ---------------------------------------------------------
+# =========================================================
 
-@dataclass(frozen=True)
-class NativeVisualHullOutput:
+@dataclass(
+    frozen=True,
+    init=False,
+)
+class NativeVisualHullOutput(
+    GeometrySurfaceOutput
+):
     """
-    Output contract of the built-in Native Visual Hull
-    geometry implementation.
+    Native Visual Hull specialization of the generic
+    GeometrySurfaceOutput contract.
 
-    The Blender object deliberately keeps its mesh vertices
-    in native reconstruction coordinates.
+    Generic downstream stages should depend on:
 
-    This is critical for downstream stages:
+        GeometrySurfaceOutput
+            blender_object
+            source
+            projection_space
+            implementation_id
+            metrics
+            metadata
 
-        GEOMETRY
+    Native-specific tooling may additionally use:
+
+        volume
+        native_mesh
+        resolution
+        symmetry_x
+        thread_count
+        mesh_mode
+        normalized_height
+        target_height
+        normalization_scale
+
+    -------------------------------------------------------
+    Coordinate invariant
+    -------------------------------------------------------
+
+    The Blender mesh remains in reconstruction-local
+    coordinates.
+
+    Object-level scaling is allowed.
+
+    Applying the scale to obj.data before projection-based
+    MATERIAL stages is NOT allowed, because that would break:
+
+        surface position
             ↓
-        MATERIAL
+        GeometryProjectionSpace
+            ↓
+        source image projection
 
-    Projected material requires:
+    -------------------------------------------------------
+    Temporary constructor compatibility
+    -------------------------------------------------------
 
-        volume width/depth/height
-        voxel_size
-        center_xy
-        native-local vertex coordinates
+    Existing diagnostic scripts historically instantiate:
 
-    Object-level uniform scaling is allowed because it does
-    not mutate obj.data vertex coordinates.
+        NativeVisualHullOutput(
+            ...
+            voxel_size=1.0,
+            center_xy=True,
+        )
+
+    Therefore voxel_size and center_xy remain accepted by
+    __init__ while migration is in progress.
+
+    They are no longer stored independently.
+
+    The source of truth is:
+
+        output.projection_space.voxel_size
+        output.projection_space.center_xy
+
+    Once all callers use GeometryProjectionSpace directly,
+    these compatibility arguments may be removed.
     """
-
-    blender_object: bpy.types.Object
 
     volume: NativeVolume
 
     native_mesh: NativeMesh
-
-    source: ProjectionImagesOutput
 
     resolution: int
 
@@ -111,21 +164,489 @@ class NativeVisualHullOutput:
 
     mesh_mode: str
 
-    voxel_size: float
-
-    center_xy: bool
-
     normalized_height: bool
 
     target_height: float | None
 
     normalization_scale: float
 
+    def __init__(
+        self,
+        *,
+        blender_object: bpy.types.Object,
+        volume: NativeVolume,
+        native_mesh: NativeMesh,
+        source: ProjectionImagesOutput,
+        resolution: int,
+        symmetry_x: bool,
+        thread_count: int,
+        mesh_mode: str,
+        normalized_height: bool,
+        target_height: float | None,
+        normalization_scale: float,
+        projection_space: (
+            GeometryProjectionSpace
+            | None
+        ) = None,
+
+        # -------------------------------------------------
+        # Temporary legacy constructor compatibility.
+        # -------------------------------------------------
+
+        voxel_size: float | None = None,
+        center_xy: bool | None = None,
+
+        metrics: (
+            Mapping[
+                str,
+                Any,
+            ]
+            | None
+        ) = None,
+
+        metadata: (
+            Mapping[
+                str,
+                Any,
+            ]
+            | None
+        ) = None,
+    ) -> None:
+        if volume is None:
+            raise ValueError(
+                (
+                    "NativeVisualHullOutput "
+                    "requires a NativeVolume."
+                )
+            )
+
+        if native_mesh is None:
+            raise ValueError(
+                (
+                    "NativeVisualHullOutput "
+                    "requires a NativeMesh."
+                )
+            )
+
+        # -------------------------------------------------
+        # Normalize implementation-specific values.
+        # -------------------------------------------------
+
+        normalized_resolution = int(
+            resolution
+        )
+
+        if (
+            normalized_resolution < 16
+            or normalized_resolution > 256
+        ):
+            raise ValueError(
+                (
+                    "Resolution must be between "
+                    "16 and 256."
+                )
+            )
+
+        normalized_thread_count = int(
+            thread_count
+        )
+
+        if normalized_thread_count < 0:
+            raise ValueError(
+                (
+                    "Thread count cannot "
+                    "be negative."
+                )
+            )
+
+        normalized_mesh_mode = (
+            normalize_mesh_mode(
+                str(
+                    mesh_mode
+                )
+            )
+        )
+
+        normalized_scale = float(
+            normalization_scale
+        )
+
+        if (
+            not math.isfinite(
+                normalized_scale
+            )
+            or normalized_scale <= 0.0
+        ):
+            raise ValueError(
+                (
+                    "normalization_scale must "
+                    "be finite and greater "
+                    "than zero."
+                )
+            )
+
+        normalized_height_flag = bool(
+            normalized_height
+        )
+
+        normalized_target_height = (
+            None
+        )
+
+        if target_height is not None:
+            normalized_target_height = float(
+                target_height
+            )
+
+            if (
+                not math.isfinite(
+                    normalized_target_height
+                )
+                or normalized_target_height
+                <= 0.0
+            ):
+                raise ValueError(
+                    (
+                        "target_height must "
+                        "be finite and greater "
+                        "than zero."
+                    )
+                )
+
+        if (
+            normalized_height_flag
+            and normalized_target_height
+            is None
+        ):
+            raise ValueError(
+                (
+                    "target_height is required "
+                    "when normalized_height "
+                    "is enabled."
+                )
+            )
+
+        # -------------------------------------------------
+        # Resolve generic projection space.
+        #
+        # No strict isinstance check is intentionally made
+        # against NativeVolume / NativeMesh.
+        #
+        # Some diagnostic scripts load the same source code
+        # under a second package namespace. Duck typing here
+        # preserves those tooling paths during migration.
+        # -------------------------------------------------
+
+        volume_width = int(
+            volume.width
+        )
+
+        volume_depth = int(
+            volume.depth
+        )
+
+        volume_height = int(
+            volume.height
+        )
+
+        if projection_space is None:
+            resolved_voxel_size = (
+                DEFAULT_VOXEL_SIZE
+                if voxel_size is None
+                else float(
+                    voxel_size
+                )
+            )
+
+            resolved_center_xy = (
+                DEFAULT_CENTER_XY
+                if center_xy is None
+                else bool(
+                    center_xy
+                )
+            )
+
+            projection_space = (
+                GeometryProjectionSpace(
+                    width=(
+                        volume_width
+                    ),
+                    depth=(
+                        volume_depth
+                    ),
+                    height=(
+                        volume_height
+                    ),
+                    voxel_size=(
+                        resolved_voxel_size
+                    ),
+                    center_xy=(
+                        resolved_center_xy
+                    ),
+                )
+            )
+
+        else:
+            if not isinstance(
+                projection_space,
+                GeometryProjectionSpace,
+            ):
+                raise TypeError(
+                    (
+                        "projection_space must "
+                        "be a "
+                        "GeometryProjectionSpace."
+                    )
+                )
+
+            # ---------------------------------------------
+            # Native volume and generic projection space
+            # must describe the same reconstruction domain.
+            # ---------------------------------------------
+
+            expected_dimensions = (
+                volume_width,
+                volume_depth,
+                volume_height,
+            )
+
+            if (
+                projection_space.dimensions
+                != expected_dimensions
+            ):
+                raise ValueError(
+                    (
+                        "Projection-space dimensions "
+                        "do not match NativeVolume.\n"
+                        f"Projection space: "
+                        f"{projection_space.dimensions}\n"
+                        f"Native volume:    "
+                        f"{expected_dimensions}"
+                    )
+                )
+
+            # ---------------------------------------------
+            # If a legacy caller supplies both new and old
+            # arguments, reject contradictory values rather
+            # than silently choosing one.
+            # ---------------------------------------------
+
+            if voxel_size is not None:
+                legacy_voxel_size = float(
+                    voxel_size
+                )
+
+                if not math.isclose(
+                    legacy_voxel_size,
+                    projection_space
+                    .voxel_size,
+                    rel_tol=1e-9,
+                    abs_tol=1e-9,
+                ):
+                    raise ValueError(
+                        (
+                            "Legacy voxel_size does "
+                            "not match projection_space."
+                        )
+                    )
+
+            if (
+                center_xy is not None
+                and bool(
+                    center_xy
+                )
+                != projection_space.center_xy
+            ):
+                raise ValueError(
+                    (
+                        "Legacy center_xy does "
+                        "not match projection_space."
+                    )
+                )
+
+        # -------------------------------------------------
+        # Generic metrics.
+        #
+        # These are convenience diagnostics only.
+        # Fundamental projection information stays in the
+        # explicit GeometryProjectionSpace contract.
+        # -------------------------------------------------
+
+        resolved_metrics = dict(
+            metrics
+            or {}
+        )
+
+        resolved_metrics.setdefault(
+            "projection_count",
+            int(
+                source.projection_count
+            ),
+        )
+
+        resolved_metrics.setdefault(
+            "resolution",
+            normalized_resolution,
+        )
+
+        resolved_metrics.setdefault(
+            "occupied_voxels",
+            int(
+                volume.occupied_count
+            ),
+        )
+
+        resolved_metrics.setdefault(
+            "vertex_count",
+            int(
+                native_mesh.vertex_count
+            ),
+        )
+
+        resolved_metrics.setdefault(
+            "index_count",
+            int(
+                native_mesh.index_count
+            ),
+        )
+
+        resolved_metrics.setdefault(
+            "polygon_count",
+            int(
+                native_mesh.polygon_count
+            ),
+        )
+
+        resolved_metrics.setdefault(
+            "normalization_scale",
+            normalized_scale,
+        )
+
+        resolved_metadata = dict(
+            metadata
+            or {}
+        )
+
+        resolved_metadata.setdefault(
+            "mesh_mode",
+            normalized_mesh_mode,
+        )
+
+        resolved_metadata.setdefault(
+            "symmetry_x",
+            bool(
+                symmetry_x
+            ),
+        )
+
+        resolved_metadata.setdefault(
+            "thread_count",
+            normalized_thread_count,
+        )
+
+        resolved_metadata.setdefault(
+            "normalized_height",
+            normalized_height_flag,
+        )
+
+        resolved_metadata.setdefault(
+            "target_height",
+            normalized_target_height,
+        )
+
+        # -------------------------------------------------
+        # Initialize generic base contract.
+        # -------------------------------------------------
+
+        GeometrySurfaceOutput.__init__(
+            self,
+            blender_object=(
+                blender_object
+            ),
+            source=source,
+            projection_space=(
+                projection_space
+            ),
+            implementation_id=(
+                IMPLEMENTATION_ID
+            ),
+            metrics=(
+                resolved_metrics
+            ),
+            metadata=(
+                resolved_metadata
+            ),
+        )
+
+        # -------------------------------------------------
+        # Native specialization.
+        # -------------------------------------------------
+
+        object.__setattr__(
+            self,
+            "volume",
+            volume,
+        )
+
+        object.__setattr__(
+            self,
+            "native_mesh",
+            native_mesh,
+        )
+
+        object.__setattr__(
+            self,
+            "resolution",
+            normalized_resolution,
+        )
+
+        object.__setattr__(
+            self,
+            "symmetry_x",
+            bool(
+                symmetry_x
+            ),
+        )
+
+        object.__setattr__(
+            self,
+            "thread_count",
+            normalized_thread_count,
+        )
+
+        object.__setattr__(
+            self,
+            "mesh_mode",
+            normalized_mesh_mode,
+        )
+
+        object.__setattr__(
+            self,
+            "normalized_height",
+            normalized_height_flag,
+        )
+
+        object.__setattr__(
+            self,
+            "target_height",
+            normalized_target_height,
+        )
+
+        object.__setattr__(
+            self,
+            "normalization_scale",
+            normalized_scale,
+        )
+
+    # -----------------------------------------------------
+    # Native diagnostics
+    # -----------------------------------------------------
+
     @property
     def projection_count(
         self,
     ) -> int:
-        return (
+        return int(
             self.source
             .projection_count
         )
@@ -134,7 +655,7 @@ class NativeVisualHullOutput:
     def vertex_count(
         self,
     ) -> int:
-        return (
+        return int(
             self.native_mesh
             .vertex_count
         )
@@ -143,16 +664,25 @@ class NativeVisualHullOutput:
     def polygon_count(
         self,
     ) -> int:
-        return (
+        return int(
             self.native_mesh
             .polygon_count
+        )
+
+    @property
+    def index_count(
+        self,
+    ) -> int:
+        return int(
+            self.native_mesh
+            .index_count
         )
 
     @property
     def occupied_voxels(
         self,
     ) -> int:
-        return (
+        return int(
             self.volume
             .occupied_count
         )
@@ -166,23 +696,21 @@ class NativeVisualHullOutput:
         int,
     ]:
         return (
-            self.volume.width,
-            self.volume.depth,
-            self.volume.height,
+            int(
+                self.volume.width
+            ),
+            int(
+                self.volume.depth
+            ),
+            int(
+                self.volume.height
+            ),
         )
 
-    @property
-    def object_name(
-        self,
-    ) -> str:
-        return str(
-            self.blender_object.name
-        )
 
-
-# ---------------------------------------------------------
+# =========================================================
 # Context helpers
-# ---------------------------------------------------------
+# =========================================================
 
 def _resolve_settings(
     context: PipelineContext,
@@ -208,7 +736,16 @@ def require_native_visual_hull_output(
     context: PipelineContext,
 ) -> NativeVisualHullOutput:
     """
-    Typed accessor for downstream built-in stages.
+    Native-only typed accessor.
+
+    Keep this helper for implementation-specific tools.
+
+    Generic downstream stages such as MATERIAL should migrate
+    to:
+
+        require_geometry_surface_output(context)
+
+    from core.geometry_contracts.
     """
 
     output = (
@@ -233,9 +770,9 @@ def require_native_visual_hull_output(
     return output
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Configuration
-# ---------------------------------------------------------
+# =========================================================
 
 @dataclass(frozen=True)
 class NativeVisualHullConfig:
@@ -371,9 +908,41 @@ def _config_from_settings(
     return config
 
 
-# ---------------------------------------------------------
+# =========================================================
+# Projection-space construction
+# =========================================================
+
+def _projection_space_from_volume(
+    volume: NativeVolume,
+    config: NativeVisualHullConfig,
+) -> GeometryProjectionSpace:
+    """
+    Adapt NativeVolume into the algorithm-neutral coordinate
+    contract consumed by downstream stages.
+    """
+
+    return GeometryProjectionSpace(
+        width=int(
+            volume.width
+        ),
+        depth=int(
+            volume.depth
+        ),
+        height=int(
+            volume.height
+        ),
+        voxel_size=float(
+            config.voxel_size
+        ),
+        center_xy=bool(
+            config.center_xy
+        ),
+    )
+
+
+# =========================================================
 # Native availability
-# ---------------------------------------------------------
+# =========================================================
 
 def _native_library_availability(
 ) -> ImplementationAvailability:
@@ -455,7 +1024,10 @@ def _native_library_availability(
                 ),
                 details={
                     "exception_type": (
-                        type(exc).__name__
+                        type(
+                            exc
+                        )
+                        .__name__
                     ),
                     "error": str(
                         exc
@@ -479,12 +1051,15 @@ def _native_library_availability(
     )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Blender helpers
-# ---------------------------------------------------------
+# =========================================================
 
 def _remove_blender_object(
-    obj: bpy.types.Object | None,
+    obj: (
+        bpy.types.Object
+        | None
+    ),
 ) -> None:
     """
     Remove a partially-created geometry object when the
@@ -531,23 +1106,23 @@ def _apply_non_destructive_height_normalization(
 
     Why object.scale instead of obj.data.transform():
 
-        projected_material.py works in native reconstruction
-        coordinates.
+        projection-dependent MATERIAL stages work in the
+        reconstruction coordinate space.
 
     GEOMETRY runs before MATERIAL, therefore applying scale
     directly to vertex coordinates here would invalidate
-    material projection.
+    projection.
 
     Uniform object scale preserves:
 
         vertex.co
         native BVH coordinates
-        visual-hull projection space
+        GeometryProjectionSpace
 
     while presenting the requested final size in Blender.
 
-    The transform may be applied later by a rig/export
-    implementation once projection-dependent stages are done.
+    RIG / EXPORT may apply the transform later once
+    projection-dependent stages are complete.
     """
 
     if not enabled:
@@ -598,9 +1173,9 @@ def _apply_non_destructive_height_normalization(
     )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Metadata
-# ---------------------------------------------------------
+# =========================================================
 
 def _write_geometry_metadata(
     obj: bpy.types.Object,
@@ -608,19 +1183,17 @@ def _write_geometry_metadata(
     source: ProjectionImagesOutput,
     volume: NativeVolume,
     native_mesh: NativeMesh,
+    projection_space: GeometryProjectionSpace,
     config: NativeVisualHullConfig,
     normalization_scale: float,
 ) -> None:
     """
-    Preserve existing BPT metadata while adding pipeline
-    identity.
-
-    Existing consumers therefore continue to work while the
-    UI migrates to the generic architecture.
+    Preserve historical BPT metadata while exposing the new
+    generic GEOMETRY contract identity.
     """
 
     # -----------------------------------------------------
-    # Generic pipeline metadata
+    # Generic Meshvenn geometry metadata
     # -----------------------------------------------------
 
     obj[
@@ -641,6 +1214,44 @@ def _write_geometry_metadata(
         "meshvenn_normalization_scale"
     ] = float(
         normalization_scale
+    )
+
+    obj[
+        "meshvenn_projection_convention"
+    ] = (
+        projection_space
+        .convention
+        .value
+    )
+
+    obj[
+        "meshvenn_projection_width"
+    ] = (
+        projection_space.width
+    )
+
+    obj[
+        "meshvenn_projection_depth"
+    ] = (
+        projection_space.depth
+    )
+
+    obj[
+        "meshvenn_projection_height"
+    ] = (
+        projection_space.height
+    )
+
+    obj[
+        "meshvenn_projection_voxel_size"
+    ] = (
+        projection_space.voxel_size
+    )
+
+    obj[
+        "meshvenn_projection_center_xy"
+    ] = (
+        projection_space.center_xy
     )
 
     # -----------------------------------------------------
@@ -731,9 +1342,9 @@ def _write_geometry_metadata(
         )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Implementation
-# ---------------------------------------------------------
+# =========================================================
 
 class NativeVisualHullImplementation:
     """
@@ -751,7 +1362,11 @@ class NativeVisualHullImplementation:
                 ↓
         Blender Mesh Object
                 ↓
+        GeometryProjectionSpace
+                ↓
         NativeVisualHullOutput
+                │
+                └── GeometrySurfaceOutput
 
     No material logic belongs here.
     """
@@ -764,7 +1379,9 @@ class NativeVisualHullImplementation:
             stage=(
                 PipelineStage.GEOMETRY
             ),
-            label="Native Visual Hull",
+            label=(
+                "Native Visual Hull"
+            ),
             description=(
                 "Reconstruct a 3D mesh from silhouette "
                 "projections using the native C++ visual "
@@ -780,6 +1397,8 @@ class NativeVisualHullImplementation:
                 "voxel-blocks",
                 "symmetry-x",
                 "multithreaded",
+                "geometry-surface-output",
+                "projection-space",
             ),
         )
     )
@@ -810,14 +1429,12 @@ class NativeVisualHullImplementation:
             return (
                 ImplementationAvailability
                 .unavailable(
-                    "Meshvenn settings are unavailable."
+                    (
+                        "Meshvenn settings "
+                        "are unavailable."
+                    )
                 )
             )
-
-        # -------------------------------------------------
-        # INPUT must already exist when this is called by
-        # PipelineRunner.
-        # -------------------------------------------------
 
         try:
             source = (
@@ -852,7 +1469,8 @@ class NativeVisualHullImplementation:
                     ),
                     details={
                         "projection_count": (
-                            source.projection_count
+                            source
+                            .projection_count
                         ),
                     },
                 )
@@ -895,19 +1513,28 @@ class NativeVisualHullImplementation:
         details.update(
             {
                 "projection_count": (
-                    source.projection_count
+                    source
+                    .projection_count
                 ),
+
                 "resolution": (
                     config.resolution
                 ),
+
                 "mesh_mode": (
                     config.mesh_mode
                 ),
+
                 "thread_count": (
                     config.thread_count
                 ),
+
                 "symmetry_x": (
                     config.symmetry_x
+                ),
+
+                "geometry_contract": (
+                    "surface-output-v1"
                 ),
             }
         )
@@ -921,7 +1548,11 @@ class NativeVisualHullImplementation:
                         "projection mask"
                         + (
                             "s are"
-                            if source.empty_mask_count != 1
+                            if (
+                                source
+                                .empty_mask_count
+                                != 1
+                            )
                             else " is"
                         )
                         + " empty. The resulting visual "
@@ -967,7 +1598,8 @@ class NativeVisualHullImplementation:
                         IMPLEMENTATION_ID
                     ),
                     message=(
-                        "Meshvenn settings are unavailable."
+                        "Meshvenn settings "
+                        "are unavailable."
                     ),
                 )
             )
@@ -1012,7 +1644,8 @@ class NativeVisualHullImplementation:
                     ),
                     metadata={
                         "projection_count": (
-                            source.projection_count
+                            source
+                            .projection_count
                         ),
                     },
                 )
@@ -1041,7 +1674,10 @@ class NativeVisualHullImplementation:
                     ),
                     metadata={
                         "exception_type": (
-                            type(exc).__name__
+                            type(
+                                exc
+                            )
+                            .__name__
                         ),
                     },
                 )
@@ -1054,20 +1690,12 @@ class NativeVisualHullImplementation:
 
         try:
             # -------------------------------------------------
-            # Native engine
+            # Native visual hull
             # -------------------------------------------------
 
             core = (
                 NativeCore()
             )
-
-            # -------------------------------------------------
-            # Visual hull
-            #
-            # Empty masks are NOT discarded here.
-            # If an enabled silhouette is empty, the correct
-            # mathematical result may be an empty hull.
-            # -------------------------------------------------
 
             volume = (
                 core.build_visual_hull(
@@ -1106,10 +1734,12 @@ class NativeVisualHullImplementation:
                                 source
                                 .projection_count
                             ),
+
                             "empty_masks": (
                                 source
                                 .empty_mask_count
                             ),
+
                             "resolution": (
                                 config.resolution
                             ),
@@ -1158,6 +1788,7 @@ class NativeVisualHullImplementation:
                                 volume
                                 .occupied_count
                             ),
+
                             "mesh_mode": (
                                 config.mesh_mode
                             ),
@@ -1187,6 +1818,7 @@ class NativeVisualHullImplementation:
                                 native_mesh
                                 .vertex_count
                             ),
+
                             "mesh_mode": (
                                 config.mesh_mode
                             ),
@@ -1213,9 +1845,8 @@ class NativeVisualHullImplementation:
             # -------------------------------------------------
             # Smooth normals
             #
-            # MATERIAL V1.2 scores projection candidates from
-            # these normals, so they must be available before
-            # the next pipeline stage executes.
+            # Projection-based materials score source views
+            # using these normals.
             # -------------------------------------------------
 
             shade_smooth_native_object(
@@ -1223,13 +1854,20 @@ class NativeVisualHullImplementation:
             )
 
             # -------------------------------------------------
+            # Build algorithm-neutral projection space.
+            # -------------------------------------------------
+
+            projection_space = (
+                _projection_space_from_volume(
+                    volume,
+                    config,
+                )
+            )
+
+            # -------------------------------------------------
             # Non-destructive normalization
             #
-            # DO NOT apply the scale to obj.data here.
-            #
-            # Material projection still requires the local
-            # vertices to exactly match native reconstruction
-            # coordinates.
+            # DO NOT apply scale to obj.data here.
             # -------------------------------------------------
 
             normalization_scale = (
@@ -1257,11 +1895,91 @@ class NativeVisualHullImplementation:
                 native_mesh=(
                     native_mesh
                 ),
+                projection_space=(
+                    projection_space
+                ),
                 config=config,
                 normalization_scale=(
                     normalization_scale
                 ),
             )
+
+            # -------------------------------------------------
+            # Generic + native output metrics
+            # -------------------------------------------------
+
+            output_metrics = {
+                "projection_count": (
+                    source
+                    .projection_count
+                ),
+
+                "resolution": (
+                    config.resolution
+                ),
+
+                "occupied_voxels": (
+                    volume
+                    .occupied_count
+                ),
+
+                "vertex_count": (
+                    native_mesh
+                    .vertex_count
+                ),
+
+                "index_count": (
+                    native_mesh
+                    .index_count
+                ),
+
+                "polygon_count": (
+                    native_mesh
+                    .polygon_count
+                ),
+
+                "normalization_scale": (
+                    normalization_scale
+                ),
+            }
+
+            output_metadata = {
+                "mesh_mode": (
+                    config.mesh_mode
+                ),
+
+                "symmetry_x": (
+                    config.symmetry_x
+                ),
+
+                "thread_count": (
+                    config.thread_count
+                ),
+
+                "normalized_height": (
+                    config
+                    .normalize_height
+                ),
+
+                "target_height": (
+                    config.target_height
+                    if (
+                        config
+                        .normalize_height
+                    )
+                    else None
+                ),
+
+                "native_local_coordinates_preserved": (
+                    True
+                ),
+
+                "projection_convention": (
+                    projection_space
+                    .convention
+                    .value
+                ),
+            }
 
             # -------------------------------------------------
             # Pipeline output
@@ -1272,33 +1990,40 @@ class NativeVisualHullImplementation:
                     blender_object=(
                         obj
                     ),
+
+                    source=source,
+
+                    projection_space=(
+                        projection_space
+                    ),
+
                     volume=volume,
+
                     native_mesh=(
                         native_mesh
                     ),
-                    source=source,
+
                     resolution=(
                         config.resolution
                     ),
+
                     symmetry_x=(
                         config.symmetry_x
                     ),
+
                     thread_count=(
                         config.thread_count
                     ),
+
                     mesh_mode=(
                         config.mesh_mode
                     ),
-                    voxel_size=(
-                        config.voxel_size
-                    ),
-                    center_xy=(
-                        config.center_xy
-                    ),
+
                     normalized_height=(
                         config
                         .normalize_height
                     ),
+
                     target_height=(
                         config.target_height
                         if (
@@ -1307,8 +2032,17 @@ class NativeVisualHullImplementation:
                         )
                         else None
                     ),
+
                     normalization_scale=(
                         normalization_scale
+                    ),
+
+                    metrics=(
+                        output_metrics
+                    ),
+
+                    metadata=(
+                        output_metadata
                     ),
                 )
             )
@@ -1324,6 +2058,18 @@ class NativeVisualHullImplementation:
             )
 
             context.metadata[
+                "geometry_implementation"
+            ] = (
+                IMPLEMENTATION_ID
+            )
+
+            context.metadata[
+                "geometry_contract"
+            ] = (
+                "surface-output-v1"
+            )
+
+            context.metadata[
                 "geometry_mesh_mode"
             ] = (
                 config.mesh_mode
@@ -1335,9 +2081,38 @@ class NativeVisualHullImplementation:
                 volume.occupied_count
             )
 
-            # Ownership has now transferred to the pipeline.
-            #
-            # Do not clean `obj` if anything below succeeds.
+            context.metadata[
+                "geometry_projection_space"
+            ] = {
+                "width": (
+                    projection_space.width
+                ),
+
+                "depth": (
+                    projection_space.depth
+                ),
+
+                "height": (
+                    projection_space.height
+                ),
+
+                "voxel_size": (
+                    projection_space
+                    .voxel_size
+                ),
+
+                "center_xy": (
+                    projection_space
+                    .center_xy
+                ),
+
+                "convention": (
+                    projection_space
+                    .convention
+                    .value
+                ),
+            }
+
             created_object = obj
 
             return (
@@ -1346,79 +2121,139 @@ class NativeVisualHullImplementation:
                     stage=(
                         PipelineStage.GEOMETRY
                     ),
+
                     implementation_id=(
                         IMPLEMENTATION_ID
                     ),
+
                     payload=output,
+
                     message=(
                         "Native visual hull generated: "
                         f"{volume.occupied_count} voxels, "
                         f"{native_mesh.vertex_count} vertices, "
                         f"{native_mesh.polygon_count} polygons."
                     ),
+
                     metrics={
                         "projections": (
                             source
                             .projection_count
                         ),
+
                         "resolution": (
                             config.resolution
                         ),
+
                         "occupied_voxels": (
                             volume
                             .occupied_count
                         ),
+
                         "vertices": (
                             native_mesh
                             .vertex_count
                         ),
+
                         "indices": (
                             native_mesh
                             .index_count
                         ),
+
                         "polygons": (
                             native_mesh
                             .polygon_count
                         ),
+
                         "normalization_scale": (
                             normalization_scale
                         ),
                     },
+
                     metadata={
                         "object_name": (
                             created_object
                             .name
                         ),
+
                         "mesh_name": (
                             created_object
                             .data
                             .name
                         ),
+
+                        "geometry_contract": (
+                            "surface-output-v1"
+                        ),
+
                         "mesh_mode": (
                             config.mesh_mode
                         ),
+
                         "voxel_size": (
-                            config.voxel_size
+                            projection_space
+                            .voxel_size
                         ),
+
                         "center_xy": (
-                            config.center_xy
+                            projection_space
+                            .center_xy
                         ),
+
                         "symmetry_x": (
                             config.symmetry_x
                         ),
+
                         "thread_count": (
                             config.thread_count
                         ),
+
+                        "projection_space": {
+                            "width": (
+                                projection_space
+                                .width
+                            ),
+
+                            "depth": (
+                                projection_space
+                                .depth
+                            ),
+
+                            "height": (
+                                projection_space
+                                .height
+                            ),
+
+                            "voxel_size": (
+                                projection_space
+                                .voxel_size
+                            ),
+
+                            "center_xy": (
+                                projection_space
+                                .center_xy
+                            ),
+
+                            "convention": (
+                                projection_space
+                                .convention
+                                .value
+                            ),
+                        },
+
                         "volume": {
                             "width": (
                                 volume.width
                             ),
+
                             "depth": (
                                 volume.depth
                             ),
+
                             "height": (
                                 volume.height
                             ),
+
                             "bounds": (
                                 list(
                                     volume.bounds
@@ -1430,10 +2265,12 @@ class NativeVisualHullImplementation:
                                 else None
                             ),
                         },
+
                         "normalize_height": (
                             config
                             .normalize_height
                         ),
+
                         "target_height": (
                             config.target_height
                             if (
@@ -1442,6 +2279,7 @@ class NativeVisualHullImplementation:
                             )
                             else None
                         ),
+
                         "native_local_coordinates_preserved": (
                             True
                         ),
@@ -1451,11 +2289,8 @@ class NativeVisualHullImplementation:
 
         except Exception:
             # -------------------------------------------------
-            # A Blender object which has already been injected
-            # must not survive a failed GEOMETRY stage.
-            #
-            # PipelineRunner will convert the exception into a
-            # FAILED StageExecutionResult.
+            # A Blender object already injected must not
+            # survive a failed GEOMETRY stage.
             # -------------------------------------------------
 
             _remove_blender_object(
