@@ -39,6 +39,9 @@ from core.presheet_layout import (
     pixel_bbox,
 )
 from core.projected_material import (
+    COLOR_ATTRIBUTE_NAME,
+    MATERIAL_MODE,
+    VISIBILITY_MODE,
     ProjectedMaterialView,
     apply_projected_material,
 )
@@ -1116,6 +1119,62 @@ def material_views_for_snapshot(
 
 
 # ---------------------------------------------------------
+# Material metadata
+# ---------------------------------------------------------
+
+def material_visibility_manifest(
+    obj: bpy.types.Object,
+) -> dict:
+    """
+    Extract visibility metadata written by
+    apply_projected_material().
+
+    Keeping this helper here prevents the example generator
+    from having to know how the visibility implementation
+    itself is configured.
+    """
+
+    enabled = bool(
+        obj.get(
+            "bpt_material_visibility",
+            False,
+        )
+    )
+
+    epsilon = obj.get(
+        "bpt_material_visibility_epsilon"
+    )
+
+    max_distance = obj.get(
+        "bpt_material_visibility_max_distance"
+    )
+
+    return {
+        "enabled": enabled,
+        "mode": str(
+            obj.get(
+                "bpt_material_visibility_mode",
+                "disabled",
+            )
+        ),
+        "epsilon": (
+            float(
+                epsilon
+            )
+            if epsilon is not None
+            else None
+        ),
+        "max_distance": (
+            float(
+                max_distance
+            )
+            if max_distance is not None
+            else None
+        ),
+    }
+
+
+# ---------------------------------------------------------
 # Blender scene
 # ---------------------------------------------------------
 
@@ -1379,7 +1438,10 @@ def process_sheet(
                 args.mesh_mode
             ),
             material_mode=(
-                "projected-color-v1"
+                MATERIAL_MODE
+            ),
+            visibility_mode=(
+                VISIBILITY_MODE
             ),
         )
 
@@ -1433,7 +1495,13 @@ def process_sheet(
         manifest[
             "material_mode"
         ] = (
-            "projected-color-v1"
+            MATERIAL_MODE
+        )
+
+        manifest[
+            "material_visibility_mode"
+        ] = (
+            VISIBILITY_MODE
         )
 
         manifest[
@@ -1483,7 +1551,10 @@ def process_sheet(
                     args.mesh_mode
                 ),
                 material_mode=(
-                    "projected-color-v1"
+                    MATERIAL_MODE
+                ),
+                visibility_mode=(
+                    VISIBILITY_MODE
                 ),
             ):
                 active_material_views = (
@@ -1502,7 +1573,10 @@ def process_sheet(
                         args.mesh_mode
                     ),
                     "material_mode": (
-                        "projected-color-v1"
+                        MATERIAL_MODE
+                    ),
+                    "material_visibility_mode": (
+                        VISIBILITY_MODE
                     ),
                     "views": list(
                         snapshot
@@ -1592,6 +1666,10 @@ def process_sheet(
                 # This happens before target-height scaling,
                 # while vertex positions are still expressed
                 # in native reconstruction coordinates.
+                #
+                # V1.1 builds one BVH here and rejects a
+                # source view whenever another surface lies
+                # between this point and that source camera.
                 # -----------------------------------------
 
                 if not active_material_views:
@@ -1631,11 +1709,21 @@ def process_sheet(
                             center_xy=True,
                             facing_power=2.0,
                             allow_backface_fallback=True,
+                            enable_visibility=True,
                         )
                     )
 
+                visibility_info = (
+                    material_visibility_manifest(
+                        obj
+                    )
+                )
+
                 level_logger.info(
                     "projected material",
+                    mode=(
+                        MATERIAL_MODE
+                    ),
                     views=len(
                         active_material_views
                     ),
@@ -1654,6 +1742,26 @@ def process_sheet(
                     rejected_samples=(
                         material_stats
                         .rejected_samples
+                    ),
+                    visibility=(
+                        visibility_info[
+                            "enabled"
+                        ]
+                    ),
+                    visibility_mode=(
+                        visibility_info[
+                            "mode"
+                        ]
+                    ),
+                    visibility_epsilon=(
+                        visibility_info[
+                            "epsilon"
+                        ]
+                    ),
+                    visibility_max_distance=(
+                        visibility_info[
+                            "max_distance"
+                        ]
                     ),
                 )
 
@@ -1687,10 +1795,13 @@ def process_sheet(
                     args.mesh_mode
                 )
 
+                # apply_projected_material() already writes
+                # these values. Reasserting the public mode
+                # here keeps generated examples explicit.
                 obj[
                     "bpt_material"
                 ] = (
-                    "projected-color-v1"
+                    MATERIAL_MODE
                 )
 
                 obj[
@@ -1745,10 +1856,10 @@ def process_sheet(
                         "generated": True,
                         "material": {
                             "mode": (
-                                "projected-color-v1"
+                                MATERIAL_MODE
                             ),
                             "attribute": (
-                                "bpt_projected_color"
+                                COLOR_ATTRIBUTE_NAME
                             ),
                             "views": [
                                 view.name
@@ -1774,6 +1885,9 @@ def process_sheet(
                             "rejected_samples": (
                                 material_stats
                                 .rejected_samples
+                            ),
+                            "visibility": (
+                                visibility_info
                             ),
                         },
                         **export_info,
@@ -1891,7 +2005,14 @@ def main() -> None:
     logger.info(
         "Material mode",
         value=(
-            "projected-color-v1"
+            MATERIAL_MODE
+        ),
+    )
+
+    logger.info(
+        "Material visibility",
+        value=(
+            VISIBILITY_MODE
         ),
     )
 

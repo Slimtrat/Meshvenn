@@ -19,20 +19,15 @@ if str(REPO_ROOT) not in sys.path:
     )
 
 
+from core.projected_material import (
+    MATERIAL_MODE,
+    VISIBILITY_MODE,
+)
 from scripts.generate_example_native import (
     process_sheet,
 )
 from scripts.run_logger import (
     RunLogger,
-)
-
-
-# ---------------------------------------------------------
-# Constants
-# ---------------------------------------------------------
-
-MATERIAL_MODE = (
-    "projected-color-v1"
 )
 
 
@@ -555,6 +550,13 @@ def print_plan(
     )
 
     logger.info(
+        "Material visibility",
+        value=(
+            VISIBILITY_MODE
+        ),
+    )
+
+    logger.info(
         "Voxel size",
         value=(
             args.voxel_size
@@ -798,6 +800,13 @@ def main() -> None:
         "Material mode",
         value=(
             MATERIAL_MODE
+        ),
+    )
+
+    logger.info(
+        "Material visibility",
+        value=(
+            VISIBILITY_MODE
         ),
     )
 
