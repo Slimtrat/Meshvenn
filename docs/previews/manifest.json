@@ -1,9 +1,9 @@
 {
   "configuration": {
-    "material_mode": "projected-color-v1",
+    "material_mode": "projected-color-v1.2",
     "mesh_mode": "surface_nets",
     "render_size": 384,
-    "renderer_version": 1,
+    "renderer_version": 2,
     "resolution": 64,
     "samples": 1,
     "turntable_views": 8
@@ -40,5 +40,5 @@
       "source_sha256": "5608c6046cca27708c10e2144c7146948eadd5b6e0a1801495fbbd5664536bc1"
     }
   },
-  "source_commit": "3f5cbd7d4995ba60bbf2e31073c0dd8fdf7f2dc0"
+  "source_commit": "db20e27092a78690bd2c2d5e6b8bed311c6ea13c"
 }
