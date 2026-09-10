@@ -7,6 +7,10 @@ from typing import Any
 
 import bpy
 
+from ..core.geometry_contracts import (
+    GeometrySurfaceOutput,
+    require_geometry_surface_output,
+)
 from ..core.material_blend import (
     MaterialBlendConfig,
 )
@@ -33,11 +37,6 @@ from ..core.uv_bake import (
     bake_uv_texture,
 )
 
-from .native_visual_hull import (
-    NativeVisualHullOutput,
-    require_native_visual_hull_output,
-)
-
 
 # =========================================================
 # Constants
@@ -54,21 +53,6 @@ MATERIAL_MODE = (
 
 # ---------------------------------------------------------
 # Product texture default
-#
-# Resolution benchmark:
-#
-#     256
-#         insufficient UV density on generated meshes
-#
-#     512
-#         current interactive/product default
-#
-#     1024+
-#         explicit high-quality modes
-#
-# 512 keeps subpixel triangles below the current benchmark
-# target while avoiding the ~4× bake-time increase observed
-# when moving from 512 to 1024.
 # ---------------------------------------------------------
 
 DEFAULT_TEXTURE_SIZE = 512
@@ -87,26 +71,18 @@ DEFAULT_UV_LAYER_NAME = (
 #
 # Blender's FRACTION margin is expressed in UV-space.
 #
-# A value such as:
-#
-#     0.02
-#
-# therefore consumes a very large part of the atlas when
-# thousands of islands exist.
-#
-# UV Bake already performs its own post-bake color dilation,
-# so Smart Project only needs enough spacing to keep islands
+# UV Bake performs its own post-bake color dilation, so
+# Smart Project only needs enough spacing to keep islands
 # distinct.
 #
-# We cap Smart Project spacing to half a texture texel:
+# Maximum spacing:
 #
 #     256  -> 0.001953125
 #     512  -> 0.0009765625
 #     1024 -> 0.00048828125
 #     4096 -> 0.0001220703125
 #
-# The user-provided fraction remains a MAXIMUM. A smaller
-# requested value is respected.
+# i.e. 0.5 texture texel maximum.
 # ---------------------------------------------------------
 
 DEFAULT_ISLAND_MARGIN = 0.02
@@ -307,14 +283,6 @@ class UVBakeMaterialConfig:
     def maximum_smart_project_margin_fraction(
         self,
     ) -> float:
-        """
-        Maximum safe Smart Project margin for the chosen
-        texture resolution.
-
-        This converts a texture-space margin to the FRACTION
-        unit expected by Blender Smart Project.
-        """
-
         return (
             MAX_SMART_PROJECT_MARGIN_TEXELS
             / float(
@@ -326,14 +294,6 @@ class UVBakeMaterialConfig:
     def effective_island_margin_fraction(
         self,
     ) -> float:
-        """
-        Effective margin sent to Blender Smart Project.
-
-        The public `island_margin` setting remains supported,
-        but can no longer accidentally collapse a dense UV
-        atlas.
-        """
-
         return min(
             float(
                 self.island_margin
@@ -522,7 +482,7 @@ def _uv_layout_diagnostics(
 
 
 # =========================================================
-# Pipeline output
+# MATERIAL output
 # =========================================================
 
 @dataclass(frozen=True)
@@ -532,16 +492,23 @@ class UVBakeMaterialOutput:
 
     Geometry is not duplicated.
 
-    The same Blender object receives:
+    The SAME Blender object produced by the generic GEOMETRY
+    stage receives:
 
         UV map
         image texture
         Principled material
+
+    geometry may originate from:
+
+        Native Visual Hull
+        SDF Reconstruction
+        another future reconstruction implementation
     """
 
     blender_object: bpy.types.Object
 
-    geometry: NativeVisualHullOutput
+    geometry: GeometrySurfaceOutput
 
     image: bpy.types.Image
 
@@ -781,12 +748,87 @@ def _config_from_settings(
 
 
 # =========================================================
+# Source capability
+# =========================================================
+
+def _material_views_from_geometry(
+    geometry: GeometrySurfaceOutput,
+) -> tuple[
+    Any,
+    ...
+]:
+    """
+    UV Bake requires source projection-color views.
+
+    It deliberately does not care which INPUT implementation
+    produced those views.
+
+    Required capability:
+
+        geometry.source.material_views
+    """
+
+    source = (
+        geometry.source
+    )
+
+    material_views = getattr(
+        source,
+        "material_views",
+        None,
+    )
+
+    if material_views is None:
+        raise TypeError(
+            (
+                "GEOMETRY source does not expose "
+                "material_views required by "
+                "UV Bake V2."
+            )
+        )
+
+    try:
+        resolved = tuple(
+            material_views
+        )
+
+    except TypeError as exc:
+        raise TypeError(
+            (
+                "GEOMETRY source material_views "
+                "is not iterable."
+            )
+        ) from exc
+
+    if not resolved:
+        raise ValueError(
+            (
+                "No source material views "
+                "are available."
+            )
+        )
+
+    return resolved
+
+
+# =========================================================
 # Geometry validation
 # =========================================================
 
 def _validate_geometry(
-    geometry: NativeVisualHullOutput,
+    geometry: GeometrySurfaceOutput,
 ) -> None:
+    """
+    Validate only requirements shared by generic surfaces.
+
+    There must be no dependency here on:
+
+        NativeVisualHullOutput
+        NativeVolume
+        NativeMesh
+        SDF implementation details
+    """
+
     obj = (
         geometry.blender_object
     )
@@ -799,7 +841,14 @@ def _validate_geometry(
             )
         )
 
-    if obj.type != "MESH":
+    if (
+        getattr(
+            obj,
+            "type",
+            None,
+        )
+        != "MESH"
+    ):
         raise TypeError(
             (
                 "UV Bake requires "
@@ -807,8 +856,10 @@ def _validate_geometry(
             )
         )
 
-    mesh = (
-        obj.data
+    mesh = getattr(
+        obj,
+        "data",
+        None,
     )
 
     if mesh is None:
@@ -851,17 +902,48 @@ def _validate_geometry(
             )
         )
 
-    if not (
+    projection_space = (
         geometry
-        .source
-        .material_views
+        .projection_space
+    )
+
+    if (
+        projection_space.width <= 0
+        or projection_space.depth <= 0
+        or projection_space.height <= 0
     ):
         raise ValueError(
             (
-                "No source material views "
-                "are available."
+                "Geometry contains invalid "
+                "projection-space dimensions."
             )
         )
+
+    if (
+        not math.isfinite(
+            projection_space
+            .voxel_size
+        )
+        or projection_space
+        .voxel_size
+        <= 0.0
+    ):
+        raise ValueError(
+            (
+                "Geometry contains an invalid "
+                "projection-space voxel size."
+            )
+        )
+
+    # Validate the projection coordinate convention.
+
+    projection_space.as_projection_kwargs()
+
+    # Validate source capabilities.
+
+    _material_views_from_geometry(
+        geometry
+    )
 
 
 # =========================================================
@@ -982,11 +1064,8 @@ def _smart_project_uv(
     """
     Create/rebuild the UV map using Blender Smart Project.
 
-    `island_margin` must already be expressed as the FRACTION
-    value to send to Blender.
-
-    The caller is responsible for converting texture-space
-    safety constraints to this fraction.
+    `island_margin` is already expressed as the FRACTION
+    expected by Blender.
     """
 
     mesh = (
@@ -1179,11 +1258,6 @@ def _resolve_uv_layer(
             config.uv_layer_name
         ),
 
-        # -------------------------------------------------
-        # Never send the raw 0.02-style fraction directly
-        # to Smart Project on dense generated meshes.
-        # -------------------------------------------------
-
         island_margin=(
             config
             .effective_island_margin_fraction
@@ -1247,9 +1321,7 @@ def _corner_normal(
     float,
     float,
 ]:
-    # -----------------------------------------------------
-    # Blender 5.x corner normals
-    # -----------------------------------------------------
+    # Blender 5.x corner normals.
 
     try:
         if (
@@ -1278,9 +1350,7 @@ def _corner_normal(
     except Exception:
         pass
 
-    # -----------------------------------------------------
-    # Vertex normal fallback
-    # -----------------------------------------------------
+    # Vertex-normal fallback.
 
     try:
         normal = (
@@ -1302,9 +1372,7 @@ def _corner_normal(
     except Exception:
         pass
 
-    # -----------------------------------------------------
-    # Polygon normal fallback
-    # -----------------------------------------------------
+    # Polygon-normal fallback.
 
     try:
         normal = (
@@ -1504,39 +1572,49 @@ def _build_uv_triangles(
 
 
 # =========================================================
-# Projected Color sampler
+# Projected-color surface sampler
 # =========================================================
 
 def _build_surface_sampler(
-    geometry: NativeVisualHullOutput,
+    geometry: GeometrySurfaceOutput,
     config: UVBakeMaterialConfig,
 ):
-    views = list(
-        geometry
-        .source
-        .material_views
-    )
+    """
+    Build the Projected Color V1.2 surface sampler used by
+    UV Bake.
 
-    if not views:
-        raise ValueError(
-            (
-                "No projection images are "
-                "available for texture bake."
-            )
+    Important:
+
+    this function only depends on the generic GEOMETRY
+    contract.
+
+    It knows nothing about:
+
+        NativeVisualHullOutput
+        NativeVolume
+        SDFVolume
+        reconstruction implementation internals
+    """
+
+    views = list(
+        _material_views_from_geometry(
+            geometry
         )
+    )
 
     blend_config = (
         config.to_blend_config()
     )
 
+    projection_space = (
+        geometry
+        .projection_space
+    )
+
     visibility_tester = None
 
     if config.enable_visibility:
-        # -------------------------------------------------
-        # Build one BVH for the COMPLETE bake.
-        #
-        # Never rebuild visibility per texel.
-        # -------------------------------------------------
+        # Build one BVH for the complete bake.
 
         visibility_tester = (
             MeshVisibilityTester
@@ -1562,30 +1640,27 @@ def _build_surface_sampler(
                 views,
 
                 width=(
-                    geometry
-                    .volume
+                    projection_space
                     .width
                 ),
 
                 depth=(
-                    geometry
-                    .volume
+                    projection_space
                     .depth
                 ),
 
                 height=(
-                    geometry
-                    .volume
+                    projection_space
                     .height
                 ),
 
                 voxel_size=(
-                    geometry
+                    projection_space
                     .voxel_size
                 ),
 
                 center_xy=(
-                    geometry
+                    projection_space
                     .center_xy
                 ),
 
@@ -1674,6 +1749,7 @@ def _create_baked_image(
 
         # Keep generated texture embedded in .blend and
         # available to glTF export.
+
         image.pack()
 
     except Exception:
@@ -1730,9 +1806,7 @@ def _create_baked_material(
 
         nodes.clear()
 
-        # -------------------------------------------------
-        # UV
-        # -------------------------------------------------
+        # UV.
 
         uv_node = nodes.new(
             "ShaderNodeUVMap"
@@ -1755,9 +1829,7 @@ def _create_baked_material(
             0.0,
         )
 
-        # -------------------------------------------------
-        # Image texture
-        # -------------------------------------------------
+        # Image texture.
 
         image_node = nodes.new(
             "ShaderNodeTexImage"
@@ -1788,9 +1860,7 @@ def _create_baked_material(
             0.0,
         )
 
-        # -------------------------------------------------
-        # Principled
-        # -------------------------------------------------
+        # Principled BSDF.
 
         principled = nodes.new(
             "ShaderNodeBsdfPrincipled"
@@ -1827,9 +1897,7 @@ def _create_baked_material(
                 DEFAULT_ROUGHNESS
             )
 
-        # -------------------------------------------------
-        # Output
-        # -------------------------------------------------
+        # Material output.
 
         output = nodes.new(
             "ShaderNodeOutputMaterial"
@@ -1844,9 +1912,7 @@ def _create_baked_material(
             0.0,
         )
 
-        # -------------------------------------------------
-        # Connections
-        # -------------------------------------------------
+        # Connections.
 
         links.new(
             uv_node.outputs[
@@ -1923,6 +1989,19 @@ def _write_metadata(
         output.config
     )
 
+    geometry = (
+        output.geometry
+    )
+
+    projection_space = (
+        geometry
+        .projection_space
+    )
+
+    # -----------------------------------------------------
+    # Material identity
+    # -----------------------------------------------------
+
     obj[
         "meshvenn_material_implementation"
     ] = (
@@ -1938,6 +2017,25 @@ def _write_metadata(
     ] = (
         MATERIAL_MODE
     )
+
+    obj[
+        "meshvenn_material_geometry_implementation"
+    ] = (
+        geometry
+        .implementation_id
+    )
+
+    obj[
+        "meshvenn_material_projection_convention"
+    ] = (
+        projection_space
+        .convention
+        .value
+    )
+
+    # -----------------------------------------------------
+    # UV / image
+    # -----------------------------------------------------
 
     obj[
         "meshvenn_uv_layer"
@@ -1973,6 +2071,42 @@ def _write_metadata(
         "meshvenn_uv_bake_samples_per_axis"
     ] = (
         config.samples_per_axis
+    )
+
+    # -----------------------------------------------------
+    # Projection-space diagnostics
+    # -----------------------------------------------------
+
+    obj[
+        "meshvenn_uv_projection_width"
+    ] = (
+        projection_space.width
+    )
+
+    obj[
+        "meshvenn_uv_projection_depth"
+    ] = (
+        projection_space.depth
+    )
+
+    obj[
+        "meshvenn_uv_projection_height"
+    ] = (
+        projection_space.height
+    )
+
+    obj[
+        "meshvenn_uv_projection_voxel_size"
+    ] = (
+        projection_space
+        .voxel_size
+    )
+
+    obj[
+        "meshvenn_uv_projection_center_xy"
+    ] = (
+        projection_space
+        .center_xy
     )
 
     # -----------------------------------------------------
@@ -2117,19 +2251,27 @@ class UVBakeImplementation:
     """
     Built-in MATERIAL implementation.
 
-    Projection Images
-            ↓
-    Native Visual Hull
-            ↓
-    Smart UV unwrap
-            ↓
-    UV-space rasterization
-            ↓
-    Projected Color V1.2 sampler
-            ↓
-    baked image texture
-            ↓
-    Principled material
+        GeometrySurfaceOutput
+                ↓
+        source.material_views
+                ↓
+        GeometryProjectionSpace
+                ↓
+        Smart UV unwrap
+                ↓
+        UV-space rasterization
+                ↓
+        Projected Color V1.2 sampler
+                ↓
+        baked image texture
+                ↓
+        Principled material
+
+    UV Bake does not depend on the concrete GEOMETRY
+    implementation.
+
+    Native Visual Hull and SDF Reconstruction can therefore
+    use the exact same material pipeline.
     """
 
     _descriptor = (
@@ -2166,6 +2308,8 @@ class UVBakeImplementation:
                 "adaptive-blend",
                 "texture-padding",
                 "portable-material",
+                "generic-geometry",
+                "projection-space",
             ),
         )
     )
@@ -2194,13 +2338,36 @@ class UVBakeImplementation:
 
         try:
             geometry = (
-                require_native_visual_hull_output(
+                require_geometry_surface_output(
                     context
                 )
             )
 
+        except Exception as exc:
+            return (
+                ImplementationAvailability
+                .unavailable(
+                    (
+                        "Compatible GEOMETRY surface "
+                        "is unavailable."
+                    ),
+                    details={
+                        "error": str(
+                            exc
+                        ),
+                    },
+                )
+            )
+
+        try:
             _validate_geometry(
                 geometry
+            )
+
+            material_views = (
+                _material_views_from_geometry(
+                    geometry
+                )
             )
 
             config = (
@@ -2216,7 +2383,13 @@ class UVBakeImplementation:
                     (
                         "UV Bake V2 is not "
                         f"available: {exc}"
-                    )
+                    ),
+                    details={
+                        "geometry_implementation": (
+                            geometry
+                            .implementation_id
+                        ),
+                    },
                 )
             )
 
@@ -2237,9 +2410,20 @@ class UVBakeImplementation:
                     (
                         "Reuse Existing UV is enabled "
                         "but the mesh has no UV map."
-                    )
+                    ),
+                    details={
+                        "geometry_implementation": (
+                            geometry
+                            .implementation_id
+                        ),
+                    },
                 )
             )
+
+        projection_space = (
+            geometry
+            .projection_space
+        )
 
         return (
             ImplementationAvailability
@@ -2247,14 +2431,16 @@ class UVBakeImplementation:
                 details={
                     "object": (
                         geometry
-                        .blender_object
-                        .name
+                        .object_name
+                    ),
+
+                    "geometry_implementation": (
+                        geometry
+                        .implementation_id
                     ),
 
                     "views": len(
-                        geometry
-                        .source
-                        .material_views
+                        material_views
                     ),
 
                     "texture_size": (
@@ -2291,6 +2477,39 @@ class UVBakeImplementation:
                         config
                         .effective_island_margin_pixels
                     ),
+
+                    "projection_space": {
+                        "width": (
+                            projection_space
+                            .width
+                        ),
+
+                        "depth": (
+                            projection_space
+                            .depth
+                        ),
+
+                        "height": (
+                            projection_space
+                            .height
+                        ),
+
+                        "voxel_size": (
+                            projection_space
+                            .voxel_size
+                        ),
+
+                        "center_xy": (
+                            projection_space
+                            .center_xy
+                        ),
+
+                        "convention": (
+                            projection_space
+                            .convention
+                            .value
+                        ),
+                    },
                 }
             )
         )
@@ -2435,9 +2654,13 @@ class UVBakeImplementation:
             )
         )
 
+        # -------------------------------------------------
+        # Generic GEOMETRY contract.
+        # -------------------------------------------------
+
         try:
             geometry = (
-                require_native_visual_hull_output(
+                require_geometry_surface_output(
                     context
                 )
             )
@@ -2455,8 +2678,8 @@ class UVBakeImplementation:
                     ),
 
                     message=(
-                        "Geometry unavailable: "
-                        f"{exc}"
+                        "Compatible GEOMETRY surface "
+                        f"is unavailable: {exc}"
                     ),
                 )
             )
@@ -2464,6 +2687,12 @@ class UVBakeImplementation:
         try:
             _validate_geometry(
                 geometry
+            )
+
+            material_views = (
+                _material_views_from_geometry(
+                    geometry
+                )
             )
 
             config = (
@@ -2485,14 +2714,27 @@ class UVBakeImplementation:
                     ),
 
                     message=(
-                        "Invalid UV Bake V2 "
-                        f"configuration: {exc}"
+                        "Geometry or UV Bake V2 "
+                        f"configuration is invalid: {exc}"
                     ),
+
+                    metadata={
+                        "geometry_implementation": (
+                            geometry
+                            .implementation_id
+                        ),
+                    },
                 )
             )
 
         obj = (
-            geometry.blender_object
+            geometry
+            .blender_object
+        )
+
+        projection_space = (
+            geometry
+            .projection_space
         )
 
         # -------------------------------------------------
@@ -2525,6 +2767,11 @@ class UVBakeImplementation:
                     ),
 
                     metadata={
+                        "geometry_implementation": (
+                            geometry
+                            .implementation_id
+                        ),
+
                         "requested_island_margin": (
                             config
                             .island_margin
@@ -2582,6 +2829,13 @@ class UVBakeImplementation:
                         "UV triangulation failed: "
                         f"{exc}"
                     ),
+
+                    metadata={
+                        "geometry_implementation": (
+                            geometry
+                            .implementation_id
+                        ),
+                    },
                 )
             )
 
@@ -2613,6 +2867,13 @@ class UVBakeImplementation:
                         "Surface sampler creation "
                         f"failed: {exc}"
                     ),
+
+                    metadata={
+                        "geometry_implementation": (
+                            geometry
+                            .implementation_id
+                        ),
+                    },
                 )
             )
 
@@ -2689,6 +2950,11 @@ class UVBakeImplementation:
                         ),
 
                         metadata={
+                            "geometry_implementation": (
+                                geometry
+                                .implementation_id
+                            ),
+
                             "triangles": (
                                 len(
                                     triangles
@@ -2751,6 +3017,11 @@ class UVBakeImplementation:
                     ),
 
                     metadata={
+                        "geometry_implementation": (
+                            geometry
+                            .implementation_id
+                        ),
+
                         "triangles": (
                             len(
                                 triangles
@@ -2843,15 +3114,22 @@ class UVBakeImplementation:
                         "Could not create baked "
                         f"Blender image: {exc}"
                     ),
+
+                    metadata={
+                        "geometry_implementation": (
+                            geometry
+                            .implementation_id
+                        ),
+                    },
                 )
             )
 
         material = None
 
         try:
-            # ---------------------------------------------
+            # -------------------------------------------------
             # 6. Portable Blender material
-            # ---------------------------------------------
+            # -------------------------------------------------
 
             material = (
                 _create_baked_material(
@@ -2924,10 +3202,29 @@ class UVBakeImplementation:
 
             raise
 
+        # -------------------------------------------------
+        # Pipeline diagnostics
+        # -------------------------------------------------
+
         context.metadata[
             "material_mode"
         ] = (
             MATERIAL_MODE
+        )
+
+        context.metadata[
+            "material_geometry_implementation"
+        ] = (
+            geometry
+            .implementation_id
+        )
+
+        context.metadata[
+            "material_projection_convention"
+        ] = (
+            projection_space
+            .convention
+            .value
         )
 
         context.metadata[
@@ -2977,9 +3274,7 @@ class UVBakeImplementation:
                 ),
 
                 metrics={
-                    # -------------------------------------
                     # Bake
-                    # -------------------------------------
 
                     "triangles": (
                         stats
@@ -3036,9 +3331,7 @@ class UVBakeImplementation:
                         .coverage_ratio
                     ),
 
-                    # -------------------------------------
                     # UV packing
-                    # -------------------------------------
 
                     "uv_total_area": (
                         layout
@@ -3079,6 +3372,11 @@ class UVBakeImplementation:
                 metadata={
                     "object_name": (
                         obj.name
+                    ),
+
+                    "geometry_implementation": (
+                        geometry
+                        .implementation_id
                     ),
 
                     "image_name": (
@@ -3139,6 +3437,39 @@ class UVBakeImplementation:
                         config
                         .effective_island_margin_pixels
                     ),
+
+                    "projection_space": {
+                        "width": (
+                            projection_space
+                            .width
+                        ),
+
+                        "depth": (
+                            projection_space
+                            .depth
+                        ),
+
+                        "height": (
+                            projection_space
+                            .height
+                        ),
+
+                        "voxel_size": (
+                            projection_space
+                            .voxel_size
+                        ),
+
+                        "center_xy": (
+                            projection_space
+                            .center_xy
+                        ),
+
+                        "convention": (
+                            projection_space
+                            .convention
+                            .value
+                        ),
+                    },
                 },
             )
         )
