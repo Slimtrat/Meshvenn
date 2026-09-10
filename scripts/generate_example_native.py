@@ -39,6 +39,7 @@ from core.presheet_layout import (
     pixel_bbox,
 )
 from core.projected_material import (
+    BLEND_MODE,
     COLOR_ATTRIBUTE_NAME,
     MATERIAL_MODE,
     VISIBILITY_MODE,
@@ -1119,7 +1120,7 @@ def material_views_for_snapshot(
 
 
 # ---------------------------------------------------------
-# Material metadata
+# Material metadata helpers
 # ---------------------------------------------------------
 
 def material_visibility_manifest(
@@ -1128,10 +1129,6 @@ def material_visibility_manifest(
     """
     Extract visibility metadata written by
     apply_projected_material().
-
-    Keeping this helper here prevents the example generator
-    from having to know how the visibility implementation
-    itself is configured.
     """
 
     enabled = bool(
@@ -1170,6 +1167,175 @@ def material_visibility_manifest(
             )
             if max_distance is not None
             else None
+        ),
+    }
+
+
+def material_blend_manifest(
+    obj: bpy.types.Object,
+) -> dict:
+    """
+    Extract the effective V1.2 blend configuration written
+    by apply_projected_material().
+
+    The object metadata is the source of truth here. This
+    ensures generated manifests report the configuration
+    actually used for projection rather than duplicating
+    default values in this script.
+    """
+
+    min_facing = obj.get(
+        "bpt_material_blend_min_facing"
+    )
+
+    facing_power = obj.get(
+        "bpt_material_blend_facing_power"
+    )
+
+    relative_score_cutoff = obj.get(
+        "bpt_material_blend_relative_score_cutoff"
+    )
+
+    max_contributors = obj.get(
+        "bpt_material_blend_max_contributors"
+    )
+
+    weight_power = obj.get(
+        "bpt_material_blend_weight_power"
+    )
+
+    return {
+        "mode": str(
+            obj.get(
+                "bpt_material_blend_mode",
+                "disabled",
+            )
+        ),
+        "min_facing": (
+            float(
+                min_facing
+            )
+            if min_facing is not None
+            else None
+        ),
+        "facing_power": (
+            float(
+                facing_power
+            )
+            if facing_power is not None
+            else None
+        ),
+        "relative_score_cutoff": (
+            float(
+                relative_score_cutoff
+            )
+            if relative_score_cutoff is not None
+            else None
+        ),
+        "max_contributors": (
+            int(
+                max_contributors
+            )
+            if max_contributors is not None
+            else None
+        ),
+        "weight_power": (
+            float(
+                weight_power
+            )
+            if weight_power is not None
+            else None
+        ),
+    }
+
+
+def material_stats_manifest(
+    material_stats,
+) -> dict:
+    """
+    Serialize MaterialProjectionStats without making the
+    JSON generator dependent on dataclasses.asdict().
+
+    Keeping this explicit makes the manifest schema visible
+    and deliberate.
+    """
+
+    return {
+        "vertex_count": (
+            material_stats
+            .vertex_count
+        ),
+        "loop_count": (
+            material_stats
+            .loop_count
+        ),
+        "view_count": (
+            material_stats
+            .view_count
+        ),
+        "projected_vertices": (
+            material_stats
+            .projected_vertices
+        ),
+        "fallback_vertices": (
+            material_stats
+            .fallback_vertices
+        ),
+        "projected_fallback_vertices": (
+            material_stats
+            .projected_fallback_vertices
+        ),
+        "neutral_fallback_vertices": (
+            material_stats
+            .neutral_fallback_vertices
+        ),
+        "accepted_samples": (
+            material_stats
+            .accepted_samples
+        ),
+        "rejected_samples": (
+            material_stats
+            .rejected_samples
+        ),
+        "candidate_samples": (
+            material_stats
+            .candidate_samples
+        ),
+        "source_rejected_samples": (
+            material_stats
+            .source_rejected_samples
+        ),
+        "visible_samples": (
+            material_stats
+            .visible_samples
+        ),
+        "occluded_samples": (
+            material_stats
+            .occluded_samples
+        ),
+        "front_facing_samples": (
+            material_stats
+            .front_facing_samples
+        ),
+        "backface_samples": (
+            material_stats
+            .backface_samples
+        ),
+        "grazing_rejected_samples": (
+            material_stats
+            .grazing_rejected_samples
+        ),
+        "relative_rejected_samples": (
+            material_stats
+            .relative_rejected_samples
+        ),
+        "top_k_rejected_samples": (
+            material_stats
+            .top_k_rejected_samples
+        ),
+        "selected_samples": (
+            material_stats
+            .selected_samples
         ),
     }
 
@@ -1406,9 +1572,6 @@ def process_sheet(
 
         # -------------------------------------------------
         # Appearance inputs
-        #
-        # The RGB buffers are prepared once for the whole
-        # sheet and reused by every requested scan level.
         # -------------------------------------------------
 
         with logger.timed(
@@ -1442,6 +1605,9 @@ def process_sheet(
             ),
             visibility_mode=(
                 VISIBILITY_MODE
+            ),
+            blend_mode=(
+                BLEND_MODE
             ),
         )
 
@@ -1505,6 +1671,12 @@ def process_sheet(
         )
 
         manifest[
+            "material_blend_mode"
+        ] = (
+            BLEND_MODE
+        )
+
+        manifest[
             "material_views"
         ] = list(
             material_views.keys()
@@ -1556,6 +1728,9 @@ def process_sheet(
                 visibility_mode=(
                     VISIBILITY_MODE
                 ),
+                blend_mode=(
+                    BLEND_MODE
+                ),
             ):
                 active_material_views = (
                     material_views_for_snapshot(
@@ -1577,6 +1752,9 @@ def process_sheet(
                     ),
                     "material_visibility_mode": (
                         VISIBILITY_MODE
+                    ),
+                    "material_blend_mode": (
+                        BLEND_MODE
                     ),
                     "views": list(
                         snapshot
@@ -1647,8 +1825,8 @@ def process_sheet(
                 # -----------------------------------------
                 # Smooth shading first.
                 #
-                # The projected material uses generated
-                # vertex normals to score source views.
+                # Projected material uses vertex normals for
+                # source-view confidence.
                 # -----------------------------------------
 
                 with level_logger.timed(
@@ -1664,12 +1842,18 @@ def process_sheet(
                 # IMPORTANT:
                 #
                 # This happens before target-height scaling,
-                # while vertex positions are still expressed
-                # in native reconstruction coordinates.
+                # while positions remain in native
+                # reconstruction coordinates.
                 #
-                # V1.1 builds one BVH here and rejects a
-                # source view whenever another surface lies
-                # between this point and that source camera.
+                # V1.1:
+                #   visibility / occlusion
+                #
+                # V1.2:
+                #   adaptive confidence blend
+                #   + grazing rejection
+                #   + relative cutoff
+                #   + top-K
+                #   + weight sharpening
                 # -----------------------------------------
 
                 if not active_material_views:
@@ -1719,6 +1903,22 @@ def process_sheet(
                     )
                 )
 
+                blend_info = (
+                    material_blend_manifest(
+                        obj
+                    )
+                )
+
+                stats_info = (
+                    material_stats_manifest(
+                        material_stats
+                    )
+                )
+
+                # -----------------------------------------
+                # Material diagnostics
+                # -----------------------------------------
+
                 level_logger.info(
                     "projected material",
                     mode=(
@@ -1734,6 +1934,54 @@ def process_sheet(
                     fallback_vertices=(
                         material_stats
                         .fallback_vertices
+                    ),
+                    projected_fallback_vertices=(
+                        material_stats
+                        .projected_fallback_vertices
+                    ),
+                    neutral_fallback_vertices=(
+                        material_stats
+                        .neutral_fallback_vertices
+                    ),
+                    candidate_samples=(
+                        material_stats
+                        .candidate_samples
+                    ),
+                    source_rejected_samples=(
+                        material_stats
+                        .source_rejected_samples
+                    ),
+                    visible_samples=(
+                        material_stats
+                        .visible_samples
+                    ),
+                    occluded_samples=(
+                        material_stats
+                        .occluded_samples
+                    ),
+                    front_facing_samples=(
+                        material_stats
+                        .front_facing_samples
+                    ),
+                    backface_samples=(
+                        material_stats
+                        .backface_samples
+                    ),
+                    grazing_rejected_samples=(
+                        material_stats
+                        .grazing_rejected_samples
+                    ),
+                    relative_rejected_samples=(
+                        material_stats
+                        .relative_rejected_samples
+                    ),
+                    top_k_rejected_samples=(
+                        material_stats
+                        .top_k_rejected_samples
+                    ),
+                    selected_samples=(
+                        material_stats
+                        .selected_samples
                     ),
                     accepted_samples=(
                         material_stats
@@ -1763,14 +2011,43 @@ def process_sheet(
                             "max_distance"
                         ]
                     ),
+                    blend_mode=(
+                        blend_info[
+                            "mode"
+                        ]
+                    ),
+                    blend_min_facing=(
+                        blend_info[
+                            "min_facing"
+                        ]
+                    ),
+                    blend_facing_power=(
+                        blend_info[
+                            "facing_power"
+                        ]
+                    ),
+                    blend_relative_score_cutoff=(
+                        blend_info[
+                            "relative_score_cutoff"
+                        ]
+                    ),
+                    blend_max_contributors=(
+                        blend_info[
+                            "max_contributors"
+                        ]
+                    ),
+                    blend_weight_power=(
+                        blend_info[
+                            "weight_power"
+                        ]
+                    ),
                 )
 
                 # -----------------------------------------
                 # Final scale
                 #
                 # The color attribute is already baked into
-                # mesh corners, so geometry may now safely
-                # be normalized to target height.
+                # mesh corners.
                 # -----------------------------------------
 
                 with level_logger.timed(
@@ -1795,9 +2072,6 @@ def process_sheet(
                     args.mesh_mode
                 )
 
-                # apply_projected_material() already writes
-                # these values. Reasserting the public mode
-                # here keeps generated examples explicit.
                 obj[
                     "bpt_material"
                 ] = (
@@ -1848,7 +2122,7 @@ def process_sheet(
                     )
 
                 # -----------------------------------------
-                # Manifest profile material statistics
+                # Manifest profile material diagnostics
                 # -----------------------------------------
 
                 profile_info.update(
@@ -1870,6 +2144,11 @@ def process_sheet(
                                 material_stats
                                 .view_count
                             ),
+
+                            # -----------------------------
+                            # Historical top-level metrics
+                            # -----------------------------
+
                             "projected_vertices": (
                                 material_stats
                                 .projected_vertices
@@ -1886,8 +2165,78 @@ def process_sheet(
                                 material_stats
                                 .rejected_samples
                             ),
+
+                            # -----------------------------
+                            # V1.2 metrics
+                            # -----------------------------
+
+                            "projected_fallback_vertices": (
+                                material_stats
+                                .projected_fallback_vertices
+                            ),
+                            "neutral_fallback_vertices": (
+                                material_stats
+                                .neutral_fallback_vertices
+                            ),
+                            "candidate_samples": (
+                                material_stats
+                                .candidate_samples
+                            ),
+                            "source_rejected_samples": (
+                                material_stats
+                                .source_rejected_samples
+                            ),
+                            "visible_samples": (
+                                material_stats
+                                .visible_samples
+                            ),
+                            "occluded_samples": (
+                                material_stats
+                                .occluded_samples
+                            ),
+                            "front_facing_samples": (
+                                material_stats
+                                .front_facing_samples
+                            ),
+                            "backface_samples": (
+                                material_stats
+                                .backface_samples
+                            ),
+                            "grazing_rejected_samples": (
+                                material_stats
+                                .grazing_rejected_samples
+                            ),
+                            "relative_rejected_samples": (
+                                material_stats
+                                .relative_rejected_samples
+                            ),
+                            "top_k_rejected_samples": (
+                                material_stats
+                                .top_k_rejected_samples
+                            ),
+                            "selected_samples": (
+                                material_stats
+                                .selected_samples
+                            ),
+
+                            # -----------------------------
+                            # Configuration
+                            # -----------------------------
+
                             "visibility": (
                                 visibility_info
+                            ),
+                            "blend": (
+                                blend_info
+                            ),
+
+                            # -----------------------------
+                            # Complete explicit statistics
+                            # snapshot.
+                            # -----------------------------
+
+                            "statistics": (
+                                stats_info
                             ),
                         },
                         **export_info,
@@ -2013,6 +2362,13 @@ def main() -> None:
         "Material visibility",
         value=(
             VISIBILITY_MODE
+        ),
+    )
+
+    logger.info(
+        "Material blend",
+        value=(
+            BLEND_MODE
         ),
     )
 

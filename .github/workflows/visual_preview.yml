@@ -95,9 +95,9 @@ env:
   SHEETS_DIR: "example/mascotte/test1/sheets"
   GENERATED_DIR: "example/mascotte/test1/generated"
 
-  MATERIAL_MODE: "projected-color-v1.1"
+  MATERIAL_MODE: "projected-color-v1.2"
 
-  PREVIEW_RENDERER_VERSION: "1"
+  PREVIEW_RENDERER_VERSION: "2"
 
   ASSET_BRANCH: "visual-preview-assets"
 

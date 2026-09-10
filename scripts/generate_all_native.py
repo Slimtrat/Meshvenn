@@ -20,6 +20,7 @@ if str(REPO_ROOT) not in sys.path:
 
 
 from core.projected_material import (
+    BLEND_MODE,
     MATERIAL_MODE,
     VISIBILITY_MODE,
 )
@@ -557,6 +558,13 @@ def print_plan(
     )
 
     logger.info(
+        "Material blend",
+        value=(
+            BLEND_MODE
+        ),
+    )
+
+    logger.info(
         "Voxel size",
         value=(
             args.voxel_size
@@ -807,6 +815,13 @@ def main() -> None:
         "Material visibility",
         value=(
             VISIBILITY_MODE
+        ),
+    )
+
+    logger.info(
+        "Material blend",
+        value=(
+            BLEND_MODE
         ),
     )
 
