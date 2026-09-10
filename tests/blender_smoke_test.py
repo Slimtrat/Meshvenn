@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import math
 import sys
 import traceback
 
@@ -30,25 +31,49 @@ REQUIRED_PACKAGE_FILES = (
     "version.py",
     "translations.py",
 
+    # -----------------------------------------------------
+    # Core
+    # -----------------------------------------------------
+
     "core/__init__.py",
     "core/pipeline_contracts.py",
     "core/pipeline_registry.py",
     "core/pipeline_runner.py",
+
     "core/image_mask.py",
+
     "core/native_loader.py",
     "core/native_bridge.py",
     "core/native_mesh_builder.py",
+    "core/native_scan.py",
+
+    "core/projection_math.py",
+
     "core/projected_material.py",
     "core/material_visibility.py",
     "core/material_blend.py",
-    "core/projection_math.py",
+
+    # UV Bake V2
+    "core/uv_bake.py",
+
+    # -----------------------------------------------------
+    # Implementations
+    # -----------------------------------------------------
 
     "implementations/__init__.py",
     "implementations/projection_images.py",
     "implementations/native_visual_hull.py",
     "implementations/projected_color.py",
 
+    # UV Bake V2
+    "implementations/uv_bake.py",
+
+    # -----------------------------------------------------
+    # Native binaries
+    # -----------------------------------------------------
+
     "native/bin/libbpt_core.so",
+    "native/bin/bpt_core.dll",
 )
 
 
@@ -56,6 +81,7 @@ EXPECTED_IMPLEMENTATIONS = (
     "projection-images",
     "native-visual-hull",
     "projected-color-v1.2",
+    "uv-bake-v2",
 )
 
 
@@ -67,24 +93,30 @@ EXPECTED_PROJECTION_NAMES = (
 )
 
 
-# ---------------------------------------------------------
+# =========================================================
+# UV Bake expected defaults
+# =========================================================
+
+EXPECTED_UV_BAKE_TEXTURE_SIZE = "1024"
+
+EXPECTED_UV_BAKE_PADDING_PIXELS = 8
+
+EXPECTED_UV_BAKE_SAMPLES_PER_AXIS = "1"
+
+EXPECTED_UV_BAKE_UV_LAYER_NAME = (
+    "MeshvennUV"
+)
+
+EXPECTED_UV_BAKE_ISLAND_MARGIN = 0.02
+
+EXPECTED_UV_BAKE_ANGLE_LIMIT_DEGREES = 66.0
+
+EXPECTED_UV_BAKE_REUSE_EXISTING_UV = False
+
+
+# =========================================================
 # Blender RNA identifiers
-#
-# Operator Python class:
-#
-#     BPT_OT_RunPipeline
-#
-# with:
-#
-#     bl_idname = "bpt.run_pipeline"
-#
-# is registered by Blender as:
-#
-#     BPT_OT_run_pipeline
-#
-# It must therefore not be looked up using the original
-# Python class name.
-# ---------------------------------------------------------
+# =========================================================
 
 EXPECTED_OPERATOR_RNA_IDS = (
     "BPT_OT_load_projection_image",
@@ -93,10 +125,13 @@ EXPECTED_OPERATOR_RNA_IDS = (
     "BPT_OT_remove_projection",
     "BPT_OT_add_turntable_preset",
     "BPT_OT_add_front_side_preset",
+
     "BPT_OT_set_pipeline_implementation",
     "BPT_OT_reset_pipeline_settings",
+
     "BPT_OT_run_pipeline",
     "BPT_OT_run_pipeline_stage",
+
     "BPT_OT_generate_character",
 )
 
@@ -108,10 +143,13 @@ EXPECTED_OPERATOR_IDNAMES = (
     "bpt.remove_projection",
     "bpt.add_turntable_preset",
     "bpt.add_front_side_preset",
+
     "bpt.set_pipeline_implementation",
     "bpt.reset_pipeline_settings",
+
     "bpt.run_pipeline",
     "bpt.run_pipeline_stage",
+
     "bpt.generate_character",
 )
 
@@ -148,8 +186,8 @@ def _script_arguments() -> list[str]:
 def _parse_arguments():
     parser = argparse.ArgumentParser(
         description=(
-            "Smoke-test the packaged Meshvenn "
-            "Blender extension."
+            "Smoke-test the packaged "
+            "Meshvenn Blender extension."
         )
     )
 
@@ -198,6 +236,28 @@ def _require(
     if not condition:
         raise AssertionError(
             message
+        )
+
+
+def _require_close(
+    actual: float,
+    expected: float,
+    *,
+    name: str,
+    tolerance: float = 1e-6,
+) -> None:
+    if not math.isclose(
+        float(actual),
+        float(expected),
+        rel_tol=tolerance,
+        abs_tol=tolerance,
+    ):
+        raise AssertionError(
+            (
+                f"Unexpected {name}.\n"
+                f"Expected: {expected}\n"
+                f"Actual:   {actual}"
+            )
         )
 
 
@@ -274,16 +334,6 @@ def _ui_list_rna_class(
 def _operator_callable(
     idname: str,
 ):
-    """
-    Resolve e.g.:
-
-        bpt.run_pipeline
-
-    to:
-
-        bpy.ops.bpt.run_pipeline
-    """
-
     namespace_name, operator_name = (
         idname.split(
             ".",
@@ -305,15 +355,6 @@ def _operator_callable(
 def _operator_available(
     idname: str,
 ) -> bool:
-    """
-    Blender bpy.ops uses dynamic attribute access, so plain
-    hasattr() is not a sufficiently strong registration
-    test.
-
-    get_rna_type() forces Blender to resolve the registered
-    operator definition.
-    """
-
     try:
         operator = (
             _operator_callable(
@@ -484,6 +525,84 @@ def _load_extension(
 
 
 # =========================================================
+# Core UV Bake import
+# =========================================================
+
+def _validate_uv_bake_core(
+    package_name: str,
+) -> None:
+    _section(
+        "UV Bake V2 core"
+    )
+
+    module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.uv_bake"
+            )
+        )
+    )
+
+    required_symbols = (
+        "UVBakeVertex",
+        "UVBakeTriangle",
+        "UVBakeConfig",
+        "UVBakeResult",
+        "UVBakeStats",
+        "TextureBuffer",
+        "SurfaceColorSample",
+        "bake_uv_texture",
+    )
+
+    for symbol in (
+        required_symbols
+    ):
+        _require(
+            hasattr(
+                module,
+                symbol,
+            ),
+            (
+                "UV Bake core symbol missing: "
+                f"{symbol}"
+            ),
+        )
+
+    config = (
+        module.UVBakeConfig(
+            width=8,
+            height=8,
+            padding_pixels=0,
+            samples_per_axis=1,
+        )
+    )
+
+    config.validate()
+
+    _require(
+        module.texture_memory_bytes(
+            1024,
+            1024,
+        )
+        == (
+            1024
+            * 1024
+            * 4
+            * 4
+        ),
+        (
+            "UV Bake texture memory helper "
+            "returned an unexpected result."
+        ),
+    )
+
+    print(
+        "UV Bake V2 core import: OK"
+    )
+
+
+# =========================================================
 # Scene / properties
 # =========================================================
 
@@ -540,9 +659,6 @@ def _validate_scene_properties(
         )
     )
 
-    # Blender normally initializes defaults through its
-    # registration timer. A headless smoke test must not
-    # depend on timer/event-loop scheduling.
     properties_module.ensure_scene_defaults(
         scene
     )
@@ -555,7 +671,7 @@ def _validate_scene_properties(
 
 
 # =========================================================
-# Default projections
+# Projection defaults
 # =========================================================
 
 def _validate_projection_defaults(
@@ -592,7 +708,7 @@ def _validate_projection_defaults(
 
 
 # =========================================================
-# Persistent pipeline configuration
+# Pipeline defaults
 # =========================================================
 
 def _validate_pipeline_defaults(
@@ -616,51 +732,47 @@ def _validate_pipeline_defaults(
         ),
     )
 
-    _require(
+    expected_ids = (
         (
             pipeline
             .input_stage
-            .implementation_id
-        )
-        == "projection-images",
-        (
-            "Unexpected INPUT "
-            "implementation."
+            .implementation_id,
+            "projection-images",
+            "INPUT",
         ),
-    )
-
-    _require(
         (
             pipeline
             .geometry_stage
-            .implementation_id
-        )
-        == "native-visual-hull",
-        (
-            "Unexpected GEOMETRY "
-            "implementation."
+            .implementation_id,
+            "native-visual-hull",
+            "GEOMETRY",
         ),
-    )
-
-    _require(
         (
             pipeline
             .material_stage
-            .implementation_id
-        )
-        == "projected-color-v1.2",
-        (
-            "Unexpected MATERIAL "
-            "implementation."
+            .implementation_id,
+            "projected-color-v1.2",
+            "MATERIAL",
         ),
     )
 
+    for (
+        actual,
+        expected,
+        stage_name,
+    ) in expected_ids:
+        _require(
+            actual == expected,
+            (
+                f"Unexpected {stage_name} "
+                "default implementation.\n"
+                f"Expected: {expected}\n"
+                f"Actual:   {actual}"
+            ),
+        )
+
     _require(
-        bool(
-            pipeline
-            .input_stage
-            .enabled
-        ),
+        pipeline.input_stage.enabled,
         (
             "INPUT must be enabled "
             "by default."
@@ -668,11 +780,7 @@ def _validate_pipeline_defaults(
     )
 
     _require(
-        bool(
-            pipeline
-            .geometry_stage
-            .enabled
-        ),
+        pipeline.geometry_stage.enabled,
         (
             "GEOMETRY must be enabled "
             "by default."
@@ -680,11 +788,7 @@ def _validate_pipeline_defaults(
     )
 
     _require(
-        bool(
-            pipeline
-            .material_stage
-            .enabled
-        ),
+        pipeline.material_stage.enabled,
         (
             "MATERIAL must be enabled "
             "by default."
@@ -692,11 +796,7 @@ def _validate_pipeline_defaults(
     )
 
     _require(
-        not bool(
-            pipeline
-            .rig_stage
-            .enabled
-        ),
+        not pipeline.rig_stage.enabled,
         (
             "RIG must be disabled "
             "by default."
@@ -704,11 +804,7 @@ def _validate_pipeline_defaults(
     )
 
     _require(
-        not bool(
-            pipeline
-            .export_stage
-            .enabled
-        ),
+        not pipeline.export_stage.enabled,
         (
             "EXPORT must be disabled "
             "by default."
@@ -732,11 +828,154 @@ def _validate_pipeline_defaults(
     )
 
     print(
+        "            uv-bake-v2 available but not default"
+    )
+
+    print(
         "  RIG      disabled"
     )
 
     print(
         "  EXPORT   disabled"
+    )
+
+
+# =========================================================
+# UV Bake Blender properties
+# =========================================================
+
+def _validate_uv_bake_properties(
+    settings,
+) -> None:
+    _section(
+        "UV Bake V2 properties"
+    )
+
+    required_properties = (
+        "uv_bake_texture_size",
+        "uv_bake_padding_pixels",
+        "uv_bake_samples_per_axis",
+        "uv_bake_reuse_existing_uv",
+        "uv_bake_uv_layer_name",
+        "uv_bake_island_margin",
+        "uv_bake_angle_limit_degrees",
+    )
+
+    for property_name in (
+        required_properties
+    ):
+        _require(
+            hasattr(
+                settings,
+                property_name,
+            ),
+            (
+                "Missing UV Bake property: "
+                f"{property_name}"
+            ),
+        )
+
+    _require(
+        settings.uv_bake_texture_size
+        == EXPECTED_UV_BAKE_TEXTURE_SIZE,
+        (
+            "Unexpected UV Bake texture "
+            "size default."
+        ),
+    )
+
+    _require(
+        settings.uv_bake_padding_pixels
+        == EXPECTED_UV_BAKE_PADDING_PIXELS,
+        (
+            "Unexpected UV Bake padding "
+            "default."
+        ),
+    )
+
+    _require(
+        settings.uv_bake_samples_per_axis
+        == EXPECTED_UV_BAKE_SAMPLES_PER_AXIS,
+        (
+            "Unexpected UV Bake supersampling "
+            "default."
+        ),
+    )
+
+    _require(
+        settings.uv_bake_uv_layer_name
+        == EXPECTED_UV_BAKE_UV_LAYER_NAME,
+        (
+            "Unexpected UV Bake UV layer "
+            "name default."
+        ),
+    )
+
+    _require(
+        bool(
+            settings
+            .uv_bake_reuse_existing_uv
+        )
+        == EXPECTED_UV_BAKE_REUSE_EXISTING_UV,
+        (
+            "Unexpected Reuse Existing UV "
+            "default."
+        ),
+    )
+
+    _require_close(
+        settings.uv_bake_island_margin,
+        EXPECTED_UV_BAKE_ISLAND_MARGIN,
+        name="UV Bake island margin",
+    )
+
+    _require_close(
+        settings
+        .uv_bake_angle_limit_degrees,
+        EXPECTED_UV_BAKE_ANGLE_LIMIT_DEGREES,
+        name="UV Bake angle limit",
+    )
+
+    # -----------------------------------------------------
+    # Verify enum values are writable, then restore defaults.
+    # -----------------------------------------------------
+
+    settings.uv_bake_texture_size = (
+        "2048"
+    )
+
+    _require(
+        settings.uv_bake_texture_size
+        == "2048",
+        (
+            "UV Bake texture size EnumProperty "
+            "could not be changed."
+        ),
+    )
+
+    settings.uv_bake_texture_size = (
+        EXPECTED_UV_BAKE_TEXTURE_SIZE
+    )
+
+    settings.uv_bake_samples_per_axis = (
+        "2"
+    )
+
+    _require(
+        settings.uv_bake_samples_per_axis
+        == "2",
+        (
+            "UV Bake samples EnumProperty "
+            "could not be changed."
+        ),
+    )
+
+    settings.uv_bake_samples_per_axis = (
+        EXPECTED_UV_BAKE_SAMPLES_PER_AXIS
+    )
+
+    print(
+        "UV Bake V2 properties: OK"
     )
 
 
@@ -834,6 +1073,102 @@ def _validate_registry(
             ),
         )
 
+    # -----------------------------------------------------
+    # Critical V2 check:
+    #
+    # uv-bake-v2 exists as MATERIAL but must NOT replace
+    # projected-color-v1.2 as default.
+    # -----------------------------------------------------
+
+    uv_bake = (
+        registry.require(
+            "uv-bake-v2",
+            stage=(
+                PipelineStage.MATERIAL
+            ),
+        )
+    )
+
+    descriptor = (
+        uv_bake.descriptor
+    )
+
+    _require(
+        descriptor.identifier
+        == "uv-bake-v2",
+        (
+            "Unexpected UV Bake "
+            "implementation identifier."
+        ),
+    )
+
+    _require(
+        descriptor.stage
+        == PipelineStage.MATERIAL,
+        (
+            "UV Bake V2 must belong to "
+            "MATERIAL stage."
+        ),
+    )
+
+    _require(
+        descriptor.label
+        == "UV Bake V2",
+        (
+            "Unexpected UV Bake V2 label."
+        ),
+    )
+
+    _require(
+        descriptor.experimental,
+        (
+            "UV Bake V2 should remain marked "
+            "experimental during V2 development."
+        ),
+    )
+
+    _require(
+        callable(
+            getattr(
+                uv_bake,
+                "execute",
+                None,
+            )
+        ),
+        (
+            "UV Bake V2 has no "
+            "execute(context)."
+        ),
+    )
+
+    _require(
+        callable(
+            getattr(
+                uv_bake,
+                "availability",
+                None,
+            )
+        ),
+        (
+            "UV Bake V2 has no "
+            "availability(context)."
+        ),
+    )
+
+    _require(
+        callable(
+            getattr(
+                uv_bake,
+                "draw_settings",
+                None,
+            )
+        ),
+        (
+            "UV Bake V2 has no "
+            "generic UI settings hook."
+        ),
+    )
+
     print(
         "Registry: OK"
     )
@@ -841,16 +1176,129 @@ def _validate_registry(
     for implementation_id in (
         actual_ids
     ):
+        suffix = ""
+
+        if (
+            implementation_id
+            == "projected-color-v1.2"
+        ):
+            suffix = (
+                " [MATERIAL default]"
+            )
+
+        elif (
+            implementation_id
+            == "uv-bake-v2"
+        ):
+            suffix = (
+                " [MATERIAL experimental]"
+            )
+
         print(
-            f"  OK  {implementation_id}"
+            f"  OK  {implementation_id}{suffix}"
         )
+
+
+# =========================================================
+# Built-in catalog configuration
+# =========================================================
+
+def _validate_builtin_catalog(
+    package_name: str,
+) -> None:
+    _section(
+        "built-in catalog"
+    )
+
+    module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "implementations"
+            )
+        )
+    )
+
+    contracts_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.pipeline_contracts"
+            )
+        )
+    )
+
+    PipelineStage = (
+        contracts_module
+        .PipelineStage
+    )
+
+    registered_ids = (
+        module.registered_builtin_ids()
+    )
+
+    _require(
+        registered_ids
+        == EXPECTED_IMPLEMENTATIONS,
+        (
+            "Unexpected built-in implementation "
+            "catalog."
+        ),
+    )
+
+    _require(
+        module.builtin_implementation_count()
+        == 4,
+        (
+            "Built-in implementation count "
+            "must be 4."
+        ),
+    )
+
+    _require(
+        module.builtin_default_id(
+            PipelineStage.INPUT
+        )
+        == "projection-images",
+        (
+            "Incorrect explicit INPUT "
+            "built-in default."
+        ),
+    )
+
+    _require(
+        module.builtin_default_id(
+            PipelineStage.GEOMETRY
+        )
+        == "native-visual-hull",
+        (
+            "Incorrect explicit GEOMETRY "
+            "built-in default."
+        ),
+    )
+
+    _require(
+        module.builtin_default_id(
+            PipelineStage.MATERIAL
+        )
+        == "projected-color-v1.2",
+        (
+            "UV Bake V2 accidentally replaced "
+            "the MATERIAL built-in default."
+        ),
+    )
+
+    print(
+        "Built-in catalog: OK"
+    )
 
 
 # =========================================================
 # Operators
 # =========================================================
 
-def _validate_operators_registered() -> None:
+def _validate_operators_registered(
+) -> None:
     _section(
         "operators"
     )
@@ -880,10 +1328,7 @@ def _validate_operators_registered() -> None:
         )
 
         _require(
-            (
-                operator_class
-                .bl_idname
-            )
+            operator_class.bl_idname
             == idname,
             (
                 "Operator RNA id mismatch.\n"
@@ -917,7 +1362,8 @@ def _validate_operators_registered() -> None:
 # UI
 # =========================================================
 
-def _validate_ui_registered() -> None:
+def _validate_ui_registered(
+) -> None:
     _section(
         "ui"
     )
@@ -937,9 +1383,7 @@ def _validate_ui_registered() -> None:
     )
 
     _require(
-        (
-            panel.bl_idname
-        )
+        panel.bl_idname
         == MAIN_PANEL_RNA_ID,
         (
             "Unexpected main panel "
@@ -948,9 +1392,7 @@ def _validate_ui_registered() -> None:
     )
 
     _require(
-        (
-            panel.bl_space_type
-        )
+        panel.bl_space_type
         == "VIEW_3D",
         (
             "Meshvenn panel must use "
@@ -959,9 +1401,7 @@ def _validate_ui_registered() -> None:
     )
 
     _require(
-        (
-            panel.bl_region_type
-        )
+        panel.bl_region_type
         == "UI",
         (
             "Meshvenn panel must use "
@@ -970,9 +1410,7 @@ def _validate_ui_registered() -> None:
     )
 
     _require(
-        (
-            panel.bl_category
-        )
+        panel.bl_category
         == "Meshvenn",
         (
             "Meshvenn panel category "
@@ -1125,6 +1563,25 @@ def _validate_unregistered_state(
         ),
     )
 
+    implementations_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "implementations"
+            )
+        )
+    )
+
+    _require(
+        implementations_module
+        .registered_builtin_ids()
+        == (),
+        (
+            "Built-in implementation tracking "
+            "was not cleared."
+        ),
+    )
+
     print(
         "Scene cleanup: OK"
     )
@@ -1163,8 +1620,7 @@ def main() -> None:
 
     try:
         # -------------------------------------------------
-        # Test exactly what was extracted from the release
-        # ZIP, not the source checkout.
+        # Validate the extracted ZIP, not repository source.
         # -------------------------------------------------
 
         _validate_package_tree(
@@ -1174,12 +1630,22 @@ def main() -> None:
         (
             module,
             package_name,
-        ) = _load_extension(
-            package_root
+        ) = (
+            _load_extension(
+                package_root
+            )
         )
 
         # -------------------------------------------------
-        # Register
+        # Pure/core UV Bake import from packaged artifact.
+        # -------------------------------------------------
+
+        _validate_uv_bake_core(
+            package_name
+        )
+
+        # -------------------------------------------------
+        # Register extension.
         # -------------------------------------------------
 
         _section(
@@ -1195,7 +1661,7 @@ def main() -> None:
         )
 
         # -------------------------------------------------
-        # Validate registered extension
+        # Blender state.
         # -------------------------------------------------
 
         settings = (
@@ -1212,7 +1678,15 @@ def main() -> None:
             settings
         )
 
+        _validate_uv_bake_properties(
+            settings
+        )
+
         _validate_registry(
+            package_name
+        )
+
+        _validate_builtin_catalog(
             package_name
         )
 
@@ -1221,7 +1695,7 @@ def main() -> None:
         _validate_ui_registered()
 
         # -------------------------------------------------
-        # Unregister
+        # Unregister.
         # -------------------------------------------------
 
         module.unregister()
@@ -1250,13 +1724,6 @@ def main() -> None:
         print()
 
         traceback.print_exc()
-
-        # -------------------------------------------------
-        # Best-effort cleanup.
-        #
-        # A failed smoke must not hide the original failure
-        # because unregister() itself throws.
-        # -------------------------------------------------
 
         if (
             registered

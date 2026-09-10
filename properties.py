@@ -22,14 +22,9 @@ from .core.pipeline_contracts import (
 )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Stable implementation defaults
-#
-# These are Blender-side defaults only.
-#
-# Concrete implementations will later register themselves
-# under these stable ids through pipeline_registry.py.
-# ---------------------------------------------------------
+# =========================================================
 
 DEFAULT_INPUT_IMPLEMENTATION_ID = (
     "projection-images"
@@ -48,9 +43,108 @@ DEFAULT_RIG_IMPLEMENTATION_ID = ""
 DEFAULT_EXPORT_IMPLEMENTATION_ID = ""
 
 
-# ---------------------------------------------------------
+# =========================================================
+# UV Bake defaults
+#
+# These values deliberately mirror implementations/uv_bake.py.
+#
+# Keep the implementation as the authority for runtime
+# validation. These Blender properties only expose a safe
+# persistent UI surface.
+# =========================================================
+
+DEFAULT_UV_BAKE_TEXTURE_SIZE = "1024"
+
+DEFAULT_UV_BAKE_PADDING_PIXELS = 8
+
+DEFAULT_UV_BAKE_SAMPLES_PER_AXIS = "1"
+
+DEFAULT_UV_BAKE_UV_LAYER_NAME = (
+    "MeshvennUV"
+)
+
+DEFAULT_UV_BAKE_ISLAND_MARGIN = 0.02
+
+DEFAULT_UV_BAKE_ANGLE_LIMIT_DEGREES = 66.0
+
+DEFAULT_UV_BAKE_REUSE_EXISTING_UV = False
+
+
+UV_BAKE_TEXTURE_SIZE_ITEMS = (
+    (
+        "512",
+        "512 px",
+        (
+            "Fast preview texture. "
+            "Lowest memory and bake cost."
+        ),
+    ),
+    (
+        "1024",
+        "1024 px",
+        (
+            "Recommended default for interactive "
+            "Meshvenn generation."
+        ),
+    ),
+    (
+        "2048",
+        "2048 px",
+        (
+            "Higher-detail texture with significantly "
+            "more bake samples."
+        ),
+    ),
+    (
+        "4096",
+        "4096 px",
+        (
+            "Maximum V2 texture resolution. "
+            "High memory and bake cost."
+        ),
+    ),
+)
+
+
+UV_BAKE_SAMPLE_ITEMS = (
+    (
+        "1",
+        "1×1",
+        (
+            "One projected-color evaluation per "
+            "covered texel."
+        ),
+    ),
+    (
+        "2",
+        "2×2",
+        (
+            "Four projected-color evaluations per "
+            "covered texel."
+        ),
+    ),
+    (
+        "3",
+        "3×3",
+        (
+            "Nine projected-color evaluations per "
+            "covered texel."
+        ),
+    ),
+    (
+        "4",
+        "4×4",
+        (
+            "Sixteen projected-color evaluations per "
+            "covered texel. Expensive."
+        ),
+    ),
+)
+
+
+# =========================================================
 # Projection view
-# ---------------------------------------------------------
+# =========================================================
 
 class BPT_PG_ProjectionView(
     PropertyGroup
@@ -121,9 +215,9 @@ class BPT_PG_ProjectionView(
     )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Generic pipeline stage settings
-# ---------------------------------------------------------
+# =========================================================
 
 class BPT_PG_PipelineStageSettings(
     PropertyGroup
@@ -132,22 +226,16 @@ class BPT_PG_PipelineStageSettings(
     Persistent Blender-side configuration for one pipeline
     stage.
 
-    This class is intentionally generic.
+    This class stays implementation-agnostic.
 
-    The UI must not need dedicated properties such as:
-
-        sdf_enabled
-        uv_bake_enabled
-        autorig_enabled
-
-    Instead each pipeline stage owns:
+    Each stage owns:
 
         enabled
         implementation_id
         expanded
 
-    and the selected implementation owns its own detailed
-    parameters.
+    while detailed implementation parameters live outside
+    this generic contract.
     """
 
     enabled: BoolProperty(
@@ -176,9 +264,9 @@ class BPT_PG_PipelineStageSettings(
     )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Pipeline UI / selection settings
-# ---------------------------------------------------------
+# =========================================================
 
 class BPT_PG_PipelineSettings(
     PropertyGroup
@@ -258,9 +346,9 @@ class BPT_PG_PipelineSettings(
     )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Main add-on settings
-# ---------------------------------------------------------
+# =========================================================
 
 class BPT_PG_Settings(
     PropertyGroup
@@ -276,12 +364,9 @@ class BPT_PG_Settings(
         ),
     )
 
-    # -----------------------------------------------------
-    # Input / projection configuration
-    #
-    # Existing properties are intentionally retained during
-    # the pipeline migration.
-    # -----------------------------------------------------
+    # =====================================================
+    # INPUT
+    # =====================================================
 
     projections: CollectionProperty(
         name="Projections",
@@ -309,16 +394,9 @@ class BPT_PG_Settings(
         subtype="FACTOR",
     )
 
-    # -----------------------------------------------------
-    # Geometry configuration
-    #
-    # These fields remain directly on BPT_PG_Settings for
-    # compatibility with the current Native C++ operator.
-    #
-    # Concrete implementation-specific settings can later
-    # move behind dedicated implementation PropertyGroups
-    # without changing the general pipeline UI contract.
-    # -----------------------------------------------------
+    # =====================================================
+    # GEOMETRY — Native Visual Hull
+    # =====================================================
 
     resolution: IntProperty(
         name="Resolution",
@@ -375,14 +453,120 @@ class BPT_PG_Settings(
         max=100.0,
     )
 
-    # -----------------------------------------------------
-    # Legacy engine selector
+    # =====================================================
+    # MATERIAL — UV Bake V2
     #
-    # Keep this until BPT_OT_GenerateCharacter has been
-    # migrated to PipelineRunner.
+    # Flat properties are intentional for the current
+    # migration.
     #
-    # Removing it now would break the existing UI/operator.
-    # -----------------------------------------------------
+    # implementations/uv_bake.py reads these names
+    # defensively and falls back to the same defaults when
+    # loading an older .blend file.
+    # =====================================================
+
+    uv_bake_texture_size: EnumProperty(
+        name="Texture Size",
+        description=(
+            "Resolution of the square UV texture "
+            "generated by UV Bake V2"
+        ),
+        items=(
+            UV_BAKE_TEXTURE_SIZE_ITEMS
+        ),
+        default=(
+            DEFAULT_UV_BAKE_TEXTURE_SIZE
+        ),
+    )
+
+    uv_bake_padding_pixels: IntProperty(
+        name="Padding",
+        description=(
+            "Expand baked colors outside UV islands "
+            "to protect seams during bilinear filtering "
+            "and mipmapping"
+        ),
+        default=(
+            DEFAULT_UV_BAKE_PADDING_PIXELS
+        ),
+        min=0,
+        max=128,
+        soft_max=32,
+        subtype="PIXEL",
+    )
+
+    uv_bake_samples_per_axis: EnumProperty(
+        name="Samples",
+        description=(
+            "Supersampling performed inside each "
+            "covered texture pixel"
+        ),
+        items=(
+            UV_BAKE_SAMPLE_ITEMS
+        ),
+        default=(
+            DEFAULT_UV_BAKE_SAMPLES_PER_AXIS
+        ),
+    )
+
+    uv_bake_reuse_existing_uv: BoolProperty(
+        name="Reuse Existing UV",
+        description=(
+            "Use the mesh's active UV map instead of "
+            "generating a new Smart UV Project layout"
+        ),
+        default=(
+            DEFAULT_UV_BAKE_REUSE_EXISTING_UV
+        ),
+    )
+
+    uv_bake_uv_layer_name: StringProperty(
+        name="UV Layer",
+        description=(
+            "Name of the UV map created by "
+            "UV Bake V2 when Smart UV Project is used"
+        ),
+        default=(
+            DEFAULT_UV_BAKE_UV_LAYER_NAME
+        ),
+    )
+
+    uv_bake_island_margin: FloatProperty(
+        name="Island Margin",
+        description=(
+            "Fractional spacing between islands "
+            "during Blender Smart UV Project"
+        ),
+        default=(
+            DEFAULT_UV_BAKE_ISLAND_MARGIN
+        ),
+        min=0.0,
+        max=1.0,
+        soft_max=0.1,
+        precision=3,
+    )
+
+    uv_bake_angle_limit_degrees: FloatProperty(
+        name="Angle Limit",
+        description=(
+            "Angle threshold in degrees used by "
+            "Blender Smart UV Project"
+        ),
+        default=(
+            DEFAULT_UV_BAKE_ANGLE_LIMIT_DEGREES
+        ),
+        min=1.0,
+        max=90.0,
+        soft_min=30.0,
+        soft_max=89.0,
+        precision=1,
+    )
+
+    # =====================================================
+    # Legacy selector
+    #
+    # Retained for compatibility with older .blend files and
+    # callers. PipelineRunner is now the production path.
+    # =====================================================
 
     generation_mode: EnumProperty(
         name="Engine",
@@ -403,9 +587,9 @@ class BPT_PG_Settings(
     )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Pipeline stage mapping
-# ---------------------------------------------------------
+# =========================================================
 
 PIPELINE_STAGE_PROPERTY_NAMES: dict[
     PipelineStage,
@@ -472,20 +656,23 @@ PIPELINE_STAGE_DEFAULTS: dict[
 }
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Pipeline settings helpers
-# ---------------------------------------------------------
+# =========================================================
 
 def pipeline_stage_settings(
     settings: BPT_PG_Settings,
     stage: PipelineStage,
 ) -> BPT_PG_PipelineStageSettings:
     """
-    Return the persistent settings corresponding to a
-    PipelineStage.
+    Return the persistent Blender settings corresponding to
+    one PipelineStage.
 
-    UI and operators should use this helper rather than
-    hardcoding `settings.pipeline.geometry_stage`, etc.
+    UI and operators use this instead of hardcoding:
+
+        settings.pipeline.geometry_stage
+
+    etc.
     """
 
     normalized_stage = (
@@ -510,13 +697,14 @@ def ensure_pipeline_defaults(
     settings: BPT_PG_Settings,
 ) -> None:
     """
-    Initialize the general pipeline only once.
-
-    `initialized` prevents Blender load/update timers from
-    overwriting user selections later.
+    Initialize generic pipeline selections exactly once.
 
     This is also the migration path for .blend files created
     before the generic pipeline existed.
+
+    Implementation-specific settings such as UV Bake V2 are
+    Blender properties with their own defaults and therefore
+    do not need explicit migration here.
     """
 
     pipeline = (
@@ -567,10 +755,10 @@ def reset_pipeline_defaults(
     settings: BPT_PG_Settings,
 ) -> None:
     """
-    Reset only the general pipeline selection state.
+    Reset only the generic pipeline selection state.
 
-    Projection images and implementation-specific generation
-    parameters are intentionally left untouched.
+    Projection images and implementation-specific settings
+    are deliberately preserved.
     """
 
     pipeline = (
@@ -590,14 +778,11 @@ def set_pipeline_implementation(
     implementation_id: str,
 ) -> None:
     """
-    Persist a user implementation selection.
+    Persist one user-selected pipeline implementation.
 
-    Empty strings are allowed here because optional stages
-    such as RIG and EXPORT may not yet have an implementation
+    Empty identifiers remain valid here because optional
+    stages such as RIG and EXPORT may have no implementation
     selected.
-
-    PipelinePlan construction will reject an enabled stage
-    whose implementation is empty.
     """
 
     stage_settings = (
@@ -628,19 +813,16 @@ def get_pipeline_implementation(
     )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # PipelinePlan bridge
-# ---------------------------------------------------------
+# =========================================================
 
 def build_pipeline_plan(
     settings: BPT_PG_Settings,
 ) -> PipelinePlan:
     """
-    Convert persistent Blender settings into the pure-Python
+    Convert persistent Blender state into the pure Python
     PipelinePlan consumed by PipelineRunner.
-
-    This is the boundary between Blender UI state and the
-    generic pipeline core.
     """
 
     ensure_pipeline_defaults(
@@ -668,9 +850,8 @@ def build_pipeline_plan(
         )
 
         # -------------------------------------------------
-        # An optional disabled stage without any selected
-        # implementation simply does not participate in the
-        # execution plan.
+        # Disabled optional stage with no remembered
+        # implementation does not participate.
         # -------------------------------------------------
 
         if (
@@ -680,12 +861,8 @@ def build_pipeline_plan(
             continue
 
         # -------------------------------------------------
-        # Enabled stage with no implementation is a genuine
+        # Enabled stage without implementation is a genuine
         # configuration error.
-        #
-        # Failing here gives the Blender operator a clear
-        # user-facing message instead of manufacturing an
-        # invalid PipelineStageSelection.
         # -------------------------------------------------
 
         if (
@@ -701,11 +878,9 @@ def build_pipeline_plan(
             )
 
         # -------------------------------------------------
-        # Disabled stage with a remembered implementation
-        # remains in the plan as disabled.
-        #
-        # This preserves the user's selection when they
-        # temporarily toggle the stage off.
+        # Disabled stage with a remembered implementation is
+        # retained as disabled so toggling it does not erase
+        # the user's selection.
         # -------------------------------------------------
 
         if implementation_id:
@@ -729,9 +904,9 @@ def build_pipeline_plan(
     )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Projection defaults
-# ---------------------------------------------------------
+# =========================================================
 
 def ensure_default_projections(
     settings: BPT_PG_Settings,
@@ -809,9 +984,9 @@ def ensure_default_projections(
         )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Scene initialization
-# ---------------------------------------------------------
+# =========================================================
 
 def ensure_scene_defaults(
     scene: bpy.types.Scene,
@@ -838,8 +1013,8 @@ def _ensure_scene_defaults() -> None:
     """
     Timer callback used after add-on registration.
 
-    Initialize every loaded scene, not only the active one,
-    so switching scenes later cannot expose an uninitialized
+    Initialize every loaded scene rather than only the active
+    scene so switching scenes cannot expose an uninitialized
     pipeline.
     """
 
@@ -851,9 +1026,9 @@ def _ensure_scene_defaults() -> None:
         )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Classes
-# ---------------------------------------------------------
+# =========================================================
 
 CLASSES = (
     BPT_PG_ProjectionView,
@@ -866,9 +1041,9 @@ CLASSES = (
 )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Registration
-# ---------------------------------------------------------
+# =========================================================
 
 def register() -> None:
     for cls in CLASSES:

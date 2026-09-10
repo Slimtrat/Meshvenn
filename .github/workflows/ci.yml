@@ -74,6 +74,7 @@ jobs:
             "operators.py"
             "ui.py"
 
+
             # -----------------------------------------------
             # Runtime core
             # -----------------------------------------------
@@ -93,13 +94,17 @@ jobs:
             "core/material_visibility.py"
             "core/material_blend.py"
 
-            # -----------------------------------------------
-            # Generic pipeline
-            # -----------------------------------------------
-
             "core/pipeline_contracts.py"
             "core/pipeline_registry.py"
             "core/pipeline_runner.py"
+
+
+            # -----------------------------------------------
+            # UV Bake V2
+            # -----------------------------------------------
+
+            "core/uv_bake.py"
+
 
             # -----------------------------------------------
             # Built-in implementations
@@ -110,6 +115,8 @@ jobs:
             "implementations/projection_images.py"
             "implementations/native_visual_hull.py"
             "implementations/projected_color.py"
+            "implementations/uv_bake.py"
+
 
             # -----------------------------------------------
             # Native engine
@@ -125,8 +132,9 @@ jobs:
 
             "native/tests/test_visual_hull.cpp"
 
+
             # -----------------------------------------------
-            # Tests
+            # Pure Python tests
             # -----------------------------------------------
 
             "tests/test_preview_baseline.py"
@@ -137,7 +145,16 @@ jobs:
             "tests/test_pipeline_registry.py"
             "tests/test_pipeline_runner.py"
 
+            "tests/test_uv_bake.py"
+
+
+            # -----------------------------------------------
+            # Blender smoke tests
+            # -----------------------------------------------
+
             "tests/blender_smoke_test.py"
+            "tests/blender_uv_bake_smoke.py"
+
 
             # -----------------------------------------------
             # Documentation
@@ -163,10 +180,10 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Pure Python tests
+      # Pure Python suite
       #
-      # blender_smoke_test.py is deliberately excluded by
-      # the test_*.py pattern because it requires Blender.
+      # Blender-specific smoke files deliberately do not
+      # match test_*.py.
       # -----------------------------------------------------
 
       - name: Run Python tests
@@ -369,7 +386,6 @@ jobs:
               Write-Error "bpt_core.dll not found"
 
               exit 1
-
           }
 
           Copy-Item `
@@ -380,7 +396,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Native build artifact
+      # Native artifact
       # -----------------------------------------------------
 
       - name: Upload native binary
@@ -546,14 +562,6 @@ jobs:
 
       # -----------------------------------------------------
       # Build package tree
-      #
-      # Runtime code belongs to:
-      #
-      #   root Python modules
-      #   core/
-      #   implementations/
-      #
-      # Tests/scripts/examples must not be shipped.
       # -----------------------------------------------------
 
       - name: Build package directory
@@ -610,7 +618,9 @@ jobs:
 
 
           # -------------------------------------------------
-          # Runtime core
+          # Runtime Python core
+          #
+          # Includes core/uv_bake.py automatically.
           # -------------------------------------------------
 
           cp \
@@ -621,9 +631,7 @@ jobs:
           # -------------------------------------------------
           # Pipeline implementations
           #
-          # REQUIRED:
-          #
-          # root __init__.py imports this package.
+          # Includes implementations/uv_bake.py automatically.
           # -------------------------------------------------
 
           cp \
@@ -668,7 +676,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Patch manifest version
+      # Patch packaged manifest version
       # -----------------------------------------------------
 
       - name: Patch packaged manifest version
@@ -738,6 +746,7 @@ jobs:
             "operators.py"
             "ui.py"
 
+
             # -----------------------------------------------
             # Core
             # -----------------------------------------------
@@ -761,6 +770,9 @@ jobs:
             "core/pipeline_registry.py"
             "core/pipeline_runner.py"
 
+            "core/uv_bake.py"
+
+
             # -----------------------------------------------
             # Implementations
             # -----------------------------------------------
@@ -770,6 +782,8 @@ jobs:
             "implementations/projection_images.py"
             "implementations/native_visual_hull.py"
             "implementations/projected_color.py"
+            "implementations/uv_bake.py"
+
 
             # -----------------------------------------------
             # Native
@@ -934,8 +948,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Make sure no development Python files leak into the
-      # runtime package.
+      # Package boundary
       # -----------------------------------------------------
 
       - name: Verify package boundaries
@@ -997,7 +1010,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Create distribution ZIP
+      # Create distribution archive
       # -----------------------------------------------------
 
       - name: Create ZIP
@@ -1021,9 +1034,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Verify the archive itself.
-      #
-      # Do not trust only the staging directory.
+      # Validate the ZIP itself
       # -----------------------------------------------------
 
       - name: Verify ZIP contents
@@ -1043,14 +1054,38 @@ jobs:
 
             "blender_projection_tool/__init__.py"
 
+
+            # -----------------------------------------------
+            # Pipeline
+            # -----------------------------------------------
+
             "blender_projection_tool/core/pipeline_contracts.py"
             "blender_projection_tool/core/pipeline_registry.py"
             "blender_projection_tool/core/pipeline_runner.py"
+
+
+            # -----------------------------------------------
+            # UV Bake V2
+            # -----------------------------------------------
+
+            "blender_projection_tool/core/uv_bake.py"
+
+            "blender_projection_tool/implementations/uv_bake.py"
+
+
+            # -----------------------------------------------
+            # Implementations
+            # -----------------------------------------------
 
             "blender_projection_tool/implementations/__init__.py"
             "blender_projection_tool/implementations/projection_images.py"
             "blender_projection_tool/implementations/native_visual_hull.py"
             "blender_projection_tool/implementations/projected_color.py"
+
+
+            # -----------------------------------------------
+            # Native
+            # -----------------------------------------------
 
             "blender_projection_tool/native/bin/libbpt_core.so"
             "blender_projection_tool/native/bin/bpt_core.dll"
@@ -1086,9 +1121,7 @@ jobs:
 
 
       # =====================================================
-      # Blender smoke test
-      #
-      # Test the ZIP that will actually be distributed.
+      # Blender
       # =====================================================
 
       - name: Cache Blender
@@ -1150,16 +1183,13 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Extract a fresh copy.
+      # Extract exactly the ZIP we intend to distribute.
       #
-      # The smoke test MUST NOT import from
-      # dist/blender_projection_tool directly.
-      #
-      # Otherwise a ZIP packaging omission could be masked by
-      # files still existing in the staging directory.
+      # Both Blender smokes below consume this extracted
+      # package rather than repository source.
       # -----------------------------------------------------
 
-      - name: Extract packaged extension for smoke test
+      - name: Extract packaged extension for smoke tests
         shell: bash
         run: |
           set -euo pipefail
@@ -1188,7 +1218,13 @@ jobs:
             "${PACKAGE_ROOT}/__init__.py"
 
           test -f \
+            "${PACKAGE_ROOT}/core/uv_bake.py"
+
+          test -f \
             "${PACKAGE_ROOT}/implementations/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/uv_bake.py"
 
           echo
           echo "Smoke package:"
@@ -1199,6 +1235,18 @@ jobs:
             -print \
             | sort
 
+
+      # -----------------------------------------------------
+      # General extension lifecycle smoke
+      #
+      # import
+      # register
+      # registry
+      # properties
+      # operators
+      # UI
+      # unregister
+      # -----------------------------------------------------
 
       - name: Blender packaged extension smoke test
         shell: bash
@@ -1218,8 +1266,41 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Publish package artifacts only after the real Blender
-      # smoke test succeeds.
+      # UV Bake V2 functional smoke
+      #
+      # Blender mesh
+      #   ↓
+      # UV adapter
+      #   ↓
+      # core rasterizer
+      #   ↓
+      # TextureBuffer
+      #   ↓
+      # bpy.data.images
+      #   ↓
+      # Principled material
+      # -----------------------------------------------------
+
+      - name: Blender UV Bake V2 functional smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_ROOT="${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python \
+              tests/blender_uv_bake_smoke.py \
+            -- \
+            --package-root \
+              "${PACKAGE_ROOT}"
+
+
+      # -----------------------------------------------------
+      # Artifacts are published only after BOTH Blender
+      # smoke tests succeed.
       # -----------------------------------------------------
 
       - name: Upload CI artifact
@@ -1317,8 +1398,15 @@ jobs:
             **Material**
 
             - Projected Color V1.2
-            - visibility-aware projection
-            - adaptive multi-view blending
+              - visibility-aware projection
+              - adaptive multi-view blending
+
+            - UV Bake V2
+              - Blender Smart UV unwrap
+              - projected-color surface sampling
+              - visibility-aware texture bake
+              - UV island padding
+              - portable image texture material
 
             **Rig**
 
@@ -1335,12 +1423,14 @@ jobs:
             The release package has passed:
 
             - pure Python tests
+            - UV Bake V2 rasterization tests
             - Linux native tests
             - Windows native tests
             - package completeness validation
             - source/package parity validation
             - ZIP integrity validation
-            - Blender 5.2.1 extension import/register/unregister smoke test
+            - Blender 5.2.1 extension lifecycle smoke test
+            - Blender 5.2.1 UV Bake V2 functional smoke test
 
             ### Installation
 
