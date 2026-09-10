@@ -1,8 +1,8 @@
 schema_version = "1.0.0"
 
-id = "blender_projection_tool"
+id = "meshvenn"
 version = "0.1.0"
-name = "Projection Tool"
+name = "Meshvenn"
 
 tagline = "Generate 3D meshes from multiple silhouette projections with a native C++ engine"
 
@@ -10,7 +10,7 @@ maintainer = "Slimtrat"
 
 type = "add-on"
 
-website = "https://github.com/Slimtrat/blender_projection_tool"
+website = "https://github.com/Slimtrat/Meshvenn"
 
 tags = [
     "Mesh",
