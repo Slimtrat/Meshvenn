@@ -8,6 +8,10 @@ from dataclasses import dataclass
 import bpy
 
 from .image_mask import BinaryMask
+from .material_visibility import (
+    MeshVisibilityTester,
+    VisibilityConfig,
+)
 from .projection_math import (
     ProjectionTransform,
     clamp01,
@@ -29,6 +33,18 @@ COLOR_ATTRIBUTE_NAME = (
 
 MATERIAL_NAME = (
     "BPT Projected Material"
+)
+
+MATERIAL_MODE = (
+    "projected-color-v1.1"
+)
+
+VISIBILITY_MODE = (
+    "raycast-v1"
+)
+
+LEGACY_MATERIAL_MODE = (
+    "projected-color-v1"
 )
 
 DEFAULT_FALLBACK_COLOR = (
@@ -267,7 +283,9 @@ class ImageBuffer:
             y1,
         )
 
-        result = []
+        result: list[
+            float
+        ] = []
 
         for channel in range(
             4
@@ -589,6 +607,10 @@ def _sample_view(
     center_xy: bool,
     facing_power: float,
     require_front_facing: bool,
+    visibility_tester: (
+        MeshVisibilityTester
+        | None
+    ) = None,
 ) -> _CandidateSample | None:
     projected = (
         project_surface_position(
@@ -669,8 +691,9 @@ def _sample_view(
         # still prefer the view whose axis is most aligned
         # with the surface.
         #
-        # This is deliberately only a fallback.
-        # Proper visibility / raycast arrives in V2.
+        # V1.1 keeps this fallback, but an explicitly
+        # occluded view is no longer allowed to color the
+        # point.
         # -------------------------------------------------
 
         facing_factor = max(
@@ -693,6 +716,33 @@ def _sample_view(
     if (
         sample_weight
         <= MIN_WEIGHT
+    ):
+        return None
+
+    # -----------------------------------------------------
+    # V1.1 visibility rejection.
+    #
+    # Only pay the BVH raycast cost after the projection
+    # has survived:
+    #
+    # - UV bounds
+    # - silhouette
+    # - image alpha
+    # - normal orientation
+    # - effective sample weight
+    #
+    # camera_direction points from the object toward the
+    # source camera, which is exactly the direction expected
+    # by MeshVisibilityTester.
+    # -----------------------------------------------------
+
+    if (
+        visibility_tester is not None
+        and not visibility_tester
+        .is_visible(
+            position,
+            view.camera_direction,
+        )
     ):
         return None
 
@@ -738,6 +788,10 @@ def blend_projected_color(
         float,
     ] = DEFAULT_FALLBACK_COLOR,
     allow_backface_fallback: bool = True,
+    visibility_tester: (
+        MeshVisibilityTester
+        | None
+    ) = None,
 ) -> tuple[
     tuple[
         float,
@@ -750,6 +804,8 @@ def blend_projected_color(
     bool,
 ]:
     """
+    Blend all valid source projections for one surface point.
+
     Return:
 
         (
@@ -758,6 +814,20 @@ def blend_projected_color(
             rejected_sample_count,
             used_fallback,
         )
+
+    rejected_sample_count includes every rejection reason:
+
+        - projection bounds
+        - silhouette mask
+        - image alpha
+        - orientation
+        - negligible weight
+        - V1.1 visibility / occlusion
+
+    The blending weights themselves are unchanged from V1.
+
+    V1.1 only removes candidates which are not directly
+    visible from their source camera.
     """
 
     if not views:
@@ -805,6 +875,9 @@ def blend_projected_color(
                     facing_power
                 ),
                 require_front_facing=True,
+                visibility_tester=(
+                    visibility_tester
+                ),
             )
         )
 
@@ -866,14 +939,18 @@ def blend_projected_color(
     # A reconstruction can legitimately contain surfaces
     # for which no input camera is front-facing.
     #
-    # In V1 we prefer a plausible projected color rather
-    # than leaving large grey holes.
+    # We keep V1's fallback selection semantics.
     #
-    # V2 will replace this with explicit visibility tests.
+    # V1.1 also applies visibility to fallback views:
+    # an occluded source can never paint through another
+    # part of the reconstructed mesh.
     # -----------------------------------------------------
 
     if allow_backface_fallback:
-        best_candidate = None
+        best_candidate: (
+            _CandidateSample
+            | None
+        ) = None
 
         for view in views:
             candidate = (
@@ -894,6 +971,9 @@ def blend_projected_color(
                         facing_power
                     ),
                     require_front_facing=False,
+                    visibility_tester=(
+                        visibility_tester
+                    ),
                 )
             )
 
@@ -1197,6 +1277,15 @@ def apply_projected_material(
     ] = DEFAULT_FALLBACK_COLOR,
     allow_backface_fallback: bool = True,
     replace_materials: bool = True,
+    enable_visibility: bool = True,
+    visibility_config: (
+        VisibilityConfig
+        | None
+    ) = None,
+    visibility_tester: (
+        MeshVisibilityTester
+        | None
+    ) = None,
 ) -> MaterialProjectionStats:
     """
     Project all source images onto one generated mesh.
@@ -1213,6 +1302,20 @@ def apply_projected_material(
     Uniform object transforms after this function are fine
     because the color attribute is already baked onto the
     mesh corners.
+
+    V1.1 VISIBILITY:
+
+    By default one mesh-local BVH is built once and reused
+    for all vertex/view samples.
+
+    A source view contributes only if the sampled point has
+    a clear ray toward that orthographic source camera.
+
+    visibility_tester exists primarily for tests and for
+    callers which already own a compatible tester.
+
+    If supplied, it is reused instead of building a second
+    BVH.
     """
 
     if obj.type != "MESH":
@@ -1251,6 +1354,33 @@ def apply_projected_material(
             )
         )
 
+    if (
+        not enable_visibility
+        and visibility_tester
+        is not None
+    ):
+        raise ValueError(
+            (
+                "visibility_tester cannot "
+                "be provided when "
+                "enable_visibility is False."
+            )
+        )
+
+    if (
+        visibility_tester
+        is not None
+        and visibility_config
+        is not None
+    ):
+        raise ValueError(
+            (
+                "visibility_config cannot "
+                "be combined with an explicit "
+                "visibility_tester."
+            )
+        )
+
     mesh = obj.data
 
     mesh.update()
@@ -1280,6 +1410,43 @@ def apply_projected_material(
         )
 
     # -----------------------------------------------------
+    # Visibility.
+    #
+    # The BVH must be built ONCE per mesh.
+    #
+    # Never rebuild it inside the vertex/view loop.
+    # -----------------------------------------------------
+
+    active_visibility_tester: (
+        MeshVisibilityTester
+        | None
+    )
+
+    if enable_visibility:
+        active_visibility_tester = (
+            visibility_tester
+        )
+
+        if (
+            active_visibility_tester
+            is None
+        ):
+            active_visibility_tester = (
+                MeshVisibilityTester
+                .from_blender_object(
+                    obj,
+                    config=(
+                        visibility_config
+                    ),
+                )
+            )
+
+    else:
+        active_visibility_tester = (
+            None
+        )
+
+    # -----------------------------------------------------
     # Compute one color per vertex.
     #
     # We currently use averaged vertex normals, so every
@@ -1287,8 +1454,8 @@ def apply_projected_material(
     # blended color.
     #
     # The destination remains CORNER because later versions
-    # can introduce visibility/seam-specific colors without
-    # changing the public material representation.
+    # can introduce seam-specific colors without changing
+    # the public material representation.
     # -----------------------------------------------------
 
     vertex_colors: list[
@@ -1355,6 +1522,9 @@ def apply_projected_material(
             ),
             allow_backface_fallback=(
                 allow_backface_fallback
+            ),
+            visibility_tester=(
+                active_visibility_tester
             ),
         )
 
@@ -1467,7 +1637,12 @@ def apply_projected_material(
 
     obj[
         "bpt_material"
-    ] = "projected-color-v1"
+    ] = (
+        MATERIAL_MODE
+        if active_visibility_tester
+        is not None
+        else LEGACY_MATERIAL_MODE
+    )
 
     obj[
         "bpt_material_views"
@@ -1486,6 +1661,40 @@ def apply_projected_material(
     obj[
         "bpt_material_fallback_vertices"
     ] = fallback_vertices
+
+    obj[
+        "bpt_material_visibility"
+    ] = (
+        active_visibility_tester
+        is not None
+    )
+
+    obj[
+        "bpt_material_visibility_mode"
+    ] = (
+        VISIBILITY_MODE
+        if active_visibility_tester
+        is not None
+        else "disabled"
+    )
+
+    if (
+        active_visibility_tester
+        is not None
+    ):
+        obj[
+            "bpt_material_visibility_epsilon"
+        ] = (
+            active_visibility_tester
+            .surface_epsilon
+        )
+
+        obj[
+            "bpt_material_visibility_max_distance"
+        ] = (
+            active_visibility_tester
+            .max_distance
+        )
 
     return MaterialProjectionStats(
         vertex_count=vertex_count,
