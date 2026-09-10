@@ -376,8 +376,7 @@ jobs:
             $dll.FullName `
             native/bin/bpt_core.dll
 
-          Get-ChildItem \
-            native/bin
+          Get-ChildItem native/bin
 
 
       # -----------------------------------------------------
