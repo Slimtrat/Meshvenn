@@ -6,6 +6,7 @@ import unittest
 from array import array
 
 from core.uv_bake import (
+    DEFAULT_TEXTURE_SIZE,
     MAX_PADDING_PIXELS,
     MAX_SAMPLES_PER_AXIS,
     MAX_TEXTURE_DIMENSION,
@@ -65,7 +66,6 @@ def unit_triangle(
 
         (0,1)
           |
-          |
           |\
           | \
           |  \
@@ -97,14 +97,11 @@ def unit_triangle(
             0.0,
             1.0,
         ),
-        source_index=(
-            source_index
-        ),
+        source_index=source_index,
     )
 
 
-def reversed_unit_triangle(
-) -> UVBakeTriangle:
+def reversed_unit_triangle() -> UVBakeTriangle:
     return UVBakeTriangle(
         a=vertex(
             0.0,
@@ -343,6 +340,48 @@ class UVBakeConfigTests(
 
         config.validate()
 
+    def test_default_texture_size_is_512(
+        self,
+    ) -> None:
+        """
+        Product decision guard.
+
+        The benchmark selected 512² as the smallest tested
+        resolution satisfying the current UV-density target.
+
+        This test prevents core defaults from silently
+        drifting back to 1024 or another value.
+        """
+
+        self.assertEqual(
+            DEFAULT_TEXTURE_SIZE,
+            512,
+        )
+
+        config = (
+            UVBakeConfig()
+        )
+
+        self.assertEqual(
+            config.width,
+            512,
+        )
+
+        self.assertEqual(
+            config.height,
+            512,
+        )
+
+        self.assertEqual(
+            config.width,
+            DEFAULT_TEXTURE_SIZE,
+        )
+
+        self.assertEqual(
+            config.height,
+            DEFAULT_TEXTURE_SIZE,
+        )
+
     def test_invalid_width_is_rejected(
         self,
     ) -> None:
@@ -418,9 +457,7 @@ class UVBakeConfigTests(
             ValueError
         ):
             UVBakeConfig(
-                barycentric_epsilon=(
-                    -0.1
-                )
+                barycentric_epsilon=-0.1
             ).validate()
 
     def test_zero_degenerate_epsilon_is_rejected(
@@ -809,11 +846,6 @@ class UVBakeRasterizationTests(
             )
         )
 
-        # Pixel (0, 0) center is UV (0.25, 0.25).
-        #
-        # Since world X/Y deliberately matches U/V in the
-        # unit triangle, the interpolated surface position
-        # must also be (0.25, 0.25, 0).
         color = (
             result.texture.rgba(
                 0,
@@ -1572,8 +1604,6 @@ class UVBakePaddingTests(
     def test_one_pixel_island_gets_four_neighbours_with_padding_one(
         self,
     ) -> None:
-        # Entire UV triangle lies inside texel (1, 1) of a
-        # 4x4 texture.
         triangle = UVBakeTriangle(
             a=vertex(
                 0.0,
@@ -1987,6 +2017,25 @@ class UVBakeConvenienceTests(
 
         config.validate()
 
+    def test_explicit_high_quality_size_is_not_affected_by_default(
+        self,
+    ) -> None:
+        config = (
+            square_texture_config(
+                1024
+            )
+        )
+
+        self.assertEqual(
+            config.width,
+            1024,
+        )
+
+        self.assertEqual(
+            config.height,
+            1024,
+        )
+
     def test_texture_memory_bytes(
         self,
     ) -> None:
@@ -1998,6 +2047,22 @@ class UVBakeConvenienceTests(
             (
                 1024
                 * 1024
+                * 4
+                * 4
+            ),
+        )
+
+    def test_default_texture_memory_bytes(
+        self,
+    ) -> None:
+        self.assertEqual(
+            texture_memory_bytes(
+                DEFAULT_TEXTURE_SIZE,
+                DEFAULT_TEXTURE_SIZE,
+            ),
+            (
+                512
+                * 512
                 * 4
                 * 4
             ),
