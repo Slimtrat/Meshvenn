@@ -3,11 +3,20 @@ from __future__ import annotations
 import math
 
 from array import array
-from dataclasses import dataclass
+from dataclasses import (
+    dataclass,
+    replace,
+)
 
 import bpy
 
 from .image_mask import BinaryMask
+from .material_blend import (
+    MaterialBlendConfig,
+    MaterialColorCandidate,
+    blend_candidates,
+    choose_best_candidate,
+)
 from .material_visibility import (
     MeshVisibilityTester,
     VisibilityConfig,
@@ -36,15 +45,15 @@ MATERIAL_NAME = (
 )
 
 MATERIAL_MODE = (
-    "projected-color-v1.1"
+    "projected-color-v1.2"
 )
 
 VISIBILITY_MODE = (
     "raycast-v1"
 )
 
-LEGACY_MATERIAL_MODE = (
-    "projected-color-v1"
+BLEND_MODE = (
+    "adaptive-topk-v1"
 )
 
 DEFAULT_FALLBACK_COLOR = (
@@ -55,7 +64,21 @@ DEFAULT_FALLBACK_COLOR = (
 )
 
 MIN_ALPHA = 1e-4
-MIN_WEIGHT = 1e-8
+
+MIN_BASE_WEIGHT = 1e-8
+
+
+# ---------------------------------------------------------
+# Backface fallback
+#
+# V1.1 deliberately allowed even weakly aligned views to
+# fill surfaces not covered by a front-facing source.
+#
+# V1.2 keeps that safety net, but selection still goes
+# through material_blend.py.
+# ---------------------------------------------------------
+
+FALLBACK_FACING_FLOOR = 0.05
 
 
 # ---------------------------------------------------------
@@ -193,8 +216,8 @@ class ImageBuffer:
         """
         Bilinear sampling in normalized image space.
 
-        Blender image.pixels follows the same bottom-left
-        UV convention used by projection_math.py:
+        Blender image.pixels uses the same bottom-left
+        convention as projection_math.py:
 
             u = 0 -> left
             u = 1 -> right
@@ -341,12 +364,15 @@ class ImageBuffer:
 @dataclass(frozen=True)
 class ProjectedMaterialView:
     """
-    One RGB projection participating in material blending.
+    One RGB projection participating in material selection.
 
-    This is intentionally separate from NativeProjection.
+    Geometry reconstruction and appearance remain separate:
 
-    NativeProjection belongs to geometry reconstruction.
-    ProjectedMaterialView belongs to appearance.
+        NativeProjection
+            -> geometry
+
+        ProjectedMaterialView
+            -> appearance
     """
 
     name: str
@@ -404,6 +430,13 @@ class ProjectedMaterialView:
                     )
                 )
 
+        normalized_weight = max(
+            0.0,
+            float(
+                weight
+            ),
+        )
+
         return cls(
             name=str(
                 name
@@ -433,17 +466,14 @@ class ProjectedMaterialView:
                     ),
                 )
             ),
-            weight=max(
-                0.0,
-                float(
-                    weight
-                ),
+            weight=(
+                normalized_weight
             ),
         )
 
 
 # ---------------------------------------------------------
-# Result statistics
+# Public result statistics
 # ---------------------------------------------------------
 
 @dataclass(frozen=True)
@@ -458,9 +488,125 @@ class MaterialProjectionStats:
 
     fallback_vertices: int
 
+    # -----------------------------------------------------
+    # Compatibility counters.
+    #
+    # accepted_samples now means samples which ACTUALLY
+    # contributed to a final vertex color.
+    #
+    # rejected_samples is every vertex/view pair which did
+    # not contribute.
+    # -----------------------------------------------------
+
     rejected_samples: int
 
     accepted_samples: int
+
+    # -----------------------------------------------------
+    # V1.2 diagnostics
+    # -----------------------------------------------------
+
+    candidate_samples: int
+
+    source_rejected_samples: int
+
+    visible_samples: int
+
+    occluded_samples: int
+
+    front_facing_samples: int
+
+    backface_samples: int
+
+    grazing_rejected_samples: int
+
+    relative_rejected_samples: int
+
+    top_k_rejected_samples: int
+
+    selected_samples: int
+
+    projected_fallback_vertices: int
+
+    neutral_fallback_vertices: int
+
+
+# ---------------------------------------------------------
+# Per-vertex diagnostics
+# ---------------------------------------------------------
+
+@dataclass(frozen=True)
+class ProjectedColorResult:
+    color: tuple[
+        float,
+        float,
+        float,
+        float,
+    ]
+
+    used_fallback: bool
+
+    total_samples: int
+
+    candidate_samples: int
+
+    source_rejected_samples: int
+
+    visible_samples: int
+
+    occluded_samples: int
+
+    front_facing_samples: int
+
+    backface_samples: int
+
+    grazing_rejected_samples: int
+
+    relative_rejected_samples: int
+
+    top_k_rejected_samples: int
+
+    selected_samples: int
+
+    @property
+    def accepted_samples(
+        self,
+    ) -> int:
+        return (
+            self.selected_samples
+        )
+
+    @property
+    def rejected_samples(
+        self,
+    ) -> int:
+        return max(
+            0,
+            self.total_samples
+            - self.selected_samples,
+        )
+
+
+# ---------------------------------------------------------
+# Candidate collection
+# ---------------------------------------------------------
+
+@dataclass(frozen=True)
+class _CandidateCollection:
+    candidates: tuple[
+        MaterialColorCandidate,
+        ...
+    ]
+
+    total_samples: int
+
+    candidate_samples: int
+
+    source_rejected_samples: int
+
+    visible_samples: int
+
+    occluded_samples: int
 
 
 # ---------------------------------------------------------
@@ -475,8 +621,7 @@ def _sample_mask(
     """
     Nearest-neighbour mask sampling.
 
-    The rounding deliberately matches
-    native/src/visual_hull.cpp:
+    Deliberately matches native/src/visual_hull.cpp:
 
         int(
             u * (width - 1)
@@ -537,57 +682,10 @@ def _sample_mask(
 
 
 # ---------------------------------------------------------
-# View weighting
+# Source sample
 # ---------------------------------------------------------
 
-def _facing_weight(
-    normal: tuple[
-        float,
-        float,
-        float,
-    ],
-    view: ProjectedMaterialView,
-    *,
-    facing_power: float,
-) -> float:
-    facing = dot3(
-        normal,
-        view.camera_direction,
-    )
-
-    if facing <= 0.0:
-        return 0.0
-
-    facing = clamp01(
-        facing
-    )
-
-    if facing_power <= 0.0:
-        return 1.0
-
-    return (
-        facing
-        ** facing_power
-    )
-
-
-# ---------------------------------------------------------
-# Single-view sample
-# ---------------------------------------------------------
-
-@dataclass(frozen=True)
-class _CandidateSample:
-    red: float
-    green: float
-    blue: float
-    alpha: float
-
-    weight: float
-
-    facing: float
-
-
-def _sample_view(
+def _sample_source_view(
     position: tuple[
         float,
         float,
@@ -605,13 +703,26 @@ def _sample_view(
     height: int,
     voxel_size: float,
     center_xy: bool,
-    facing_power: float,
-    require_front_facing: bool,
-    visibility_tester: (
-        MeshVisibilityTester
-        | None
-    ) = None,
-) -> _CandidateSample | None:
+) -> MaterialColorCandidate | None:
+    """
+    Collect one geometrically plausible source sample.
+
+    IMPORTANT:
+
+    This function intentionally does NOT perform:
+
+        - grazing rejection
+        - relative score filtering
+        - top-K filtering
+        - weight sharpening
+
+    Those decisions belong exclusively to
+    material_blend.py.
+
+    Visibility is also handled one level above so it can be
+    counted independently.
+    """
+
     projected = (
         project_surface_position(
             position,
@@ -656,108 +767,687 @@ def _sample_view(
         )
     )
 
-    if alpha <= MIN_ALPHA:
+    if (
+        not math.isfinite(
+            alpha
+        )
+        or alpha <= MIN_ALPHA
+    ):
         return None
 
-    raw_facing = dot3(
+    base_weight = (
+        view.weight
+        * alpha
+    )
+
+    if (
+        not math.isfinite(
+            base_weight
+        )
+        or base_weight
+        <= MIN_BASE_WEIGHT
+    ):
+        return None
+
+    facing = dot3(
         normal,
         view.camera_direction,
     )
 
-    facing = max(
-        0.0,
-        raw_facing,
-    )
-
-    if require_front_facing:
-        if facing <= 0.0:
-            return None
-
-        facing_factor = (
-            _facing_weight(
-                normal,
-                view,
-                facing_power=(
-                    facing_power
-                ),
-            )
-        )
-
-    else:
-        # -------------------------------------------------
-        # Fallback.
-        #
-        # If no front-facing image can color the point,
-        # still prefer the view whose axis is most aligned
-        # with the surface.
-        #
-        # V1.1 keeps this fallback, but an explicitly
-        # occluded view is no longer allowed to color the
-        # point.
-        # -------------------------------------------------
-
-        facing_factor = max(
-            0.05,
-            abs(
-                raw_facing
-            )
-            ** max(
-                facing_power,
-                1.0,
-            ),
-        )
-
-    sample_weight = (
-        view.weight
-        * alpha
-        * facing_factor
-    )
-
-    if (
-        sample_weight
-        <= MIN_WEIGHT
+    if not math.isfinite(
+        facing
     ):
         return None
 
-    # -----------------------------------------------------
-    # V1.1 visibility rejection.
-    #
-    # Only pay the BVH raycast cost after the projection
-    # has survived:
-    #
-    # - UV bounds
-    # - silhouette
-    # - image alpha
-    # - normal orientation
-    # - effective sample weight
-    #
-    # camera_direction points from the object toward the
-    # source camera, which is exactly the direction expected
-    # by MeshVisibilityTester.
-    # -----------------------------------------------------
-
-    if (
-        visibility_tester is not None
-        and not visibility_tester
-        .is_visible(
-            position,
-            view.camera_direction,
-        )
-    ):
-        return None
-
-    return _CandidateSample(
-        red=red,
-        green=green,
-        blue=blue,
-        alpha=alpha,
-        weight=sample_weight,
-        facing=raw_facing,
+    return MaterialColorCandidate(
+        red=float(
+            red
+        ),
+        green=float(
+            green
+        ),
+        blue=float(
+            blue
+        ),
+        alpha=float(
+            alpha
+        ),
+        base_weight=float(
+            base_weight
+        ),
+        facing=float(
+            facing
+        ),
+        source_name=(
+            view.name
+        ),
     )
 
 
 # ---------------------------------------------------------
-# Multi-view blend
+# Visibility-filtered candidate collection
+# ---------------------------------------------------------
+
+def _collect_candidates(
+    position: tuple[
+        float,
+        float,
+        float,
+    ],
+    normal: tuple[
+        float,
+        float,
+        float,
+    ],
+    views: list[
+        ProjectedMaterialView
+    ],
+    *,
+    width: int,
+    depth: int,
+    height: int,
+    voxel_size: float,
+    center_xy: bool,
+    visibility_tester: (
+        MeshVisibilityTester
+        | None
+    ),
+) -> _CandidateCollection:
+    """
+    Build all RGB candidates once.
+
+    Visibility is evaluated BEFORE material blending.
+
+    This means material_blend.py never needs Blender,
+    BVHTree, projection transforms or source images.
+
+    For V1.2 we deliberately visibility-test every valid
+    projected candidate, including back-facing candidates.
+
+    Benefits:
+
+        - visible_samples and occluded_samples are exact;
+        - candidate_samples =
+              visible_samples + occluded_samples
+          whenever visibility is enabled;
+        - fallback does not need to raycast a second time.
+    """
+
+    total_samples = len(
+        views
+    )
+
+    candidate_samples = 0
+
+    source_rejected_samples = 0
+
+    visible_samples = 0
+
+    occluded_samples = 0
+
+    candidates: list[
+        MaterialColorCandidate
+    ] = []
+
+    for view in views:
+        candidate = (
+            _sample_source_view(
+                position,
+                normal,
+                view,
+                width=width,
+                depth=depth,
+                height=height,
+                voxel_size=(
+                    voxel_size
+                ),
+                center_xy=(
+                    center_xy
+                ),
+            )
+        )
+
+        if candidate is None:
+            source_rejected_samples += 1
+            continue
+
+        candidate_samples += 1
+
+        if visibility_tester is not None:
+            visibility = (
+                visibility_tester
+                .query(
+                    position,
+                    view.camera_direction,
+                )
+            )
+
+            if not visibility.visible:
+                occluded_samples += 1
+                continue
+
+        visible_samples += 1
+
+        candidates.append(
+            candidate
+        )
+
+    return _CandidateCollection(
+        candidates=tuple(
+            candidates
+        ),
+        total_samples=(
+            total_samples
+        ),
+        candidate_samples=(
+            candidate_samples
+        ),
+        source_rejected_samples=(
+            source_rejected_samples
+        ),
+        visible_samples=(
+            visible_samples
+        ),
+        occluded_samples=(
+            occluded_samples
+        ),
+    )
+
+
+# ---------------------------------------------------------
+# Config
+# ---------------------------------------------------------
+
+def _resolve_blend_config(
+    blend_config: (
+        MaterialBlendConfig
+        | None
+    ),
+    *,
+    facing_power: float,
+) -> MaterialBlendConfig:
+    """
+    Preserve the historical facing_power argument.
+
+    If an explicit V1.2 MaterialBlendConfig is supplied,
+    that config owns facing_power as well.
+    """
+
+    if blend_config is None:
+        resolved = MaterialBlendConfig(
+            facing_power=float(
+                facing_power
+            )
+        )
+
+    else:
+        resolved = (
+            blend_config
+        )
+
+    resolved.validate()
+
+    return resolved
+
+
+# ---------------------------------------------------------
+# Color helpers
+# ---------------------------------------------------------
+
+def _opaque_color(
+    color: tuple[
+        float,
+        float,
+        float,
+        float,
+    ],
+) -> tuple[
+    float,
+    float,
+    float,
+    float,
+]:
+    """
+    Projected material remains opaque.
+
+    Source alpha is a confidence/input mask signal, not an
+    output transparency channel.
+    """
+
+    return (
+        clamp01(
+            color[0]
+        ),
+        clamp01(
+            color[1]
+        ),
+        clamp01(
+            color[2]
+        ),
+        1.0,
+    )
+
+
+def _fallback_candidates(
+    candidates: tuple[
+        MaterialColorCandidate,
+        ...
+    ],
+) -> list[
+    MaterialColorCandidate
+]:
+    """
+    Prepare candidates for the V1-compatible safety fallback.
+
+    Absolute alignment is used and a small floor prevents
+    perfectly perpendicular candidates from becoming
+    impossible to select.
+
+    This approximates V1.1's historical:
+
+        max(
+            0.05,
+            abs(facing) ** power
+        )
+
+    while keeping actual ranking inside material_blend.py.
+    """
+
+    result: list[
+        MaterialColorCandidate
+    ] = []
+
+    for candidate in candidates:
+        result.append(
+            replace(
+                candidate,
+                facing=max(
+                    FALLBACK_FACING_FLOOR,
+                    abs(
+                        candidate.facing
+                    ),
+                ),
+            )
+        )
+
+    return result
+
+
+# ---------------------------------------------------------
+# Detailed multi-view blend
+# ---------------------------------------------------------
+
+def _blend_projected_color_detailed(
+    position: tuple[
+        float,
+        float,
+        float,
+    ],
+    normal: tuple[
+        float,
+        float,
+        float,
+    ],
+    views: list[
+        ProjectedMaterialView
+    ],
+    *,
+    width: int,
+    depth: int,
+    height: int,
+    voxel_size: float = 1.0,
+    center_xy: bool = True,
+    facing_power: float = 2.0,
+    fallback_color: tuple[
+        float,
+        float,
+        float,
+        float,
+    ] = DEFAULT_FALLBACK_COLOR,
+    allow_backface_fallback: bool = True,
+    visibility_tester: (
+        MeshVisibilityTester
+        | None
+    ) = None,
+    blend_config: (
+        MaterialBlendConfig
+        | None
+    ) = None,
+) -> ProjectedColorResult:
+    """
+    V1.2 material projection for one surface point.
+
+    Pipeline:
+
+        source projection
+              ↓
+        mask / alpha / weight
+              ↓
+        visibility V1.1
+              ↓
+        front-facing candidates
+              ↓
+        MaterialBlendConfig
+              ↓
+        grazing cutoff
+              ↓
+        relative score cutoff
+              ↓
+        top-K
+              ↓
+        weight sharpening
+              ↓
+        normalized blend
+
+    If the main pass cannot select anything, an optional
+    single-view fallback is attempted using absolute facing.
+
+    Diagnostic pruning counters always describe the main
+    adaptive V1.2 pass. The fallback is a recovery path and
+    must not overwrite the reason the primary pass failed.
+    """
+
+    resolved_config = (
+        _resolve_blend_config(
+            blend_config,
+            facing_power=(
+                facing_power
+            ),
+        )
+    )
+
+    if not views:
+        return ProjectedColorResult(
+            color=(
+                fallback_color
+            ),
+            used_fallback=True,
+            total_samples=0,
+            candidate_samples=0,
+            source_rejected_samples=0,
+            visible_samples=0,
+            occluded_samples=0,
+            front_facing_samples=0,
+            backface_samples=0,
+            grazing_rejected_samples=0,
+            relative_rejected_samples=0,
+            top_k_rejected_samples=0,
+            selected_samples=0,
+        )
+
+    normalized_normal = normalize3(
+        normal
+    )
+
+    collection = (
+        _collect_candidates(
+            position,
+            normalized_normal,
+            views,
+            width=width,
+            depth=depth,
+            height=height,
+            voxel_size=(
+                voxel_size
+            ),
+            center_xy=(
+                center_xy
+            ),
+            visibility_tester=(
+                visibility_tester
+            ),
+        )
+    )
+
+    front_candidates = [
+        candidate
+        for candidate
+        in collection.candidates
+        if candidate.facing > 0.0
+    ]
+
+    front_facing_samples = len(
+        front_candidates
+    )
+
+    backface_samples = (
+        collection.visible_samples
+        - front_facing_samples
+    )
+
+    # -----------------------------------------------------
+    # Main V1.2 blend
+    # -----------------------------------------------------
+
+    main_result = (
+        blend_candidates(
+            front_candidates,
+            resolved_config,
+            use_absolute_facing=False,
+        )
+    )
+
+    if (
+        main_result.has_selection
+        and main_result.color
+        is not None
+    ):
+        return ProjectedColorResult(
+            color=(
+                _opaque_color(
+                    main_result.color
+                )
+            ),
+            used_fallback=False,
+            total_samples=(
+                collection.total_samples
+            ),
+            candidate_samples=(
+                collection
+                .candidate_samples
+            ),
+            source_rejected_samples=(
+                collection
+                .source_rejected_samples
+            ),
+            visible_samples=(
+                collection
+                .visible_samples
+            ),
+            occluded_samples=(
+                collection
+                .occluded_samples
+            ),
+            front_facing_samples=(
+                front_facing_samples
+            ),
+            backface_samples=(
+                backface_samples
+            ),
+            grazing_rejected_samples=(
+                main_result
+                .grazing_rejected_count
+            ),
+            relative_rejected_samples=(
+                main_result
+                .relative_rejected_count
+            ),
+            top_k_rejected_samples=(
+                main_result
+                .top_k_rejected_count
+            ),
+            selected_samples=(
+                main_result
+                .selected_count
+            ),
+        )
+
+    # -----------------------------------------------------
+    # Safety fallback.
+    #
+    # The purpose is not to blur every unknown surface with
+    # every camera.
+    #
+    # Exactly one visible source is selected.
+    #
+    # IMPORTANT:
+    #
+    # The fallback is only a recovery strategy. Diagnostic
+    # pruning counters below keep the main_result values,
+    # because they explain why the normal V1.2 blend could
+    # not produce a color.
+    # -----------------------------------------------------
+
+    if (
+        allow_backface_fallback
+        and collection.candidates
+    ):
+        fallback_config = replace(
+            resolved_config,
+            min_facing=0.0,
+            relative_score_cutoff=0.0,
+        )
+
+        fallback_result = (
+            choose_best_candidate(
+                _fallback_candidates(
+                    collection.candidates
+                ),
+                fallback_config,
+                use_absolute_facing=False,
+            )
+        )
+
+        if (
+            fallback_result.has_selection
+            and fallback_result.color
+            is not None
+        ):
+            return ProjectedColorResult(
+                color=(
+                    _opaque_color(
+                        fallback_result.color
+                    )
+                ),
+                used_fallback=True,
+                total_samples=(
+                    collection.total_samples
+                ),
+                candidate_samples=(
+                    collection
+                    .candidate_samples
+                ),
+                source_rejected_samples=(
+                    collection
+                    .source_rejected_samples
+                ),
+                visible_samples=(
+                    collection
+                    .visible_samples
+                ),
+                occluded_samples=(
+                    collection
+                    .occluded_samples
+                ),
+                front_facing_samples=(
+                    front_facing_samples
+                ),
+                backface_samples=(
+                    backface_samples
+                ),
+
+                # -----------------------------------------
+                # These counters deliberately describe the
+                # PRIMARY V1.2 pass.
+                #
+                # The previous implementation accidentally
+                # replaced them with fallback_result values,
+                # hiding cases such as:
+                #
+                #   facing 0.05
+                #   min_facing 0.10
+                #       ↓
+                #   main grazing rejection
+                #       ↓
+                #   fallback succeeds
+                #
+                # That must still report one grazing reject.
+                # -----------------------------------------
+
+                grazing_rejected_samples=(
+                    main_result
+                    .grazing_rejected_count
+                ),
+                relative_rejected_samples=(
+                    main_result
+                    .relative_rejected_count
+                ),
+                top_k_rejected_samples=(
+                    main_result
+                    .top_k_rejected_count
+                ),
+
+                # The final color does come from fallback,
+                # so selected_samples belongs to the actual
+                # fallback result.
+                selected_samples=(
+                    fallback_result
+                    .selected_count
+                ),
+            )
+
+    # -----------------------------------------------------
+    # Neutral fallback
+    # -----------------------------------------------------
+
+    return ProjectedColorResult(
+        color=(
+            fallback_color
+        ),
+        used_fallback=True,
+        total_samples=(
+            collection.total_samples
+        ),
+        candidate_samples=(
+            collection
+            .candidate_samples
+        ),
+        source_rejected_samples=(
+            collection
+            .source_rejected_samples
+        ),
+        visible_samples=(
+            collection
+            .visible_samples
+        ),
+        occluded_samples=(
+            collection
+            .occluded_samples
+        ),
+        front_facing_samples=(
+            front_facing_samples
+        ),
+        backface_samples=(
+            backface_samples
+        ),
+        grazing_rejected_samples=(
+            main_result
+            .grazing_rejected_count
+        ),
+        relative_rejected_samples=(
+            main_result
+            .relative_rejected_count
+        ),
+        top_k_rejected_samples=(
+            main_result
+            .top_k_rejected_count
+        ),
+        selected_samples=0,
+    )
+
+
+# ---------------------------------------------------------
+# Compatibility public blend API
 # ---------------------------------------------------------
 
 def blend_projected_color(
@@ -792,6 +1482,10 @@ def blend_projected_color(
         MeshVisibilityTester
         | None
     ) = None,
+    blend_config: (
+        MaterialBlendConfig
+        | None
+    ) = None,
 ) -> tuple[
     tuple[
         float,
@@ -804,9 +1498,9 @@ def blend_projected_color(
     bool,
 ]:
     """
-    Blend all valid source projections for one surface point.
+    Compatibility wrapper.
 
-    Return:
+    Existing callers still receive:
 
         (
             RGBA,
@@ -815,204 +1509,53 @@ def blend_projected_color(
             used_fallback,
         )
 
-    rejected_sample_count includes every rejection reason:
+    V1.2 semantics:
 
-        - projection bounds
-        - silhouette mask
-        - image alpha
-        - orientation
-        - negligible weight
-        - V1.1 visibility / occlusion
+        accepted_sample_count
+            = number of samples actually contributing to
+              the final color;
 
-    The blending weights themselves are unchanged from V1.
-
-    V1.1 only removes candidates which are not directly
-    visible from their source camera.
+        rejected_sample_count
+            = every view which did not contribute.
     """
 
-    if not views:
-        return (
-            fallback_color,
-            0,
-            0,
-            True,
+    result = (
+        _blend_projected_color_detailed(
+            position,
+            normal,
+            views,
+            width=width,
+            depth=depth,
+            height=height,
+            voxel_size=(
+                voxel_size
+            ),
+            center_xy=(
+                center_xy
+            ),
+            facing_power=(
+                facing_power
+            ),
+            fallback_color=(
+                fallback_color
+            ),
+            allow_backface_fallback=(
+                allow_backface_fallback
+            ),
+            visibility_tester=(
+                visibility_tester
+            ),
+            blend_config=(
+                blend_config
+            ),
         )
-
-    normal = normalize3(
-        normal
     )
 
-    weighted_red = 0.0
-    weighted_green = 0.0
-    weighted_blue = 0.0
-
-    total_weight = 0.0
-
-    accepted = 0
-    rejected = 0
-
-    # -----------------------------------------------------
-    # Main pass:
-    # only front-facing projections participate.
-    # -----------------------------------------------------
-
-    for view in views:
-        candidate = (
-            _sample_view(
-                position,
-                normal,
-                view,
-                width=width,
-                depth=depth,
-                height=height,
-                voxel_size=(
-                    voxel_size
-                ),
-                center_xy=(
-                    center_xy
-                ),
-                facing_power=(
-                    facing_power
-                ),
-                require_front_facing=True,
-                visibility_tester=(
-                    visibility_tester
-                ),
-            )
-        )
-
-        if candidate is None:
-            rejected += 1
-            continue
-
-        accepted += 1
-
-        weighted_red += (
-            candidate.red
-            * candidate.weight
-        )
-
-        weighted_green += (
-            candidate.green
-            * candidate.weight
-        )
-
-        weighted_blue += (
-            candidate.blue
-            * candidate.weight
-        )
-
-        total_weight += (
-            candidate.weight
-        )
-
-    if total_weight > MIN_WEIGHT:
-        inverse = (
-            1.0
-            / total_weight
-        )
-
-        return (
-            (
-                clamp01(
-                    weighted_red
-                    * inverse
-                ),
-                clamp01(
-                    weighted_green
-                    * inverse
-                ),
-                clamp01(
-                    weighted_blue
-                    * inverse
-                ),
-                1.0,
-            ),
-            accepted,
-            rejected,
-            False,
-        )
-
-    # -----------------------------------------------------
-    # Fallback pass.
-    #
-    # A reconstruction can legitimately contain surfaces
-    # for which no input camera is front-facing.
-    #
-    # We keep V1's fallback selection semantics.
-    #
-    # V1.1 also applies visibility to fallback views:
-    # an occluded source can never paint through another
-    # part of the reconstructed mesh.
-    # -----------------------------------------------------
-
-    if allow_backface_fallback:
-        best_candidate: (
-            _CandidateSample
-            | None
-        ) = None
-
-        for view in views:
-            candidate = (
-                _sample_view(
-                    position,
-                    normal,
-                    view,
-                    width=width,
-                    depth=depth,
-                    height=height,
-                    voxel_size=(
-                        voxel_size
-                    ),
-                    center_xy=(
-                        center_xy
-                    ),
-                    facing_power=(
-                        facing_power
-                    ),
-                    require_front_facing=False,
-                    visibility_tester=(
-                        visibility_tester
-                    ),
-                )
-            )
-
-            if candidate is None:
-                continue
-
-            if (
-                best_candidate is None
-                or candidate.weight
-                > best_candidate.weight
-            ):
-                best_candidate = (
-                    candidate
-                )
-
-        if best_candidate is not None:
-            return (
-                (
-                    clamp01(
-                        best_candidate.red
-                    ),
-                    clamp01(
-                        best_candidate.green
-                    ),
-                    clamp01(
-                        best_candidate.blue
-                    ),
-                    1.0,
-                ),
-                accepted + 1,
-                rejected,
-                True,
-            )
-
     return (
-        fallback_color,
-        accepted,
-        rejected,
-        True,
+        result.color,
+        result.accepted_samples,
+        result.rejected_samples,
+        result.used_fallback,
     )
 
 
@@ -1141,10 +1684,7 @@ def ensure_projected_material(
     )
 
     # -----------------------------------------------------
-    # Neutral physical defaults.
-    #
-    # Appearance should come primarily from source colors,
-    # not from a glossy preview material.
+    # Neutral material defaults
     # -----------------------------------------------------
 
     if (
@@ -1153,9 +1693,7 @@ def ensure_projected_material(
     ):
         principled.inputs[
             "Metallic"
-        ].default_value = (
-            0.0
-        )
+        ].default_value = 0.0
 
     if (
         "Roughness"
@@ -1163,15 +1701,11 @@ def ensure_projected_material(
     ):
         principled.inputs[
             "Roughness"
-        ].default_value = (
-            0.65
-        )
+        ].default_value = 0.65
 
     # -----------------------------------------------------
-    # Color Attribute
+    # Color attribute
     # -----------------------------------------------------
-
-    color_node = None
 
     try:
         color_node = nodes.new(
@@ -1183,9 +1717,6 @@ def ensure_projected_material(
         )
 
     except RuntimeError:
-        # Generic attribute fallback in case Blender removes
-        # the dedicated vertex-color shader node in a future
-        # release.
         color_node = nodes.new(
             "ShaderNodeAttribute"
         )
@@ -1248,7 +1779,7 @@ def ensure_projected_material(
 
 
 # ---------------------------------------------------------
-# Apply material projection
+# Apply projected material
 # ---------------------------------------------------------
 
 def apply_projected_material(
@@ -1286,36 +1817,49 @@ def apply_projected_material(
         MeshVisibilityTester
         | None
     ) = None,
+    blend_config: (
+        MaterialBlendConfig
+        | None
+    ) = None,
 ) -> MaterialProjectionStats:
     """
-    Project all source images onto one generated mesh.
+    Project source images onto one generated mesh.
 
     IMPORTANT:
 
-    Call this while obj.data is still in native voxel
+    Call this while obj.data remains in native reconstruction
     coordinates.
 
-    Do it BEFORE scale_object_to_height() or any arbitrary
-    mesh transform which changes the reconstruction-space
-    coordinates.
+    Do this BEFORE scale_object_to_height() or arbitrary mesh
+    transforms.
 
-    Uniform object transforms after this function are fine
-    because the color attribute is already baked onto the
-    mesh corners.
+    ---------------------------------------------------------
+    V1.1
+    ---------------------------------------------------------
 
-    V1.1 VISIBILITY:
+        visibility / occlusion via one mesh-local BVH
 
-    By default one mesh-local BVH is built once and reused
-    for all vertex/view samples.
+    ---------------------------------------------------------
+    V1.2
+    ---------------------------------------------------------
 
-    A source view contributes only if the sampled point has
-    a clear ray toward that orthographic source camera.
+        smooth grazing cutoff
+            +
+        relative candidate cutoff
+            +
+        top-K contributor selection
+            +
+        weight sharpening
 
-    visibility_tester exists primarily for tests and for
-    callers which already own a compatible tester.
+    `blend_config` owns V1.2 selection parameters.
 
-    If supplied, it is reused instead of building a second
-    BVH.
+    If omitted, defaults are:
+
+        min_facing             = 0.10
+        facing_power           = facing_power argument
+        relative_score_cutoff  = 0.20
+        max_contributors       = 3
+        weight_power           = 1.5
     """
 
     if obj.type != "MESH":
@@ -1346,11 +1890,16 @@ def apply_projected_material(
             )
         )
 
-    if voxel_size <= 0.0:
+    if (
+        not math.isfinite(
+            voxel_size
+        )
+        or voxel_size <= 0.0
+    ):
         raise ValueError(
             (
-                "voxel_size must be "
-                "greater than zero."
+                "voxel_size must be finite "
+                "and greater than zero."
             )
         )
 
@@ -1368,10 +1917,8 @@ def apply_projected_material(
         )
 
     if (
-        visibility_tester
-        is not None
-        and visibility_config
-        is not None
+        visibility_tester is not None
+        and visibility_config is not None
     ):
         raise ValueError(
             (
@@ -1380,6 +1927,15 @@ def apply_projected_material(
                 "visibility_tester."
             )
         )
+
+    resolved_blend_config = (
+        _resolve_blend_config(
+            blend_config,
+            facing_power=(
+                facing_power
+            ),
+        )
+    )
 
     mesh = obj.data
 
@@ -1410,11 +1966,9 @@ def apply_projected_material(
         )
 
     # -----------------------------------------------------
-    # Visibility.
+    # Visibility BVH
     #
-    # The BVH must be built ONCE per mesh.
-    #
-    # Never rebuild it inside the vertex/view loop.
+    # Built ONCE per mesh.
     # -----------------------------------------------------
 
     active_visibility_tester: (
@@ -1447,15 +2001,7 @@ def apply_projected_material(
         )
 
     # -----------------------------------------------------
-    # Compute one color per vertex.
-    #
-    # We currently use averaged vertex normals, so every
-    # corner sharing the same vertex receives the same
-    # blended color.
-    #
-    # The destination remains CORNER because later versions
-    # can introduce seam-specific colors without changing
-    # the public material representation.
+    # One color per mesh vertex
     # -----------------------------------------------------
 
     vertex_colors: list[
@@ -1470,10 +2016,44 @@ def apply_projected_material(
     ] * vertex_count
 
     projected_vertices = 0
+
     fallback_vertices = 0
 
+    projected_fallback_vertices = 0
+
+    neutral_fallback_vertices = 0
+
+    # -----------------------------------------------------
+    # Aggregated sample metrics
+    # -----------------------------------------------------
+
     accepted_samples = 0
+
     rejected_samples = 0
+
+    candidate_samples = 0
+
+    source_rejected_samples = 0
+
+    visible_samples = 0
+
+    occluded_samples = 0
+
+    front_facing_samples = 0
+
+    backface_samples = 0
+
+    grazing_rejected_samples = 0
+
+    relative_rejected_samples = 0
+
+    top_k_rejected_samples = 0
+
+    selected_samples = 0
+
+    # -----------------------------------------------------
+    # Projection
+    # -----------------------------------------------------
 
     for vertex in mesh.vertices:
         position = (
@@ -1502,51 +2082,111 @@ def apply_projected_material(
             )
         )
 
-        (
-            color,
-            accepted,
-            rejected,
-            used_fallback,
-        ) = blend_projected_color(
-            position,
-            normal,
-            views,
-            width=volume_width,
-            depth=volume_depth,
-            height=volume_height,
-            voxel_size=voxel_size,
-            center_xy=center_xy,
-            facing_power=facing_power,
-            fallback_color=(
-                fallback_color
-            ),
-            allow_backface_fallback=(
-                allow_backface_fallback
-            ),
-            visibility_tester=(
-                active_visibility_tester
-            ),
+        result = (
+            _blend_projected_color_detailed(
+                position,
+                normal,
+                views,
+                width=volume_width,
+                depth=volume_depth,
+                height=volume_height,
+                voxel_size=(
+                    voxel_size
+                ),
+                center_xy=(
+                    center_xy
+                ),
+                facing_power=(
+                    facing_power
+                ),
+                fallback_color=(
+                    fallback_color
+                ),
+                allow_backface_fallback=(
+                    allow_backface_fallback
+                ),
+                visibility_tester=(
+                    active_visibility_tester
+                ),
+                blend_config=(
+                    resolved_blend_config
+                ),
+            )
         )
 
         vertex_colors[
             vertex.index
-        ] = color
+        ] = result.color
 
         accepted_samples += (
-            accepted
+            result.accepted_samples
         )
 
         rejected_samples += (
-            rejected
+            result.rejected_samples
         )
 
-        if used_fallback:
+        candidate_samples += (
+            result.candidate_samples
+        )
+
+        source_rejected_samples += (
+            result
+            .source_rejected_samples
+        )
+
+        visible_samples += (
+            result.visible_samples
+        )
+
+        occluded_samples += (
+            result.occluded_samples
+        )
+
+        front_facing_samples += (
+            result.front_facing_samples
+        )
+
+        backface_samples += (
+            result.backface_samples
+        )
+
+        grazing_rejected_samples += (
+            result
+            .grazing_rejected_samples
+        )
+
+        relative_rejected_samples += (
+            result
+            .relative_rejected_samples
+        )
+
+        top_k_rejected_samples += (
+            result
+            .top_k_rejected_samples
+        )
+
+        selected_samples += (
+            result.selected_samples
+        )
+
+        if result.used_fallback:
             fallback_vertices += 1
+
+            if (
+                result.selected_samples
+                > 0
+            ):
+                projected_fallback_vertices += 1
+
+            else:
+                neutral_fallback_vertices += 1
+
         else:
             projected_vertices += 1
 
     # -----------------------------------------------------
-    # Convert vertex colors to CORNER colors.
+    # Vertex colors -> CORNER colors
     # -----------------------------------------------------
 
     color_attribute = (
@@ -1595,7 +2235,7 @@ def apply_projected_material(
     )
 
     # -----------------------------------------------------
-    # Material
+    # Blender material
     # -----------------------------------------------------
 
     material = (
@@ -1612,36 +2252,34 @@ def apply_projected_material(
     if replace_materials:
         mesh.materials.clear()
 
+    material_names = {
+        item.name
+        for item
+        in mesh.materials
+        if item is not None
+    }
+
     if (
         material.name
-        not in {
-            item.name
-            for item
-            in mesh.materials
-            if item is not None
-        }
+        not in material_names
     ):
         mesh.materials.append(
             material
         )
 
-    # Generated reconstruction uses one material.
     for polygon in mesh.polygons:
         polygon.material_index = 0
 
     mesh.update()
 
     # -----------------------------------------------------
-    # Metadata
+    # Metadata — public identity
     # -----------------------------------------------------
 
     obj[
         "bpt_material"
     ] = (
         MATERIAL_MODE
-        if active_visibility_tester
-        is not None
-        else LEGACY_MATERIAL_MODE
     )
 
     obj[
@@ -1652,15 +2290,37 @@ def apply_projected_material(
 
     obj[
         "bpt_material_attribute"
-    ] = attribute_name
+    ] = (
+        attribute_name
+    )
 
     obj[
         "bpt_material_projected_vertices"
-    ] = projected_vertices
+    ] = (
+        projected_vertices
+    )
 
     obj[
         "bpt_material_fallback_vertices"
-    ] = fallback_vertices
+    ] = (
+        fallback_vertices
+    )
+
+    obj[
+        "bpt_material_projected_fallback_vertices"
+    ] = (
+        projected_fallback_vertices
+    )
+
+    obj[
+        "bpt_material_neutral_fallback_vertices"
+    ] = (
+        neutral_fallback_vertices
+    )
+
+    # -----------------------------------------------------
+    # Metadata — visibility
+    # -----------------------------------------------------
 
     obj[
         "bpt_material_visibility"
@@ -1696,9 +2356,138 @@ def apply_projected_material(
             .max_distance
         )
 
+    # -----------------------------------------------------
+    # Metadata — V1.2 blend configuration
+    # -----------------------------------------------------
+
+    obj[
+        "bpt_material_blend_mode"
+    ] = (
+        BLEND_MODE
+    )
+
+    obj[
+        "bpt_material_blend_min_facing"
+    ] = (
+        resolved_blend_config
+        .min_facing
+    )
+
+    obj[
+        "bpt_material_blend_facing_power"
+    ] = (
+        resolved_blend_config
+        .facing_power
+    )
+
+    obj[
+        "bpt_material_blend_relative_score_cutoff"
+    ] = (
+        resolved_blend_config
+        .relative_score_cutoff
+    )
+
+    obj[
+        "bpt_material_blend_max_contributors"
+    ] = (
+        resolved_blend_config
+        .max_contributors
+    )
+
+    obj[
+        "bpt_material_blend_weight_power"
+    ] = (
+        resolved_blend_config
+        .weight_power
+    )
+
+    # -----------------------------------------------------
+    # Metadata — diagnostics
+    # -----------------------------------------------------
+
+    obj[
+        "bpt_material_accepted_samples"
+    ] = (
+        accepted_samples
+    )
+
+    obj[
+        "bpt_material_rejected_samples"
+    ] = (
+        rejected_samples
+    )
+
+    obj[
+        "bpt_material_candidate_samples"
+    ] = (
+        candidate_samples
+    )
+
+    obj[
+        "bpt_material_source_rejected_samples"
+    ] = (
+        source_rejected_samples
+    )
+
+    obj[
+        "bpt_material_visible_samples"
+    ] = (
+        visible_samples
+    )
+
+    obj[
+        "bpt_material_occluded_samples"
+    ] = (
+        occluded_samples
+    )
+
+    obj[
+        "bpt_material_front_facing_samples"
+    ] = (
+        front_facing_samples
+    )
+
+    obj[
+        "bpt_material_backface_samples"
+    ] = (
+        backface_samples
+    )
+
+    obj[
+        "bpt_material_grazing_rejected_samples"
+    ] = (
+        grazing_rejected_samples
+    )
+
+    obj[
+        "bpt_material_relative_rejected_samples"
+    ] = (
+        relative_rejected_samples
+    )
+
+    obj[
+        "bpt_material_top_k_rejected_samples"
+    ] = (
+        top_k_rejected_samples
+    )
+
+    obj[
+        "bpt_material_selected_samples"
+    ] = (
+        selected_samples
+    )
+
+    # -----------------------------------------------------
+    # Result
+    # -----------------------------------------------------
+
     return MaterialProjectionStats(
-        vertex_count=vertex_count,
-        loop_count=loop_count,
+        vertex_count=(
+            vertex_count
+        ),
+        loop_count=(
+            loop_count
+        ),
         view_count=len(
             views
         ),
@@ -1713,5 +2502,41 @@ def apply_projected_material(
         ),
         accepted_samples=(
             accepted_samples
+        ),
+        candidate_samples=(
+            candidate_samples
+        ),
+        source_rejected_samples=(
+            source_rejected_samples
+        ),
+        visible_samples=(
+            visible_samples
+        ),
+        occluded_samples=(
+            occluded_samples
+        ),
+        front_facing_samples=(
+            front_facing_samples
+        ),
+        backface_samples=(
+            backface_samples
+        ),
+        grazing_rejected_samples=(
+            grazing_rejected_samples
+        ),
+        relative_rejected_samples=(
+            relative_rejected_samples
+        ),
+        top_k_rejected_samples=(
+            top_k_rejected_samples
+        ),
+        selected_samples=(
+            selected_samples
+        ),
+        projected_fallback_vertices=(
+            projected_fallback_vertices
+        ),
+        neutral_fallback_vertices=(
+            neutral_fallback_vertices
         ),
     )
