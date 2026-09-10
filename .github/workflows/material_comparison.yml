@@ -223,6 +223,7 @@ jobs:
 
           fi
 
+
           if [[ ! -f "${EXAMPLE_DIR}/sheets/${SHEET}.png" ]]; then
 
             echo \
@@ -261,10 +262,7 @@ jobs:
           # Resolution
           # -----------------------------------------------
 
-          if (
-            ( RESOLUTION < 8 )
-            || ( RESOLUTION > 256 )
-          ); then
+          if (( RESOLUTION < 8 || RESOLUTION > 256 )); then
 
             echo \
               "Resolution must be between 8 and 256."
@@ -297,10 +295,7 @@ jobs:
           # Render
           # -----------------------------------------------
 
-          if (
-            ( RENDER_SIZE < 128 )
-            || ( RENDER_SIZE > 2048 )
-          ); then
+          if (( RENDER_SIZE < 128 || RENDER_SIZE > 2048 )); then
 
             echo \
               "Render size must be between 128 and 2048."
@@ -310,10 +305,7 @@ jobs:
           fi
 
 
-          if (
-            ( VIEWS < 4 )
-            || ( VIEWS > 16 )
-          ); then
+          if (( VIEWS < 4 || VIEWS > 16 )); then
 
             echo \
               "Views must be between 4 and 16."
@@ -323,10 +315,7 @@ jobs:
           fi
 
 
-          if (
-            ( SAMPLES < 1 )
-            || ( SAMPLES > 128 )
-          ); then
+          if (( SAMPLES < 1 || SAMPLES > 128 )); then
 
             echo \
               "Cycles samples must be between 1 and 128."
@@ -362,6 +351,7 @@ jobs:
           read -ra PROFILE_ARRAY \
             <<< "${PROFILES}"
 
+
           if [[ "${#PROFILE_ARRAY[@]}" -eq 0 ]]; then
 
             echo \
@@ -371,7 +361,9 @@ jobs:
 
           fi
 
+
           NORMALIZED_PROFILES=()
+
 
           for PROFILE in "${PROFILE_ARRAY[@]}"; do
 
@@ -382,11 +374,27 @@ jobs:
                   '[:upper:]'
             )"
 
+
             case "${PROFILE}" in
 
               L2|L4|L8|L10)
 
-                if [[ ! " ${NORMALIZED_PROFILES[*]} " =~ " ${PROFILE} " ]]; then
+                ALREADY_PRESENT="false"
+
+                for EXISTING_PROFILE in "${NORMALIZED_PROFILES[@]}"; do
+
+                  if [[ "${EXISTING_PROFILE}" == "${PROFILE}" ]]; then
+
+                    ALREADY_PRESENT="true"
+
+                    break
+
+                  fi
+
+                done
+
+
+                if [[ "${ALREADY_PRESENT}" == "false" ]]; then
 
                   NORMALIZED_PROFILES+=(
                     "${PROFILE}"
@@ -396,17 +404,30 @@ jobs:
 
                 ;;
 
+
               *)
 
                 echo \
                   "Invalid profile: ${PROFILE}"
 
                 exit 1
+
                 ;;
 
             esac
 
           done
+
+
+          if [[ "${#NORMALIZED_PROFILES[@]}" -eq 0 ]]; then
+
+            echo \
+              "No valid profiles remain after normalization."
+
+            exit 1
+
+          fi
+
 
           PROFILES="$(
             printf \
@@ -528,6 +549,7 @@ jobs:
               | head -n 1
           )"
 
+
           if [[ -z "${LIBRARY}" ]]; then
 
             echo \
@@ -537,9 +559,15 @@ jobs:
 
           fi
 
+
           cp \
             "${LIBRARY}" \
             native/bin/libbpt_core.so
+
+
+          test -f \
+            native/bin/libbpt_core.so
+
 
           ls -lh \
             native/bin/libbpt_core.so
@@ -572,8 +600,10 @@ jobs:
 
           ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
 
+
           echo \
             "Downloading ${URL}"
+
 
           curl \
             --fail \
@@ -586,14 +616,17 @@ jobs:
             --output "${ARCHIVE}" \
             "${URL}"
 
+
           xz \
             --test \
             "${ARCHIVE}"
+
 
           tar \
             -xJf "${ARCHIVE}" \
             -C "${BLENDER_ROOT}" \
             --strip-components=1
+
 
           rm \
             "${ARCHIVE}"
@@ -609,10 +642,7 @@ jobs:
 
 
       # ====================================================
-      # UV Bake unit tests
-      #
-      # Cheap sanity check immediately before the expensive
-      # Blender comparison.
+      # UV Bake core tests
       # ====================================================
 
       - name: Test UV Bake core
@@ -629,10 +659,12 @@ jobs:
       # ====================================================
       # Material variants
       #
-      # Native geometry is generated once per profile.
+      # Geometry is reconstructed once.
       #
-      # Both MATERIAL implementations then consume that same
-      # reconstruction.
+      # The same native snapshots are then passed to:
+      #
+      #   projected-color-v1.2
+      #   uv-bake-v2
       # ====================================================
 
       - name: Generate MATERIAL variants
@@ -647,11 +679,14 @@ jobs:
           rm -rf \
             "${OUTPUT_ROOT}"
 
+
           mkdir -p \
             "${OUTPUT_ROOT}"
 
+
           read -ra PROFILE_ARGS \
             <<< "${{ steps.config.outputs.profiles }}"
+
 
           "${BLENDER_ROOT}/blender" \
             --background \
@@ -683,9 +718,15 @@ jobs:
 
 
       # ====================================================
-      # Turntable renders
+      # Render variants
       #
-      # preserve_material=True is used internally.
+      # scripts/render_material_comparison.py calls:
+      #
+      #   render_turntable(
+      #       preserve_material=True
+      #   )
+      #
+      # so this compares actual MATERIAL implementations.
       # ====================================================
 
       - name: Render MATERIAL comparison
@@ -699,6 +740,7 @@ jobs:
 
           read -ra PROFILE_ARGS \
             <<< "${{ steps.config.outputs.profiles }}"
+
 
           "${BLENDER_ROOT}/blender" \
             --background \
@@ -774,14 +816,15 @@ jobs:
           )
 
 
-          # -----------------------------------------------
-          # Global render manifest
-          # -----------------------------------------------
+          # ================================================
+          # Global manifest
+          # ================================================
 
           render_manifest_path = (
               root
               / "render_comparison.json"
           )
+
 
           if not render_manifest_path.is_file():
               raise RuntimeError(
@@ -791,11 +834,13 @@ jobs:
                   )
               )
 
+
           render_manifest = json.loads(
               render_manifest_path.read_text(
                   encoding="utf-8"
               )
           )
+
 
           if not render_manifest.get(
               "success",
@@ -809,15 +854,16 @@ jobs:
               )
 
 
-          # -----------------------------------------------
-          # Final visual matrix
-          # -----------------------------------------------
+          # ================================================
+          # Final matrix
+          # ================================================
 
           matrix = (
               root
               / sheet
               / "material_comparison.png"
           )
+
 
           if not matrix.is_file():
               raise RuntimeError(
@@ -826,6 +872,7 @@ jobs:
                       f"{matrix}"
                   )
               )
+
 
           if matrix.stat().st_size < 1024:
               raise RuntimeError(
@@ -837,19 +884,19 @@ jobs:
               )
 
 
-          # -----------------------------------------------
-          # Per profile / implementation
-          # -----------------------------------------------
+          # ================================================
+          # Per-profile variants
+          # ================================================
 
           summary = []
+
 
           for profile in profiles:
 
               geometry_signature = None
 
-              for implementation in (
-                  implementations
-              ):
+
+              for implementation in implementations:
 
                   variant_root = (
                       root
@@ -858,21 +905,25 @@ jobs:
                       / implementation
                   )
 
+
                   model = (
                       variant_root
                       / "model.glb"
                   )
+
 
                   variant_json = (
                       variant_root
                       / "variant.json"
                   )
 
+
                   contact = (
                       variant_root
                       / "render"
                       / "contact_sheet.png"
                   )
+
 
                   for path in (
                       model,
@@ -933,6 +984,7 @@ jobs:
                       "geometry"
                   )
 
+
                   if not isinstance(
                       geometry,
                       dict,
@@ -951,14 +1003,18 @@ jobs:
                               "vertices"
                           ]
                       ),
+
                       int(
                           geometry[
                               "faces"
                           ]
                       ),
+
                       tuple(
                           round(
-                              float(value),
+                              float(
+                                  value
+                              ),
                               6,
                           )
                           for value
@@ -975,9 +1031,8 @@ jobs:
                           signature
                       )
 
-                  elif signature != (
-                      geometry_signature
-                  ):
+
+                  elif signature != geometry_signature:
 
                       raise RuntimeError(
                           (
@@ -992,6 +1047,10 @@ jobs:
                       )
 
 
+                  # ========================================
+                  # UV Bake V2 diagnostics
+                  # ========================================
+
                   if (
                       implementation
                       == "uv-bake-v2"
@@ -1000,6 +1059,7 @@ jobs:
                       bake = info.get(
                           "uv_bake"
                       )
+
 
                       if not isinstance(
                           bake,
@@ -1020,6 +1080,7 @@ jobs:
                           )
                       )
 
+
                       coverage = float(
                           bake.get(
                               "coverage_ratio",
@@ -1027,12 +1088,30 @@ jobs:
                           )
                       )
 
-                      samples = int(
+
+                      surface_samples = int(
                           bake.get(
                               "surface_samples",
                               0,
                           )
                       )
+
+
+                      texture_width = int(
+                          bake.get(
+                              "texture_width",
+                              0,
+                          )
+                      )
+
+
+                      texture_height = int(
+                          bake.get(
+                              "texture_height",
+                              0,
+                          )
+                      )
+
 
                       if covered <= 0:
                           raise RuntimeError(
@@ -1042,6 +1121,7 @@ jobs:
                               )
                           )
 
+
                       if coverage <= 0.0:
                           raise RuntimeError(
                               (
@@ -1050,7 +1130,8 @@ jobs:
                               )
                           )
 
-                      if samples <= 0:
+
+                      if surface_samples <= 0:
                           raise RuntimeError(
                               (
                                   "UV Bake performed "
@@ -1059,23 +1140,87 @@ jobs:
                           )
 
 
+                      if (
+                          texture_width <= 0
+                          or texture_height <= 0
+                      ):
+                          raise RuntimeError(
+                              (
+                                  "UV Bake reports "
+                                  "invalid texture size."
+                              )
+                          )
+
+
+                  # ========================================
+                  # Projected Color diagnostics
+                  # ========================================
+
+                  if (
+                      implementation
+                      == "projected-color-v1.2"
+                  ):
+
+                      projected = info.get(
+                          "projected_color"
+                      )
+
+
+                      if not isinstance(
+                          projected,
+                          dict,
+                      ):
+                          raise RuntimeError(
+                              (
+                                  "Projected Color V1.2 "
+                                  "has no diagnostics."
+                              )
+                          )
+
+
+                      projected_vertices = int(
+                          projected.get(
+                              "projected_vertices",
+                              0,
+                          )
+                      )
+
+
+                      if projected_vertices <= 0:
+                          raise RuntimeError(
+                              (
+                                  "Projected Color V1.2 "
+                                  "projected zero vertices."
+                              )
+                          )
+
+
                   summary.append(
                       {
                           "profile": profile,
+
                           "implementation": (
                               implementation
                           ),
+
                           "vertices": (
-                              signature[0]
+                              signature[
+                                  0
+                              ]
                           ),
+
                           "faces": (
-                              signature[1]
+                              signature[
+                                  1
+                              ]
                           ),
+
                           "glb_bytes": (
                               model
                               .stat()
                               .st_size
                           ),
+
                           "contact_bytes": (
                               contact
                               .stat()
@@ -1089,8 +1234,8 @@ jobs:
           print(
               "Material comparison validation: OK"
           )
-
           print()
+
 
           for item in summary:
 
@@ -1100,10 +1245,11 @@ jobs:
                       f"{item['implementation']:<22} | "
                       f"v={item['vertices']:<7} "
                       f"f={item['faces']:<7} | "
-                      f"GLB={item['glb_bytes']} | "
+                      f"GLB={item['glb_bytes']:<10} | "
                       f"PNG={item['contact_bytes']}"
                   )
               )
+
 
           print()
           print(
@@ -1115,8 +1261,8 @@ jobs:
       # ====================================================
       # Artifact
       #
-      # Partial output is retained even when a later stage
-      # fails, which makes visual/debug inspection easier.
+      # Always upload what exists, including partial output
+      # when an experimental comparison fails.
       # ====================================================
 
       - name: Upload material comparison
@@ -1136,7 +1282,7 @@ jobs:
 
 
       # ====================================================
-      # GitHub summary
+      # GitHub Job Summary
       # ====================================================
 
       - name: Write comparison summary
@@ -1149,25 +1295,103 @@ jobs:
           ARTIFACT_URL: >-
             ${{ steps.artifact.outputs.artifact-url }}
 
+          SHEET: >-
+            ${{ steps.config.outputs.sheet }}
+
+          PROFILES: >-
+            ${{ steps.config.outputs.profiles }}
+
+          RESOLUTION: >-
+            ${{ steps.config.outputs.resolution }}
+
+          TEXTURE_SIZE: >-
+            ${{ steps.config.outputs.texture_size }}
+
+          RENDER_SIZE: >-
+            ${{ steps.config.outputs.render_size }}
+
+          VIEWS: >-
+            ${{ steps.config.outputs.views }}
+
+          SAMPLES: >-
+            ${{ steps.config.outputs.samples }}
+
+          MESH_MODE: >-
+            ${{ steps.config.outputs.mesh_mode }}
+
         run: |
           {
             echo "# Meshvenn Material Comparison"
             echo
-            echo "**Sheet:** \`${{ steps.config.outputs.sheet }}\`"
-            echo
-            echo "**Profiles:** \`${{ steps.config.outputs.profiles }}\`"
-            echo
-            echo "**Geometry:** \`${{ steps.config.outputs.mesh_mode }} @ ${{ steps.config.outputs.resolution }}\`"
-            echo
-            echo "**UV Bake:** \`${{ steps.config.outputs.texture_size }}px\`"
-            echo
-            echo "**Render:** \`${{ steps.config.outputs.views }} views @ ${{ steps.config.outputs.render_size }}px\`"
-            echo
-            echo "Compared:"
+
+            if [[ -n "${SHEET}" ]]; then
+
+              echo "**Sheet:** \`${SHEET}\`"
+              echo
+
+            fi
+
+
+            if [[ -n "${PROFILES}" ]]; then
+
+              echo "**Profiles:** \`${PROFILES}\`"
+              echo
+
+            fi
+
+
+            if (
+              [[ -n "${MESH_MODE}" ]]
+              && [[ -n "${RESOLUTION}" ]]
+            ); then
+
+              echo \
+                "**Geometry:** \`${MESH_MODE} @ ${RESOLUTION}\`"
+
+              echo
+
+            fi
+
+
+            if [[ -n "${TEXTURE_SIZE}" ]]; then
+
+              echo \
+                "**UV Bake:** \`${TEXTURE_SIZE}px\`"
+
+              echo
+
+            fi
+
+
+            if (
+              [[ -n "${VIEWS}" ]]
+              && [[ -n "${RENDER_SIZE}" ]]
+            ); then
+
+              echo \
+                "**Render:** \`${VIEWS} views @ ${RENDER_SIZE}px\`"
+
+              echo
+
+            fi
+
+
+            if [[ -n "${SAMPLES}" ]]; then
+
+              echo \
+                "**Cycles samples:** \`${SAMPLES}\`"
+
+              echo
+
+            fi
+
+
+            echo "## Compared"
             echo
             echo "- \`projected-color-v1.2\`"
             echo "- \`uv-bake-v2\`"
             echo
+
 
             if [[ -n "${ARTIFACT_URL}" ]]; then
 
@@ -1178,22 +1402,49 @@ jobs:
 
             fi
 
-            MATRIX="${OUTPUT_ROOT}/${{ steps.config.outputs.sheet }}/material_comparison.png"
 
-            if [[ -f "${MATRIX}" ]]; then
+            if [[ -n "${SHEET}" ]]; then
 
-              echo \
-                "Final matrix: \`${{ steps.config.outputs.sheet }}/material_comparison.png\`"
+              MATRIX="${OUTPUT_ROOT}/${SHEET}/material_comparison.png"
 
-              echo
+              if [[ -f "${MATRIX}" ]]; then
 
-              echo \
-                "Size: \`$(du -h "${MATRIX}" | cut -f1)\`"
+                echo "## Result"
+                echo
+
+                echo \
+                  "Final matrix: \`${SHEET}/material_comparison.png\`"
+
+                echo
+
+                MATRIX_SIZE="$(
+                  du \
+                    -h \
+                    "${MATRIX}" \
+                    | cut \
+                      -f1
+                )"
+
+                echo \
+                  "Matrix size: \`${MATRIX_SIZE}\`"
+
+              else
+
+                echo "## Result"
+                echo
+
+                echo \
+                  "Final comparison matrix was not produced."
+
+              fi
 
             else
 
+              echo "## Result"
+              echo
+
               echo \
-                "Final comparison matrix was not produced."
+                "Configuration did not complete, so no matrix path is available."
 
             fi
 
