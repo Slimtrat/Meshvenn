@@ -6,13 +6,14 @@ import sys
 import traceback
 
 from pathlib import Path
+from typing import Any
 
 import bpy
 
 
-# ---------------------------------------------------------
-# Constants
-# ---------------------------------------------------------
+# =========================================================
+# Configuration
+# =========================================================
 
 DEFAULT_PACKAGE_ROOT = (
     Path("dist")
@@ -22,19 +23,32 @@ DEFAULT_PACKAGE_ROOT = (
 
 REQUIRED_PACKAGE_FILES = (
     "__init__.py",
+    "blender_manifest.toml",
     "properties.py",
     "operators.py",
     "ui.py",
+    "version.py",
+    "translations.py",
 
     "core/__init__.py",
     "core/pipeline_contracts.py",
     "core/pipeline_registry.py",
     "core/pipeline_runner.py",
+    "core/image_mask.py",
+    "core/native_loader.py",
+    "core/native_bridge.py",
+    "core/native_mesh_builder.py",
+    "core/projected_material.py",
+    "core/material_visibility.py",
+    "core/material_blend.py",
+    "core/projection_math.py",
 
     "implementations/__init__.py",
     "implementations/projection_images.py",
     "implementations/native_visual_hull.py",
     "implementations/projected_color.py",
+
+    "native/bin/libbpt_core.so",
 )
 
 
@@ -45,35 +59,89 @@ EXPECTED_IMPLEMENTATIONS = (
 )
 
 
+EXPECTED_PROJECTION_NAMES = (
+    "Front",
+    "Right",
+    "Back",
+    "Top",
+)
+
+
 # ---------------------------------------------------------
+# Blender RNA identifiers
+#
+# Operator Python class:
+#
+#     BPT_OT_RunPipeline
+#
+# with:
+#
+#     bl_idname = "bpt.run_pipeline"
+#
+# is registered by Blender as:
+#
+#     BPT_OT_run_pipeline
+#
+# It must therefore not be looked up using the original
+# Python class name.
+# ---------------------------------------------------------
+
+EXPECTED_OPERATOR_RNA_IDS = (
+    "BPT_OT_load_projection_image",
+    "BPT_OT_import_turntable_images",
+    "BPT_OT_add_projection",
+    "BPT_OT_remove_projection",
+    "BPT_OT_add_turntable_preset",
+    "BPT_OT_add_front_side_preset",
+    "BPT_OT_set_pipeline_implementation",
+    "BPT_OT_reset_pipeline_settings",
+    "BPT_OT_run_pipeline",
+    "BPT_OT_run_pipeline_stage",
+    "BPT_OT_generate_character",
+)
+
+
+EXPECTED_OPERATOR_IDNAMES = (
+    "bpt.load_projection_image",
+    "bpt.import_turntable_images",
+    "bpt.add_projection",
+    "bpt.remove_projection",
+    "bpt.add_turntable_preset",
+    "bpt.add_front_side_preset",
+    "bpt.set_pipeline_implementation",
+    "bpt.reset_pipeline_settings",
+    "bpt.run_pipeline",
+    "bpt.run_pipeline_stage",
+    "bpt.generate_character",
+)
+
+
+MAIN_PANEL_RNA_ID = (
+    "BPT_PT_main_panel"
+)
+
+
+PROJECTION_UI_LIST_RNA_ID = (
+    "BPT_UL_ProjectionViews"
+)
+
+
+# =========================================================
 # CLI
-# ---------------------------------------------------------
+# =========================================================
 
 def _script_arguments() -> list[str]:
-    """
-    Blender arguments after `--` belong to this script.
-
-    Example:
-
-        blender \
-            --background \
-            --factory-startup \
-            --python tests/blender_smoke_test.py \
-            -- \
-            --package-root dist/blender_projection_tool
-    """
-
     if "--" not in sys.argv:
         return []
 
-    separator = (
+    separator_index = (
         sys.argv.index(
             "--"
         )
     )
 
     return sys.argv[
-        separator + 1:
+        separator_index + 1:
     ]
 
 
@@ -91,8 +159,8 @@ def _parse_arguments():
             DEFAULT_PACKAGE_ROOT
         ),
         help=(
-            "Path to the unpacked extension "
-            "package directory."
+            "Path to the unpacked Blender "
+            "extension package."
         ),
     )
 
@@ -101,9 +169,27 @@ def _parse_arguments():
     )
 
 
-# ---------------------------------------------------------
-# Assertion helpers
-# ---------------------------------------------------------
+# =========================================================
+# Generic helpers
+# =========================================================
+
+def _section(
+    title: str,
+) -> None:
+    print()
+
+    print(
+        "=" * 72
+    )
+
+    print(
+        f"Meshvenn smoke | {title}"
+    )
+
+    print(
+        "=" * 72
+    )
+
 
 def _require(
     condition: bool,
@@ -115,27 +201,137 @@ def _require(
         )
 
 
-def _section(
-    name: str,
+def _purge_package_modules(
+    package_name: str,
 ) -> None:
-    print()
-
-    print(
-        "=" * 72
+    prefix = (
+        package_name
+        + "."
     )
 
-    print(
-        f"Meshvenn smoke | {name}"
+    names = [
+        name
+        for name
+        in tuple(
+            sys.modules.keys()
+        )
+        if (
+            name == package_name
+            or name.startswith(
+                prefix
+            )
+        )
+    ]
+
+    for name in sorted(
+        names,
+        key=len,
+        reverse=True,
+    ):
+        sys.modules.pop(
+            name,
+            None,
+        )
+
+
+# =========================================================
+# RNA lookup helpers
+# =========================================================
+
+def _operator_rna_class(
+    identifier: str,
+):
+    return (
+        bpy.types.Operator
+        .bl_rna_get_subclass_py(
+            identifier
+        )
     )
 
-    print(
-        "=" * 72
+
+def _panel_rna_class(
+    identifier: str,
+):
+    return (
+        bpy.types.Panel
+        .bl_rna_get_subclass_py(
+            identifier
+        )
     )
 
 
-# ---------------------------------------------------------
-# Package validation
-# ---------------------------------------------------------
+def _ui_list_rna_class(
+    identifier: str,
+):
+    return (
+        bpy.types.UIList
+        .bl_rna_get_subclass_py(
+            identifier
+        )
+    )
+
+
+def _operator_callable(
+    idname: str,
+):
+    """
+    Resolve e.g.:
+
+        bpt.run_pipeline
+
+    to:
+
+        bpy.ops.bpt.run_pipeline
+    """
+
+    namespace_name, operator_name = (
+        idname.split(
+            ".",
+            1,
+        )
+    )
+
+    namespace = getattr(
+        bpy.ops,
+        namespace_name,
+    )
+
+    return getattr(
+        namespace,
+        operator_name,
+    )
+
+
+def _operator_available(
+    idname: str,
+) -> bool:
+    """
+    Blender bpy.ops uses dynamic attribute access, so plain
+    hasattr() is not a sufficiently strong registration
+    test.
+
+    get_rna_type() forces Blender to resolve the registered
+    operator definition.
+    """
+
+    try:
+        operator = (
+            _operator_callable(
+                idname
+            )
+        )
+
+        operator.get_rna_type()
+
+        return True
+
+    except Exception:
+        return False
+
+
+# =========================================================
+# Package tree
+# =========================================================
 
 def _validate_package_tree(
     package_root: Path,
@@ -147,12 +343,12 @@ def _validate_package_tree(
     _require(
         package_root.is_dir(),
         (
-            "Packaged extension directory "
-            f"does not exist: {package_root}"
+            "Package directory does not exist: "
+            f"{package_root}"
         ),
     )
 
-    missing_files: list[str] = []
+    missing: list[str] = []
 
     for relative_path in (
         REQUIRED_PACKAGE_FILES
@@ -163,20 +359,21 @@ def _validate_package_tree(
         )
 
         if not path.is_file():
-            missing_files.append(
+            missing.append(
                 relative_path
             )
 
-    if missing_files:
+    if missing:
         formatted = "\n".join(
             f"  - {path}"
             for path
-            in missing_files
+            in missing
         )
 
         raise AssertionError(
             (
-                "Packaged extension is incomplete.\n"
+                "Packaged Meshvenn extension "
+                "is incomplete.\n"
                 "Missing files:\n"
                 f"{formatted}"
             )
@@ -194,48 +391,9 @@ def _validate_package_tree(
         )
 
 
-# ---------------------------------------------------------
-# Module loading
-# ---------------------------------------------------------
-
-def _purge_package_modules(
-    module_name: str,
-) -> None:
-    """
-    Ensure the smoke test imports from the packaged directory
-    rather than reusing a module accidentally loaded from
-    another checkout.
-    """
-
-    prefix = (
-        module_name
-        + "."
-    )
-
-    loaded_names = [
-        name
-        for name
-        in tuple(
-            sys.modules
-        )
-        if (
-            name == module_name
-            or name.startswith(
-                prefix
-            )
-        )
-    ]
-
-    for name in sorted(
-        loaded_names,
-        key=len,
-        reverse=True,
-    ):
-        sys.modules.pop(
-            name,
-            None,
-        )
-
+# =========================================================
+# Extension import
+# =========================================================
 
 def _load_extension(
     package_root: Path,
@@ -245,40 +403,45 @@ def _load_extension(
     )
 
     package_root = (
-        package_root
-        .resolve()
+        package_root.resolve()
     )
 
     package_parent = (
         package_root.parent
     )
 
-    module_name = (
+    package_name = (
         package_root.name
     )
 
     _purge_package_modules(
-        module_name
+        package_name
     )
 
-    sys.path.insert(
-        0,
-        str(
-            package_parent
-        ),
+    package_parent_string = str(
+        package_parent
     )
+
+    if (
+        package_parent_string
+        not in sys.path
+    ):
+        sys.path.insert(
+            0,
+            package_parent_string,
+        )
 
     print(
         f"Package root: {package_root}"
     )
 
     print(
-        f"Module name: {module_name}"
+        f"Module name: {package_name}"
     )
 
     module = (
         importlib.import_module(
-            module_name
+            package_name
         )
     )
 
@@ -316,31 +479,20 @@ def _load_extension(
 
     return (
         module,
-        module_name,
+        package_name,
     )
 
 
-# ---------------------------------------------------------
-# Registration validation
-# ---------------------------------------------------------
+# =========================================================
+# Scene / properties
+# =========================================================
 
-def _validate_registration(
-    module,
-    module_name: str,
-) -> None:
+def _validate_scene_properties(
+    package_name: str,
+) -> Any:
     _section(
-        "register extension"
+        "scene properties"
     )
-
-    module.register()
-
-    print(
-        "register(): OK"
-    )
-
-    # -----------------------------------------------------
-    # Scene property
-    # -----------------------------------------------------
 
     _require(
         hasattr(
@@ -348,8 +500,8 @@ def _validate_registration(
             "bpt_settings",
         ),
         (
-            "Scene.bpt_settings was not "
-            "registered."
+            "Scene.bpt_settings "
+            "was not registered."
         ),
     )
 
@@ -359,7 +511,10 @@ def _validate_registration(
 
     _require(
         scene is not None,
-        "No Blender scene available.",
+        (
+            "No active Blender scene "
+            "is available."
+        ),
     )
 
     settings = getattr(
@@ -371,677 +526,80 @@ def _validate_registration(
     _require(
         settings is not None,
         (
-            "Current scene has no "
-            "bpt_settings instance."
+            "Active scene does not expose "
+            "bpt_settings."
         ),
+    )
+
+    properties_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "properties"
+            )
+        )
+    )
+
+    # Blender normally initializes defaults through its
+    # registration timer. A headless smoke test must not
+    # depend on timer/event-loop scheduling.
+    properties_module.ensure_scene_defaults(
+        scene
     )
 
     print(
         "Scene.bpt_settings: OK"
     )
 
-    # -----------------------------------------------------
-    # Force defaults synchronously.
-    #
-    # properties.register() normally schedules this through
-    # a Blender timer. A background CI smoke should not rely
-    # on UI/event-loop timing.
-    # -----------------------------------------------------
+    return settings
 
-    properties_module = (
-        importlib.import_module(
-            (
-                f"{module_name}."
-                "properties"
-            )
-        )
+
+# =========================================================
+# Default projections
+# =========================================================
+
+def _validate_projection_defaults(
+    settings,
+) -> None:
+    _section(
+        "projection defaults"
     )
 
-    properties_module.ensure_scene_defaults(
-        scene
-    )
-
-    _require(
-        bool(
-            settings
-            .pipeline
-            .initialized
-        ),
-        (
-            "Pipeline defaults were not "
-            "initialized."
-        ),
-    )
-
-    print(
-        "Pipeline defaults: OK"
-    )
-
-    # -----------------------------------------------------
-    # Default projections
-    # -----------------------------------------------------
-
-    _require(
-        len(
-            settings.projections
-        )
-        == 4,
-        (
-            "Expected 4 default projection "
-            "slots, received "
-            f"{len(settings.projections)}."
-        ),
-    )
-
-    projection_names = tuple(
+    actual_names = tuple(
         projection.name
         for projection
         in settings.projections
     )
 
     _require(
-        projection_names
-        == (
-            "Front",
-            "Right",
-            "Back",
-            "Top",
-        ),
+        actual_names
+        == EXPECTED_PROJECTION_NAMES,
         (
-            "Unexpected default projections: "
-            f"{projection_names}"
+            "Unexpected default projections.\n"
+            f"Expected: {EXPECTED_PROJECTION_NAMES}\n"
+            f"Actual:   {actual_names}"
         ),
     )
 
     print(
-        "Default projection slots: OK"
+        "Default projections: OK"
     )
 
-    # -----------------------------------------------------
-    # Persistent pipeline selections
-    # -----------------------------------------------------
-
-    _require(
-        (
-            settings
-            .pipeline
-            .input_stage
-            .implementation_id
-        )
-        == "projection-images",
-        (
-            "Unexpected INPUT default "
-            "implementation."
-        ),
-    )
-
-    _require(
-        (
-            settings
-            .pipeline
-            .geometry_stage
-            .implementation_id
-        )
-        == "native-visual-hull",
-        (
-            "Unexpected GEOMETRY default "
-            "implementation."
-        ),
-    )
-
-    _require(
-        (
-            settings
-            .pipeline
-            .material_stage
-            .implementation_id
-        )
-        == "projected-color-v1.2",
-        (
-            "Unexpected MATERIAL default "
-            "implementation."
-        ),
-    )
-
-    _require(
-        not (
-            settings
-            .pipeline
-            .rig_stage
-            .enabled
-        ),
-        (
-            "RIG must be disabled by default "
-            "until an implementation exists."
-        ),
-    )
-
-    _require(
-        not (
-            settings
-            .pipeline
-            .export_stage
-            .enabled
-        ),
-        (
-            "EXPORT must be disabled by default "
-            "until an implementation exists."
-        ),
-    )
-
-    print(
-        "Persistent stage configuration: OK"
-    )
-
-    # -----------------------------------------------------
-    # Registry
-    # -----------------------------------------------------
-
-    registry_module = (
-        importlib.import_module(
-            (
-                f"{module_name}."
-                "core.pipeline_registry"
-            )
-        )
-    )
-
-    contracts_module = (
-        importlib.import_module(
-            (
-                f"{module_name}."
-                "core.pipeline_contracts"
-            )
-        )
-    )
-
-    registry = (
-        registry_module
-        .PIPELINE_REGISTRY
-    )
-
-    registered_ids = (
-        registry
-        .implementation_ids()
-    )
-
-    _require(
-        registered_ids
-        == EXPECTED_IMPLEMENTATIONS,
-        (
-            "Unexpected pipeline registry.\n"
-            f"Expected: {EXPECTED_IMPLEMENTATIONS}\n"
-            f"Actual:   {registered_ids}"
-        ),
-    )
-
-    print(
-        "Registry implementations: OK"
-    )
-
-    for implementation_id in (
-        registered_ids
-    ):
+    for name in actual_names:
         print(
-            f"  OK  {implementation_id}"
+            f"  OK  {name}"
         )
 
-    PipelineStage = (
-        contracts_module
-        .PipelineStage
-    )
 
-    _require(
-        registry.default_id(
-            PipelineStage.INPUT
-        )
-        == "projection-images",
-        (
-            "Unexpected INPUT registry "
-            "default."
-        ),
-    )
+# =========================================================
+# Persistent pipeline configuration
+# =========================================================
 
-    _require(
-        registry.default_id(
-            PipelineStage.GEOMETRY
-        )
-        == "native-visual-hull",
-        (
-            "Unexpected GEOMETRY registry "
-            "default."
-        ),
-    )
-
-    _require(
-        registry.default_id(
-            PipelineStage.MATERIAL
-        )
-        == "projected-color-v1.2",
-        (
-            "Unexpected MATERIAL registry "
-            "default."
-        ),
-    )
-
-    _require(
-        registry.default_id(
-            PipelineStage.RIG
-        )
-        is None,
-        (
-            "RIG registry should have no "
-            "default implementation yet."
-        ),
-    )
-
-    _require(
-        registry.default_id(
-            PipelineStage.EXPORT
-        )
-        is None,
-        (
-            "EXPORT registry should have no "
-            "default implementation yet."
-        ),
-    )
-
-    print(
-        "Registry defaults: OK"
-    )
-
-    # -----------------------------------------------------
-    # Operators
-    # -----------------------------------------------------
-
-    required_operator_types = (
-        "BPT_OT_LoadProjectionImage",
-        "BPT_OT_ImportTurntableImages",
-        "BPT_OT_AddProjection",
-        "BPT_OT_RemoveProjection",
-        "BPT_OT_AddTurntablePreset",
-        "BPT_OT_AddFrontSidePreset",
-        "BPT_OT_SetPipelineImplementation",
-        "BPT_OT_ResetPipelineSettings",
-        "BPT_OT_RunPipeline",
-        "BPT_OT_RunPipelineStage",
-        "BPT_OT_GenerateCharacter",
-    )
-
-    for type_name in (
-        required_operator_types
-    ):
-        _require(
-            hasattr(
-                bpy.types,
-                type_name,
-            ),
-            (
-                "Blender operator type "
-                f"{type_name} is not registered."
-            ),
-        )
-
-    print(
-        "Operators: OK"
-    )
-
-    # -----------------------------------------------------
-    # UI registration
-    #
-    # A background Blender process does not expose a normal
-    # interactive VIEW_3D draw cycle, so the smoke verifies
-    # RNA registration rather than attempting to fake a
-    # UILayout.
-    #
-    # This still catches:
-    #
-    #   - import errors;
-    #   - class registration errors;
-    #   - duplicate ids;
-    #   - broken Panel/UIList definitions.
-    # -----------------------------------------------------
-
-    required_ui_types = (
-        "BPT_UL_ProjectionViews",
-        "BPT_PT_MainPanel",
-    )
-
-    for type_name in (
-        required_ui_types
-    ):
-        _require(
-            hasattr(
-                bpy.types,
-                type_name,
-            ),
-            (
-                "Blender UI type "
-                f"{type_name} is not registered."
-            ),
-        )
-
-    panel_type = getattr(
-        bpy.types,
-        "BPT_PT_MainPanel",
-    )
-
-    _require(
-        panel_type.bl_space_type
-        == "VIEW_3D",
-        (
-            "Meshvenn panel is registered "
-            "in an unexpected Blender space."
-        ),
-    )
-
-    _require(
-        panel_type.bl_region_type
-        == "UI",
-        (
-            "Meshvenn panel is registered "
-            "in an unexpected Blender region."
-        ),
-    )
-
-    _require(
-        panel_type.bl_category
-        == "Meshvenn",
-        (
-            "Meshvenn panel category is "
-            "unexpected."
-        ),
-    )
-
-    _require(
-        callable(
-            getattr(
-                panel_type,
-                "draw",
-                None,
-            )
-        ),
-        (
-            "Meshvenn main panel has no "
-            "draw() method."
-        ),
-    )
-
-    print(
-        "UI registration: OK"
-    )
-
-
-# ---------------------------------------------------------
-# Unregister validation
-# ---------------------------------------------------------
-
-def _validate_unregistration(
-    module,
-    module_name: str,
+def _validate_pipeline_defaults(
+    settings,
 ) -> None:
     _section(
-        "unregister extension"
-    )
-
-    module.unregister()
-
-    print(
-        "unregister(): OK"
-    )
-
-    _require(
-        not hasattr(
-            bpy.types.Scene,
-            "bpt_settings",
-        ),
-        (
-            "Scene.bpt_settings still exists "
-            "after unregister()."
-        ),
-    )
-
-    for type_name in (
-        "BPT_PT_MainPanel",
-        "BPT_UL_ProjectionViews",
-        "BPT_OT_RunPipeline",
-        "BPT_OT_RunPipelineStage",
-    ):
-        _require(
-            not hasattr(
-                bpy.types,
-                type_name,
-            ),
-            (
-                f"{type_name} still registered "
-                "after unregister()."
-            ),
-        )
-
-    registry_module = (
-        importlib.import_module(
-            (
-                f"{module_name}."
-                "core.pipeline_registry"
-            )
-        )
-    )
-
-    registry = (
-        registry_module
-        .PIPELINE_REGISTRY
-    )
-
-    _require(
-        len(
-            registry
-        )
-        == 0,
-        (
-            "Built-in pipeline implementations "
-            "remain registered after "
-            "unregister()."
-        ),
-    )
-
-    print(
-        "Cleanup: OK"
-    )
-
-
-# ---------------------------------------------------------
-# Main
-# ---------------------------------------------------------
-
-def main() -> None:
-    arguments = (
-        _parse_arguments()
-    )
-
-    package_root = Path(
-        arguments.package_root
-    )
-
-    module = None
-
-    module_name = None
-
-    registered = False
-
-    try:
-        _validate_package_tree(
-            package_root
-        )
-
-        (
-            module,
-            module_name,
-        ) = _load_extension(
-            package_root
-        )
-
-        # Registration is inside its own phase so cleanup can
-        # still be attempted if a later assertion fails.
-        module.register()
-
-        registered = True
-
-        # We called register() above so validation below must
-        # not call it a second time.
-        #
-        # Temporarily expose a tiny adapter to keep the
-        # registration tests grouped clearly.
-        _validate_registered_state(
-            module,
-            module_name,
-        )
-
-        module.unregister()
-
-        registered = False
-
-        _validate_unregistered_state(
-            module_name
-        )
-
-    except Exception:
-        print()
-
-        print(
-            "MESHVENN BLENDER SMOKE: FAILED"
-        )
-
-        print()
-
-        traceback.print_exc()
-
-        if (
-            registered
-            and module is not None
-        ):
-            try:
-                module.unregister()
-
-            except Exception:
-                print()
-
-                print(
-                    "Cleanup after failure also failed:"
-                )
-
-                traceback.print_exc()
-
-        raise SystemExit(
-            1
-        )
-
-    print()
-
-    print(
-        "=" * 72
-    )
-
-    print(
-        "MESHVENN BLENDER SMOKE: SUCCESS"
-    )
-
-    print(
-        "=" * 72
-    )
-
-
-# ---------------------------------------------------------
-# Registered-state checks
-# ---------------------------------------------------------
-
-def _validate_registered_state(
-    module,
-    module_name: str,
-) -> None:
-    """
-    Same validations as _validate_registration(), except the
-    extension has already been registered by main() so we can
-    guarantee cleanup state accurately.
-    """
-
-    _section(
-        "registered extension"
-    )
-
-    _require(
-        hasattr(
-            bpy.types.Scene,
-            "bpt_settings",
-        ),
-        (
-            "Scene.bpt_settings was not "
-            "registered."
-        ),
-    )
-
-    scene = (
-        bpy.context.scene
-    )
-
-    _require(
-        scene is not None,
-        "No Blender scene available.",
-    )
-
-    settings = (
-        scene.bpt_settings
-    )
-
-    properties_module = (
-        importlib.import_module(
-            (
-                f"{module_name}."
-                "properties"
-            )
-        )
-    )
-
-    properties_module.ensure_scene_defaults(
-        scene
-    )
-
-    _require(
-        settings
-        .pipeline
-        .initialized,
-        (
-            "Pipeline defaults were not "
-            "initialized."
-        ),
-    )
-
-    _require(
-        len(
-            settings.projections
-        )
-        == 4,
-        (
-            "Expected 4 default projection "
-            "slots."
-        ),
-    )
-
-    _require(
-        tuple(
-            projection.name
-            for projection
-            in settings.projections
-        )
-        == (
-            "Front",
-            "Right",
-            "Back",
-            "Top",
-        ),
-        (
-            "Unexpected default projection "
-            "layout."
-        ),
+        "pipeline defaults"
     )
 
     pipeline = (
@@ -1049,13 +607,26 @@ def _validate_registered_state(
     )
 
     _require(
+        bool(
+            pipeline.initialized
+        ),
+        (
+            "Pipeline defaults were not "
+            "initialized."
+        ),
+    )
+
+    _require(
         (
             pipeline
             .input_stage
             .implementation_id
         )
         == "projection-images",
-        "Invalid INPUT default.",
+        (
+            "Unexpected INPUT "
+            "implementation."
+        ),
     )
 
     _require(
@@ -1065,7 +636,10 @@ def _validate_registered_state(
             .implementation_id
         )
         == "native-visual-hull",
-        "Invalid GEOMETRY default.",
+        (
+            "Unexpected GEOMETRY "
+            "implementation."
+        ),
     )
 
     _require(
@@ -1075,37 +649,112 @@ def _validate_registered_state(
             .implementation_id
         )
         == "projected-color-v1.2",
-        "Invalid MATERIAL default.",
+        (
+            "Unexpected MATERIAL "
+            "implementation."
+        ),
     )
 
     _require(
-        not (
+        bool(
+            pipeline
+            .input_stage
+            .enabled
+        ),
+        (
+            "INPUT must be enabled "
+            "by default."
+        ),
+    )
+
+    _require(
+        bool(
+            pipeline
+            .geometry_stage
+            .enabled
+        ),
+        (
+            "GEOMETRY must be enabled "
+            "by default."
+        ),
+    )
+
+    _require(
+        bool(
+            pipeline
+            .material_stage
+            .enabled
+        ),
+        (
+            "MATERIAL must be enabled "
+            "by default."
+        ),
+    )
+
+    _require(
+        not bool(
             pipeline
             .rig_stage
             .enabled
         ),
         (
-            "RIG should be disabled "
+            "RIG must be disabled "
             "by default."
         ),
     )
 
     _require(
-        not (
+        not bool(
             pipeline
             .export_stage
             .enabled
         ),
         (
-            "EXPORT should be disabled "
+            "EXPORT must be disabled "
             "by default."
         ),
+    )
+
+    print(
+        "Pipeline defaults: OK"
+    )
+
+    print(
+        "  INPUT    projection-images"
+    )
+
+    print(
+        "  GEOMETRY native-visual-hull"
+    )
+
+    print(
+        "  MATERIAL projected-color-v1.2"
+    )
+
+    print(
+        "  RIG      disabled"
+    )
+
+    print(
+        "  EXPORT   disabled"
+    )
+
+
+# =========================================================
+# Registry
+# =========================================================
+
+def _validate_registry(
+    package_name: str,
+) -> None:
+    _section(
+        "pipeline registry"
     )
 
     registry_module = (
         importlib.import_module(
             (
-                f"{module_name}."
+                f"{package_name}."
                 "core.pipeline_registry"
             )
         )
@@ -1114,7 +763,7 @@ def _validate_registered_state(
     contracts_module = (
         importlib.import_module(
             (
-                f"{module_name}."
+                f"{package_name}."
                 "core.pipeline_contracts"
             )
         )
@@ -1125,24 +774,25 @@ def _validate_registered_state(
         .PIPELINE_REGISTRY
     )
 
-    registered_ids = (
+    PipelineStage = (
+        contracts_module
+        .PipelineStage
+    )
+
+    actual_ids = (
         registry
         .implementation_ids()
     )
 
     _require(
-        registered_ids
+        actual_ids
         == EXPECTED_IMPLEMENTATIONS,
         (
-            "Unexpected pipeline registry.\n"
+            "Unexpected registered "
+            "implementations.\n"
             f"Expected: {EXPECTED_IMPLEMENTATIONS}\n"
-            f"Actual:   {registered_ids}"
+            f"Actual:   {actual_ids}"
         ),
-    )
-
-    PipelineStage = (
-        contracts_module
-        .PipelineStage
     )
 
     expected_defaults = {
@@ -1164,103 +814,169 @@ def _validate_registered_state(
 
     for (
         stage,
-        expected_id,
+        expected,
     ) in (
-        expected_defaults
-        .items()
+        expected_defaults.items()
     ):
-        actual_id = (
+        actual = (
             registry.default_id(
                 stage
             )
         )
 
         _require(
-            actual_id
-            == expected_id,
+            actual == expected,
             (
                 "Unexpected registry default "
-                f"for {stage.value}: "
-                f"{actual_id!r}"
+                f"for {stage.value}.\n"
+                f"Expected: {expected!r}\n"
+                f"Actual:   {actual!r}"
             ),
         )
 
-    required_operator_types = (
-        "BPT_OT_LoadProjectionImage",
-        "BPT_OT_ImportTurntableImages",
-        "BPT_OT_AddProjection",
-        "BPT_OT_RemoveProjection",
-        "BPT_OT_AddTurntablePreset",
-        "BPT_OT_AddFrontSidePreset",
-        "BPT_OT_SetPipelineImplementation",
-        "BPT_OT_ResetPipelineSettings",
-        "BPT_OT_RunPipeline",
-        "BPT_OT_RunPipelineStage",
-        "BPT_OT_GenerateCharacter",
+    print(
+        "Registry: OK"
     )
 
-    for type_name in (
-        required_operator_types
+    for implementation_id in (
+        actual_ids
     ):
-        _require(
-            hasattr(
-                bpy.types,
-                type_name,
-            ),
-            (
-                f"{type_name} was not "
-                "registered."
-            ),
+        print(
+            f"  OK  {implementation_id}"
         )
 
-    required_ui_types = (
-        "BPT_UL_ProjectionViews",
-        "BPT_PT_MainPanel",
+
+# =========================================================
+# Operators
+# =========================================================
+
+def _validate_operators_registered() -> None:
+    _section(
+        "operators"
     )
 
-    for type_name in (
-        required_ui_types
+    for (
+        rna_identifier,
+        idname,
+    ) in zip(
+        EXPECTED_OPERATOR_RNA_IDS,
+        EXPECTED_OPERATOR_IDNAMES,
+        strict=True,
     ):
+        operator_class = (
+            _operator_rna_class(
+                rna_identifier
+            )
+        )
+
         _require(
-            hasattr(
-                bpy.types,
-                type_name,
-            ),
+            operator_class
+            is not None,
             (
-                f"{type_name} was not "
-                "registered."
+                "Operator RNA class was not "
+                "registered: "
+                f"{rna_identifier}"
             ),
         )
 
-    panel = getattr(
-        bpy.types,
-        "BPT_PT_MainPanel",
+        _require(
+            (
+                operator_class
+                .bl_idname
+            )
+            == idname,
+            (
+                "Operator RNA id mismatch.\n"
+                f"RNA:      {rna_identifier}\n"
+                f"Expected: {idname}\n"
+                "Actual:   "
+                f"{operator_class.bl_idname}"
+            ),
+        )
+
+        _require(
+            _operator_available(
+                idname
+            ),
+            (
+                "bpy.ops operator is unavailable: "
+                f"{idname}"
+            ),
+        )
+
+        print(
+            f"  OK  {idname}"
+        )
+
+    print(
+        "Operators: OK"
+    )
+
+
+# =========================================================
+# UI
+# =========================================================
+
+def _validate_ui_registered() -> None:
+    _section(
+        "ui"
+    )
+
+    panel = (
+        _panel_rna_class(
+            MAIN_PANEL_RNA_ID
+        )
     )
 
     _require(
-        panel.bl_space_type
+        panel is not None,
+        (
+            "Meshvenn main panel "
+            "was not registered."
+        ),
+    )
+
+    _require(
+        (
+            panel.bl_idname
+        )
+        == MAIN_PANEL_RNA_ID,
+        (
+            "Unexpected main panel "
+            "bl_idname."
+        ),
+    )
+
+    _require(
+        (
+            panel.bl_space_type
+        )
         == "VIEW_3D",
         (
-            "Main panel must target "
+            "Meshvenn panel must use "
             "VIEW_3D."
         ),
     )
 
     _require(
-        panel.bl_region_type
+        (
+            panel.bl_region_type
+        )
         == "UI",
         (
-            "Main panel must target "
+            "Meshvenn panel must use "
             "the UI region."
         ),
     )
 
     _require(
-        panel.bl_category
+        (
+            panel.bl_category
+        )
         == "Meshvenn",
         (
-            "Main panel category must "
-            'be "Meshvenn".'
+            "Meshvenn panel category "
+            "is incorrect."
         ),
     )
 
@@ -1273,41 +989,61 @@ def _validate_registered_state(
             )
         ),
         (
-            "Main panel draw() "
-            "is unavailable."
+            "Meshvenn panel does not "
+            "expose draw()."
+        ),
+    )
+
+    ui_list = (
+        _ui_list_rna_class(
+            PROJECTION_UI_LIST_RNA_ID
+        )
+    )
+
+    _require(
+        ui_list is not None,
+        (
+            "Projection UIList was "
+            "not registered."
+        ),
+    )
+
+    _require(
+        callable(
+            getattr(
+                ui_list,
+                "draw_item",
+                None,
+            )
+        ),
+        (
+            "Projection UIList does not "
+            "expose draw_item()."
         ),
     )
 
     print(
-        "Scene properties: OK"
+        f"  OK  {MAIN_PANEL_RNA_ID}"
     )
 
     print(
-        "Pipeline defaults: OK"
+        f"  OK  {PROJECTION_UI_LIST_RNA_ID}"
     )
 
     print(
-        "Registry: OK"
-    )
-
-    print(
-        "Operators: OK"
-    )
-
-    print(
-        "UI classes: OK"
+        "UI registration: OK"
     )
 
 
-# ---------------------------------------------------------
-# Unregistered-state checks
-# ---------------------------------------------------------
+# =========================================================
+# Unregistration
+# =========================================================
 
 def _validate_unregistered_state(
-    module_name: str,
+    package_name: str,
 ) -> None:
     _section(
-        "unregistered extension"
+        "unregister"
     )
 
     _require(
@@ -1316,46 +1052,76 @@ def _validate_unregistered_state(
             "bpt_settings",
         ),
         (
-            "Scene.bpt_settings still exists "
-            "after unregister()."
+            "Scene.bpt_settings still "
+            "exists after unregister()."
         ),
     )
 
-    for type_name in (
-        "BPT_PT_MainPanel",
-        "BPT_UL_ProjectionViews",
-        "BPT_OT_RunPipeline",
-        "BPT_OT_RunPipelineStage",
+    for rna_identifier in (
+        EXPECTED_OPERATOR_RNA_IDS
     ):
         _require(
-            not hasattr(
-                bpy.types,
-                type_name,
+            (
+                _operator_rna_class(
+                    rna_identifier
+                )
+                is None
             ),
             (
-                f"{type_name} still exists "
-                "after unregister()."
+                "Operator remains registered "
+                "after unregister(): "
+                f"{rna_identifier}"
             ),
         )
+
+    _require(
+        (
+            _panel_rna_class(
+                MAIN_PANEL_RNA_ID
+            )
+            is None
+        ),
+        (
+            "Main Meshvenn panel remains "
+            "registered after unregister()."
+        ),
+    )
+
+    _require(
+        (
+            _ui_list_rna_class(
+                PROJECTION_UI_LIST_RNA_ID
+            )
+            is None
+        ),
+        (
+            "Projection UIList remains "
+            "registered after unregister()."
+        ),
+    )
 
     registry_module = (
         importlib.import_module(
             (
-                f"{module_name}."
+                f"{package_name}."
                 "core.pipeline_registry"
             )
         )
     )
 
+    registry = (
+        registry_module
+        .PIPELINE_REGISTRY
+    )
+
     _require(
         len(
-            registry_module
-            .PIPELINE_REGISTRY
+            registry
         )
         == 0,
         (
-            "Pipeline registry is not empty "
-            "after unregister()."
+            "Built-in implementations remain "
+            "registered after unregister()."
         ),
     )
 
@@ -1364,11 +1130,166 @@ def _validate_unregistered_state(
     )
 
     print(
-        "RNA cleanup: OK"
+        "Operator cleanup: OK"
+    )
+
+    print(
+        "UI cleanup: OK"
     )
 
     print(
         "Registry cleanup: OK"
+    )
+
+
+# =========================================================
+# Main
+# =========================================================
+
+def main() -> None:
+    arguments = (
+        _parse_arguments()
+    )
+
+    package_root = Path(
+        arguments.package_root
+    )
+
+    module = None
+
+    package_name = None
+
+    registered = False
+
+    try:
+        # -------------------------------------------------
+        # Test exactly what was extracted from the release
+        # ZIP, not the source checkout.
+        # -------------------------------------------------
+
+        _validate_package_tree(
+            package_root
+        )
+
+        (
+            module,
+            package_name,
+        ) = _load_extension(
+            package_root
+        )
+
+        # -------------------------------------------------
+        # Register
+        # -------------------------------------------------
+
+        _section(
+            "register extension"
+        )
+
+        module.register()
+
+        registered = True
+
+        print(
+            "register(): OK"
+        )
+
+        # -------------------------------------------------
+        # Validate registered extension
+        # -------------------------------------------------
+
+        settings = (
+            _validate_scene_properties(
+                package_name
+            )
+        )
+
+        _validate_projection_defaults(
+            settings
+        )
+
+        _validate_pipeline_defaults(
+            settings
+        )
+
+        _validate_registry(
+            package_name
+        )
+
+        _validate_operators_registered()
+
+        _validate_ui_registered()
+
+        # -------------------------------------------------
+        # Unregister
+        # -------------------------------------------------
+
+        module.unregister()
+
+        registered = False
+
+        _validate_unregistered_state(
+            package_name
+        )
+
+    except Exception:
+        print()
+
+        print(
+            "=" * 72
+        )
+
+        print(
+            "MESHVENN BLENDER SMOKE: FAILED"
+        )
+
+        print(
+            "=" * 72
+        )
+
+        print()
+
+        traceback.print_exc()
+
+        # -------------------------------------------------
+        # Best-effort cleanup.
+        #
+        # A failed smoke must not hide the original failure
+        # because unregister() itself throws.
+        # -------------------------------------------------
+
+        if (
+            registered
+            and module is not None
+        ):
+            try:
+                module.unregister()
+
+            except Exception:
+                print()
+
+                print(
+                    "Cleanup after failure failed:"
+                )
+
+                traceback.print_exc()
+
+        raise SystemExit(
+            1
+        )
+
+    print()
+
+    print(
+        "=" * 72
+    )
+
+    print(
+        "MESHVENN BLENDER SMOKE: SUCCESS"
+    )
+
+    print(
+        "=" * 72
     )
 
 
