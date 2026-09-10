@@ -19,7 +19,7 @@ on:
       - "scripts/render_projection_sheet.py"
       - "scripts/generate_*native.py"
       - "scripts/preview_baseline.py"
-      - "tests/test_preview_baseline.py"
+      - "tests/**"
       - "example/**"
       - ".github/workflows/visual_preview.yml"
 
@@ -33,7 +33,7 @@ on:
       - "scripts/render_projection_sheet.py"
       - "scripts/generate_*native.py"
       - "scripts/preview_baseline.py"
-      - "tests/test_preview_baseline.py"
+      - "tests/**"
       - "example/**"
       - ".github/workflows/visual_preview.yml"
 
@@ -260,7 +260,7 @@ jobs:
 
           python --version
 
-      - name: Run preview baseline tests
+      - name: Run Python tests
         shell: bash
         run: |
           set -euo pipefail
@@ -268,7 +268,7 @@ jobs:
           python -m unittest \
             discover \
             -s tests \
-            -p "test_preview_baseline.py" \
+            -p "test_*.py" \
             -v
 
       - name: Verify build tools

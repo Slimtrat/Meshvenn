@@ -11,13 +11,15 @@ on:
 
   workflow_dispatch:
 
+
 permissions:
   contents: write
+
 
 jobs:
 
   # ---------------------------------------------------------
-  # Validate repository
+  # Validate repository + Python tests
   # ---------------------------------------------------------
 
   validate:
@@ -25,8 +27,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # -----------------------------------------------------
+      # Repository structure
+      # -----------------------------------------------------
 
       - name: Check required files
         shell: bash
@@ -49,12 +61,19 @@ jobs:
             "core/native_scan.py"
             "core/native_mesh_builder.py"
 
+            "core/projection_math.py"
+            "core/projected_material.py"
+            "core/material_visibility.py"
+
             "native/CMakeLists.txt"
             "native/include/bpt_core.h"
             "native/src/api.cpp"
             "native/src/visual_hull.cpp"
             "native/src/mesh.cpp"
             "native/tests/test_visual_hull.cpp"
+
+            "tests/test_preview_baseline.py"
+            "tests/test_material_visibility.py"
 
             "README.md"
           )
@@ -68,6 +87,26 @@ jobs:
 
           echo "Repository structure valid."
 
+      # -----------------------------------------------------
+      # Pure Python tests
+      #
+      # These tests deliberately do not require Blender.
+      #
+      # material_visibility.py imports mathutils lazily,
+      # allowing the BVH decision layer to be tested here.
+      # -----------------------------------------------------
+
+      - name: Run Python tests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -m unittest \
+            discover \
+            -s tests \
+            -p "test_*.py" \
+            -v
+
 
   # ---------------------------------------------------------
   # Build native binaries
@@ -75,6 +114,7 @@ jobs:
 
   native:
     name: Native ${{ matrix.platform }}
+
     needs:
       - validate
 
@@ -94,8 +134,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
+
 
       # -----------------------------------------------------
       # Linux
@@ -265,6 +307,7 @@ jobs:
 
   package:
     name: Build Blender Extension
+
     runs-on: ubuntu-latest
 
     needs:
@@ -276,6 +319,7 @@ jobs:
       zip_name: ${{ steps.package_info.outputs.zip_name }}
 
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -381,6 +425,15 @@ jobs:
 
       # -----------------------------------------------------
       # Build package tree
+      #
+      # IMPORTANT:
+      #
+      # Copy all Python modules from core rather than
+      # maintaining another manual list here.
+      #
+      # The previous implementation silently produced an
+      # incomplete extension whenever a new runtime core
+      # module was added.
       # -----------------------------------------------------
 
       - name: Build package directory
@@ -389,6 +442,9 @@ jobs:
           set -euo pipefail
 
           PACKAGE_ROOT="dist/blender_projection_tool"
+
+          rm -rf \
+            "${PACKAGE_ROOT}"
 
           mkdir -p \
             "${PACKAGE_ROOT}/core" \
@@ -418,23 +474,16 @@ jobs:
           cp README.md \
             "${PACKAGE_ROOT}/"
 
-          cp core/__init__.py \
+          # -------------------------------------------------
+          # Runtime Python core
+          # -------------------------------------------------
+
+          cp core/*.py \
             "${PACKAGE_ROOT}/core/"
 
-          cp core/image_mask.py \
-            "${PACKAGE_ROOT}/core/"
-
-          cp core/native_loader.py \
-            "${PACKAGE_ROOT}/core/"
-
-          cp core/native_bridge.py \
-            "${PACKAGE_ROOT}/core/"
-
-          cp core/native_scan.py \
-            "${PACKAGE_ROOT}/core/"
-
-          cp core/native_mesh_builder.py \
-            "${PACKAGE_ROOT}/core/"
+          # -------------------------------------------------
+          # Native libraries
+          # -------------------------------------------------
 
           cp native/bin/libbpt_core.so \
             "${PACKAGE_ROOT}/native/bin/"
@@ -446,6 +495,13 @@ jobs:
             cp LICENSE \
               "${PACKAGE_ROOT}/"
           fi
+
+          echo
+          echo "Package tree:"
+          find "${PACKAGE_ROOT}" \
+            -type f \
+            -print \
+            | sort
 
 
       # -----------------------------------------------------
@@ -519,6 +575,10 @@ jobs:
             "core/native_scan.py"
             "core/native_mesh_builder.py"
 
+            "core/projection_math.py"
+            "core/projected_material.py"
+            "core/material_visibility.py"
+
             "native/bin/libbpt_core.so"
             "native/bin/bpt_core.dll"
 
@@ -533,6 +593,76 @@ jobs:
           done
 
           echo "Package validated."
+
+          echo
+          echo "Packaged core modules:"
+
+          find "${PACKAGE_ROOT}/core" \
+            -maxdepth 1 \
+            -type f \
+            -name "*.py" \
+            -print \
+            | sort
+
+
+      # -----------------------------------------------------
+      # Ensure source/package core parity
+      #
+      # Since the extension now copies core/*.py, this also
+      # protects against a future packaging regression.
+      # -----------------------------------------------------
+
+      - name: Verify packaged core parity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_ROOT="dist/blender_projection_tool"
+
+          mapfile -t SOURCE_CORE < <(
+            find core \
+              -maxdepth 1 \
+              -type f \
+              -name "*.py" \
+              -printf '%f\n' \
+              | sort
+          )
+
+          mapfile -t PACKAGE_CORE < <(
+            find "${PACKAGE_ROOT}/core" \
+              -maxdepth 1 \
+              -type f \
+              -name "*.py" \
+              -printf '%f\n' \
+              | sort
+          )
+
+          echo "Source core modules:"
+          printf '  - %s\n' \
+            "${SOURCE_CORE[@]}"
+
+          echo
+          echo "Packaged core modules:"
+          printf '  - %s\n' \
+            "${PACKAGE_CORE[@]}"
+
+          if ! diff \
+            <(
+              printf '%s\n' \
+                "${SOURCE_CORE[@]}"
+            ) \
+            <(
+              printf '%s\n' \
+                "${PACKAGE_CORE[@]}"
+            )
+          then
+            echo
+            echo "Packaged core differs from source core."
+            exit 1
+          fi
+
+          echo
+          echo "Packaged core matches source core."
 
 
       # -----------------------------------------------------
@@ -582,11 +712,12 @@ jobs:
     needs:
       - package
 
-    if: >
+    if: >-
       github.event_name != 'pull_request'
       && github.ref == 'refs/heads/main'
 
     steps:
+
       - name: Download release ZIP
         uses: actions/download-artifact@v4
         with:
@@ -624,6 +755,8 @@ jobs:
             - native mesh generation
             - ctypes bridge
             - Blender direct mesh injection
+            - projected material
+            - visibility-aware material projection
 
             ### Installation
 
