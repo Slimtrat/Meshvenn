@@ -67,6 +67,7 @@ MIN_ALPHA = 1e-4
 
 MIN_BASE_WEIGHT = 1e-8
 
+
 # ---------------------------------------------------------
 # Backface fallback
 #
@@ -1140,6 +1141,10 @@ def _blend_projected_color_detailed(
 
     If the main pass cannot select anything, an optional
     single-view fallback is attempted using absolute facing.
+
+    Diagnostic pruning counters always describe the main
+    adaptive V1.2 pass. The fallback is a recovery path and
+    must not overwrite the reason the primary pass failed.
     """
 
     resolved_config = (
@@ -1284,6 +1289,13 @@ def _blend_projected_color_detailed(
     # every camera.
     #
     # Exactly one visible source is selected.
+    #
+    # IMPORTANT:
+    #
+    # The fallback is only a recovery strategy. Diagnostic
+    # pruning counters below keep the main_result values,
+    # because they explain why the normal V1.2 blend could
+    # not produce a color.
     # -----------------------------------------------------
 
     if (
@@ -1343,18 +1355,41 @@ def _blend_projected_color_detailed(
                 backface_samples=(
                     backface_samples
                 ),
+
+                # -----------------------------------------
+                # These counters deliberately describe the
+                # PRIMARY V1.2 pass.
+                #
+                # The previous implementation accidentally
+                # replaced them with fallback_result values,
+                # hiding cases such as:
+                #
+                #   facing 0.05
+                #   min_facing 0.10
+                #       ↓
+                #   main grazing rejection
+                #       ↓
+                #   fallback succeeds
+                #
+                # That must still report one grazing reject.
+                # -----------------------------------------
+
                 grazing_rejected_samples=(
-                    fallback_result
+                    main_result
                     .grazing_rejected_count
                 ),
                 relative_rejected_samples=(
-                    fallback_result
+                    main_result
                     .relative_rejected_count
                 ),
                 top_k_rejected_samples=(
-                    fallback_result
+                    main_result
                     .top_k_rejected_count
                 ),
+
+                # The final color does come from fallback,
+                # so selected_samples belongs to the actual
+                # fallback result.
                 selected_samples=(
                     fallback_result
                     .selected_count
