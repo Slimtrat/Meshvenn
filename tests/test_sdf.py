@@ -147,7 +147,7 @@ def centered_large_square_mask() -> BinaryMask:
 
 def centered_circle_mask(
     *,
-    size: int =  nine,
+    size: int = 9,
     radius: float = 3.0,
 ) -> BinaryMask:
     center = (
@@ -194,7 +194,6 @@ def centered_circle_mask(
             values
         ),
     )
-
 
 # Python has no `nine` constant; keeping construction
 # explicit below avoids clever helpers becoming part of the
