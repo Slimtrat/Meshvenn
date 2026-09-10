@@ -1,5 +1,9 @@
 name: Visual Preview
 
+run-name: >-
+  Visual Preview | ${{ github.event_name }} |
+  ${{ github.event_name == 'workflow_dispatch' && inputs.profiles || 'L2 L10' }}
+
 
 on:
   pull_request:
@@ -41,9 +45,9 @@ on:
         default: "64"
 
       profiles:
-        description: "Profiles, space separated"
+        description: "Profiles, space separated. Use L2 L4 L8 L10 for full diagnostics."
         required: false
-        default: "L2 L4 L8 L10"
+        default: "L2 L10"
 
       views:
         description: "Views per turntable contact sheet"
@@ -501,7 +505,7 @@ jobs:
           else
 
             RESOLUTION="64"
-            PROFILES="L2 L4 L8 L10"
+            PROFILES="L2 L10"
             VIEWS="8"
             SIZE="384"
             SAMPLES="1"
@@ -2056,7 +2060,7 @@ jobs:
             echo "**Material baselines:** ${MATERIAL_REUSED} reused · ${MATERIAL_GENERATED} generated"
             echo
 
-            echo "> **L10 is open by default. Material is visible immediately; geometry stays folded. L2/L4/L8 are folded completely.**"
+            echo "> **L10 is open by default. Material is visible immediately; geometry stays folded. L2 and any optional diagnostic profiles are folded.**"
             echo
 
             for SHEET in "${SHEETS[@]}"; do
@@ -2148,10 +2152,18 @@ jobs:
             "${COMMENT_FILE}"
 
 
+      # -----------------------------------------------------
+      # GitHub comment publication is presentation only.
+      #
+      # A GitHub API failure must not invalidate successful
+      # build / reconstruction / rendering / comparison.
+      # -----------------------------------------------------
+
       - name: Update sticky PR comment
         if: >-
           github.event_name == 'pull_request'
           && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -2167,17 +2179,43 @@ jobs:
                 "utf8"
               );
 
-            const comments =
-              await github.paginate(
-                github.rest.issues.listComments,
-                {
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number:
-                    context.issue.number,
-                  per_page: 100,
-                }
+            const { owner, repo } =
+              context.repo;
+
+            const issue_number =
+              context.issue.number;
+
+            let comments = [];
+
+            try {
+
+              comments =
+                await github.paginate(
+                  github.rest.issues.listComments,
+                  {
+                    owner,
+                    repo,
+                    issue_number,
+                    per_page: 100,
+                  }
+                );
+
+            } catch (error) {
+
+              core.warning(
+                `Unable to list PR comments (${error.status || "unknown"}): ${error.message}`
               );
+
+              await core.summary
+                .addHeading(
+                  "Projection Tool — Visual Comparison",
+                  2
+                )
+                .addRaw(body)
+                .write();
+
+              return;
+            }
 
             const existing =
               comments.find(
@@ -2186,33 +2224,50 @@ jobs:
                     ?.includes(marker)
               );
 
-            if (existing) {
+            try {
 
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body,
-              });
+              if (existing) {
 
-              core.info(
-                `Updated sticky preview comment ${existing.id}`
-              );
-
-            } else {
-
-              const created =
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number:
-                    context.issue.number,
+                await github.rest.issues.updateComment({
+                  owner,
+                  repo,
+                  comment_id: existing.id,
                   body,
                 });
 
-              core.info(
-                `Created sticky preview comment ${created.data.id}`
+                core.info(
+                  `Updated sticky preview comment ${existing.id}`
+                );
+
+              } else {
+
+                const created =
+                  await github.rest.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number,
+                    body,
+                  });
+
+                core.info(
+                  `Created sticky preview comment ${created.data.id}`
+                );
+
+              }
+
+            } catch (error) {
+
+              core.warning(
+                `Unable to update sticky PR comment (${error.status || "unknown"}): ${error.message}`
               );
+
+              await core.summary
+                .addHeading(
+                  "Projection Tool — Visual Comparison",
+                  2
+                )
+                .addRaw(body)
+                .write();
 
             }
 
