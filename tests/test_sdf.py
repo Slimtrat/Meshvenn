@@ -1037,10 +1037,26 @@ class SDFSymmetryTests(
             )
         )
 
+        # Deliberately place the point well inside the
+        # asymmetric left-hand silhouette.
+        #
+        # Front projection:
+        #
+        #     x = -0.75 -> u = 0.125
+        #     z =  0.00 -> v = 0.500
+        #
+        # This samples inside the two occupied rows instead
+        # of interpolating across their lower boundary.
+        #
+        # Mirroring X produces:
+        #
+        #     x = +0.75 -> u = 0.875
+        #
+        # which is clearly outside the silhouette.
         point = NormalizedPoint(
             x=-0.75,
             y=0.0,
-            z=-0.25,
+            z=0.0,
         )
 
         without_symmetry = (
@@ -1072,7 +1088,6 @@ class SDFSymmetryTests(
             with_symmetry,
             0.0,
         )
-
 
 # =========================================================
 # SDFBuildConfig
