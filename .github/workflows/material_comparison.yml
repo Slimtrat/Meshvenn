@@ -1,0 +1,1913 @@
+name: Material Comparison Preview
+
+run-name: >-
+  Material Comparison |
+  ${{ github.event_name }} |
+  ${{ github.event_name == 'workflow_dispatch' && inputs.profiles || 'L2 L10' }}
+
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+    paths:
+      - "core/**"
+      - "implementations/**"
+      - "native/**"
+      - "scripts/**"
+      - "example/mascotte/test1/**"
+      - "*.py"
+      - ".github/workflows/material_comparison.yml"
+
+  push:
+    branches:
+      - main
+
+    paths:
+      - "core/**"
+      - "implementations/**"
+      - "native/**"
+      - "scripts/**"
+      - "example/mascotte/test1/**"
+      - "*.py"
+      - ".github/workflows/material_comparison.yml"
+
+  workflow_dispatch:
+    inputs:
+
+      sheet:
+        description: "Sheet to compare"
+        required: false
+        default: "sheet1"
+
+      profiles:
+        description: "Space-separated profiles"
+        required: false
+        default: "L2 L4 L8 L10"
+
+      resolution:
+        description: "Visual hull resolution"
+        required: false
+        default: "64"
+
+      texture_size:
+        description: "UV Bake texture size"
+        required: false
+        default: "256"
+
+      render_size:
+        description: "Turntable tile size"
+        required: false
+        default: "384"
+
+      views:
+        description: "Turntable views"
+        required: false
+        default: "8"
+
+      samples:
+        description: "Cycles samples"
+        required: false
+        default: "1"
+
+      mesh_mode:
+        description: "Geometry mesh extraction"
+        required: true
+        default: "surface_nets"
+        type: choice
+        options:
+          - surface_nets
+          - blocks
+
+
+permissions:
+  contents: read
+
+
+concurrency:
+  group: >-
+    material-comparison-${{ github.event_name }}-${{ github.ref }}
+
+  cancel-in-progress: true
+
+
+env:
+  BLENDER_VERSION: "5.2.1"
+
+  BLENDER_ARCHIVE: >-
+    blender-5.2.1-linux-x64.tar.xz
+
+  BLENDER_BASE_URL: >-
+    https://download.blender.org/release/Blender5.2
+
+  BLENDER_ROOT: >-
+    ${{ github.workspace }}/.blender
+
+  EXAMPLE_DIR: >-
+    example/mascotte/test1
+
+
+jobs:
+
+  # ========================================================
+  # Material comparison
+  # ========================================================
+
+  compare:
+    name: Compare MATERIAL implementations
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 45
+
+
+    steps:
+
+      # ====================================================
+      # Checkout
+      #
+      # PRs intentionally use the HEAD commit rather than
+      # GitHub's synthetic merge commit.
+      # ====================================================
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: >-
+            ${{
+              github.event_name == 'pull_request'
+              && github.event.pull_request.head.sha
+              || github.sha
+            }}
+
+          fetch-depth: 1
+
+
+      # ====================================================
+      # Resolve configuration
+      #
+      # Pull request / main:
+      #
+      #   sheet1
+      #   L2 + L10
+      #   geometry 64
+      #   UV 256
+      #   render 256
+      #   4 views
+      #
+      # workflow_dispatch can run the full matrix.
+      # ====================================================
+
+      - name: Resolve configuration
+        id: config
+        shell: bash
+        run: |
+          set -euo pipefail
+
+
+          # ------------------------------------------------
+          # Source configuration
+          # ------------------------------------------------
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+
+            SHEET="${{ inputs.sheet }}"
+
+            PROFILES="${{ inputs.profiles }}"
+
+            RESOLUTION="${{ inputs.resolution }}"
+
+            TEXTURE_SIZE="${{ inputs.texture_size }}"
+
+            RENDER_SIZE="${{ inputs.render_size }}"
+
+            VIEWS="${{ inputs.views }}"
+
+            SAMPLES="${{ inputs.samples }}"
+
+            MESH_MODE="${{ inputs.mesh_mode }}"
+
+          else
+
+            # ----------------------------------------------
+            # Cheap but meaningful PR gate.
+            # ----------------------------------------------
+
+            SHEET="sheet1"
+
+            PROFILES="L2 L10"
+
+            RESOLUTION="64"
+
+            TEXTURE_SIZE="256"
+
+            RENDER_SIZE="256"
+
+            VIEWS="4"
+
+            SAMPLES="1"
+
+            MESH_MODE="surface_nets"
+
+          fi
+
+
+          # ------------------------------------------------
+          # Sheet
+          # ------------------------------------------------
+
+          if ! [[ "${SHEET}" =~ ^sheet[A-Za-z0-9_-]+$ ]]; then
+
+            echo \
+              "Invalid sheet name: ${SHEET}"
+
+            exit 1
+
+          fi
+
+
+          SHEET_PATH="${EXAMPLE_DIR}/sheets/${SHEET}.png"
+
+
+          if [[ ! -f "${SHEET_PATH}" ]]; then
+
+            echo \
+              "Missing sheet: ${SHEET_PATH}"
+
+            exit 1
+
+          fi
+
+
+          # ------------------------------------------------
+          # Numeric syntax
+          # ------------------------------------------------
+
+          for VALUE in \
+            "${RESOLUTION}" \
+            "${TEXTURE_SIZE}" \
+            "${RENDER_SIZE}" \
+            "${VIEWS}" \
+            "${SAMPLES}"
+          do
+
+            if ! [[ "${VALUE}" =~ ^[0-9]+$ ]]; then
+
+              echo \
+                "Invalid numeric value: ${VALUE}"
+
+              exit 1
+
+            fi
+
+          done
+
+
+          # ------------------------------------------------
+          # Geometry resolution
+          # ------------------------------------------------
+
+          if (( RESOLUTION < 8 || RESOLUTION > 256 )); then
+
+            echo \
+              "Resolution must be between 8 and 256."
+
+            exit 1
+
+          fi
+
+
+          # ------------------------------------------------
+          # UV texture size
+          # ------------------------------------------------
+
+          case "${TEXTURE_SIZE}" in
+
+            64|128|256|512|1024|2048|4096)
+              ;;
+
+            *)
+              echo \
+                "Invalid texture size: ${TEXTURE_SIZE}"
+
+              exit 1
+              ;;
+
+          esac
+
+
+          # ------------------------------------------------
+          # Render resolution
+          # ------------------------------------------------
+
+          if (( RENDER_SIZE < 128 || RENDER_SIZE > 2048 )); then
+
+            echo \
+              "Render size must be between 128 and 2048."
+
+            exit 1
+
+          fi
+
+
+          # ------------------------------------------------
+          # Turntable views
+          # ------------------------------------------------
+
+          if (( VIEWS < 4 || VIEWS > 16 )); then
+
+            echo \
+              "Views must be between 4 and 16."
+
+            exit 1
+
+          fi
+
+
+          # ------------------------------------------------
+          # Cycles samples
+          # ------------------------------------------------
+
+          if (( SAMPLES < 1 || SAMPLES > 128 )); then
+
+            echo \
+              "Cycles samples must be between 1 and 128."
+
+            exit 1
+
+          fi
+
+
+          # ------------------------------------------------
+          # Mesh implementation
+          # ------------------------------------------------
+
+          case "${MESH_MODE}" in
+
+            surface_nets|blocks)
+              ;;
+
+            *)
+              echo \
+                "Invalid mesh mode: ${MESH_MODE}"
+
+              exit 1
+              ;;
+
+          esac
+
+
+          # ------------------------------------------------
+          # Profiles
+          # ------------------------------------------------
+
+          read -ra PROFILE_ARRAY \
+            <<< "${PROFILES}"
+
+
+          if [[ "${#PROFILE_ARRAY[@]}" -eq 0 ]]; then
+
+            echo \
+              "At least one profile is required."
+
+            exit 1
+
+          fi
+
+
+          NORMALIZED_PROFILES=()
+
+
+          for PROFILE in "${PROFILE_ARRAY[@]}"; do
+
+            PROFILE="$(
+              echo "${PROFILE}" \
+                | tr \
+                  '[:lower:]' \
+                  '[:upper:]'
+            )"
+
+
+            case "${PROFILE}" in
+
+              L2|L4|L8|L10)
+
+                ALREADY_PRESENT="false"
+
+
+                for EXISTING_PROFILE in "${NORMALIZED_PROFILES[@]}"; do
+
+                  if [[ "${EXISTING_PROFILE}" == "${PROFILE}" ]]; then
+
+                    ALREADY_PRESENT="true"
+
+                    break
+
+                  fi
+
+                done
+
+
+                if [[ "${ALREADY_PRESENT}" == "false" ]]; then
+
+                  NORMALIZED_PROFILES+=(
+                    "${PROFILE}"
+                  )
+
+                fi
+
+                ;;
+
+
+              *)
+
+                echo \
+                  "Invalid profile: ${PROFILE}"
+
+                exit 1
+
+                ;;
+
+            esac
+
+          done
+
+
+          if [[ "${#NORMALIZED_PROFILES[@]}" -eq 0 ]]; then
+
+            echo \
+              "No valid profiles remain after normalization."
+
+            exit 1
+
+          fi
+
+
+          PROFILES="$(
+            printf \
+              '%s ' \
+              "${NORMALIZED_PROFILES[@]}"
+          )"
+
+          PROFILES="${PROFILES% }"
+
+
+          # ------------------------------------------------
+          # Step outputs
+          # ------------------------------------------------
+
+          {
+            echo \
+              "sheet=${SHEET}"
+
+            echo \
+              "profiles=${PROFILES}"
+
+            echo \
+              "resolution=${RESOLUTION}"
+
+            echo \
+              "texture_size=${TEXTURE_SIZE}"
+
+            echo \
+              "render_size=${RENDER_SIZE}"
+
+            echo \
+              "views=${VIEWS}"
+
+            echo \
+              "samples=${SAMPLES}"
+
+            echo \
+              "mesh_mode=${MESH_MODE}"
+
+          } >> "${GITHUB_OUTPUT}"
+
+
+          # ------------------------------------------------
+          # Diagnostics
+          # ------------------------------------------------
+
+          echo
+          echo "Material comparison configuration"
+          echo "---------------------------------"
+
+          echo \
+            "Sheet:        ${SHEET}"
+
+          echo \
+            "Profiles:     ${PROFILES}"
+
+          echo \
+            "Resolution:   ${RESOLUTION}"
+
+          echo \
+            "Mesh mode:    ${MESH_MODE}"
+
+          echo \
+            "Texture:      ${TEXTURE_SIZE}"
+
+          echo \
+            "Render size:  ${RENDER_SIZE}"
+
+          echo \
+            "Views:        ${VIEWS}"
+
+          echo \
+            "Cycles:       ${SAMPLES}"
+
+
+      # ====================================================
+      # Native build
+      # ====================================================
+
+      - name: Install native build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          sudo apt-get update
+
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            g++
+
+
+      - name: Configure native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            -S native \
+            -B build/native-material-comparison \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBPT_BUILD_TESTS=ON
+
+
+      - name: Build native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cmake \
+            --build build/native-material-comparison \
+            --parallel
+
+
+      - name: Test native core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ctest \
+            --test-dir build/native-material-comparison \
+            --output-on-failure
+
+
+      - name: Stage native library
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p \
+            native/bin
+
+
+          LIBRARY="$(
+            find \
+              build/native-material-comparison \
+              -type f \
+              -name "libbpt_core.so" \
+              | head -n 1
+          )"
+
+
+          if [[ -z "${LIBRARY}" ]]; then
+
+            echo \
+              "libbpt_core.so not found."
+
+            exit 1
+
+          fi
+
+
+          cp \
+            "${LIBRARY}" \
+            native/bin/libbpt_core.so
+
+
+          test -f \
+            native/bin/libbpt_core.so
+
+
+          ls -lh \
+            native/bin/libbpt_core.so
+
+
+      # ====================================================
+      # Blender
+      # ====================================================
+
+      - name: Cache Blender
+        id: blender-cache
+        uses: actions/cache@v4
+        with:
+          path: .blender
+
+          key: >-
+            blender-linux-x64-${{ env.BLENDER_VERSION }}
+
+
+      - name: Download Blender
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p \
+            "${BLENDER_ROOT}"
+
+
+          URL="${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
+
+          ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
+
+
+          echo \
+            "Downloading ${URL}"
+
+
+          curl \
+            --fail \
+            --show-error \
+            --location \
+            --retry 5 \
+            --retry-all-errors \
+            --connect-timeout 20 \
+            --max-time 900 \
+            --output "${ARCHIVE}" \
+            "${URL}"
+
+
+          xz \
+            --test \
+            "${ARCHIVE}"
+
+
+          tar \
+            -xJf "${ARCHIVE}" \
+            -C "${BLENDER_ROOT}" \
+            --strip-components=1
+
+
+          rm \
+            "${ARCHIVE}"
+
+
+      - name: Verify Blender
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          "${BLENDER_ROOT}/blender" \
+            --version
+
+
+      # ====================================================
+      # UV Bake pure Python tests
+      # ====================================================
+
+      - name: Test UV Bake core
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python \
+            -m unittest \
+            tests.test_uv_bake \
+            -v
+
+
+      # ====================================================
+      # Material variants
+      #
+      # Geometry is reconstructed once for every profile.
+      #
+      # The exact same NativeMesh / NativeVolume snapshots
+      # are subsequently fed to:
+      #
+      #   projected-color-v1.2
+      #   uv-bake-v2
+      #
+      # IMPORTANT:
+      #
+      # --python-exit-code makes an uncaught Blender Python
+      # exception fail the GitHub step.
+      #
+      # Without it Blender may still return process exit 0.
+      # ====================================================
+
+      - name: Generate MATERIAL variants
+        shell: bash
+        env:
+          OUTPUT_ROOT: >-
+            ${{ runner.temp }}/meshvenn-material-comparison
+
+        run: |
+          set -euo pipefail
+
+
+          rm -rf \
+            "${OUTPUT_ROOT}"
+
+
+          mkdir -p \
+            "${OUTPUT_ROOT}"
+
+
+          read -ra PROFILE_ARGS \
+            <<< "${{ steps.config.outputs.profiles }}"
+
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python \
+              scripts/generate_material_comparison.py \
+            -- \
+            --example-dir \
+              "${EXAMPLE_DIR}" \
+            --output \
+              "${OUTPUT_ROOT}" \
+            --sheets \
+              "${{ steps.config.outputs.sheet }}" \
+            --profiles \
+              "${PROFILE_ARGS[@]}" \
+            --implementations \
+              projected-color-v1.2 \
+              uv-bake-v2 \
+            --resolution \
+              "${{ steps.config.outputs.resolution }}" \
+            --mesh-mode \
+              "${{ steps.config.outputs.mesh_mode }}" \
+            --texture-size \
+              "${{ steps.config.outputs.texture_size }}" \
+            --padding \
+              4 \
+            --samples-per-axis \
+              1
+
+
+      # ====================================================
+      # Turntable rendering
+      #
+      # scripts/render_material_comparison.py uses:
+      #
+      #     preserve_material=True
+      #
+      # so both GLBs retain their actual appearance:
+      #
+      # Projected Color:
+      #     COLOR_0 / vertex color
+      #
+      # UV Bake:
+      #     UV + image texture
+      # ====================================================
+
+      - name: Render MATERIAL comparison
+        shell: bash
+        env:
+          OUTPUT_ROOT: >-
+            ${{ runner.temp }}/meshvenn-material-comparison
+
+        run: |
+          set -euo pipefail
+
+
+          read -ra PROFILE_ARGS \
+            <<< "${{ steps.config.outputs.profiles }}"
+
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python \
+              scripts/render_material_comparison.py \
+            -- \
+            --comparison-root \
+              "${OUTPUT_ROOT}" \
+            --sheets \
+              "${{ steps.config.outputs.sheet }}" \
+            --profiles \
+              "${PROFILE_ARGS[@]}" \
+            --implementations \
+              projected-color-v1.2 \
+              uv-bake-v2 \
+            --views \
+              "${{ steps.config.outputs.views }}" \
+            --size \
+              "${{ steps.config.outputs.render_size }}" \
+            --samples \
+              "${{ steps.config.outputs.samples }}"
+
+
+      # ====================================================
+      # Result validation
+      # ====================================================
+
+      - name: Validate comparison outputs
+        shell: bash
+        env:
+          OUTPUT_ROOT: >-
+            ${{ runner.temp }}/meshvenn-material-comparison
+
+          SHEET: >-
+            ${{ steps.config.outputs.sheet }}
+
+          PROFILES: >-
+            ${{ steps.config.outputs.profiles }}
+
+        run: |
+          set -euo pipefail
+
+
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+
+          from pathlib import Path
+
+
+          root = Path(
+              os.environ[
+                  "OUTPUT_ROOT"
+              ]
+          )
+
+          sheet = os.environ[
+              "SHEET"
+          ]
+
+          profiles = (
+              os.environ[
+                  "PROFILES"
+              ]
+              .split()
+          )
+
+          implementations = (
+              "projected-color-v1.2",
+              "uv-bake-v2",
+          )
+
+
+          # ================================================
+          # Global generation manifest
+          # ================================================
+
+          generation_manifest_path = (
+              root
+              / "comparison.json"
+          )
+
+
+          if not generation_manifest_path.is_file():
+              raise RuntimeError(
+                  (
+                      "Missing generation manifest: "
+                      f"{generation_manifest_path}"
+                  )
+              )
+
+
+          generation_manifest = json.loads(
+              generation_manifest_path.read_text(
+                  encoding="utf-8"
+              )
+          )
+
+
+          if not generation_manifest.get(
+              "success",
+              False,
+          ):
+              raise RuntimeError(
+                  (
+                      "Material generation manifest "
+                      "reports failure."
+                  )
+              )
+
+
+          # ================================================
+          # Global render manifest
+          # ================================================
+
+          render_manifest_path = (
+              root
+              / "render_comparison.json"
+          )
+
+
+          if not render_manifest_path.is_file():
+              raise RuntimeError(
+                  (
+                      "Missing render manifest: "
+                      f"{render_manifest_path}"
+                  )
+              )
+
+
+          render_manifest = json.loads(
+              render_manifest_path.read_text(
+                  encoding="utf-8"
+              )
+          )
+
+
+          if not render_manifest.get(
+              "success",
+              False,
+          ):
+              raise RuntimeError(
+                  (
+                      "Material render manifest "
+                      "reports failure."
+                  )
+              )
+
+
+          # ================================================
+          # Final visual matrix
+          # ================================================
+
+          matrix = (
+              root
+              / sheet
+              / "material_comparison.png"
+          )
+
+
+          if not matrix.is_file():
+              raise RuntimeError(
+                  (
+                      "Missing comparison matrix: "
+                      f"{matrix}"
+                  )
+              )
+
+
+          if matrix.stat().st_size < 1024:
+              raise RuntimeError(
+                  (
+                      "Comparison matrix is "
+                      "unexpectedly small: "
+                      f"{matrix.stat().st_size} bytes"
+                  )
+              )
+
+
+          # ================================================
+          # Per-profile / per-implementation validation
+          # ================================================
+
+          summary = []
+
+
+          for profile in profiles:
+
+              geometry_signature = None
+
+
+              for implementation in implementations:
+
+                  variant_root = (
+                      root
+                      / sheet
+                      / profile
+                      / implementation
+                  )
+
+
+                  model = (
+                      variant_root
+                      / "model.glb"
+                  )
+
+
+                  variant_json = (
+                      variant_root
+                      / "variant.json"
+                  )
+
+
+                  contact = (
+                      variant_root
+                      / "render"
+                      / "contact_sheet.png"
+                  )
+
+
+                  # ----------------------------------------
+                  # Required files
+                  # ----------------------------------------
+
+                  for path in (
+                      model,
+                      variant_json,
+                      contact,
+                  ):
+
+                      if not path.is_file():
+                          raise RuntimeError(
+                              (
+                                  "Missing comparison "
+                                  f"artifact: {path}"
+                              )
+                          )
+
+
+                  if model.stat().st_size <= 0:
+                      raise RuntimeError(
+                          (
+                              "Generated GLB is empty: "
+                              f"{model}"
+                          )
+                      )
+
+
+                  if contact.stat().st_size < 1024:
+                      raise RuntimeError(
+                          (
+                              "Generated contact sheet "
+                              "is unexpectedly small: "
+                              f"{contact}"
+                          )
+                      )
+
+
+                  # ----------------------------------------
+                  # Variant manifest
+                  # ----------------------------------------
+
+                  info = json.loads(
+                      variant_json.read_text(
+                          encoding="utf-8"
+                      )
+                  )
+
+
+                  if not info.get(
+                      "generated",
+                      False,
+                  ):
+                      raise RuntimeError(
+                          (
+                              "Variant reports "
+                              "generated=false: "
+                              f"{profile}/"
+                              f"{implementation}"
+                          )
+                      )
+
+
+                  # ----------------------------------------
+                  # Geometry parity
+                  # ----------------------------------------
+
+                  geometry = info.get(
+                      "geometry"
+                  )
+
+
+                  if not isinstance(
+                      geometry,
+                      dict,
+                  ):
+                      raise RuntimeError(
+                          (
+                              "Variant has no geometry "
+                              "metadata."
+                          )
+                      )
+
+
+                  signature = (
+                      int(
+                          geometry[
+                              "vertices"
+                          ]
+                      ),
+
+                      int(
+                          geometry[
+                              "faces"
+                          ]
+                      ),
+
+                      tuple(
+                          round(
+                              float(
+                                  value
+                              ),
+                              6,
+                          )
+                          for value
+                          in geometry[
+                              "dimensions"
+                          ]
+                      ),
+                  )
+
+
+                  if geometry_signature is None:
+
+                      geometry_signature = (
+                          signature
+                      )
+
+
+                  elif signature != geometry_signature:
+
+                      raise RuntimeError(
+                          (
+                              "MATERIAL implementations "
+                              "do not share identical "
+                              "geometry.\n"
+                              f"Profile: {profile}\n"
+                              f"Expected: "
+                              f"{geometry_signature}\n"
+                              f"Actual:   {signature}"
+                          )
+                      )
+
+
+                  # ========================================
+                  # UV Bake V2
+                  # ========================================
+
+                  uv_coverage = None
+
+                  uv_covered_pixels = None
+
+                  uv_surface_samples = None
+
+                  uv_fallback_samples = None
+
+
+                  if implementation == "uv-bake-v2":
+
+                      bake = info.get(
+                          "uv_bake"
+                      )
+
+
+                      if not isinstance(
+                          bake,
+                          dict,
+                      ):
+                          raise RuntimeError(
+                              (
+                                  "UV Bake V2 has no "
+                                  "bake diagnostics."
+                              )
+                          )
+
+
+                      uv_covered_pixels = int(
+                          bake.get(
+                              "covered_pixels",
+                              0,
+                          )
+                      )
+
+
+                      uv_coverage = float(
+                          bake.get(
+                              "coverage_ratio",
+                              0.0,
+                          )
+                      )
+
+
+                      uv_surface_samples = int(
+                          bake.get(
+                              "surface_samples",
+                              0,
+                          )
+                      )
+
+
+                      uv_fallback_samples = int(
+                          bake.get(
+                              "fallback_samples",
+                              0,
+                          )
+                      )
+
+
+                      texture_width = int(
+                          bake.get(
+                              "texture_width",
+                              0,
+                          )
+                      )
+
+
+                      texture_height = int(
+                          bake.get(
+                              "texture_height",
+                              0,
+                          )
+                      )
+
+
+                      if uv_covered_pixels <= 0:
+                          raise RuntimeError(
+                              (
+                                  "UV Bake produced "
+                                  "zero covered texels."
+                              )
+                          )
+
+
+                      if uv_coverage <= 0.0:
+                          raise RuntimeError(
+                              (
+                                  "UV Bake reports "
+                                  "zero coverage."
+                              )
+                          )
+
+
+                      if uv_surface_samples <= 0:
+                          raise RuntimeError(
+                              (
+                                  "UV Bake performed "
+                                  "zero surface samples."
+                              )
+                          )
+
+
+                      if (
+                          texture_width <= 0
+                          or texture_height <= 0
+                      ):
+                          raise RuntimeError(
+                              (
+                                  "UV Bake reports "
+                                  "invalid texture size."
+                              )
+                          )
+
+
+                  # ========================================
+                  # Projected Color V1.2
+                  # ========================================
+
+                  projected_vertices = None
+
+
+                  if (
+                      implementation
+                      == "projected-color-v1.2"
+                  ):
+
+                      projected = info.get(
+                          "projected_color"
+                      )
+
+
+                      if not isinstance(
+                          projected,
+                          dict,
+                      ):
+                          raise RuntimeError(
+                              (
+                                  "Projected Color V1.2 "
+                                  "has no diagnostics."
+                              )
+                          )
+
+
+                      projected_vertices = int(
+                          projected.get(
+                              "projected_vertices",
+                              0,
+                          )
+                      )
+
+
+                      if projected_vertices <= 0:
+                          raise RuntimeError(
+                              (
+                                  "Projected Color V1.2 "
+                                  "projected zero vertices."
+                              )
+                          )
+
+
+                  # ----------------------------------------
+                  # Summary record
+                  # ----------------------------------------
+
+                  summary.append(
+                      {
+                          "profile": profile,
+
+                          "implementation": (
+                              implementation
+                          ),
+
+                          "vertices": (
+                              signature[
+                                  0
+                              ]
+                          ),
+
+                          "faces": (
+                              signature[
+                                  1
+                              ]
+                          ),
+
+                          "glb_bytes": (
+                              model
+                              .stat()
+                              .st_size
+                          ),
+
+                          "contact_bytes": (
+                              contact
+                              .stat()
+                              .st_size
+                          ),
+
+                          "material_seconds": float(
+                              info.get(
+                                  "material_seconds",
+                                  0.0,
+                              )
+                          ),
+
+                          "projected_vertices": (
+                              projected_vertices
+                          ),
+
+                          "uv_covered_pixels": (
+                              uv_covered_pixels
+                          ),
+
+                          "uv_coverage": (
+                              uv_coverage
+                          ),
+
+                          "uv_surface_samples": (
+                              uv_surface_samples
+                          ),
+
+                          "uv_fallback_samples": (
+                              uv_fallback_samples
+                          ),
+                      }
+                  )
+
+
+          # ================================================
+          # Console diagnostics
+          # ================================================
+
+          print()
+
+          print(
+              "Material comparison validation: OK"
+          )
+
+          print()
+
+
+          for item in summary:
+
+              base = (
+                  f"{item['profile']:>3} | "
+                  f"{item['implementation']:<22} | "
+                  f"v={item['vertices']:<7} "
+                  f"f={item['faces']:<7} | "
+                  f"GLB={item['glb_bytes']:<10} | "
+                  f"PNG={item['contact_bytes']:<10} | "
+                  f"{item['material_seconds']:.3f}s"
+              )
+
+
+              if item["uv_coverage"] is not None:
+
+                  base += (
+                      " | UV="
+                      f"{item['uv_coverage'] * 100.0:.2f}%"
+                      " | covered="
+                      f"{item['uv_covered_pixels']}"
+                  )
+
+
+              print(
+                  base
+              )
+
+
+          print()
+
+          print(
+              f"Matrix: {matrix}"
+          )
+          PY
+
+
+      # ====================================================
+      # Artifact
+      #
+      # Always publish whatever exists.
+      #
+      # This gives us partial debug output even if a future
+      # experimental MATERIAL implementation fails.
+      # ====================================================
+
+      - name: Upload material comparison
+        id: artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: >-
+            meshvenn-material-comparison-${{ github.run_id }}
+
+          path: >-
+            ${{ runner.temp }}/meshvenn-material-comparison
+
+          if-no-files-found: warn
+
+          retention-days: 14
+
+
+      # ====================================================
+      # GitHub Job Summary
+      #
+      # Implemented in Python deliberately.
+      #
+      # This avoids Bash compound-condition parsing mistakes
+      # in a non-critical reporting step.
+      # ====================================================
+
+      - name: Write comparison summary
+        if: always()
+        shell: bash
+        env:
+          OUTPUT_ROOT: >-
+            ${{ runner.temp }}/meshvenn-material-comparison
+
+          ARTIFACT_URL: >-
+            ${{ steps.artifact.outputs.artifact-url }}
+
+          SHEET: >-
+            ${{ steps.config.outputs.sheet }}
+
+          PROFILES: >-
+            ${{ steps.config.outputs.profiles }}
+
+          RESOLUTION: >-
+            ${{ steps.config.outputs.resolution }}
+
+          TEXTURE_SIZE: >-
+            ${{ steps.config.outputs.texture_size }}
+
+          RENDER_SIZE: >-
+            ${{ steps.config.outputs.render_size }}
+
+          VIEWS: >-
+            ${{ steps.config.outputs.views }}
+
+          SAMPLES: >-
+            ${{ steps.config.outputs.samples }}
+
+          MESH_MODE: >-
+            ${{ steps.config.outputs.mesh_mode }}
+
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+
+          from pathlib import Path
+
+
+          def environment(
+              name: str,
+          ) -> str:
+              return (
+                  os.environ
+                  .get(
+                      name,
+                      "",
+                  )
+                  .strip()
+              )
+
+
+          output_root = Path(
+              environment(
+                  "OUTPUT_ROOT"
+              )
+          )
+
+          artifact_url = environment(
+              "ARTIFACT_URL"
+          )
+
+          sheet = environment(
+              "SHEET"
+          )
+
+          profiles = environment(
+              "PROFILES"
+          )
+
+          resolution = environment(
+              "RESOLUTION"
+          )
+
+          texture_size = environment(
+              "TEXTURE_SIZE"
+          )
+
+          render_size = environment(
+              "RENDER_SIZE"
+          )
+
+          views = environment(
+              "VIEWS"
+          )
+
+          samples = environment(
+              "SAMPLES"
+          )
+
+          mesh_mode = environment(
+              "MESH_MODE"
+          )
+
+          summary_path = Path(
+              os.environ[
+                  "GITHUB_STEP_SUMMARY"
+              ]
+          )
+
+
+          lines = [
+              "# Meshvenn Material Comparison",
+              "",
+          ]
+
+
+          # ================================================
+          # Configuration
+          # ================================================
+
+          if sheet:
+              lines.extend(
+                  [
+                      (
+                          "**Sheet:** "
+                          f"`{sheet}`"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          if profiles:
+              lines.extend(
+                  [
+                      (
+                          "**Profiles:** "
+                          f"`{profiles}`"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          if mesh_mode and resolution:
+              lines.extend(
+                  [
+                      (
+                          "**Geometry:** "
+                          f"`{mesh_mode} @ "
+                          f"{resolution}`"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          if texture_size:
+              lines.extend(
+                  [
+                      (
+                          "**UV Bake:** "
+                          f"`{texture_size}px`"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          if views and render_size:
+              lines.extend(
+                  [
+                      (
+                          "**Render:** "
+                          f"`{views} views @ "
+                          f"{render_size}px`"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          if samples:
+              lines.extend(
+                  [
+                      (
+                          "**Cycles samples:** "
+                          f"`{samples}`"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          # ================================================
+          # Implementations
+          # ================================================
+
+          lines.extend(
+              [
+                  "## Compared",
+                  "",
+                  "- `projected-color-v1.2`",
+                  "- `uv-bake-v2`",
+                  "",
+              ]
+          )
+
+
+          # ================================================
+          # Artifact
+          # ================================================
+
+          if artifact_url:
+              lines.extend(
+                  [
+                      (
+                          "[Download material "
+                          "comparison artifact]"
+                          f"({artifact_url})"
+                      ),
+                      "",
+                  ]
+              )
+
+
+          # ================================================
+          # Result
+          # ================================================
+
+          lines.extend(
+              [
+                  "## Result",
+                  "",
+              ]
+          )
+
+
+          if not sheet:
+              lines.extend(
+                  [
+                      (
+                          "Configuration did not complete, "
+                          "so no comparison matrix path "
+                          "is available."
+                      ),
+                      "",
+                  ]
+              )
+
+          else:
+              matrix = (
+                  output_root
+                  / sheet
+                  / "material_comparison.png"
+              )
+
+              if matrix.is_file():
+
+                  lines.extend(
+                      [
+                          (
+                              "Final matrix: "
+                              f"`{sheet}/"
+                              "material_comparison.png`"
+                          ),
+                          "",
+                          (
+                              "Matrix size: "
+                              f"`{matrix.stat().st_size:,} "
+                              "bytes`"
+                          ),
+                          "",
+                      ]
+                  )
+
+              else:
+
+                  lines.extend(
+                      [
+                          (
+                              "Final comparison matrix "
+                              "was not produced."
+                          ),
+                          "",
+                      ]
+                  )
+
+
+          # ================================================
+          # UV Bake diagnostics
+          # ================================================
+
+          if sheet and profiles:
+
+              profile_names = (
+                  profiles.split()
+              )
+
+              diagnostic_rows = []
+
+
+              for profile in profile_names:
+
+                  variant_path = (
+                      output_root
+                      / sheet
+                      / profile
+                      / "uv-bake-v2"
+                      / "variant.json"
+                  )
+
+
+                  if not variant_path.is_file():
+                      continue
+
+
+                  try:
+                      info = json.loads(
+                          variant_path.read_text(
+                              encoding="utf-8"
+                          )
+                      )
+
+                  except Exception:
+                      continue
+
+
+                  bake = (
+                      info.get(
+                          "uv_bake"
+                      )
+                  )
+
+
+                  if not isinstance(
+                      bake,
+                      dict,
+                  ):
+                      continue
+
+
+                  coverage = float(
+                      bake.get(
+                          "coverage_ratio",
+                          0.0,
+                      )
+                  )
+
+
+                  covered = int(
+                      bake.get(
+                          "covered_pixels",
+                          0,
+                      )
+                  )
+
+
+                  material_seconds = float(
+                      info.get(
+                          "material_seconds",
+                          0.0,
+                      )
+                  )
+
+
+                  metrics = (
+                      info
+                      .get(
+                          "result",
+                          {}
+                      )
+                      .get(
+                          "metrics",
+                          {}
+                      )
+                  )
+
+
+                  subpixel_ratio = float(
+                      metrics.get(
+                          "uv_subpixel_triangle_ratio",
+                          0.0,
+                      )
+                  )
+
+
+                  diagnostic_rows.append(
+                      (
+                          profile,
+                          coverage,
+                          covered,
+                          material_seconds,
+                          subpixel_ratio,
+                      )
+                  )
+
+
+              if diagnostic_rows:
+
+                  lines.extend(
+                      [
+                          "## UV Bake diagnostics",
+                          "",
+                          (
+                              "| Profile | Coverage | "
+                              "Covered texels | Material | "
+                              "Subpixel triangles |"
+                          ),
+                          (
+                              "| --- | ---: | ---: | "
+                              "---: | ---: |"
+                          ),
+                      ]
+                  )
+
+
+                  for (
+                      profile,
+                      coverage,
+                      covered,
+                      material_seconds,
+                      subpixel_ratio,
+                  ) in diagnostic_rows:
+
+                      lines.append(
+                          (
+                              f"| {profile} "
+                              f"| {coverage * 100.0:.2f}% "
+                              f"| {covered:,} "
+                              f"| {material_seconds:.2f}s "
+                              f"| {subpixel_ratio * 100.0:.2f}% |"
+                          )
+                      )
+
+
+                  lines.append(
+                      ""
+                  )
+
+
+          summary_path.write_text(
+              "\n".join(
+                  lines
+              ),
+              encoding="utf-8",
+          )
+          PY

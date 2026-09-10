@@ -12,9 +12,9 @@ import bpy
 from mathutils import Vector
 
 
-# ---------------------------------------------------------
+# =========================================================
 # CLI
-# ---------------------------------------------------------
+# =========================================================
 
 def parse_args() -> argparse.Namespace:
     argv = sys.argv
@@ -23,6 +23,7 @@ def parse_args() -> argparse.Namespace:
         argv = argv[
             argv.index("--") + 1:
         ]
+
     else:
         argv = []
 
@@ -68,14 +69,24 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
     )
 
+    parser.add_argument(
+        "--preserve-material",
+        action="store_true",
+        help=(
+            "Keep materials imported from the GLB instead "
+            "of replacing them with the neutral preview "
+            "material. Required for material comparisons."
+        ),
+    )
+
     return parser.parse_args(
         argv
     )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Cleanup
-# ---------------------------------------------------------
+# =========================================================
 
 def clear_scene() -> None:
     for obj in tuple(
@@ -102,6 +113,14 @@ def clear_scene() -> None:
                 material
             )
 
+    for image in tuple(
+        bpy.data.images
+    ):
+        if image.users == 0:
+            bpy.data.images.remove(
+                image
+            )
+
     for camera in tuple(
         bpy.data.cameras
     ):
@@ -119,14 +138,18 @@ def clear_scene() -> None:
             )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # GLB import
-# ---------------------------------------------------------
+# =========================================================
 
 def import_glb(
     path: Path,
-) -> list[bpy.types.Object]:
-    path = path.resolve()
+) -> list[
+    bpy.types.Object
+]:
+    path = (
+        path.resolve()
+    )
 
     if not path.exists():
         raise FileNotFoundError(
@@ -145,30 +168,170 @@ def import_glb(
 
     imported = [
         obj
-        for obj in bpy.data.objects
+        for obj
+        in bpy.data.objects
         if obj not in before
     ]
 
     meshes = [
         obj
-        for obj in imported
+        for obj
+        in imported
         if obj.type == "MESH"
     ]
 
     if not meshes:
         raise RuntimeError(
-            "Imported GLB contains no mesh."
+            (
+                "Imported GLB contains "
+                "no mesh."
+            )
         )
 
     return meshes
 
 
-# ---------------------------------------------------------
+# =========================================================
+# Imported material diagnostics
+# =========================================================
+
+def imported_material_summary(
+    objects: list[
+        bpy.types.Object
+    ],
+) -> dict:
+    materials = []
+
+    images = []
+
+    color_attributes = []
+
+    uv_layers = []
+
+    for obj in objects:
+        if obj.type != "MESH":
+            continue
+
+        mesh = obj.data
+
+        for material in (
+            mesh.materials
+        ):
+            if (
+                material is not None
+                and material.name
+                not in materials
+            ):
+                materials.append(
+                    material.name
+                )
+
+                node_tree = (
+                    material.node_tree
+                )
+
+                if node_tree is not None:
+                    for node in (
+                        node_tree.nodes
+                    ):
+                        image = getattr(
+                            node,
+                            "image",
+                            None,
+                        )
+
+                        if (
+                            image is not None
+                            and image.name
+                            not in images
+                        ):
+                            images.append(
+                                image.name
+                            )
+
+        for attribute in (
+            mesh.color_attributes
+        ):
+            if (
+                attribute.name
+                not in color_attributes
+            ):
+                color_attributes.append(
+                    attribute.name
+                )
+
+        for uv_layer in (
+            mesh.uv_layers
+        ):
+            if (
+                uv_layer.name
+                not in uv_layers
+            ):
+                uv_layers.append(
+                    uv_layer.name
+                )
+
+    return {
+        "materials": (
+            materials
+        ),
+
+        "images": (
+            images
+        ),
+
+        "color_attributes": (
+            color_attributes
+        ),
+
+        "uv_layers": (
+            uv_layers
+        ),
+    }
+
+
+def print_material_summary(
+    summary: dict,
+) -> None:
+    print(
+        "Imported material state:"
+    )
+
+    for name in (
+        "materials",
+        "images",
+        "color_attributes",
+        "uv_layers",
+    ):
+        values = (
+            summary.get(
+                name,
+                []
+            )
+        )
+
+        print(
+            (
+                f"  {name}: "
+                + (
+                    ", ".join(
+                        values
+                    )
+                    if values
+                    else "none"
+                )
+            )
+        )
+
+
+# =========================================================
 # Bounds
-# ---------------------------------------------------------
+# =========================================================
 
 def combined_bounds(
-    objects: list[bpy.types.Object],
+    objects: list[
+        bpy.types.Object
+    ],
 ) -> tuple[
     Vector,
     Vector,
@@ -194,7 +357,9 @@ def combined_bounds(
             obj.matrix_world
         )
 
-        for corner in obj.bound_box:
+        for corner in (
+            obj.bound_box
+        ):
             point = (
                 matrix
                 @ Vector(
@@ -239,7 +404,9 @@ def combined_bounds(
 
 
 def center_objects(
-    objects: list[bpy.types.Object],
+    objects: list[
+        bpy.types.Object
+    ],
 ) -> tuple[
     Vector,
     Vector,
@@ -285,12 +452,16 @@ def center_objects(
     )
 
 
-# ---------------------------------------------------------
-# Material
-# ---------------------------------------------------------
+# =========================================================
+# Neutral material
+#
+# Existing visual-preview behavior.
+# =========================================================
 
 def ensure_preview_material(
-    objects: list[bpy.types.Object],
+    objects: list[
+        bpy.types.Object
+    ],
 ) -> None:
     material = (
         bpy.data.materials.new(
@@ -324,9 +495,78 @@ def ensure_preview_material(
         )
 
 
-# ---------------------------------------------------------
+# =========================================================
+# Material validation
+# =========================================================
+
+def validate_preserved_materials(
+    objects: list[
+        bpy.types.Object
+    ],
+) -> None:
+    """
+    A comparison render should never silently become a
+    neutral/white mesh because the GLB lost its material.
+
+    Vertex-color and texture implementations both require at
+    least one actual Blender material after GLTF import.
+    """
+
+    mesh_objects = [
+        obj
+        for obj
+        in objects
+        if obj.type == "MESH"
+    ]
+
+    if not mesh_objects:
+        raise RuntimeError(
+            "No mesh object to validate."
+        )
+
+    material_count = sum(
+        1
+        for obj
+        in mesh_objects
+        for material
+        in obj.data.materials
+        if material is not None
+    )
+
+    if material_count <= 0:
+        raise RuntimeError(
+            (
+                "--preserve-material was requested, "
+                "but imported GLB contains no material."
+            )
+        )
+
+
+# =========================================================
 # Camera
-# ---------------------------------------------------------
+# =========================================================
+
+def look_at(
+    obj: bpy.types.Object,
+    target: Vector,
+) -> None:
+    direction = (
+        target
+        - obj.location
+    )
+
+    if direction.length == 0.0:
+        return
+
+    obj.rotation_euler = (
+        direction
+        .to_track_quat(
+            "-Z",
+            "Y",
+        )
+        .to_euler()
+    )
+
 
 def create_camera(
     *,
@@ -406,31 +646,9 @@ def create_camera(
     return camera
 
 
-def look_at(
-    obj: bpy.types.Object,
-    target: Vector,
-) -> None:
-    direction = (
-        target
-        - obj.location
-    )
-
-    if direction.length == 0.0:
-        return
-
-    obj.rotation_euler = (
-        direction
-        .to_track_quat(
-            "-Z",
-            "Y",
-        )
-        .to_euler()
-    )
-
-
-# ---------------------------------------------------------
+# =========================================================
 # Lighting
-# ---------------------------------------------------------
+# =========================================================
 
 def create_area_light(
     *,
@@ -532,9 +750,9 @@ def setup_lighting(
     )
 
 
-# ---------------------------------------------------------
-# Render setup
-# ---------------------------------------------------------
+# =========================================================
+# Render
+# =========================================================
 
 def setup_render(
     *,
@@ -594,6 +812,18 @@ def setup_render(
         True
     )
 
+    # -----------------------------------------------------
+    # Keep display transform stable between implementations.
+    # -----------------------------------------------------
+
+    try:
+        scene.view_settings.look = (
+            "Medium High Contrast"
+        )
+
+    except Exception:
+        pass
+
     world = (
         scene.world
     )
@@ -620,17 +850,22 @@ def setup_render(
     )
 
     print(
-        f"Cycles samples: {scene.cycles.samples}"
+        (
+            "Cycles samples: "
+            f"{scene.cycles.samples}"
+        )
     )
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Views
-# ---------------------------------------------------------
+# =========================================================
 
 def view_angles(
     count: int,
-) -> list[float]:
+) -> list[
+    float
+]:
     return [
         (
             2.0
@@ -638,7 +873,8 @@ def view_angles(
             * index
             / count
         )
-        for index in range(
+        for index
+        in range(
             count
         )
     ]
@@ -676,10 +912,12 @@ def place_camera(
             angle
         )
         * distance,
+
         -math.cos(
             angle
         )
         * distance,
+
         height,
     )
 
@@ -696,7 +934,9 @@ def render_views(
     model_size: Vector,
     output_dir: Path,
     views: int,
-) -> list[Path]:
+) -> list[
+    Path
+]:
     scene = (
         bpy.context.scene
     )
@@ -715,11 +955,16 @@ def render_views(
         Path
     ] = []
 
-    angles = view_angles(
-        views
+    angles = (
+        view_angles(
+            views
+        )
     )
 
-    for index, angle in enumerate(
+    for (
+        index,
+        angle,
+    ) in enumerate(
         angles
     ):
         degrees = round(
@@ -746,7 +991,7 @@ def render_views(
 
         print(
             (
-                f"Rendering view "
+                "Rendering view "
                 f"{degrees:03d}"
             )
         )
@@ -770,12 +1015,14 @@ def render_views(
     return outputs
 
 
-# ---------------------------------------------------------
+# =========================================================
 # Contact sheet
-# ---------------------------------------------------------
+# =========================================================
 
 def build_contact_sheet(
-    image_paths: list[Path],
+    image_paths: list[
+        Path
+    ],
     output_path: Path,
 ) -> None:
     if not image_paths:
@@ -788,7 +1035,9 @@ def build_contact_sheet(
     ] = []
 
     try:
-        for path in image_paths:
+        for path in (
+            image_paths
+        ):
             image = (
                 bpy.data.images.load(
                     str(
@@ -812,13 +1061,35 @@ def build_contact_sheet(
             images[0].size[1]
         )
 
+        for image in images:
+            if (
+                int(
+                    image.size[0]
+                )
+                != tile_width
+                or int(
+                    image.size[1]
+                )
+                != tile_height
+            ):
+                raise RuntimeError(
+                    (
+                        "Turntable still dimensions "
+                        "are inconsistent."
+                    )
+                )
+
         columns = min(
             4,
-            len(images),
+            len(
+                images
+            ),
         )
 
         rows = (
-            len(images)
+            len(
+                images
+            )
             + columns
             - 1
         ) // columns
@@ -836,7 +1107,9 @@ def build_contact_sheet(
         sheet_pixels = (
             array(
                 "f",
-                [0.0],
+                [
+                    0.0
+                ],
             )
             * (
                 sheet_width
@@ -856,13 +1129,18 @@ def build_contact_sheet(
             * 4
         )
 
-        for index, image in enumerate(
+        for (
+            index,
+            image,
+        ) in enumerate(
             images
         ):
             pixels = (
                 array(
                     "f",
-                    [0.0],
+                    [
+                        0.0
+                    ],
                 )
                 * tile_values
             )
@@ -924,16 +1202,29 @@ def build_contact_sheet(
                 sheet_pixels[
                     destination_start:
                     destination_end
-                ] = pixels[
-                    source_start:
-                    source_end
-                ]
+                ] = (
+                    pixels[
+                        source_start:
+                        source_end
+                    ]
+                )
+
+        output_path.parent.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
         contact = (
             bpy.data.images.new(
-                name="BPT_ContactSheet",
-                width=sheet_width,
-                height=sheet_height,
+                name=(
+                    "BPT_ContactSheet"
+                ),
+                width=(
+                    sheet_width
+                ),
+                height=(
+                    sheet_height
+                ),
                 alpha=True,
             )
         )
@@ -959,45 +1250,72 @@ def build_contact_sheet(
             )
 
     finally:
-        for image in images:
-            if image.name in bpy.data.images:
+        for image in (
+            images
+        ):
+            if (
+                image.name
+                in bpy.data.images
+            ):
                 bpy.data.images.remove(
                     image
                 )
 
 
-# ---------------------------------------------------------
-# Main
-# ---------------------------------------------------------
+# =========================================================
+# Reusable API
+# =========================================================
 
-def main() -> None:
-    args = parse_args()
+def render_turntable(
+    input_path: Path,
+    output_dir: Path,
+    *,
+    views: int,
+    size: int,
+    samples: int,
+    keep_stills: bool,
+    preserve_material: bool,
+) -> Path:
+    """
+    Reusable entry point for both:
+
+        visual_preview.yml
+        material comparison
+
+    Existing callers get the historical neutral renderer
+    when preserve_material=False.
+
+    Material diagnostics use preserve_material=True.
+    """
 
     if not (
         4
-        <= args.views
+        <= views
         <= 16
     ):
         raise ValueError(
-            "views must be between 4 and 16"
+            (
+                "views must be "
+                "between 4 and 16"
+            )
         )
 
-    if args.size < 128:
+    if size < 128:
         raise ValueError(
             "size must be >= 128"
         )
 
-    if args.samples < 1:
+    if samples < 1:
         raise ValueError(
             "samples must be >= 1"
         )
 
     input_path = (
-        args.input.resolve()
+        input_path.resolve()
     )
 
     output_dir = (
-        args.output.resolve()
+        output_dir.resolve()
     )
 
     output_dir.mkdir(
@@ -1007,24 +1325,60 @@ def main() -> None:
 
     clear_scene()
 
-    objects = import_glb(
-        input_path
+    objects = (
+        import_glb(
+            input_path
+        )
     )
+
+    material_summary = (
+        imported_material_summary(
+            objects
+        )
+    )
+
+    print_material_summary(
+        material_summary
+    )
+
+    if preserve_material:
+        validate_preserved_materials(
+            objects
+        )
+
+        print(
+            (
+                "Material mode: "
+                "PRESERVE IMPORTED"
+            )
+        )
+
+    else:
+        ensure_preview_material(
+            objects
+        )
+
+        print(
+            (
+                "Material mode: "
+                "NEUTRAL PREVIEW OVERRIDE"
+            )
+        )
 
     (
         target,
         model_size,
-    ) = center_objects(
-        objects
+    ) = (
+        center_objects(
+            objects
+        )
     )
 
-    ensure_preview_material(
-        objects
-    )
-
-    camera = create_camera(
-        target=target,
-        model_size=model_size,
+    camera = (
+        create_camera(
+            target=target,
+            model_size=model_size,
+        )
     )
 
     setup_lighting(
@@ -1032,16 +1386,18 @@ def main() -> None:
     )
 
     setup_render(
-        size=args.size,
-        samples=args.samples,
+        size=size,
+        samples=samples,
     )
 
-    stills = render_views(
-        camera=camera,
-        target=target,
-        model_size=model_size,
-        output_dir=output_dir,
-        views=args.views,
+    stills = (
+        render_views(
+            camera=camera,
+            target=target,
+            model_size=model_size,
+            output_dir=output_dir,
+            views=views,
+        )
     )
 
     contact_path = (
@@ -1056,10 +1412,13 @@ def main() -> None:
 
     if not contact_path.exists():
         raise RuntimeError(
-            "Contact sheet was not generated."
+            (
+                "Contact sheet was "
+                "not generated."
+            )
         )
 
-    if not args.keep_stills:
+    if not keep_stills:
         stills_dir = (
             output_dir
             / "stills"
@@ -1069,6 +1428,42 @@ def main() -> None:
             shutil.rmtree(
                 stills_dir
             )
+
+    return (
+        contact_path
+    )
+
+
+# =========================================================
+# Main
+# =========================================================
+
+def main() -> None:
+    args = (
+        parse_args()
+    )
+
+    contact_path = (
+        render_turntable(
+            args.input,
+            args.output,
+            views=(
+                args.views
+            ),
+            size=(
+                args.size
+            ),
+            samples=(
+                args.samples
+            ),
+            keep_stills=(
+                args.keep_stills
+            ),
+            preserve_material=(
+                args.preserve_material
+            ),
+        )
+    )
 
     print(
         (

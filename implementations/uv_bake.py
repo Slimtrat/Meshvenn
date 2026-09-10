@@ -7,8 +7,12 @@ from typing import Any
 
 import bpy
 
-from ..core.material_blend import MaterialBlendConfig
-from ..core.material_visibility import MeshVisibilityTester
+from ..core.material_blend import (
+    MaterialBlendConfig,
+)
+from ..core.material_visibility import (
+    MeshVisibilityTester,
+)
 from ..core.pipeline_contracts import (
     ImplementationAvailability,
     ImplementationDescriptor,
@@ -39,9 +43,14 @@ from .native_visual_hull import (
 # Constants
 # =========================================================
 
-IMPLEMENTATION_ID = "uv-bake-v2"
+IMPLEMENTATION_ID = (
+    "uv-bake-v2"
+)
 
-MATERIAL_MODE = "uv-bake-v2"
+MATERIAL_MODE = (
+    "uv-bake-v2"
+)
+
 
 DEFAULT_TEXTURE_SIZE = 1024
 
@@ -49,13 +58,46 @@ DEFAULT_PADDING_PIXELS = 8
 
 DEFAULT_SAMPLES_PER_AXIS = 1
 
-DEFAULT_UV_LAYER_NAME = "MeshvennUV"
+DEFAULT_UV_LAYER_NAME = (
+    "MeshvennUV"
+)
+
+
+# ---------------------------------------------------------
+# Smart Project margin
+#
+# Blender's FRACTION margin is expressed in UV-space.
+#
+# A value such as:
+#
+#     0.02
+#
+# therefore consumes a very large part of the atlas when
+# thousands of islands exist.
+#
+# UV Bake already performs its own post-bake color dilation,
+# so Smart Project only needs enough spacing to keep islands
+# distinct.
+#
+# We cap Smart Project spacing to half a texture texel:
+#
+#     256  -> 0.001953125
+#     1024 -> 0.00048828125
+#     4096 -> 0.0001220703125
+#
+# The user-provided fraction remains a MAXIMUM. A smaller
+# requested value is respected.
+# ---------------------------------------------------------
 
 DEFAULT_ISLAND_MARGIN = 0.02
+
+MAX_SMART_PROJECT_MARGIN_TEXELS = 0.5
+
 
 DEFAULT_ANGLE_LIMIT_DEGREES = 66.0
 
 DEFAULT_REUSE_EXISTING_UV = False
+
 
 DEFAULT_ENABLE_VISIBILITY = True
 
@@ -71,6 +113,7 @@ DEFAULT_MAX_CONTRIBUTORS = 3
 
 DEFAULT_WEIGHT_POWER = 1.5
 
+
 DEFAULT_ROUGHNESS = 0.65
 
 
@@ -80,15 +123,25 @@ DEFAULT_ROUGHNESS = 0.65
 
 @dataclass(frozen=True)
 class UVBakeMaterialConfig:
-    texture_size: int = DEFAULT_TEXTURE_SIZE
+    texture_size: int = (
+        DEFAULT_TEXTURE_SIZE
+    )
 
-    padding_pixels: int = DEFAULT_PADDING_PIXELS
+    padding_pixels: int = (
+        DEFAULT_PADDING_PIXELS
+    )
 
-    samples_per_axis: int = DEFAULT_SAMPLES_PER_AXIS
+    samples_per_axis: int = (
+        DEFAULT_SAMPLES_PER_AXIS
+    )
 
-    uv_layer_name: str = DEFAULT_UV_LAYER_NAME
+    uv_layer_name: str = (
+        DEFAULT_UV_LAYER_NAME
+    )
 
-    island_margin: float = DEFAULT_ISLAND_MARGIN
+    island_margin: float = (
+        DEFAULT_ISLAND_MARGIN
+    )
 
     angle_limit_degrees: float = (
         DEFAULT_ANGLE_LIMIT_DEGREES
@@ -126,18 +179,28 @@ class UVBakeMaterialConfig:
         DEFAULT_WEIGHT_POWER
     )
 
-    def validate(self) -> None:
+    def validate(
+        self,
+    ) -> None:
         if self.texture_size <= 0:
             raise ValueError(
-                "Texture size must be positive."
+                (
+                    "Texture size must "
+                    "be positive."
+                )
             )
 
         if (
             not self.uv_layer_name
-            or not self.uv_layer_name.strip()
+            or not self
+            .uv_layer_name
+            .strip()
         ):
             raise ValueError(
-                "UV layer name cannot be empty."
+                (
+                    "UV layer name cannot "
+                    "be empty."
+                )
             )
 
         if (
@@ -148,20 +211,25 @@ class UVBakeMaterialConfig:
             or self.island_margin > 1.0
         ):
             raise ValueError(
-                "Island margin must be in [0, 1]."
+                (
+                    "Island margin must "
+                    "be in [0, 1]."
+                )
             )
 
         if (
             not math.isfinite(
                 self.angle_limit_degrees
             )
-            or self.angle_limit_degrees <= 0.0
-            or self.angle_limit_degrees > 90.0
+            or self.angle_limit_degrees
+            <= 0.0
+            or self.angle_limit_degrees
+            > 90.0
         ):
             raise ValueError(
                 (
-                    "Smart-project angle limit must "
-                    "be inside ]0, 90]."
+                    "Smart-project angle limit "
+                    "must be inside ]0, 90]."
                 )
             )
 
@@ -169,11 +237,19 @@ class UVBakeMaterialConfig:
 
         self.to_blend_config().validate()
 
-    def to_bake_config(self) -> UVBakeConfig:
+    def to_bake_config(
+        self,
+    ) -> UVBakeConfig:
         return UVBakeConfig(
-            width=self.texture_size,
-            height=self.texture_size,
-            padding_pixels=self.padding_pixels,
+            width=(
+                self.texture_size
+            ),
+            height=(
+                self.texture_size
+            ),
+            padding_pixels=(
+                self.padding_pixels
+            ),
             samples_per_axis=(
                 self.samples_per_axis
             ),
@@ -190,16 +266,239 @@ class UVBakeMaterialConfig:
         self,
     ) -> MaterialBlendConfig:
         return MaterialBlendConfig(
-            min_facing=self.min_facing,
-            facing_power=self.facing_power,
+            min_facing=(
+                self.min_facing
+            ),
+            facing_power=(
+                self.facing_power
+            ),
             relative_score_cutoff=(
                 self.relative_score_cutoff
             ),
             max_contributors=(
                 self.max_contributors
             ),
-            weight_power=self.weight_power,
+            weight_power=(
+                self.weight_power
+            ),
         )
+
+    @property
+    def maximum_smart_project_margin_fraction(
+        self,
+    ) -> float:
+        """
+        Maximum safe Smart Project margin for the chosen
+        texture resolution.
+
+        This converts a texture-space margin to the FRACTION
+        unit expected by Blender Smart Project.
+        """
+
+        return (
+            MAX_SMART_PROJECT_MARGIN_TEXELS
+            / float(
+                self.texture_size
+            )
+        )
+
+    @property
+    def effective_island_margin_fraction(
+        self,
+    ) -> float:
+        """
+        Effective margin sent to Blender Smart Project.
+
+        The public `island_margin` setting remains supported,
+        but can no longer accidentally collapse a dense UV
+        atlas.
+        """
+
+        return min(
+            float(
+                self.island_margin
+            ),
+            self
+            .maximum_smart_project_margin_fraction,
+        )
+
+    @property
+    def effective_island_margin_pixels(
+        self,
+    ) -> float:
+        return (
+            self
+            .effective_island_margin_fraction
+            * float(
+                self.texture_size
+            )
+        )
+
+
+# =========================================================
+# UV diagnostics
+# =========================================================
+
+@dataclass(frozen=True)
+class UVLayoutDiagnostics:
+    triangle_count: int
+
+    total_uv_area: float
+
+    minimum_triangle_uv_area: float
+
+    mean_triangle_uv_area: float
+
+    maximum_triangle_uv_area: float
+
+    total_texture_area_pixels: float
+
+    minimum_triangle_area_pixels: float
+
+    mean_triangle_area_pixels: float
+
+    maximum_triangle_area_pixels: float
+
+    subpixel_triangle_count: int
+
+    @property
+    def subpixel_triangle_ratio(
+        self,
+    ) -> float:
+        if self.triangle_count <= 0:
+            return 0.0
+
+        return (
+            float(
+                self.subpixel_triangle_count
+            )
+            / float(
+                self.triangle_count
+            )
+        )
+
+
+def _uv_layout_diagnostics(
+    triangles: tuple[
+        UVBakeTriangle,
+        ...
+    ],
+    *,
+    texture_size: int,
+) -> UVLayoutDiagnostics:
+    if not triangles:
+        raise ValueError(
+            (
+                "Cannot inspect an empty "
+                "UV triangle collection."
+            )
+        )
+
+    areas = [
+        float(
+            triangle.absolute_uv_area
+        )
+        for triangle
+        in triangles
+    ]
+
+    triangle_count = len(
+        areas
+    )
+
+    total_uv_area = sum(
+        areas
+    )
+
+    minimum_uv_area = min(
+        areas
+    )
+
+    maximum_uv_area = max(
+        areas
+    )
+
+    mean_uv_area = (
+        total_uv_area
+        / float(
+            triangle_count
+        )
+    )
+
+    texture_pixels = (
+        float(
+            texture_size
+        )
+        * float(
+            texture_size
+        )
+    )
+
+    pixel_areas = [
+        area
+        * texture_pixels
+        for area
+        in areas
+    ]
+
+    subpixel_count = sum(
+        1
+        for area
+        in pixel_areas
+        if area < 1.0
+    )
+
+    return UVLayoutDiagnostics(
+        triangle_count=(
+            triangle_count
+        ),
+
+        total_uv_area=(
+            total_uv_area
+        ),
+
+        minimum_triangle_uv_area=(
+            minimum_uv_area
+        ),
+
+        mean_triangle_uv_area=(
+            mean_uv_area
+        ),
+
+        maximum_triangle_uv_area=(
+            maximum_uv_area
+        ),
+
+        total_texture_area_pixels=(
+            total_uv_area
+            * texture_pixels
+        ),
+
+        minimum_triangle_area_pixels=(
+            min(
+                pixel_areas
+            )
+        ),
+
+        mean_triangle_area_pixels=(
+            sum(
+                pixel_areas
+            )
+            / float(
+                triangle_count
+            )
+        ),
+
+        maximum_triangle_area_pixels=(
+            max(
+                pixel_areas
+            )
+        ),
+
+        subpixel_triangle_count=(
+            subpixel_count
+        ),
+    )
 
 
 # =========================================================
@@ -235,11 +534,17 @@ class UVBakeMaterialOutput:
     config: UVBakeMaterialConfig
 
     @property
-    def texture_size(self) -> int:
-        return self.config.texture_size
+    def texture_size(
+        self,
+    ) -> int:
+        return (
+            self.config.texture_size
+        )
 
     @property
-    def covered_pixels(self) -> int:
+    def covered_pixels(
+        self,
+    ) -> int:
         return (
             self.bake_result
             .stats
@@ -247,7 +552,9 @@ class UVBakeMaterialOutput:
         )
 
     @property
-    def padded_pixels(self) -> int:
+    def padded_pixels(
+        self,
+    ) -> int:
         return (
             self.bake_result
             .stats
@@ -255,7 +562,9 @@ class UVBakeMaterialOutput:
         )
 
     @property
-    def coverage_ratio(self) -> float:
+    def coverage_ratio(
+        self,
+    ) -> float:
         return (
             self.bake_result
             .stats
@@ -286,8 +595,10 @@ def _resolve_settings(
 def require_uv_bake_output(
     context: PipelineContext,
 ) -> UVBakeMaterialOutput:
-    output = context.require_output(
-        PipelineStage.MATERIAL
+    output = (
+        context.require_output(
+            PipelineStage.MATERIAL
+        )
     )
 
     if not isinstance(
@@ -298,7 +609,8 @@ def require_uv_bake_output(
             (
                 "MATERIAL output is not "
                 "UVBakeMaterialOutput. "
-                f"Received {type(output).__name__}."
+                "Received "
+                f"{type(output).__name__}."
             )
         )
 
@@ -306,10 +618,7 @@ def require_uv_bake_output(
 
 
 # =========================================================
-# Optional setting reader
-#
-# These properties do not all exist in properties.py yet.
-# Until they are added, V2 runs with stable defaults.
+# Settings
 # =========================================================
 
 def _read_setting(
@@ -330,105 +639,120 @@ def _read_setting(
 def _config_from_settings(
     settings: Any,
 ) -> UVBakeMaterialConfig:
-    config = UVBakeMaterialConfig(
-        texture_size=int(
-            _read_setting(
-                settings,
-                "uv_bake_texture_size",
-                DEFAULT_TEXTURE_SIZE,
-            )
-        ),
-        padding_pixels=int(
-            _read_setting(
-                settings,
-                "uv_bake_padding_pixels",
-                DEFAULT_PADDING_PIXELS,
-            )
-        ),
-        samples_per_axis=int(
-            _read_setting(
-                settings,
-                "uv_bake_samples_per_axis",
-                DEFAULT_SAMPLES_PER_AXIS,
-            )
-        ),
-        uv_layer_name=str(
-            _read_setting(
-                settings,
-                "uv_bake_uv_layer_name",
-                DEFAULT_UV_LAYER_NAME,
-            )
-        ).strip(),
-        island_margin=float(
-            _read_setting(
-                settings,
-                "uv_bake_island_margin",
-                DEFAULT_ISLAND_MARGIN,
-            )
-        ),
-        angle_limit_degrees=float(
-            _read_setting(
-                settings,
-                "uv_bake_angle_limit_degrees",
-                DEFAULT_ANGLE_LIMIT_DEGREES,
-            )
-        ),
-        reuse_existing_uv=bool(
-            _read_setting(
-                settings,
-                "uv_bake_reuse_existing_uv",
-                DEFAULT_REUSE_EXISTING_UV,
-            )
-        ),
-        enable_visibility=bool(
-            _read_setting(
-                settings,
-                "material_enable_visibility",
-                DEFAULT_ENABLE_VISIBILITY,
-            )
-        ),
-        allow_backface_fallback=bool(
-            _read_setting(
-                settings,
-                "material_allow_backface_fallback",
-                DEFAULT_ALLOW_BACKFACE_FALLBACK,
-            )
-        ),
-        min_facing=float(
-            _read_setting(
-                settings,
-                "material_min_facing",
-                DEFAULT_MIN_FACING,
-            )
-        ),
-        facing_power=float(
-            _read_setting(
-                settings,
-                "material_facing_power",
-                DEFAULT_FACING_POWER,
-            )
-        ),
-        relative_score_cutoff=float(
-            _read_setting(
-                settings,
-                "material_relative_score_cutoff",
-                DEFAULT_RELATIVE_SCORE_CUTOFF,
-            )
-        ),
-        max_contributors=int(
-            _read_setting(
-                settings,
-                "material_max_contributors",
-                DEFAULT_MAX_CONTRIBUTORS,
-            )
-        ),
-        weight_power=float(
-            _read_setting(
-                settings,
-                "material_weight_power",
-                DEFAULT_WEIGHT_POWER,
-            )
-        ),
+    config = (
+        UVBakeMaterialConfig(
+            texture_size=int(
+                _read_setting(
+                    settings,
+                    "uv_bake_texture_size",
+                    DEFAULT_TEXTURE_SIZE,
+                )
+            ),
+
+            padding_pixels=int(
+                _read_setting(
+                    settings,
+                    "uv_bake_padding_pixels",
+                    DEFAULT_PADDING_PIXELS,
+                )
+            ),
+
+            samples_per_axis=int(
+                _read_setting(
+                    settings,
+                    "uv_bake_samples_per_axis",
+                    DEFAULT_SAMPLES_PER_AXIS,
+                )
+            ),
+
+            uv_layer_name=str(
+                _read_setting(
+                    settings,
+                    "uv_bake_uv_layer_name",
+                    DEFAULT_UV_LAYER_NAME,
+                )
+            ).strip(),
+
+            island_margin=float(
+                _read_setting(
+                    settings,
+                    "uv_bake_island_margin",
+                    DEFAULT_ISLAND_MARGIN,
+                )
+            ),
+
+            angle_limit_degrees=float(
+                _read_setting(
+                    settings,
+                    "uv_bake_angle_limit_degrees",
+                    DEFAULT_ANGLE_LIMIT_DEGREES,
+                )
+            ),
+
+            reuse_existing_uv=bool(
+                _read_setting(
+                    settings,
+                    "uv_bake_reuse_existing_uv",
+                    DEFAULT_REUSE_EXISTING_UV,
+                )
+            ),
+
+            enable_visibility=bool(
+                _read_setting(
+                    settings,
+                    "material_enable_visibility",
+                    DEFAULT_ENABLE_VISIBILITY,
+                )
+            ),
+
+            allow_backface_fallback=bool(
+                _read_setting(
+                    settings,
+                    "material_allow_backface_fallback",
+                    DEFAULT_ALLOW_BACKFACE_FALLBACK,
+                )
+            ),
+
+            min_facing=float(
+                _read_setting(
+                    settings,
+                    "material_min_facing",
+                    DEFAULT_MIN_FACING,
+                )
+            ),
+
+            facing_power=float(
+                _read_setting(
+                    settings,
+                    "material_facing_power",
+                    DEFAULT_FACING_POWER,
+                )
+            ),
+
+            relative_score_cutoff=float(
+                _read_setting(
+                    settings,
+                    "material_relative_score_cutoff",
+                    DEFAULT_RELATIVE_SCORE_CUTOFF,
+                )
+            ),
+
+            max_contributors=int(
+                _read_setting(
+                    settings,
+                    "material_max_contributors",
+                    DEFAULT_MAX_CONTRIBUTORS,
+                )
+            ),
+
+            weight_power=float(
+                _read_setting(
+                    settings,
+                    "material_weight_power",
+                    DEFAULT_WEIGHT_POWER,
+                )
+            ),
+        )
     )
 
     config.validate()
@@ -443,43 +767,75 @@ def _config_from_settings(
 def _validate_geometry(
     geometry: NativeVisualHullOutput,
 ) -> None:
-    obj = geometry.blender_object
+    obj = (
+        geometry.blender_object
+    )
 
     if obj is None:
         raise ValueError(
-            "Geometry object is missing."
+            (
+                "Geometry object is "
+                "missing."
+            )
         )
 
     if obj.type != "MESH":
         raise TypeError(
-            "UV Bake requires a mesh object."
+            (
+                "UV Bake requires "
+                "a mesh object."
+            )
         )
 
-    mesh = obj.data
+    mesh = (
+        obj.data
+    )
 
     if mesh is None:
         raise ValueError(
-            "Geometry mesh data is missing."
+            (
+                "Geometry mesh data "
+                "is missing."
+            )
         )
 
     mesh.update()
 
-    if len(mesh.vertices) == 0:
+    if len(
+        mesh.vertices
+    ) == 0:
         raise ValueError(
-            "Geometry contains no vertices."
+            (
+                "Geometry contains "
+                "no vertices."
+            )
         )
 
-    if len(mesh.polygons) == 0:
+    if len(
+        mesh.polygons
+    ) == 0:
         raise ValueError(
-            "Geometry contains no polygons."
+            (
+                "Geometry contains "
+                "no polygons."
+            )
         )
 
-    if len(mesh.loops) == 0:
+    if len(
+        mesh.loops
+    ) == 0:
         raise ValueError(
-            "Geometry contains no loops."
+            (
+                "Geometry contains "
+                "no loops."
+            )
         )
 
-    if not geometry.source.material_views:
+    if not (
+        geometry
+        .source
+        .material_views
+    ):
         raise ValueError(
             (
                 "No source material views "
@@ -496,17 +852,23 @@ def _ensure_named_uv_layer(
     mesh: bpy.types.Mesh,
     name: str,
 ):
-    layer = mesh.uv_layers.get(
-        name
+    layer = (
+        mesh.uv_layers.get(
+            name
+        )
     )
 
     if layer is None:
-        layer = mesh.uv_layers.new(
-            name=name,
-            do_init=False,
+        layer = (
+            mesh.uv_layers.new(
+                name=name,
+                do_init=False,
+            )
         )
 
-    mesh.uv_layers.active = layer
+    mesh.uv_layers.active = (
+        layer
+    )
 
     try:
         layer.active_render = True
@@ -540,16 +902,29 @@ def _restore_object_selection(
     except Exception:
         pass
 
-    for item in view_layer.objects:
+    for item in (
+        view_layer.objects
+    ):
         try:
-            item.select_set(False)
+            item.select_set(
+                False
+            )
+
         except Exception:
             pass
 
-    for item in previous_selected:
+    for item in (
+        previous_selected
+    ):
         try:
-            if item.name in view_layer.objects:
-                item.select_set(True)
+            if (
+                item.name
+                in view_layer.objects
+            ):
+                item.select_set(
+                    True
+                )
+
         except Exception:
             pass
 
@@ -563,9 +938,14 @@ def _restore_object_selection(
                 previous_active
             )
 
-            if previous_mode != "OBJECT":
+            if (
+                previous_mode
+                != "OBJECT"
+            ):
                 bpy.ops.object.mode_set(
-                    mode=previous_mode
+                    mode=(
+                        previous_mode
+                    )
                 )
 
     except Exception:
@@ -582,12 +962,16 @@ def _smart_project_uv(
     """
     Create/rebuild the UV map using Blender Smart Project.
 
-    Selection and active-object state are restored after the
-    operation so pipeline execution does not unnecessarily
-    disturb the user's scene.
+    `island_margin` must already be expressed as the FRACTION
+    value to send to Blender.
+
+    The caller is responsible for converting texture-space
+    safety constraints to this fraction.
     """
 
-    mesh = obj.data
+    mesh = (
+        obj.data
+    )
 
     view_layer = (
         bpy.context.view_layer
@@ -614,7 +998,8 @@ def _smart_project_uv(
 
     previous_mode = (
         previous_active.mode
-        if previous_active is not None
+        if previous_active
+        is not None
         else "OBJECT"
     )
 
@@ -628,9 +1013,14 @@ def _smart_project_uv(
                 mode="OBJECT"
             )
 
-        for item in view_layer.objects:
+        for item in (
+            view_layer.objects
+        ):
             try:
-                item.select_set(False)
+                item.select_set(
+                    False
+                )
+
             except Exception:
                 pass
 
@@ -638,7 +1028,9 @@ def _smart_project_uv(
             True
         )
 
-        view_layer.objects.active = obj
+        view_layer.objects.active = (
+            obj
+        )
 
         uv_layer = (
             _ensure_named_uv_layer(
@@ -660,17 +1052,27 @@ def _smart_project_uv(
                 angle_limit=math.radians(
                     angle_limit_degrees
                 ),
-                margin_method="FRACTION",
+
+                margin_method=(
+                    "FRACTION"
+                ),
+
                 island_margin=(
                     island_margin
                 ),
+
                 area_weight=0.0,
+
                 correct_aspect=True,
+
                 scale_to_bounds=True,
             )
         )
 
-        if "FINISHED" not in result:
+        if (
+            "FINISHED"
+            not in result
+        ):
             raise RuntimeError(
                 (
                     "Blender Smart UV Project "
@@ -706,6 +1108,7 @@ def _smart_project_uv(
             resolved_layer.active_render = (
                 True
             )
+
         except Exception:
             pass
 
@@ -724,10 +1127,14 @@ def _resolve_uv_layer(
     obj: bpy.types.Object,
     config: UVBakeMaterialConfig,
 ):
-    mesh = obj.data
+    mesh = (
+        obj.data
+    )
 
     if config.reuse_existing_uv:
-        layer = mesh.uv_layers.active
+        layer = (
+            mesh.uv_layers.active
+        )
 
         if layer is None:
             raise ValueError(
@@ -739,6 +1146,7 @@ def _resolve_uv_layer(
 
         try:
             layer.active_render = True
+
         except Exception:
             pass
 
@@ -746,20 +1154,32 @@ def _resolve_uv_layer(
 
     return _smart_project_uv(
         obj,
+
         uv_layer_name=(
             config.uv_layer_name
         ),
+
+        # -------------------------------------------------
+        # Critical V2 fix.
+        #
+        # Never send the raw 0.02-style fraction directly
+        # to Smart Project on dense generated meshes.
+        # -------------------------------------------------
+
         island_margin=(
-            config.island_margin
+            config
+            .effective_island_margin_fraction
         ),
+
         angle_limit_degrees=(
-            config.angle_limit_degrees
+            config
+            .angle_limit_degrees
         ),
     )
 
 
 # =========================================================
-# Blender mesh -> pure UV bake triangles
+# Blender mesh -> UV bake triangles
 # =========================================================
 
 def _vector3_tuple(
@@ -770,9 +1190,15 @@ def _vector3_tuple(
     float,
 ]:
     return (
-        float(value[0]),
-        float(value[1]),
-        float(value[2]),
+        float(
+            value[0]
+        ),
+        float(
+            value[1]
+        ),
+        float(
+            value[2]
+        ),
     )
 
 
@@ -783,8 +1209,12 @@ def _vector2_tuple(
     float,
 ]:
     return (
-        float(value[0]),
-        float(value[1]),
+        float(
+            value[0]
+        ),
+        float(
+            value[1]
+        ),
     )
 
 
@@ -800,14 +1230,16 @@ def _corner_normal(
     float,
 ]:
     # -----------------------------------------------------
-    # Blender 5.x corner normals.
+    # Blender 5.x corner normals
     # -----------------------------------------------------
 
     try:
         if (
             mesh.corner_normals
             and loop_index
-            < len(mesh.corner_normals)
+            < len(
+                mesh.corner_normals
+            )
         ):
             normal = (
                 mesh.corner_normals[
@@ -815,16 +1247,21 @@ def _corner_normal(
                 ].vector
             )
 
-            if normal.length_squared > 1e-12:
-                return _vector3_tuple(
-                    normal
+            if (
+                normal.length_squared
+                > 1e-12
+            ):
+                return (
+                    _vector3_tuple(
+                        normal
+                    )
                 )
 
     except Exception:
         pass
 
     # -----------------------------------------------------
-    # Vertex normal fallback.
+    # Vertex normal fallback
     # -----------------------------------------------------
 
     try:
@@ -834,16 +1271,21 @@ def _corner_normal(
             ].vector
         )
 
-        if normal.length_squared > 1e-12:
-            return _vector3_tuple(
-                normal
+        if (
+            normal.length_squared
+            > 1e-12
+        ):
+            return (
+                _vector3_tuple(
+                    normal
+                )
             )
 
     except Exception:
         pass
 
     # -----------------------------------------------------
-    # Polygon normal fallback.
+    # Polygon normal fallback
     # -----------------------------------------------------
 
     try:
@@ -853,9 +1295,14 @@ def _corner_normal(
             ].vector
         )
 
-        if normal.length_squared > 1e-12:
-            return _vector3_tuple(
-                normal
+        if (
+            normal.length_squared
+            > 1e-12
+        ):
+            return (
+                _vector3_tuple(
+                    normal
+                )
             )
 
     except Exception:
@@ -864,7 +1311,7 @@ def _corner_normal(
     raise ValueError(
         (
             "Could not resolve a valid "
-            f"surface normal for loop "
+            "surface normal for loop "
             f"{loop_index}."
         )
     )
@@ -890,8 +1337,10 @@ def _read_uv(
             ].vector
         )
 
-        return _vector2_tuple(
-            value
+        return (
+            _vector2_tuple(
+                value
+            )
         )
 
     except Exception:
@@ -901,8 +1350,10 @@ def _read_uv(
             ].uv
         )
 
-        return _vector2_tuple(
-            value
+        return (
+            _vector2_tuple(
+                value
+            )
         )
 
 
@@ -913,7 +1364,9 @@ def _build_uv_triangles(
     UVBakeTriangle,
     ...
 ]:
-    mesh = obj.data
+    mesh = (
+        obj.data
+    )
 
     mesh.update()
 
@@ -927,12 +1380,16 @@ def _build_uv_triangles(
         mesh.loop_triangles
     ):
         loop_indices = tuple(
-            int(index)
+            int(
+                index
+            )
             for index
             in loop_triangle.loops
         )
 
-        if len(loop_indices) != 3:
+        if len(
+            loop_indices
+        ) != 3:
             continue
 
         vertices: list[
@@ -965,23 +1422,26 @@ def _build_uv_triangles(
                             vertex.co
                         )
                     ),
+
                     normal=(
                         _corner_normal(
                             mesh,
+
                             loop_index=(
                                 loop_index
                             ),
+
                             vertex_index=(
                                 vertex_index
                             ),
-                            polygon_index=(
-                                int(
-                                    loop_triangle
-                                    .polygon_index
-                                )
+
+                            polygon_index=int(
+                                loop_triangle
+                                .polygon_index
                             ),
                         )
                     ),
+
                     uv=(
                         _read_uv(
                             uv_layer,
@@ -993,9 +1453,18 @@ def _build_uv_triangles(
 
         triangles.append(
             UVBakeTriangle(
-                a=vertices[0],
-                b=vertices[1],
-                c=vertices[2],
+                a=(
+                    vertices[0]
+                ),
+
+                b=(
+                    vertices[1]
+                ),
+
+                c=(
+                    vertices[2]
+                ),
+
                 source_index=int(
                     loop_triangle
                     .polygon_index
@@ -1046,9 +1515,7 @@ def _build_surface_sampler(
 
     if config.enable_visibility:
         # -------------------------------------------------
-        # Critical performance point:
-        #
-        # build one BVH for the COMPLETE bake.
+        # Build one BVH for the COMPLETE bake.
         #
         # Never rebuild visibility per texel.
         # -------------------------------------------------
@@ -1056,7 +1523,8 @@ def _build_surface_sampler(
         visibility_tester = (
             MeshVisibilityTester
             .from_blender_object(
-                geometry.blender_object
+                geometry
+                .blender_object
             )
         )
 
@@ -1074,34 +1542,53 @@ def _build_surface_sampler(
                 position,
                 normal,
                 views,
+
                 width=(
-                    geometry.volume.width
+                    geometry
+                    .volume
+                    .width
                 ),
+
                 depth=(
-                    geometry.volume.depth
+                    geometry
+                    .volume
+                    .depth
                 ),
+
                 height=(
-                    geometry.volume.height
+                    geometry
+                    .volume
+                    .height
                 ),
+
                 voxel_size=(
-                    geometry.voxel_size
+                    geometry
+                    .voxel_size
                 ),
+
                 center_xy=(
-                    geometry.center_xy
+                    geometry
+                    .center_xy
                 ),
+
                 facing_power=(
-                    config.facing_power
+                    config
+                    .facing_power
                 ),
+
                 fallback_color=(
                     DEFAULT_FALLBACK_COLOR
                 ),
+
                 allow_backface_fallback=(
                     config
                     .allow_backface_fallback
                 ),
+
                 visibility_tester=(
                     visibility_tester
                 ),
+
                 blend_config=(
                     blend_config
                 ),
@@ -1109,10 +1596,14 @@ def _build_surface_sampler(
         )
 
         return SurfaceColorSample(
-            color=color,
+            color=(
+                color
+            ),
+
             used_fallback=(
                 used_fallback
             ),
+
             selected_samples=(
                 accepted_samples
             ),
@@ -1136,13 +1627,22 @@ def _create_baked_image(
     image = (
         bpy.data.images.new(
             name=name,
+
             width=(
-                result.texture.width
+                result
+                .texture
+                .width
             ),
+
             height=(
-                result.texture.height
+                result
+                .texture
+                .height
             ),
+
             alpha=True,
+
+            # Portable RGBA8 image.
             float_buffer=False,
         )
     )
@@ -1154,9 +1654,8 @@ def _create_baked_image(
 
         image.update()
 
-        # Pack the generated texture into the .blend so the
-        # result does not immediately depend on an external
-        # file.
+        # Keep generated texture embedded in .blend and
+        # available to glTF export.
         image.pack()
 
     except Exception:
@@ -1182,7 +1681,8 @@ def _create_baked_material(
     material = (
         bpy.data.materials.new(
             name=(
-                f"{obj.name} UV Material V2"
+                f"{obj.name} "
+                "UV Material V2"
             )
         )
     )
@@ -1213,7 +1713,7 @@ def _create_baked_material(
         nodes.clear()
 
         # -------------------------------------------------
-        # UV map
+        # UV
         # -------------------------------------------------
 
         uv_node = nodes.new(
@@ -1238,7 +1738,7 @@ def _create_baked_material(
         )
 
         # -------------------------------------------------
-        # Image
+        # Image texture
         # -------------------------------------------------
 
         image_node = nodes.new(
@@ -1253,7 +1753,9 @@ def _create_baked_material(
             "UV Bake V2"
         )
 
-        image_node.image = image
+        image_node.image = (
+            image
+        )
 
         image_node.interpolation = (
             "Linear"
@@ -1332,6 +1834,7 @@ def _create_baked_material(
             uv_node.outputs[
                 "UV"
             ],
+
             image_node.inputs[
                 "Vector"
             ],
@@ -1341,6 +1844,7 @@ def _create_baked_material(
             image_node.outputs[
                 "Color"
             ],
+
             principled.inputs[
                 "Base Color"
             ],
@@ -1350,6 +1854,7 @@ def _create_baked_material(
             principled.outputs[
                 "BSDF"
             ],
+
             output.inputs[
                 "Surface"
             ],
@@ -1369,7 +1874,9 @@ def _assign_material(
     obj: bpy.types.Object,
     material: bpy.types.Material,
 ) -> None:
-    mesh = obj.data
+    mesh = (
+        obj.data
+    )
 
     mesh.materials.clear()
 
@@ -1385,6 +1892,8 @@ def _assign_material(
 def _write_metadata(
     obj: bpy.types.Object,
     output: UVBakeMaterialOutput,
+    *,
+    layout: UVLayoutDiagnostics,
 ) -> None:
     stats = (
         output
@@ -1392,9 +1901,15 @@ def _write_metadata(
         .stats
     )
 
+    config = (
+        output.config
+    )
+
     obj[
         "meshvenn_material_implementation"
-    ] = IMPLEMENTATION_ID
+    ] = (
+        IMPLEMENTATION_ID
+    )
 
     obj[
         "meshvenn_material_version"
@@ -1402,7 +1917,9 @@ def _write_metadata(
 
     obj[
         "meshvenn_material_mode"
-    ] = MATERIAL_MODE
+    ] = (
+        MATERIAL_MODE
+    )
 
     obj[
         "meshvenn_uv_layer"
@@ -1425,21 +1942,86 @@ def _write_metadata(
     obj[
         "meshvenn_uv_bake_texture_size"
     ] = (
-        output.config.texture_size
+        config.texture_size
     )
 
     obj[
         "meshvenn_uv_bake_padding"
     ] = (
-        output.config.padding_pixels
+        config.padding_pixels
     )
 
     obj[
         "meshvenn_uv_bake_samples_per_axis"
     ] = (
-        output.config
-        .samples_per_axis
+        config.samples_per_axis
     )
+
+    # -----------------------------------------------------
+    # Smart Project diagnostics
+    # -----------------------------------------------------
+
+    obj[
+        "meshvenn_uv_requested_island_margin_fraction"
+    ] = float(
+        config.island_margin
+    )
+
+    obj[
+        "meshvenn_uv_effective_island_margin_fraction"
+    ] = float(
+        config
+        .effective_island_margin_fraction
+    )
+
+    obj[
+        "meshvenn_uv_effective_island_margin_pixels"
+    ] = float(
+        config
+        .effective_island_margin_pixels
+    )
+
+    # -----------------------------------------------------
+    # UV layout diagnostics
+    # -----------------------------------------------------
+
+    obj[
+        "meshvenn_uv_total_area"
+    ] = float(
+        layout.total_uv_area
+    )
+
+    obj[
+        "meshvenn_uv_total_area_pixels"
+    ] = float(
+        layout
+        .total_texture_area_pixels
+    )
+
+    obj[
+        "meshvenn_uv_mean_triangle_area_pixels"
+    ] = float(
+        layout
+        .mean_triangle_area_pixels
+    )
+
+    obj[
+        "meshvenn_uv_subpixel_triangle_count"
+    ] = int(
+        layout
+        .subpixel_triangle_count
+    )
+
+    obj[
+        "meshvenn_uv_subpixel_triangle_ratio"
+    ] = float(
+        layout
+        .subpixel_triangle_ratio
+    )
+
+    # -----------------------------------------------------
+    # Bake diagnostics
+    # -----------------------------------------------------
 
     obj[
         "meshvenn_uv_bake_triangles"
@@ -1485,7 +2067,7 @@ def _write_metadata(
 
 
 # =========================================================
-# UI hook
+# UI
 # =========================================================
 
 def _draw_optional_property(
@@ -1537,18 +2119,27 @@ class UVBakeImplementation:
             identifier=(
                 IMPLEMENTATION_ID
             ),
+
             stage=(
                 PipelineStage.MATERIAL
             ),
-            label="UV Bake V2",
+
+            label=(
+                "UV Bake V2"
+            ),
+
             description=(
                 "Bake visibility-aware multi-view "
                 "projected color into a portable UV "
                 "texture."
             ),
+
             version="2",
+
             experimental=True,
+
             supports_headless=True,
+
             capabilities=(
                 "uv-texture",
                 "smart-unwrap",
@@ -1565,7 +2156,9 @@ class UVBakeImplementation:
     def descriptor(
         self,
     ) -> ImplementationDescriptor:
-        return self._descriptor
+        return (
+            self._descriptor
+        )
 
     # -----------------------------------------------------
     # Availability
@@ -1639,32 +2232,53 @@ class UVBakeImplementation:
                         .blender_object
                         .name
                     ),
-                    "views": (
-                        len(
-                            geometry
-                            .source
-                            .material_views
-                        )
+
+                    "views": len(
+                        geometry
+                        .source
+                        .material_views
                     ),
+
                     "texture_size": (
-                        config.texture_size
+                        config
+                        .texture_size
                     ),
+
                     "padding_pixels": (
-                        config.padding_pixels
+                        config
+                        .padding_pixels
                     ),
+
                     "samples_per_axis": (
-                        config.samples_per_axis
+                        config
+                        .samples_per_axis
                     ),
+
                     "reuse_existing_uv": (
                         config
                         .reuse_existing_uv
+                    ),
+
+                    "requested_island_margin": (
+                        config
+                        .island_margin
+                    ),
+
+                    "effective_island_margin": (
+                        config
+                        .effective_island_margin_fraction
+                    ),
+
+                    "effective_island_margin_pixels": (
+                        config
+                        .effective_island_margin_pixels
                     ),
                 }
             )
         )
 
     # -----------------------------------------------------
-    # Optional generic UI hook
+    # Generic UI hook
     # -----------------------------------------------------
 
     def draw_settings(
@@ -1698,7 +2312,7 @@ class UVBakeImplementation:
         ):
             texture_box.label(
                 text=(
-                    f"Texture Size: "
+                    "Texture Size: "
                     f"{DEFAULT_TEXTURE_SIZE}"
                 )
             )
@@ -1711,7 +2325,7 @@ class UVBakeImplementation:
         ):
             texture_box.label(
                 text=(
-                    f"Padding: "
+                    "Padding: "
                     f"{DEFAULT_PADDING_PIXELS}px"
                 )
             )
@@ -1725,7 +2339,8 @@ class UVBakeImplementation:
             texture_box.label(
                 text=(
                     "Samples: "
-                    f"{DEFAULT_SAMPLES_PER_AXIS}×"
+                    f"{DEFAULT_SAMPLES_PER_AXIS}"
+                    "×"
                     f"{DEFAULT_SAMPLES_PER_AXIS}"
                 )
             )
@@ -1753,7 +2368,7 @@ class UVBakeImplementation:
             uv_box,
             settings,
             "uv_bake_island_margin",
-            "Island Margin",
+            "Maximum Island Margin",
         )
 
         _draw_optional_property(
@@ -1762,6 +2377,31 @@ class UVBakeImplementation:
             "uv_bake_angle_limit_degrees",
             "Angle Limit",
         )
+
+        try:
+            config = (
+                _config_from_settings(
+                    settings
+                )
+            )
+
+            if not (
+                config
+                .reuse_existing_uv
+            ):
+                uv_box.label(
+                    text=(
+                        "Effective Margin: "
+                        f"{config.effective_island_margin_pixels:.2f}px "
+                        "("
+                        f"{config.effective_island_margin_fraction:.6f}"
+                        ")"
+                    ),
+                    icon="INFO",
+                )
+
+        except Exception:
+            pass
 
     # -----------------------------------------------------
     # Execute
@@ -1791,9 +2431,11 @@ class UVBakeImplementation:
                     stage=(
                         PipelineStage.MATERIAL
                     ),
+
                     implementation_id=(
                         IMPLEMENTATION_ID
                     ),
+
                     message=(
                         "Geometry unavailable: "
                         f"{exc}"
@@ -1819,9 +2461,11 @@ class UVBakeImplementation:
                     stage=(
                         PipelineStage.MATERIAL
                     ),
+
                     implementation_id=(
                         IMPLEMENTATION_ID
                     ),
+
                     message=(
                         "Invalid UV Bake V2 "
                         f"configuration: {exc}"
@@ -1837,34 +2481,122 @@ class UVBakeImplementation:
         # 1. UV unwrap
         # -------------------------------------------------
 
-        uv_layer = (
-            _resolve_uv_layer(
-                obj,
-                config,
+        try:
+            uv_layer = (
+                _resolve_uv_layer(
+                    obj,
+                    config,
+                )
             )
-        )
+
+        except Exception as exc:
+            return (
+                StageExecutionResult
+                .failed_result(
+                    stage=(
+                        PipelineStage.MATERIAL
+                    ),
+
+                    implementation_id=(
+                        IMPLEMENTATION_ID
+                    ),
+
+                    message=(
+                        "UV unwrap failed: "
+                        f"{exc}"
+                    ),
+
+                    metadata={
+                        "requested_island_margin": (
+                            config
+                            .island_margin
+                        ),
+
+                        "effective_island_margin": (
+                            config
+                            .effective_island_margin_fraction
+                        ),
+
+                        "effective_island_margin_pixels": (
+                            config
+                            .effective_island_margin_pixels
+                        ),
+                    },
+                )
+            )
 
         # -------------------------------------------------
-        # 2. Blender mesh -> pure bake triangles
+        # 2. Blender mesh -> pure UV triangles
         # -------------------------------------------------
 
-        triangles = (
-            _build_uv_triangles(
-                obj,
-                uv_layer,
+        try:
+            triangles = (
+                _build_uv_triangles(
+                    obj,
+                    uv_layer,
+                )
             )
-        )
+
+            layout = (
+                _uv_layout_diagnostics(
+                    triangles,
+
+                    texture_size=(
+                        config
+                        .texture_size
+                    ),
+                )
+            )
+
+        except Exception as exc:
+            return (
+                StageExecutionResult
+                .failed_result(
+                    stage=(
+                        PipelineStage.MATERIAL
+                    ),
+
+                    implementation_id=(
+                        IMPLEMENTATION_ID
+                    ),
+
+                    message=(
+                        "UV triangulation failed: "
+                        f"{exc}"
+                    ),
+                )
+            )
 
         # -------------------------------------------------
         # 3. Projected Color V1.2 surface sampler
         # -------------------------------------------------
 
-        sampler = (
-            _build_surface_sampler(
-                geometry,
-                config,
+        try:
+            sampler = (
+                _build_surface_sampler(
+                    geometry,
+                    config,
+                )
             )
-        )
+
+        except Exception as exc:
+            return (
+                StageExecutionResult
+                .failed_result(
+                    stage=(
+                        PipelineStage.MATERIAL
+                    ),
+
+                    implementation_id=(
+                        IMPLEMENTATION_ID
+                    ),
+
+                    message=(
+                        "Surface sampler creation "
+                        f"failed: {exc}"
+                    ),
+                )
+            )
 
         # -------------------------------------------------
         # 4. Pure UV bake
@@ -1880,8 +2612,11 @@ class UVBakeImplementation:
             try:
                 window_manager.progress_begin(
                     0,
-                    len(triangles),
+                    len(
+                        triangles
+                    ),
                 )
+
             except Exception:
                 window_manager = None
 
@@ -1896,35 +2631,89 @@ class UVBakeImplementation:
                     progress
                     .completed_triangles
                 )
+
             except Exception:
                 pass
 
         try:
-            bake_result = (
-                bake_uv_texture(
-                    triangles,
-                    sampler,
-                    config=(
-                        config
-                        .to_bake_config()
-                    ),
-                    progress_callback=(
-                        progress_callback
-                    ),
+            try:
+                bake_result = (
+                    bake_uv_texture(
+                        triangles,
+                        sampler,
+
+                        config=(
+                            config
+                            .to_bake_config()
+                        ),
+
+                        progress_callback=(
+                            progress_callback
+                        ),
+                    )
                 )
-            )
+
+            except Exception as exc:
+                return (
+                    StageExecutionResult
+                    .failed_result(
+                        stage=(
+                            PipelineStage.MATERIAL
+                        ),
+
+                        implementation_id=(
+                            IMPLEMENTATION_ID
+                        ),
+
+                        message=(
+                            "UV rasterization failed: "
+                            f"{exc}"
+                        ),
+
+                        metadata={
+                            "triangles": (
+                                len(
+                                    triangles
+                                )
+                            ),
+
+                            "total_uv_area": (
+                                layout
+                                .total_uv_area
+                            ),
+
+                            "total_uv_area_pixels": (
+                                layout
+                                .total_texture_area_pixels
+                            ),
+
+                            "mean_triangle_area_pixels": (
+                                layout
+                                .mean_triangle_area_pixels
+                            ),
+
+                            "subpixel_triangle_ratio": (
+                                layout
+                                .subpixel_triangle_ratio
+                            ),
+                        },
+                    )
+                )
 
         finally:
             if window_manager is not None:
                 try:
                     window_manager.progress_end()
+
                 except Exception:
                     pass
 
+        stats = (
+            bake_result.stats
+        )
+
         if (
-            bake_result
-            .stats
-            .covered_pixels
+            stats.covered_pixels
             <= 0
         ):
             return (
@@ -1933,16 +2722,76 @@ class UVBakeImplementation:
                     stage=(
                         PipelineStage.MATERIAL
                     ),
+
                     implementation_id=(
                         IMPLEMENTATION_ID
                     ),
+
                     message=(
                         "UV bake produced no "
                         "covered texels."
                     ),
+
                     metadata={
                         "triangles": (
-                            len(triangles)
+                            len(
+                                triangles
+                            )
+                        ),
+
+                        "texture_size": (
+                            config
+                            .texture_size
+                        ),
+
+                        "requested_island_margin": (
+                            config
+                            .island_margin
+                        ),
+
+                        "effective_island_margin": (
+                            config
+                            .effective_island_margin_fraction
+                        ),
+
+                        "effective_island_margin_pixels": (
+                            config
+                            .effective_island_margin_pixels
+                        ),
+
+                        "total_uv_area": (
+                            layout
+                            .total_uv_area
+                        ),
+
+                        "total_uv_area_pixels": (
+                            layout
+                            .total_texture_area_pixels
+                        ),
+
+                        "minimum_triangle_area_pixels": (
+                            layout
+                            .minimum_triangle_area_pixels
+                        ),
+
+                        "mean_triangle_area_pixels": (
+                            layout
+                            .mean_triangle_area_pixels
+                        ),
+
+                        "maximum_triangle_area_pixels": (
+                            layout
+                            .maximum_triangle_area_pixels
+                        ),
+
+                        "subpixel_triangle_count": (
+                            layout
+                            .subpixel_triangle_count
+                        ),
+
+                        "subpixel_triangle_ratio": (
+                            layout
+                            .subpixel_triangle_ratio
                         ),
                     },
                 )
@@ -1952,12 +2801,32 @@ class UVBakeImplementation:
         # 5. Blender image
         # -------------------------------------------------
 
-        image = (
-            _create_baked_image(
-                obj,
-                bake_result,
+        try:
+            image = (
+                _create_baked_image(
+                    obj,
+                    bake_result,
+                )
             )
-        )
+
+        except Exception as exc:
+            return (
+                StageExecutionResult
+                .failed_result(
+                    stage=(
+                        PipelineStage.MATERIAL
+                    ),
+
+                    implementation_id=(
+                        IMPLEMENTATION_ID
+                    ),
+
+                    message=(
+                        "Could not create baked "
+                        f"Blender image: {exc}"
+                    ),
+                )
+            )
 
         material = None
 
@@ -1969,7 +2838,9 @@ class UVBakeImplementation:
             material = (
                 _create_baked_material(
                     obj,
+
                     image=image,
+
                     uv_layer_name=(
                         uv_layer.name
                     ),
@@ -1983,23 +2854,40 @@ class UVBakeImplementation:
 
             output = (
                 UVBakeMaterialOutput(
-                    blender_object=obj,
-                    geometry=geometry,
-                    image=image,
-                    material=material,
+                    blender_object=(
+                        obj
+                    ),
+
+                    geometry=(
+                        geometry
+                    ),
+
+                    image=(
+                        image
+                    ),
+
+                    material=(
+                        material
+                    ),
+
                     uv_layer_name=(
                         uv_layer.name
                     ),
+
                     bake_result=(
                         bake_result
                     ),
-                    config=config,
+
+                    config=(
+                        config
+                    ),
                 )
             )
 
             _write_metadata(
                 obj,
                 output,
+                layout=layout,
             )
 
         except Exception:
@@ -2018,21 +2906,34 @@ class UVBakeImplementation:
 
             raise
 
-        stats = (
-            bake_result.stats
+        context.metadata[
+            "material_mode"
+        ] = (
+            MATERIAL_MODE
         )
 
         context.metadata[
-            "material_mode"
-        ] = MATERIAL_MODE
-
-        context.metadata[
             "uv_bake_image"
-        ] = image.name
+        ] = (
+            image.name
+        )
 
         context.metadata[
             "uv_bake_material"
-        ] = material.name
+        ] = (
+            material.name
+        )
+
+        context.metadata[
+            "uv_bake_effective_island_margin"
+        ] = (
+            config
+            .effective_island_margin_fraction
+        )
+
+        # -------------------------------------------------
+        # Success
+        # -------------------------------------------------
 
         return (
             StageExecutionResult
@@ -2040,10 +2941,15 @@ class UVBakeImplementation:
                 stage=(
                     PipelineStage.MATERIAL
                 ),
+
                 implementation_id=(
                     IMPLEMENTATION_ID
                 ),
-                payload=output,
+
+                payload=(
+                    output
+                ),
+
                 message=(
                     "UV texture baked: "
                     f"{config.texture_size}×"
@@ -2051,77 +2957,169 @@ class UVBakeImplementation:
                     f"{stats.covered_pixels} "
                     "covered texels."
                 ),
+
                 metrics={
+                    # -------------------------------------
+                    # Bake
+                    # -------------------------------------
+
                     "triangles": (
-                        stats.triangle_count
+                        stats
+                        .triangle_count
                     ),
+
                     "rasterized_triangles": (
                         stats
                         .rasterized_triangles
                     ),
+
                     "degenerate_triangles": (
                         stats
                         .degenerate_triangles
                     ),
+
                     "texture_size": (
-                        config.texture_size
+                        config
+                        .texture_size
                     ),
+
                     "covered_pixels": (
-                        stats.covered_pixels
+                        stats
+                        .covered_pixels
                     ),
+
                     "padded_pixels": (
-                        stats.padded_pixels
+                        stats
+                        .padded_pixels
                     ),
+
                     "overlap_pixels": (
-                        stats.overlap_pixels
+                        stats
+                        .overlap_pixels
                     ),
+
                     "surface_samples": (
-                        stats.surface_samples
+                        stats
+                        .surface_samples
                     ),
+
                     "fallback_samples": (
-                        stats.fallback_samples
+                        stats
+                        .fallback_samples
                     ),
+
                     "selected_source_samples": (
                         stats
                         .selected_source_samples
                     ),
+
                     "coverage_ratio": (
-                        stats.coverage_ratio
+                        stats
+                        .coverage_ratio
+                    ),
+
+                    # -------------------------------------
+                    # UV packing
+                    # -------------------------------------
+
+                    "uv_total_area": (
+                        layout
+                        .total_uv_area
+                    ),
+
+                    "uv_total_area_pixels": (
+                        layout
+                        .total_texture_area_pixels
+                    ),
+
+                    "uv_min_triangle_area_pixels": (
+                        layout
+                        .minimum_triangle_area_pixels
+                    ),
+
+                    "uv_mean_triangle_area_pixels": (
+                        layout
+                        .mean_triangle_area_pixels
+                    ),
+
+                    "uv_max_triangle_area_pixels": (
+                        layout
+                        .maximum_triangle_area_pixels
+                    ),
+
+                    "uv_subpixel_triangles": (
+                        layout
+                        .subpixel_triangle_count
+                    ),
+
+                    "uv_subpixel_triangle_ratio": (
+                        layout
+                        .subpixel_triangle_ratio
                     ),
                 },
+
                 metadata={
-                    "object_name": obj.name,
-                    "image_name": image.name,
+                    "object_name": (
+                        obj.name
+                    ),
+
+                    "image_name": (
+                        image.name
+                    ),
+
                     "material_name": (
                         material.name
                     ),
+
                     "uv_layer": (
                         uv_layer.name
                     ),
+
                     "texture_width": (
                         bake_result
                         .texture
                         .width
                     ),
+
                     "texture_height": (
                         bake_result
                         .texture
                         .height
                     ),
+
                     "padding_pixels": (
-                        config.padding_pixels
+                        config
+                        .padding_pixels
                     ),
+
                     "samples_per_axis": (
                         config
                         .samples_per_axis
                     ),
+
                     "visibility": (
                         config
                         .enable_visibility
                     ),
+
                     "reuse_existing_uv": (
                         config
                         .reuse_existing_uv
+                    ),
+
+                    "requested_island_margin": (
+                        config
+                        .island_margin
+                    ),
+
+                    "effective_island_margin": (
+                        config
+                        .effective_island_margin_fraction
+                    ),
+
+                    "effective_island_margin_pixels": (
+                        config
+                        .effective_island_margin_pixels
                     ),
                 },
             )
