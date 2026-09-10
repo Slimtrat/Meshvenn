@@ -9,29 +9,38 @@ import bpy
 from bpy.props import (
     BoolProperty,
     CollectionProperty,
+    EnumProperty,
     IntProperty,
     StringProperty,
 )
 from bpy.types import Operator
 from bpy_extras.io_utils import ImportHelper
 
-from .core.image_mask import (
-    BinaryMask,
-    rgba_to_mask,
+from .core.pipeline_contracts import (
+    PipelineContext,
+    PipelinePlan,
+    PipelineStage,
+    PIPELINE_STAGE_ORDER,
 )
-from .core.native_bridge import (
-    NativeCore,
-    NativeProjection,
+from .core.pipeline_registry import (
+    PIPELINE_REGISTRY,
 )
-from .core.native_mesh_builder import (
-    create_blender_mesh_from_native,
-    shade_smooth_native_object,
+from .core.pipeline_runner import (
+    PipelineExecutionReport,
+    PipelineRunOptions,
+    PipelineRunner,
 )
-from .core.projected_material import (
-    ProjectedMaterialView,
-    apply_projected_material,
+from .properties import (
+    build_pipeline_plan,
+    pipeline_stage_settings,
+    reset_pipeline_defaults,
+    set_pipeline_implementation,
 )
 
+
+# ---------------------------------------------------------
+# Constants
+# ---------------------------------------------------------
 
 IMAGE_FILTER = (
     "*.png;"
@@ -48,22 +57,574 @@ ANGLE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-DEFAULT_MESH_MODE = (
-    "surface_nets"
+
+PIPELINE_STAGE_ENUM_ITEMS = (
+    (
+        PipelineStage.INPUT.value,
+        "Input",
+        "Input preparation stage",
+    ),
+    (
+        PipelineStage.GEOMETRY.value,
+        "Geometry",
+        "3D geometry reconstruction stage",
+    ),
+    (
+        PipelineStage.MATERIAL.value,
+        "Material",
+        "Material generation stage",
+    ),
+    (
+        PipelineStage.RIG.value,
+        "Rig",
+        "Rig generation stage",
+    ),
+    (
+        PipelineStage.EXPORT.value,
+        "Export",
+        "Asset export stage",
+    ),
 )
+
+
+RUNNABLE_STAGE_ENUM_ITEMS = (
+    (
+        PipelineStage.GEOMETRY.value,
+        "Geometry",
+        (
+            "Run the pipeline through "
+            "the Geometry stage"
+        ),
+    ),
+    (
+        PipelineStage.MATERIAL.value,
+        "Material",
+        (
+            "Run the pipeline through "
+            "the Material stage"
+        ),
+    ),
+    (
+        PipelineStage.RIG.value,
+        "Rig",
+        (
+            "Run the pipeline through "
+            "the Rig stage"
+        ),
+    ),
+    (
+        PipelineStage.EXPORT.value,
+        "Export",
+        (
+            "Run the pipeline through "
+            "the Export stage"
+        ),
+    ),
+)
+
+
+# ---------------------------------------------------------
+# Runtime state
+#
+# Blender PropertyGroups store persistent configuration.
+#
+# Execution reports are runtime objects and should not be
+# serialized into the .blend file wholesale.
+#
+# A lightweight summary is mirrored into Scene custom
+# properties for diagnostics.
+# ---------------------------------------------------------
+
+_LAST_PIPELINE_REPORTS: dict[
+    int,
+    PipelineExecutionReport,
+] = {}
+
+
+_LAST_PIPELINE_CONTEXTS: dict[
+    int,
+    PipelineContext,
+] = {}
+
+
+def _scene_key(
+    scene: bpy.types.Scene,
+) -> int:
+    return int(
+        scene.as_pointer()
+    )
+
+
+def get_last_pipeline_report(
+    scene: bpy.types.Scene,
+) -> (
+    PipelineExecutionReport
+    | None
+):
+    """
+    Runtime accessor intended for ui.py.
+    """
+
+    return (
+        _LAST_PIPELINE_REPORTS
+        .get(
+            _scene_key(
+                scene
+            )
+        )
+    )
+
+
+def get_last_pipeline_context(
+    scene: bpy.types.Scene,
+) -> (
+    PipelineContext
+    | None
+):
+    return (
+        _LAST_PIPELINE_CONTEXTS
+        .get(
+            _scene_key(
+                scene
+            )
+        )
+    )
+
+
+def clear_pipeline_runtime_state(
+    scene: (
+        bpy.types.Scene
+        | None
+    ) = None,
+) -> None:
+    if scene is None:
+        _LAST_PIPELINE_REPORTS.clear()
+        _LAST_PIPELINE_CONTEXTS.clear()
+
+        return
+
+    key = (
+        _scene_key(
+            scene
+        )
+    )
+
+    _LAST_PIPELINE_REPORTS.pop(
+        key,
+        None,
+    )
+
+    _LAST_PIPELINE_CONTEXTS.pop(
+        key,
+        None,
+    )
+
+
+# ---------------------------------------------------------
+# Pipeline report helpers
+# ---------------------------------------------------------
+
+def _pipeline_failure_message(
+    report: PipelineExecutionReport,
+) -> str:
+    message = (
+        report
+        .failure_message
+        .strip()
+    )
+
+    if not message:
+        return (
+            "Pipeline execution failed."
+        )
+
+    # Blender status reports are easier to read when kept
+    # to one line. Complete details remain in the runtime
+    # PipelineExecutionReport.
+    first_line = (
+        message
+        .splitlines()[0]
+        .strip()
+    )
+
+    return (
+        first_line
+        or "Pipeline execution failed."
+    )
+
+
+def _pipeline_success_message(
+    report: PipelineExecutionReport,
+) -> str:
+    successful = (
+        report
+        .successful_records
+    )
+
+    if successful:
+        message = (
+            successful[-1]
+            .result
+            .message
+            .strip()
+        )
+
+        if message:
+            return message
+
+    stage_count = len(
+        successful
+    )
+
+    return (
+        "Meshvenn pipeline completed "
+        f"with {stage_count} successful stage"
+        + (
+            "s."
+            if stage_count != 1
+            else "."
+        )
+    )
+
+
+def _store_pipeline_runtime(
+    scene: bpy.types.Scene,
+    pipeline_context: PipelineContext,
+    report: PipelineExecutionReport,
+) -> None:
+    key = (
+        _scene_key(
+            scene
+        )
+    )
+
+    _LAST_PIPELINE_CONTEXTS[
+        key
+    ] = (
+        pipeline_context
+    )
+
+    _LAST_PIPELINE_REPORTS[
+        key
+    ] = (
+        report
+    )
+
+    # -----------------------------------------------------
+    # Lightweight persistent diagnostic snapshot.
+    # -----------------------------------------------------
+
+    scene[
+        "meshvenn_last_pipeline_status"
+    ] = (
+        "success"
+        if report.success
+        else "failed"
+    )
+
+    scene[
+        "meshvenn_last_pipeline_duration"
+    ] = float(
+        report.duration_seconds
+    )
+
+    scene[
+        "meshvenn_last_pipeline_aborted"
+    ] = bool(
+        report.aborted
+    )
+
+    scene[
+        "meshvenn_last_pipeline_stage_count"
+    ] = len(
+        report.records
+    )
+
+    scene[
+        "meshvenn_last_pipeline_successful_stages"
+    ] = len(
+        report.successful_records
+    )
+
+    scene[
+        "meshvenn_last_pipeline_failed_stages"
+    ] = len(
+        report.failed_records
+    )
+
+    if report.success:
+        scene[
+            "meshvenn_last_pipeline_message"
+        ] = (
+            _pipeline_success_message(
+                report
+            )
+        )
+
+    else:
+        scene[
+            "meshvenn_last_pipeline_message"
+        ] = (
+            _pipeline_failure_message(
+                report
+            )
+        )
+
+    if report.records:
+        scene[
+            "meshvenn_last_pipeline_last_stage"
+        ] = (
+            report
+            .records[-1]
+            .stage
+            .value
+        )
+
+    else:
+        scene[
+            "meshvenn_last_pipeline_last_stage"
+        ] = ""
+
+
+def _new_pipeline_context(
+    context: bpy.types.Context,
+) -> PipelineContext:
+    scene = (
+        context.scene
+    )
+
+    if scene is None:
+        raise RuntimeError(
+            "No active Blender scene."
+        )
+
+    settings = getattr(
+        scene,
+        "bpt_settings",
+        None,
+    )
+
+    if settings is None:
+        raise RuntimeError(
+            "Meshvenn settings are unavailable."
+        )
+
+    return (
+        PipelineContext(
+            scene=scene,
+            settings=settings,
+            metadata={
+                "source": "blender-ui",
+            },
+        )
+    )
+
+
+def _execute_pipeline_plan(
+    operator: Operator,
+    context: bpy.types.Context,
+    plan: PipelinePlan,
+) -> set[str]:
+    """
+    Common Blender -> PipelineRunner boundary.
+
+    All generation operators must pass through here instead
+    of invoking concrete implementations themselves.
+    """
+
+    scene = (
+        context.scene
+    )
+
+    if scene is None:
+        operator.report(
+            {"ERROR"},
+            "No active Blender scene.",
+        )
+
+        return {
+            "CANCELLED"
+        }
+
+    try:
+        pipeline_context = (
+            _new_pipeline_context(
+                context
+            )
+        )
+
+        runner = (
+            PipelineRunner(
+                PIPELINE_REGISTRY
+            )
+        )
+
+        report = (
+            runner.run(
+                plan,
+                pipeline_context,
+                options=(
+                    PipelineRunOptions(
+                        stop_on_failure=True,
+                        catch_exceptions=True,
+                        check_availability=True,
+                    )
+                ),
+            )
+        )
+
+    except Exception as exc:
+        operator.report(
+            {"ERROR"},
+            (
+                "Pipeline could not start: "
+                f"{exc}"
+            ),
+        )
+
+        return {
+            "CANCELLED"
+        }
+
+    _store_pipeline_runtime(
+        scene,
+        pipeline_context,
+        report,
+    )
+
+    if not report.success:
+        operator.report(
+            {"ERROR"},
+            _pipeline_failure_message(
+                report
+            ),
+        )
+
+        return {
+            "CANCELLED"
+        }
+
+    operator.report(
+        {"INFO"},
+        _pipeline_success_message(
+            report
+        ),
+    )
+
+    return {
+        "FINISHED"
+    }
+
+
+# ---------------------------------------------------------
+# Pipeline plan helpers
+# ---------------------------------------------------------
+
+def _plan_through_stage(
+    settings,
+    target_stage: PipelineStage,
+) -> PipelinePlan:
+    """
+    Build a deterministic pipeline prefix.
+
+    Example:
+
+        target = GEOMETRY
+
+            INPUT
+            GEOMETRY
+
+        target = MATERIAL
+
+            INPUT
+            GEOMETRY
+            MATERIAL
+
+        target = RIG
+
+            INPUT
+            GEOMETRY
+            MATERIAL if configured
+            RIG
+
+    Disabled stages remain disabled in the plan. This keeps
+    the user's persistent pipeline configuration authoritative.
+    """
+
+    full_plan = (
+        build_pipeline_plan(
+            settings
+        )
+    )
+
+    target_selection = (
+        full_plan
+        .selection_for(
+            target_stage
+        )
+    )
+
+    if target_selection is None:
+        raise ValueError(
+            (
+                f'Pipeline stage "{target_stage.value}" '
+                "has no implementation selected."
+            )
+        )
+
+    if not target_selection.enabled:
+        raise ValueError(
+            (
+                f'Pipeline stage "{target_stage.value}" '
+                "is disabled."
+            )
+        )
+
+    target_index = (
+        PIPELINE_STAGE_ORDER
+        .index(
+            target_stage
+        )
+    )
+
+    selections = tuple(
+        selection
+        for selection
+        in full_plan.selections
+        if (
+            PIPELINE_STAGE_ORDER
+            .index(
+                selection.stage
+            )
+            <= target_index
+        )
+    )
+
+    return (
+        PipelinePlan(
+            selections=(
+                selections
+            )
+        )
+    )
 
 
 # ---------------------------------------------------------
 # Image loading
 # ---------------------------------------------------------
 
-
 class BPT_OT_LoadProjectionImage(
     Operator,
     ImportHelper,
 ):
-    bl_idname = "bpt.load_projection_image"
-    bl_label = "Load Projection Image"
+    bl_idname = (
+        "bpt.load_projection_image"
+    )
+
+    bl_label = (
+        "Load Projection Image"
+    )
+
     bl_description = (
         "Load an image from disk and assign it "
         "to the selected projection"
@@ -73,7 +634,9 @@ class BPT_OT_LoadProjectionImage(
 
     filter_glob: StringProperty(
         default=IMAGE_FILTER,
-        options={"HIDDEN"},
+        options={
+            "HIDDEN",
+        },
     )
 
     index: IntProperty(
@@ -87,13 +650,17 @@ class BPT_OT_LoadProjectionImage(
         context: bpy.types.Context,
     ) -> set[str]:
         settings = (
-            context.scene.bpt_settings
+            context
+            .scene
+            .bpt_settings
         )
 
         if (
             self.index < 0
             or self.index
-            >= len(settings.projections)
+            >= len(
+                settings.projections
+            )
         ):
             self.report(
                 {"ERROR"},
@@ -105,15 +672,22 @@ class BPT_OT_LoadProjectionImage(
             }
 
         try:
-            image = bpy.data.images.load(
-                self.filepath,
-                check_existing=True,
+            image = (
+                bpy.data
+                .images
+                .load(
+                    self.filepath,
+                    check_existing=True,
+                )
             )
 
         except Exception as exc:
             self.report(
                 {"ERROR"},
-                f"Could not load image: {exc}",
+                (
+                    "Could not load image: "
+                    f"{exc}"
+                ),
             )
 
             return {
@@ -122,15 +696,25 @@ class BPT_OT_LoadProjectionImage(
 
         settings.projections[
             self.index
-        ].image = image
+        ].image = (
+            image
+        )
 
         settings.active_projection_index = (
             self.index
         )
 
+        # Prepared INPUT data from a previous run is now
+        # potentially stale.
+        clear_pipeline_runtime_state(
+            context.scene
+        )
+
         self.report(
             {"INFO"},
-            f'Loaded image "{image.name}".',
+            (
+                f'Loaded image "{image.name}".'
+            ),
         )
 
         return {
@@ -141,7 +725,6 @@ class BPT_OT_LoadProjectionImage(
 # ---------------------------------------------------------
 # Multi-image import
 # ---------------------------------------------------------
-
 
 class BPT_OT_ImportTurntableImages(
     Operator,
@@ -164,7 +747,9 @@ class BPT_OT_ImportTurntableImages(
 
     filter_glob: StringProperty(
         default=IMAGE_FILTER,
-        options={"HIDDEN"},
+        options={
+            "HIDDEN",
+        },
     )
 
     files: CollectionProperty(
@@ -192,11 +777,14 @@ class BPT_OT_ImportTurntableImages(
         context: bpy.types.Context,
     ) -> set[str]:
         settings = (
-            context.scene.bpt_settings
+            context
+            .scene
+            .bpt_settings
         )
 
         selected_files = (
-            self._collect_selected_files()
+            self
+            ._collect_selected_files()
         )
 
         if not selected_files:
@@ -210,14 +798,20 @@ class BPT_OT_ImportTurntableImages(
             }
 
         try:
-            entries = self._build_entries(
-                selected_files
+            entries = (
+                self
+                ._build_entries(
+                    selected_files
+                )
             )
 
         except Exception as exc:
             self.report(
                 {"ERROR"},
-                f"Image import failed: {exc}",
+                (
+                    "Image import failed: "
+                    f"{exc}"
+                ),
             )
 
             return {
@@ -229,35 +823,49 @@ class BPT_OT_ImportTurntableImages(
 
         for entry in entries:
             projection = (
-                settings.projections.add()
+                settings
+                .projections
+                .add()
             )
 
             projection.name = (
-                entry["name"]
+                entry[
+                    "name"
+                ]
             )
 
             projection.azimuth = (
                 math.radians(
-                    entry["angle_deg"]
+                    entry[
+                        "angle_deg"
+                    ]
                 )
             )
 
             projection.elevation = 0.0
+
             projection.enabled = True
+
             projection.flip_x = False
 
             projection.image = (
-                entry["image"]
+                entry[
+                    "image"
+                ]
             )
 
         settings.active_projection_index = 0
+
+        clear_pipeline_runtime_state(
+            context.scene
+        )
 
         self.report(
             {"INFO"},
             (
                 f"Imported "
                 f"{len(entries)} "
-                f"projection images."
+                "projection images."
             ),
         )
 
@@ -294,16 +902,23 @@ class BPT_OT_ImportTurntableImages(
         for filepath in sorted(
             filepaths
         ):
-            image = bpy.data.images.load(
-                filepath,
-                check_existing=True,
+            image = (
+                bpy.data
+                .images
+                .load(
+                    filepath,
+                    check_existing=True,
+                )
             )
 
-            stem = os.path.splitext(
-                os.path.basename(
-                    filepath
-                )
-            )[0]
+            stem = (
+                os.path
+                .splitext(
+                    os.path.basename(
+                        filepath
+                    )
+                )[0]
+            )
 
             angle = (
                 _extract_angle_from_name(
@@ -313,30 +928,54 @@ class BPT_OT_ImportTurntableImages(
 
             loaded.append(
                 {
-                    "filepath": filepath,
-                    "stem": stem,
-                    "image": image,
-                    "angle_deg": angle,
+                    "filepath": (
+                        filepath
+                    ),
+                    "stem": (
+                        stem
+                    ),
+                    "image": (
+                        image
+                    ),
+                    "angle_deg": (
+                        angle
+                    ),
                 }
             )
 
+        # -------------------------------------------------
+        # If one or more filenames do not expose an angle,
+        # assign missing angles using an evenly-spaced
+        # turntable.
+        # -------------------------------------------------
+
         if any(
-            item["angle_deg"] is None
-            for item in loaded
+            item[
+                "angle_deg"
+            ] is None
+            for item
+            in loaded
         ):
             step = (
                 360.0
                 / max(
-                    len(loaded),
+                    len(
+                        loaded
+                    ),
                     1,
                 )
             )
 
-            for index, item in enumerate(
+            for (
+                index,
+                item,
+            ) in enumerate(
                 loaded
             ):
                 if (
-                    item["angle_deg"]
+                    item[
+                        "angle_deg"
+                    ]
                     is None
                 ):
                     item[
@@ -348,7 +987,9 @@ class BPT_OT_ImportTurntableImages(
 
         loaded.sort(
             key=lambda item: (
-                item["angle_deg"]
+                item[
+                    "angle_deg"
+                ]
             )
         )
 
@@ -357,7 +998,9 @@ class BPT_OT_ImportTurntableImages(
         for item in loaded:
             angle = (
                 float(
-                    item["angle_deg"]
+                    item[
+                        "angle_deg"
+                    ]
                 )
                 % 360.0
             )
@@ -366,10 +1009,17 @@ class BPT_OT_ImportTurntableImages(
                 {
                     "name": (
                         f"{angle:.1f}° "
-                        f"- {item['stem']}"
+                        f"- "
+                        f"{item['stem']}"
                     ),
-                    "angle_deg": angle,
-                    "image": item["image"],
+                    "angle_deg": (
+                        angle
+                    ),
+                    "image": (
+                        item[
+                            "image"
+                        ]
+                    ),
                 }
             )
 
@@ -393,12 +1043,16 @@ class BPT_OT_ImportTurntableImages(
 # Projection management
 # ---------------------------------------------------------
 
-
 class BPT_OT_AddProjection(
     Operator
 ):
-    bl_idname = "bpt.add_projection"
-    bl_label = "Add Projection"
+    bl_idname = (
+        "bpt.add_projection"
+    )
+
+    bl_label = (
+        "Add Projection"
+    )
 
     bl_description = (
         "Add a new arbitrary projection view"
@@ -409,27 +1063,39 @@ class BPT_OT_AddProjection(
         context: bpy.types.Context,
     ) -> set[str]:
         settings = (
-            context.scene.bpt_settings
+            context
+            .scene
+            .bpt_settings
         )
 
         projection = (
-            settings.projections.add()
+            settings
+            .projections
+            .add()
         )
 
         projection.name = (
-            f"Projection "
+            "Projection "
             f"{len(settings.projections)}"
         )
 
         projection.azimuth = 0.0
+
         projection.elevation = 0.0
+
         projection.enabled = True
+
+        projection.flip_x = False
 
         settings.active_projection_index = (
             len(
                 settings.projections
             )
             - 1
+        )
+
+        clear_pipeline_runtime_state(
+            context.scene
         )
 
         return {
@@ -440,8 +1106,13 @@ class BPT_OT_AddProjection(
 class BPT_OT_RemoveProjection(
     Operator
 ):
-    bl_idname = "bpt.remove_projection"
-    bl_label = "Remove Projection"
+    bl_idname = (
+        "bpt.remove_projection"
+    )
+
+    bl_label = (
+        "Remove Projection"
+    )
 
     bl_description = (
         "Remove the selected projection"
@@ -454,7 +1125,9 @@ class BPT_OT_RemoveProjection(
         context: bpy.types.Context,
     ) -> set[str]:
         settings = (
-            context.scene.bpt_settings
+            context
+            .scene
+            .bpt_settings
         )
 
         if not settings.projections:
@@ -487,8 +1160,13 @@ class BPT_OT_RemoveProjection(
                     - 1,
                 )
             )
+
         else:
             settings.active_projection_index = 0
+
+        clear_pipeline_runtime_state(
+            context.scene
+        )
 
         return {
             "FINISHED"
@@ -496,9 +1174,8 @@ class BPT_OT_RemoveProjection(
 
 
 # ---------------------------------------------------------
-# Presets
+# Projection presets
 # ---------------------------------------------------------
-
 
 class BPT_OT_AddTurntablePreset(
     Operator
@@ -528,7 +1205,9 @@ class BPT_OT_AddTurntablePreset(
         context: bpy.types.Context,
     ) -> set[str]:
         settings = (
-            context.scene.bpt_settings
+            context
+            .scene
+            .bpt_settings
         )
 
         settings.projections.clear()
@@ -563,10 +1242,16 @@ class BPT_OT_AddTurntablePreset(
             )
 
             projection.elevation = 0.0
+
             projection.enabled = True
+
             projection.flip_x = False
 
         settings.active_projection_index = 0
+
+        clear_pipeline_runtime_state(
+            context.scene
+        )
 
         return {
             "FINISHED"
@@ -594,13 +1279,17 @@ class BPT_OT_AddFrontSidePreset(
         context: bpy.types.Context,
     ) -> set[str]:
         settings = (
-            context.scene.bpt_settings
+            context
+            .scene
+            .bpt_settings
         )
 
         settings.projections.clear()
 
         front = (
-            settings.projections.add()
+            settings
+            .projections
+            .add()
         )
 
         front.name = "Front"
@@ -612,11 +1301,15 @@ class BPT_OT_AddFrontSidePreset(
         )
 
         front.elevation = 0.0
+
         front.enabled = True
+
         front.flip_x = False
 
         side = (
-            settings.projections.add()
+            settings
+            .projections
+            .add()
         )
 
         side.name = "Right"
@@ -628,10 +1321,16 @@ class BPT_OT_AddFrontSidePreset(
         )
 
         side.elevation = 0.0
+
         side.enabled = True
+
         side.flip_x = False
 
         settings.active_projection_index = 0
+
+        clear_pipeline_runtime_state(
+            context.scene
+        )
 
         return {
             "FINISHED"
@@ -639,13 +1338,391 @@ class BPT_OT_AddFrontSidePreset(
 
 
 # ---------------------------------------------------------
-# Native C++ scan
+# Generic pipeline implementation selection
 # ---------------------------------------------------------
 
+class BPT_OT_SetPipelineImplementation(
+    Operator
+):
+    """
+    Generic implementation-selection action.
+
+    ui.py can create one of these buttons for every
+    ImplementationDescriptor exposed by PIPELINE_REGISTRY.
+
+    No algorithm-specific operator is required.
+    """
+
+    bl_idname = (
+        "bpt.set_pipeline_implementation"
+    )
+
+    bl_label = (
+        "Select Implementation"
+    )
+
+    bl_description = (
+        "Select the implementation used "
+        "for a pipeline stage"
+    )
+
+    stage: EnumProperty(
+        name="Stage",
+        items=(
+            PIPELINE_STAGE_ENUM_ITEMS
+        ),
+        default=(
+            PipelineStage.GEOMETRY.value
+        ),
+    )
+
+    implementation_id: StringProperty(
+        name="Implementation",
+        default="",
+    )
+
+    enable_stage: BoolProperty(
+        name="Enable Stage",
+        default=True,
+        options={
+            "HIDDEN",
+        },
+    )
+
+    def execute(
+        self,
+        context: bpy.types.Context,
+    ) -> set[str]:
+        settings = (
+            context
+            .scene
+            .bpt_settings
+        )
+
+        try:
+            stage = (
+                PipelineStage(
+                    self.stage
+                )
+            )
+
+            implementation_id = (
+                self
+                .implementation_id
+                .strip()
+            )
+
+            if not implementation_id:
+                raise ValueError(
+                    (
+                        "Implementation id "
+                        "cannot be empty."
+                    )
+                )
+
+            implementation = (
+                PIPELINE_REGISTRY
+                .require(
+                    implementation_id,
+                    stage=stage,
+                )
+            )
+
+            set_pipeline_implementation(
+                settings,
+                stage,
+                implementation
+                .descriptor
+                .identifier,
+            )
+
+            if self.enable_stage:
+                stage_settings = (
+                    pipeline_stage_settings(
+                        settings,
+                        stage,
+                    )
+                )
+
+                stage_settings.enabled = True
+
+        except Exception as exc:
+            self.report(
+                {"ERROR"},
+                (
+                    "Could not select "
+                    f"implementation: {exc}"
+                ),
+            )
+
+            return {
+                "CANCELLED"
+            }
+
+        clear_pipeline_runtime_state(
+            context.scene
+        )
+
+        self.report(
+            {"INFO"},
+            (
+                f"{stage.value.title()}: "
+                f"{implementation.descriptor.label}"
+            ),
+        )
+
+        return {
+            "FINISHED"
+        }
+
+
+# ---------------------------------------------------------
+# Pipeline reset
+# ---------------------------------------------------------
+
+class BPT_OT_ResetPipelineSettings(
+    Operator
+):
+    bl_idname = (
+        "bpt.reset_pipeline_settings"
+    )
+
+    bl_label = (
+        "Reset Pipeline"
+    )
+
+    bl_description = (
+        "Reset pipeline stage selections "
+        "without deleting projection images "
+        "or generation parameters"
+    )
+
+    def execute(
+        self,
+        context: bpy.types.Context,
+    ) -> set[str]:
+        settings = (
+            context
+            .scene
+            .bpt_settings
+        )
+
+        reset_pipeline_defaults(
+            settings
+        )
+
+        clear_pipeline_runtime_state(
+            context.scene
+        )
+
+        self.report(
+            {"INFO"},
+            "Pipeline settings reset.",
+        )
+
+        return {
+            "FINISHED"
+        }
+
+
+# ---------------------------------------------------------
+# Complete pipeline
+# ---------------------------------------------------------
+
+class BPT_OT_RunPipeline(
+    Operator
+):
+    """
+    Main Meshvenn product action.
+
+    Blender
+        ↓
+    PipelinePlan
+        ↓
+    PipelineRunner
+        ↓
+    PIPELINE_REGISTRY
+        ↓
+    concrete implementations
+    """
+
+    bl_idname = (
+        "bpt.run_pipeline"
+    )
+
+    bl_label = (
+        "Generate"
+    )
+
+    bl_description = (
+        "Run the configured Meshvenn pipeline"
+    )
+
+    def execute(
+        self,
+        context: bpy.types.Context,
+    ) -> set[str]:
+        settings = (
+            context
+            .scene
+            .bpt_settings
+        )
+
+        try:
+            plan = (
+                build_pipeline_plan(
+                    settings
+                )
+            )
+
+        except Exception as exc:
+            self.report(
+                {"ERROR"},
+                (
+                    "Invalid pipeline "
+                    f"configuration: {exc}"
+                ),
+            )
+
+            return {
+                "CANCELLED"
+            }
+
+        return (
+            _execute_pipeline_plan(
+                self,
+                context,
+                plan,
+            )
+        )
+
+
+# ---------------------------------------------------------
+# Run pipeline through one stage
+# ---------------------------------------------------------
+
+class BPT_OT_RunPipelineStage(
+    Operator
+):
+    """
+    Run the pipeline up to a selected stage.
+
+    This deliberately rebuilds required upstream stages.
+
+    Example:
+
+        Run Geometry
+
+            INPUT
+              ↓
+            GEOMETRY
+
+        Run Material
+
+            INPUT
+              ↓
+            GEOMETRY
+              ↓
+            MATERIAL
+
+    This makes stage execution deterministic for the first
+    general UI version.
+
+    Incremental reuse of previous stage outputs can be added
+    later without changing the UI contract.
+    """
+
+    bl_idname = (
+        "bpt.run_pipeline_stage"
+    )
+
+    bl_label = (
+        "Run Stage"
+    )
+
+    bl_description = (
+        "Run the configured pipeline "
+        "through this stage"
+    )
+
+    stage: EnumProperty(
+        name="Stage",
+        items=(
+            RUNNABLE_STAGE_ENUM_ITEMS
+        ),
+        default=(
+            PipelineStage.GEOMETRY.value
+        ),
+    )
+
+    def execute(
+        self,
+        context: bpy.types.Context,
+    ) -> set[str]:
+        settings = (
+            context
+            .scene
+            .bpt_settings
+        )
+
+        try:
+            stage = (
+                PipelineStage(
+                    self.stage
+                )
+            )
+
+            plan = (
+                _plan_through_stage(
+                    settings,
+                    stage,
+                )
+            )
+
+        except Exception as exc:
+            self.report(
+                {"ERROR"},
+                (
+                    "Could not run "
+                    f"{self.stage}: {exc}"
+                ),
+            )
+
+            return {
+                "CANCELLED"
+            }
+
+        return (
+            _execute_pipeline_plan(
+                self,
+                context,
+                plan,
+            )
+        )
+
+
+# ---------------------------------------------------------
+# Legacy compatibility
+# ---------------------------------------------------------
 
 class BPT_OT_GenerateCharacter(
     Operator
 ):
+    """
+    Compatibility alias.
+
+    Existing UI/scripts may still invoke:
+
+        bpy.ops.bpt.generate_character()
+
+    It now executes the exact same generic pipeline as:
+
+        bpy.ops.bpt.run_pipeline()
+
+    No reconstruction implementation exists in this
+    operator anymore.
+    """
+
     bl_idname = (
         "bpt.generate_character"
     )
@@ -655,8 +1732,8 @@ class BPT_OT_GenerateCharacter(
     )
 
     bl_description = (
-        "Generate a native C++ visual hull "
-        "and projected material from enabled views"
+        "Compatibility alias for the "
+        "Meshvenn generation pipeline"
     )
 
     def execute(
@@ -664,260 +1741,24 @@ class BPT_OT_GenerateCharacter(
         context: bpy.types.Context,
     ) -> set[str]:
         settings = (
-            context.scene.bpt_settings
+            context
+            .scene
+            .bpt_settings
         )
 
         try:
-            (
-                projections,
-                material_views,
-            ) = _build_projection_inputs(
-                settings
-            )
-
-            if len(projections) < 2:
-                self.report(
-                    {"ERROR"},
-                    (
-                        "At least two enabled "
-                        "projections with images "
-                        "are required."
-                    ),
-                )
-
-                return {
-                    "CANCELLED"
-                }
-
-            core = NativeCore()
-
-            volume = (
-                core.build_visual_hull(
-                    projections,
-                    resolution=(
-                        settings.resolution
-                    ),
-                    symmetry_x=(
-                        settings.symmetry_x
-                    ),
-                    thread_count=(
-                        settings.thread_count
-                    ),
+            plan = (
+                build_pipeline_plan(
+                    settings
                 )
             )
-
-            if (
-                volume.occupied_count
-                == 0
-            ):
-                self.report(
-                    {"ERROR"},
-                    (
-                        "The projections produced "
-                        "an empty native volume. "
-                        "Check image alignment, "
-                        "angles and alpha masks."
-                    ),
-                )
-
-                return {
-                    "CANCELLED"
-                }
-
-            # -------------------------------------------------
-            # Geometry
-            # -------------------------------------------------
-
-            native_mesh = (
-                core.build_surface_mesh(
-                    volume,
-                    voxel_size=1.0,
-                    center_xy=True,
-                    mesh_mode=(
-                        DEFAULT_MESH_MODE
-                    ),
-                )
-            )
-
-            if (
-                native_mesh.vertex_count
-                == 0
-            ):
-                self.report(
-                    {"ERROR"},
-                    (
-                        "Native mesh generation "
-                        "returned no vertices."
-                    ),
-                )
-
-                return {
-                    "CANCELLED"
-                }
-
-            obj = (
-                create_blender_mesh_from_native(
-                    native_mesh,
-                    mesh_name=(
-                        "ProjectionToolNativeMesh"
-                    ),
-                    object_name=(
-                        "ProjectionToolScan"
-                    ),
-                )
-            )
-
-            # -------------------------------------------------
-            # Smooth geometry before color projection.
-            #
-            # Projected Material V1 uses vertex normals to
-            # select and blend the most relevant camera views.
-            # -------------------------------------------------
-
-            shade_smooth_native_object(
-                obj
-            )
-
-            # -------------------------------------------------
-            # Appearance
-            #
-            # IMPORTANT:
-            #
-            # Apply projection before height normalization.
-            #
-            # At this point mesh coordinates still correspond
-            # exactly to the native voxel reconstruction
-            # coordinates used by projection_math.py.
-            # -------------------------------------------------
-
-            material_stats = (
-                apply_projected_material(
-                    obj,
-                    material_views,
-                    volume_width=(
-                        volume.width
-                    ),
-                    volume_depth=(
-                        volume.depth
-                    ),
-                    volume_height=(
-                        volume.height
-                    ),
-                    voxel_size=1.0,
-                    center_xy=True,
-                    facing_power=2.0,
-                    allow_backface_fallback=True,
-                )
-            )
-
-            # -------------------------------------------------
-            # Final Blender scale
-            #
-            # Color is already baked to CORNER attributes, so
-            # scaling the final object cannot alter projection
-            # alignment anymore.
-            # -------------------------------------------------
-
-            if (
-                settings.normalize_height
-            ):
-                _scale_object_to_height(
-                    obj,
-                    settings.target_height,
-                )
-
-            # -------------------------------------------------
-            # Metadata
-            # -------------------------------------------------
-
-            obj[
-                "bpt_engine"
-            ] = "native-cpp"
-
-            obj[
-                "bpt_mesh_mode"
-            ] = (
-                DEFAULT_MESH_MODE
-            )
-
-            obj[
-                "bpt_projection_count"
-            ] = len(
-                projections
-            )
-
-            obj[
-                "bpt_resolution"
-            ] = (
-                settings.resolution
-            )
-
-            obj[
-                "bpt_threads"
-            ] = (
-                settings.thread_count
-            )
-
-            obj[
-                "bpt_occupied_voxels"
-            ] = (
-                volume.occupied_count
-            )
-
-            obj[
-                "bpt_native_vertices"
-            ] = (
-                native_mesh.vertex_count
-            )
-
-            obj[
-                "bpt_native_polygons"
-            ] = (
-                native_mesh.polygon_count
-            )
-
-            obj[
-                "bpt_material_accepted_samples"
-            ] = (
-                material_stats
-                .accepted_samples
-            )
-
-            obj[
-                "bpt_material_rejected_samples"
-            ] = (
-                material_stats
-                .rejected_samples
-            )
-
-            # -------------------------------------------------
-            # Result
-            # -------------------------------------------------
-
-            self.report(
-                {"INFO"},
-                (
-                    "Native scan generated from "
-                    f"{len(projections)} projections: "
-                    f"{volume.occupied_count} voxels, "
-                    f"{native_mesh.vertex_count} vertices, "
-                    f"{material_stats.projected_vertices} "
-                    "directly projected material vertices, "
-                    f"{material_stats.fallback_vertices} "
-                    "fallback vertices."
-                ),
-            )
-
-            return {
-                "FINISHED"
-            }
 
         except Exception as exc:
             self.report(
                 {"ERROR"},
                 (
-                    "Native generation failed: "
-                    f"{exc}"
+                    "Invalid pipeline "
+                    f"configuration: {exc}"
                 ),
             )
 
@@ -925,236 +1766,27 @@ class BPT_OT_GenerateCharacter(
                 "CANCELLED"
             }
 
-
-# ---------------------------------------------------------
-# Projection conversion helpers
-# ---------------------------------------------------------
-
-
-def _build_projection_inputs(
-    settings,
-) -> tuple[
-    list[
-        NativeProjection
-    ],
-    list[
-        ProjectedMaterialView
-    ],
-]:
-    """
-    Build geometry and appearance inputs together.
-
-    The same projection mask is deliberately shared between:
-
-        NativeProjection
-            -> geometry
-
-        ProjectedMaterialView
-            -> appearance
-
-    This keeps the material from sampling pixels which the
-    visual-hull reconstruction itself considered background.
-    """
-
-    native_projections: list[
-        NativeProjection
-    ] = []
-
-    material_views: list[
-        ProjectedMaterialView
-    ] = []
-
-    for item in settings.projections:
-        if not item.enabled:
-            continue
-
-        if item.image is None:
-            continue
-
-        mask = _image_to_mask(
-            item.image,
-            settings.alpha_threshold,
-        )
-
-        if (
-            mask.occupied_count
-            == 0
-        ):
-            continue
-
-        azimuth_degrees = (
-            math.degrees(
-                item.azimuth
+        return (
+            _execute_pipeline_plan(
+                self,
+                context,
+                plan,
             )
         )
-
-        elevation_degrees = (
-            math.degrees(
-                item.elevation
-            )
-        )
-
-        flip_x = bool(
-            item.flip_x
-        )
-
-        native_projections.append(
-            NativeProjection(
-                mask=mask,
-                azimuth_degrees=(
-                    azimuth_degrees
-                ),
-                elevation_degrees=(
-                    elevation_degrees
-                ),
-                flip_x=flip_x,
-            )
-        )
-
-        material_views.append(
-            ProjectedMaterialView
-            .from_blender_image(
-                name=(
-                    item.name
-                    or (
-                        f"{azimuth_degrees:.1f}°"
-                    )
-                ),
-                image=item.image,
-                azimuth_degrees=(
-                    azimuth_degrees
-                ),
-                elevation_degrees=(
-                    elevation_degrees
-                ),
-                flip_x=flip_x,
-                weight=float(
-                    item.weight
-                ),
-                mask=mask,
-            )
-        )
-
-    return (
-        native_projections,
-        material_views,
-    )
-
-
-def _build_native_projections(
-    settings,
-) -> list[
-    NativeProjection
-]:
-    """
-    Compatibility helper kept for callers that only need
-    geometry projections.
-    """
-
-    (
-        projections,
-        _material_views,
-    ) = _build_projection_inputs(
-        settings
-    )
-
-    return projections
-
-
-def _image_to_mask(
-    image: bpy.types.Image,
-    alpha_threshold: float,
-) -> BinaryMask:
-    if (
-        image.size[0] <= 0
-        or image.size[1] <= 0
-    ):
-        raise ValueError(
-            (
-                f'Image "{image.name}" '
-                "has invalid dimensions."
-            )
-        )
-
-    image.update()
-
-    width = int(
-        image.size[0]
-    )
-
-    height = int(
-        image.size[1]
-    )
-
-    pixels = tuple(
-        image.pixels[:]
-    )
-
-    return rgba_to_mask(
-        pixels=pixels,
-        width=width,
-        height=height,
-        alpha_threshold=(
-            alpha_threshold
-        ),
-    )
-
-
-def _scale_object_to_height(
-    obj: bpy.types.Object,
-    target_height: float,
-) -> None:
-    if target_height <= 0.0:
-        raise ValueError(
-            (
-                "Target height must be "
-                "greater than zero."
-            )
-        )
-
-    current_height = float(
-        obj.dimensions.z
-    )
-
-    if current_height <= 0.0:
-        return
-
-    scale = (
-        target_height
-        / current_height
-    )
-
-    obj.scale = (
-        scale,
-        scale,
-        scale,
-    )
-
-    bpy.context.view_layer.objects.active = (
-        obj
-    )
-
-    obj.select_set(
-        True
-    )
-
-    bpy.ops.object.transform_apply(
-        location=False,
-        rotation=False,
-        scale=True,
-    )
 
 
 # ---------------------------------------------------------
 # Filename angle detection
 # ---------------------------------------------------------
 
-
 def _extract_angle_from_name(
     name: str,
 ) -> float | None:
-    match = ANGLE_PATTERN.search(
-        name
+    match = (
+        ANGLE_PATTERN
+        .search(
+            name
+        )
     )
 
     if not match:
@@ -1191,14 +1823,27 @@ def _extract_angle_from_name(
 # Registration
 # ---------------------------------------------------------
 
-
 CLASSES = (
     BPT_OT_LoadProjectionImage,
+
     BPT_OT_ImportTurntableImages,
+
     BPT_OT_AddProjection,
+
     BPT_OT_RemoveProjection,
+
     BPT_OT_AddTurntablePreset,
+
     BPT_OT_AddFrontSidePreset,
+
+    BPT_OT_SetPipelineImplementation,
+
+    BPT_OT_ResetPipelineSettings,
+
+    BPT_OT_RunPipeline,
+
+    BPT_OT_RunPipelineStage,
+
     BPT_OT_GenerateCharacter,
 )
 
@@ -1211,6 +1856,8 @@ def register() -> None:
 
 
 def unregister() -> None:
+    clear_pipeline_runtime_state()
+
     for cls in reversed(
         CLASSES
     ):
