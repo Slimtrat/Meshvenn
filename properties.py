@@ -53,7 +53,7 @@ DEFAULT_EXPORT_IMPLEMENTATION_ID = ""
 # persistent UI surface.
 # =========================================================
 
-DEFAULT_UV_BAKE_TEXTURE_SIZE = "1024"
+DEFAULT_UV_BAKE_TEXTURE_SIZE = "512"
 
 DEFAULT_UV_BAKE_PADDING_PIXELS = 8
 
@@ -75,16 +75,18 @@ UV_BAKE_TEXTURE_SIZE_ITEMS = (
         "512",
         "512 px",
         (
-            "Fast preview texture. "
-            "Lowest memory and bake cost."
+            "Recommended default for interactive "
+            "Meshvenn generation. Balanced UV density, "
+            "bake time and exported asset size."
         ),
     ),
     (
         "1024",
         "1024 px",
         (
-            "Recommended default for interactive "
-            "Meshvenn generation."
+            "High-quality texture for final export or "
+            "meshes requiring additional texture density. "
+            "Significantly higher bake cost."
         ),
     ),
     (

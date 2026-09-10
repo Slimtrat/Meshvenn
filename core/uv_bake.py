@@ -44,7 +44,20 @@ RGBA: TypeAlias = tuple[
 # Constants
 # =========================================================
 
-DEFAULT_TEXTURE_SIZE = 1024
+# Selected from the UV Bake resolution benchmark:
+#
+# 256:
+#     too many subpixel UV triangles on dense generated
+#     meshes.
+#
+# 512:
+#     reaches the current texture-density target while
+#     remaining suitable for interactive generation.
+#
+# 1024+:
+#     retained as higher-quality explicit configurations,
+#     but no longer the generic default.
+DEFAULT_TEXTURE_SIZE = 512
 
 DEFAULT_PADDING_PIXELS = 8
 
@@ -602,6 +615,11 @@ class UVBakeConfig:
 
     width / height:
         Texture resolution.
+
+        The product default is currently 512×512.
+
+        Larger explicit sizes remain supported for
+        high-quality export.
 
     padding_pixels:
         Number of texels dilated around baked UV islands.
