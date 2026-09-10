@@ -1,6 +1,6 @@
 {
   "engine": "native-cpp",
-  "source": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/sheets/sheet2.png",
+  "source": "/home/runner/work/Meshvenn/Meshvenn/example/mascotte/test1/sheets/sheet2.png",
   "source_sha256": "b08d59b0ab6de81fbeb47d72dafb21fa95ee5d698d49e055a5a9d4a1e6b00965",
   "sheet_width": 1536,
   "sheet_height": 1024,
@@ -157,7 +157,8 @@
     }
   ],
   "mesh_mode": "blocks",
-  "material_mode": "projected-color-v1",
+  "material_mode": "projected-color-v1.1",
+  "material_visibility_mode": "raycast-v1",
   "material_views": [
     "000",
     "045",
@@ -192,7 +193,8 @@
     "L2": {
       "generated": true,
       "mesh_mode": "blocks",
-      "material_mode": "projected-color-v1",
+      "material_mode": "projected-color-v1.1",
+      "material_visibility_mode": "raycast-v1",
       "views": [
         "000",
         "090"
@@ -211,19 +213,25 @@
         61
       ],
       "material": {
-        "mode": "projected-color-v1",
+        "mode": "projected-color-v1.1",
         "attribute": "bpt_projected_color",
         "views": [
           "000",
           "090"
         ],
         "view_count": 2,
-        "projected_vertices": 6002,
-        "fallback_vertices": 7917,
-        "accepted_samples": 13821,
-        "rejected_samples": 21721
+        "projected_vertices": 5120,
+        "fallback_vertices": 8799,
+        "accepted_samples": 11571,
+        "rejected_samples": 22619,
+        "visibility": {
+          "enabled": true,
+          "mode": "raycast-v1",
+          "epsilon": 0.0008478797084492588,
+          "max_distance": 169.57594168985176
+        }
       },
-      "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet2/scans/L2/sheet2_L2.glb",
+      "glb": "/home/runner/work/Meshvenn/Meshvenn/example/mascotte/test1/generated/sheet2/scans/L2/sheet2_L2.glb",
       "blend": null,
       "vertices": 13919,
       "faces": 13982,
@@ -242,7 +250,8 @@
     "L4": {
       "generated": true,
       "mesh_mode": "blocks",
-      "material_mode": "projected-color-v1",
+      "material_mode": "projected-color-v1.1",
+      "material_visibility_mode": "raycast-v1",
       "views": [
         "000",
         "090",
@@ -265,7 +274,7 @@
         60
       ],
       "material": {
-        "mode": "projected-color-v1",
+        "mode": "projected-color-v1.1",
         "attribute": "bpt_projected_color",
         "views": [
           "000",
@@ -274,12 +283,18 @@
           "270"
         ],
         "view_count": 4,
-        "projected_vertices": 10360,
-        "fallback_vertices": 1652,
-        "accepted_samples": 12676,
-        "rejected_samples": 37023
+        "projected_vertices": 8019,
+        "fallback_vertices": 3993,
+        "accepted_samples": 12022,
+        "rejected_samples": 39552,
+        "visibility": {
+          "enabled": true,
+          "mode": "raycast-v1",
+          "epsilon": 0.0008295179322956196,
+          "max_distance": 165.90358645912391
+        }
       },
-      "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet2/scans/L4/sheet2_L4.glb",
+      "glb": "/home/runner/work/Meshvenn/Meshvenn/example/mascotte/test1/generated/sheet2/scans/L4/sheet2_L4.glb",
       "blend": null,
       "vertices": 12012,
       "faces": 12104,
@@ -298,7 +313,8 @@
     "L8": {
       "generated": true,
       "mesh_mode": "blocks",
-      "material_mode": "projected-color-v1",
+      "material_mode": "projected-color-v1.1",
+      "material_visibility_mode": "raycast-v1",
       "views": [
         "000",
         "090",
@@ -329,7 +345,7 @@
         53
       ],
       "material": {
-        "mode": "projected-color-v1",
+        "mode": "projected-color-v1.1",
         "attribute": "bpt_projected_color",
         "views": [
           "000",
@@ -342,12 +358,18 @@
           "315"
         ],
         "view_count": 8,
-        "projected_vertices": 9400,
-        "fallback_vertices": 1276,
-        "accepted_samples": 29245,
-        "rejected_samples": 57439
+        "projected_vertices": 8001,
+        "fallback_vertices": 2675,
+        "accepted_samples": 23448,
+        "rejected_samples": 64313,
+        "visibility": {
+          "enabled": true,
+          "mode": "raycast-v1",
+          "epsilon": 0.0007384443106964805,
+          "max_distance": 147.68886213929608
+        }
       },
-      "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet2/scans/L8/sheet2_L8.glb",
+      "glb": "/home/runner/work/Meshvenn/Meshvenn/example/mascotte/test1/generated/sheet2/scans/L8/sheet2_L8.glb",
       "blend": null,
       "vertices": 10676,
       "faces": 10788,
@@ -366,7 +388,8 @@
     "L10": {
       "generated": true,
       "mesh_mode": "blocks",
-      "material_mode": "projected-color-v1",
+      "material_mode": "projected-color-v1.1",
+      "material_visibility_mode": "raycast-v1",
       "views": [
         "000",
         "090",
@@ -401,7 +424,7 @@
         53
       ],
       "material": {
-        "mode": "projected-color-v1",
+        "mode": "projected-color-v1.1",
         "attribute": "bpt_projected_color",
         "views": [
           "000",
@@ -416,12 +439,18 @@
           "BOT"
         ],
         "view_count": 10,
-        "projected_vertices": 9212,
-        "fallback_vertices": 50,
-        "accepted_samples": 30271,
-        "rejected_samples": 62399
+        "projected_vertices": 8821,
+        "fallback_vertices": 441,
+        "accepted_samples": 23939,
+        "rejected_samples": 68968,
+        "visibility": {
+          "enabled": true,
+          "mode": "raycast-v1",
+          "epsilon": 0.000726773692424265,
+          "max_distance": 145.354738484853
+        }
       },
-      "glb": "/home/runner/work/blender_projection_tool/blender_projection_tool/example/mascotte/test1/generated/sheet2/scans/L10/sheet2_L10.glb",
+      "glb": "/home/runner/work/Meshvenn/Meshvenn/example/mascotte/test1/generated/sheet2/scans/L10/sheet2_L10.glb",
       "blend": null,
       "vertices": 9262,
       "faces": 9344,
