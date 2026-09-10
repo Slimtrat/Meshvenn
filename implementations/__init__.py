@@ -26,12 +26,19 @@ from ..core.pipeline_registry import (
 from .projection_images import (
     ProjectionImagesImplementation,
 )
+
 from .native_visual_hull import (
     NativeVisualHullImplementation,
 )
+
+from .sdf_reconstruction import (
+    SDFReconstructionImplementation,
+)
+
 from .projected_color import (
     ProjectedColorImplementation,
 )
+
 from .uv_bake import (
     UVBakeImplementation,
 )
@@ -60,10 +67,26 @@ BUILTIN_IMPLEMENTATION_FACTORIES: tuple[
     ImplementationFactory,
     ...
 ] = (
-    ProjectionImagesImplementation,
-    NativeVisualHullImplementation,
+    # -----------------------------------------------------
+    # INPUT
+    # -----------------------------------------------------
 
-    # MATERIAL implementations
+    ProjectionImagesImplementation,
+
+    # -----------------------------------------------------
+    # GEOMETRY
+    #
+    # Native Visual Hull remains first for UI continuity,
+    # but default selection is explicit below.
+    # -----------------------------------------------------
+
+    NativeVisualHullImplementation,
+    SDFReconstructionImplementation,
+
+    # -----------------------------------------------------
+    # MATERIAL
+    # -----------------------------------------------------
+
     ProjectedColorImplementation,
     UVBakeImplementation,
 )
@@ -74,13 +97,21 @@ BUILTIN_IMPLEMENTATION_FACTORIES: tuple[
 #
 # One authoritative default per built-in stage.
 #
-# MATERIAL now intentionally exposes:
+# Current choices:
 #
-#     Projected Color V1.2   <- default
-#     UV Bake V2
+#     INPUT
+#         Projection Images
 #
-# Adding new implementations below MUST NOT silently alter
-# these defaults.
+#     GEOMETRY
+#         Native Visual Hull       <- default
+#         SDF Reconstruction V1
+#
+#     MATERIAL
+#         Projected Color V1.2     <- default
+#         UV Bake V2
+#
+# Experimental additions MUST NOT silently replace these
+# defaults.
 # =========================================================
 
 BUILTIN_DEFAULT_IMPLEMENTATION_IDS: dict[
@@ -185,6 +216,11 @@ def _validate_builtin_catalog(
 
     # -----------------------------------------------------
     # Validate explicit defaults.
+    #
+    # A configured default must:
+    #
+    #     exist
+    #     belong to the expected stage
     # -----------------------------------------------------
 
     for (
@@ -227,15 +263,19 @@ def _validate_builtin_catalog(
 # Explicit defaults
 # =========================================================
 
-def _apply_builtin_defaults() -> None:
+def _apply_builtin_defaults(
+) -> None:
     """
     Force Meshvenn's authoritative defaults after all
     implementations have been registered.
 
     PipelineRegistry automatically promotes the first
     implementation of an empty stage. That remains useful
-    for generic/third-party registries, but Meshvenn's own
-    defaults must be deterministic and explicit.
+    for generic/third-party registries.
+
+    Meshvenn's own defaults are nevertheless explicit so
+    adding an experimental implementation cannot silently
+    alter product behaviour.
     """
 
     for (
@@ -263,24 +303,31 @@ def register_builtin_implementations(
     ...
 ]:
     """
-    Register every built-in Meshvenn pipeline
-    implementation.
+    Register every built-in Meshvenn implementation.
 
     Current catalog:
 
         INPUT
 
             projection-images
+                <- default
 
         GEOMETRY
 
             native-visual-hull
+                <- default
+
+            sdf-reconstruction-v1
+                experimental
+                Python reference backend
 
         MATERIAL
 
-            projected-color-v1.2   <- default
+            projected-color-v1.2
+                <- default
 
             uv-bake-v2
+                experimental
 
         RIG
 
@@ -346,9 +393,9 @@ def register_builtin_implementations(
     #
     # Example:
     #
-    #     uv-bake-v1
+    #     implementation-v1
     #         ↓ code reload
-    #     uv-bake-v2
+    #     implementation-v2
     #
     # Without this cleanup the old implementation could
     # remain selectable until Blender restarts.
@@ -373,6 +420,12 @@ def register_builtin_implementations(
 
     # -----------------------------------------------------
     # Establish final deterministic defaults.
+    #
+    # Important:
+    #
+    # registering sdf-reconstruction-v1 MUST NOT replace:
+    #
+    #     GEOMETRY -> native-visual-hull
     # -----------------------------------------------------
 
     _apply_builtin_defaults()
@@ -416,7 +469,8 @@ def unregister_builtin_implementations(
 # Blender module lifecycle
 # =========================================================
 
-def register() -> None:
+def register(
+) -> None:
     """
     Root registration order:
 
@@ -434,7 +488,8 @@ def register() -> None:
     )
 
 
-def unregister() -> None:
+def unregister(
+) -> None:
     unregister_builtin_implementations()
 
 

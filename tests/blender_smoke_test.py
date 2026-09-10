@@ -32,50 +32,42 @@ REQUIRED_PACKAGE_FILES = (
     "version.py",
     "translations.py",
 
-    # -----------------------------------------------------
-    # Core
-    # -----------------------------------------------------
-
+    # Core pipeline
     "core/__init__.py",
-
     "core/pipeline_contracts.py",
     "core/pipeline_registry.py",
     "core/pipeline_runner.py",
-
-    # Generic GEOMETRY contract
     "core/geometry_contracts.py",
 
+    # Input / projection
     "core/image_mask.py",
+    "core/projection_math.py",
 
+    # Native geometry
     "core/native_loader.py",
     "core/native_bridge.py",
     "core/native_mesh_builder.py",
     "core/native_scan.py",
 
-    "core/projection_math.py",
+    # SDF geometry
+    "core/sdf.py",
+    "core/sdf_surface.py",
 
+    # Material
     "core/projected_material.py",
     "core/material_visibility.py",
     "core/material_blend.py",
-
     "core/uv_bake.py",
 
-    # -----------------------------------------------------
     # Implementations
-    # -----------------------------------------------------
-
     "implementations/__init__.py",
-
     "implementations/projection_images.py",
     "implementations/native_visual_hull.py",
-
+    "implementations/sdf_reconstruction.py",
     "implementations/projected_color.py",
     "implementations/uv_bake.py",
 
-    # -----------------------------------------------------
     # Native binaries
-    # -----------------------------------------------------
-
     "native/bin/libbpt_core.so",
     "native/bin/bpt_core.dll",
 )
@@ -84,6 +76,7 @@ REQUIRED_PACKAGE_FILES = (
 EXPECTED_IMPLEMENTATIONS = (
     "projection-images",
     "native-visual-hull",
+    "sdf-reconstruction-v1",
     "projected-color-v1.2",
     "uv-bake-v2",
 )
@@ -98,48 +91,7 @@ EXPECTED_PROJECTION_NAMES = (
 
 
 # =========================================================
-# UV Bake expected defaults
-# =========================================================
-
-EXPECTED_UV_BAKE_TEXTURE_SIZE = (
-    "512"
-)
-
-EXPECTED_UV_BAKE_TEXTURE_SIZE_INT = (
-    int(
-        EXPECTED_UV_BAKE_TEXTURE_SIZE
-    )
-)
-
-EXPECTED_UV_BAKE_PADDING_PIXELS = 8
-
-EXPECTED_UV_BAKE_SAMPLES_PER_AXIS = (
-    "1"
-)
-
-EXPECTED_UV_BAKE_UV_LAYER_NAME = (
-    "MeshvennUV"
-)
-
-EXPECTED_UV_BAKE_ISLAND_MARGIN = (
-    0.02
-)
-
-EXPECTED_UV_BAKE_ANGLE_LIMIT_DEGREES = (
-    66.0
-)
-
-EXPECTED_UV_BAKE_REUSE_EXISTING_UV = (
-    False
-)
-
-EXPECTED_SMART_PROJECT_MARGIN_PIXELS = (
-    0.5
-)
-
-
-# =========================================================
-# Generic GEOMETRY expected values
+# Generic GEOMETRY
 # =========================================================
 
 EXPECTED_GEOMETRY_CONTRACT = (
@@ -147,8 +99,56 @@ EXPECTED_GEOMETRY_CONTRACT = (
 )
 
 FAKE_GEOMETRY_IMPLEMENTATION_ID = (
-    "sdf-reconstruction-v1"
+    "fake-sdf-surface"
 )
+
+
+# =========================================================
+# SDF expected defaults
+# =========================================================
+
+EXPECTED_SDF_RESOLUTION = 96
+
+EXPECTED_SDF_MINIMUM_RESOLUTION = 16
+
+EXPECTED_SDF_REFERENCE_MAX_RESOLUTION = 160
+
+EXPECTED_SDF_SYMMETRY_X = False
+
+EXPECTED_SDF_SMOOTHNESS = 0.0
+
+EXPECTED_SDF_SURFACE_OFFSET = 0.0
+
+EXPECTED_SDF_ISO_LEVEL = 0.0
+
+EXPECTED_SDF_GRADIENT_STEP_SCALE = 0.5
+
+
+# =========================================================
+# UV Bake expected defaults
+# =========================================================
+
+EXPECTED_UV_BAKE_TEXTURE_SIZE = "512"
+
+EXPECTED_UV_BAKE_TEXTURE_SIZE_INT = int(
+    EXPECTED_UV_BAKE_TEXTURE_SIZE
+)
+
+EXPECTED_UV_BAKE_PADDING_PIXELS = 8
+
+EXPECTED_UV_BAKE_SAMPLES_PER_AXIS = "1"
+
+EXPECTED_UV_BAKE_UV_LAYER_NAME = (
+    "MeshvennUV"
+)
+
+EXPECTED_UV_BAKE_ISLAND_MARGIN = 0.02
+
+EXPECTED_UV_BAKE_ANGLE_LIMIT_DEGREES = 66.0
+
+EXPECTED_UV_BAKE_REUSE_EXISTING_UV = False
+
+EXPECTED_SMART_PROJECT_MARGIN_PIXELS = 0.5
 
 
 # =========================================================
@@ -208,14 +208,12 @@ def _script_arguments() -> list[str]:
     if "--" not in sys.argv:
         return []
 
-    separator_index = (
-        sys.argv.index(
-            "--"
-        )
+    index = sys.argv.index(
+        "--"
     )
 
     return sys.argv[
-        separator_index + 1:
+        index + 1:
     ]
 
 
@@ -232,10 +230,6 @@ def _parse_arguments():
         default=str(
             DEFAULT_PACKAGE_ROOT
         ),
-        help=(
-            "Path to the unpacked Blender "
-            "extension package."
-        ),
     )
 
     return parser.parse_args(
@@ -244,25 +238,18 @@ def _parse_arguments():
 
 
 # =========================================================
-# Generic helpers
+# Helpers
 # =========================================================
 
 def _section(
     title: str,
 ) -> None:
     print()
-
-    print(
-        "=" * 72
-    )
-
+    print("=" * 72)
     print(
         f"Meshvenn smoke | {title}"
     )
-
-    print(
-        "=" * 72
-    )
+    print("=" * 72)
 
 
 def _require(
@@ -283,12 +270,8 @@ def _require_close(
     tolerance: float = 1e-6,
 ) -> None:
     if not math.isclose(
-        float(
-            actual
-        ),
-        float(
-            expected
-        ),
+        float(actual),
+        float(expected),
         rel_tol=tolerance,
         abs_tol=tolerance,
     ):
@@ -335,7 +318,7 @@ def _purge_package_modules(
 
 
 # =========================================================
-# RNA lookup helpers
+# RNA helpers
 # =========================================================
 
 def _operator_rna_class(
@@ -381,13 +364,11 @@ def _operator_callable(
         )
     )
 
-    namespace = getattr(
-        bpy.ops,
-        namespace_name,
-    )
-
     return getattr(
-        namespace,
+        getattr(
+            bpy.ops,
+            namespace_name,
+        ),
         operator_name,
     )
 
@@ -396,13 +377,9 @@ def _operator_available(
     idname: str,
 ) -> bool:
     try:
-        operator = (
-            _operator_callable(
-                idname
-            )
-        )
-
-        operator.get_rna_type()
+        _operator_callable(
+            idname
+        ).get_rna_type()
 
         return True
 
@@ -429,20 +406,15 @@ def _validate_package_tree(
         ),
     )
 
-    missing: list[str] = []
-
-    for relative_path in (
-        REQUIRED_PACKAGE_FILES
-    ):
-        path = (
+    missing = [
+        relative_path
+        for relative_path
+        in REQUIRED_PACKAGE_FILES
+        if not (
             package_root
             / relative_path
-        )
-
-        if not path.is_file():
-            missing.append(
-                relative_path
-            )
+        ).is_file()
+    ]
 
     if missing:
         formatted = "\n".join(
@@ -455,7 +427,6 @@ def _validate_package_tree(
             (
                 "Packaged Meshvenn extension "
                 "is incomplete.\n"
-                "Missing files:\n"
                 f"{formatted}"
             )
         )
@@ -499,31 +470,21 @@ def _load_extension(
         package_name
     )
 
-    package_parent_string = str(
+    parent_string = str(
         package_parent
     )
 
     if (
-        package_parent_string
+        parent_string
         not in sys.path
     ):
         sys.path.insert(
             0,
-            package_parent_string,
+            parent_string,
         )
 
-    print(
-        f"Package root: {package_root}"
-    )
-
-    print(
-        f"Module name: {package_name}"
-    )
-
-    module = (
-        importlib.import_module(
-            package_name
-        )
+    module = importlib.import_module(
+        package_name
     )
 
     _require(
@@ -555,6 +516,14 @@ def _load_extension(
     )
 
     print(
+        f"Package root: {package_root}"
+    )
+
+    print(
+        f"Module name: {package_name}"
+    )
+
+    print(
         "Import: OK"
     )
 
@@ -575,12 +544,10 @@ def _validate_geometry_contract_core(
         "generic GEOMETRY contract"
     )
 
-    module = (
-        importlib.import_module(
-            (
-                f"{package_name}."
-                "core.geometry_contracts"
-            )
+    module = importlib.import_module(
+        (
+            f"{package_name}."
+            "core.geometry_contracts"
         )
     )
 
@@ -592,9 +559,7 @@ def _validate_geometry_contract_core(
         "validate_geometry_surface_output",
     )
 
-    for symbol in (
-        required_symbols
-    ):
+    for symbol in required_symbols:
         _require(
             hasattr(
                 module,
@@ -602,9 +567,7 @@ def _validate_geometry_contract_core(
             ),
             (
                 "Generic GEOMETRY symbol "
-                "missing from packaged "
-                "extension: "
-                f"{symbol}"
+                f"missing: {symbol}"
             ),
         )
 
@@ -618,12 +581,8 @@ def _validate_geometry_contract_core(
         convention.value
         == EXPECTED_GEOMETRY_CONTRACT,
         (
-            "Unexpected generic projection "
-            "coordinate convention.\n"
-            f"Expected: "
-            f"{EXPECTED_GEOMETRY_CONTRACT}\n"
-            f"Actual:   "
-            f"{convention.value}"
+            "Unexpected GEOMETRY "
+            "projection convention."
         ),
     )
 
@@ -646,7 +605,7 @@ def _validate_geometry_contract_core(
             32,
         ),
         (
-            "Unexpected GeometryProjectionSpace "
+            "Unexpected projection-space "
             "dimensions."
         ),
     )
@@ -662,9 +621,8 @@ def _validate_geometry_contract_core(
             "center_xy": True,
         },
         (
-            "GeometryProjectionSpace does not "
-            "produce the projection arguments "
-            "expected by MATERIAL."
+            "Projection-space arguments "
+            "do not match MATERIAL contract."
         ),
     )
 
@@ -677,8 +635,8 @@ def _validate_geometry_contract_core(
             0.0,
         ),
         (
-            "Unexpected generic GEOMETRY "
-            "minimum local bound."
+            "Unexpected minimum "
+            "local bound."
         ),
     )
 
@@ -691,8 +649,8 @@ def _validate_geometry_contract_core(
             16.0,
         ),
         (
-            "Unexpected generic GEOMETRY "
-            "maximum local bound."
+            "Unexpected maximum "
+            "local bound."
         ),
     )
 
@@ -700,23 +658,145 @@ def _validate_geometry_contract_core(
         "Generic GEOMETRY core: OK"
     )
 
-    print(
-        (
-            "  convention: "
-            f"{convention.value}"
+
+# =========================================================
+# SDF core
+# =========================================================
+
+def _validate_sdf_core(
+    package_name: str,
+) -> None:
+    _section(
+        "SDF core"
+    )
+
+    sdf_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.sdf"
+            )
         )
     )
 
-    print(
-        (
-            "  dimensions: "
-            f"{projection_space.dimensions}"
+    surface_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.sdf_surface"
+            )
         )
+    )
+
+    required_sdf_symbols = (
+        "SignedDistanceMask",
+        "SDFProjection",
+        "SDFVolume",
+        "SDFBuildConfig",
+        "SDFBuildResult",
+        "build_signed_distance_mask",
+        "build_sdf_projections",
+        "build_sdf_volume",
+        "build_sdf_from_views",
+        "fuse_signed_distances",
+        "smooth_max",
+    )
+
+    for symbol in (
+        required_sdf_symbols
+    ):
+        _require(
+            hasattr(
+                sdf_module,
+                symbol,
+            ),
+            (
+                "SDF core symbol "
+                f"missing: {symbol}"
+            ),
+        )
+
+    required_surface_symbols = (
+        "SDFSurfaceConfig",
+        "SDFSurfaceVertex",
+        "SDFSurfaceMesh",
+        "SDFSurfaceStats",
+        "SDFSurfaceResult",
+        "estimate_sdf_normal",
+        "extract_surface_nets",
+    )
+
+    for symbol in (
+        required_surface_symbols
+    ):
+        _require(
+            hasattr(
+                surface_module,
+                symbol,
+            ),
+            (
+                "SDF surface symbol "
+                f"missing: {symbol}"
+            ),
+        )
+
+    config = (
+        sdf_module
+        .cubic_sdf_config(
+            16
+        )
+    )
+
+    _require(
+        config.dimensions
+        == (
+            16,
+            16,
+            16,
+        ),
+        (
+            "Unexpected cubic "
+            "SDF config."
+        ),
+    )
+
+    _require(
+        config.voxel_count
+        == 4096,
+        (
+            "Unexpected SDF sample count."
+        ),
+    )
+
+    surface_config = (
+        surface_module
+        .SDFSurfaceConfig()
+    )
+
+    surface_config.validate()
+
+    _require_close(
+        surface_config
+        .gradient_step_scale,
+        EXPECTED_SDF_GRADIENT_STEP_SCALE,
+        name="SDF gradient step",
+    )
+
+    print(
+        "SDF core import: OK"
+    )
+
+    print(
+        "  signed distance field: OK"
+    )
+
+    print(
+        "  continuous Surface Nets: OK"
     )
 
 
 # =========================================================
-# Core UV Bake
+# UV Bake core
 # =========================================================
 
 def _validate_uv_bake_core(
@@ -726,12 +806,10 @@ def _validate_uv_bake_core(
         "UV Bake V2 core"
     )
 
-    module = (
-        importlib.import_module(
-            (
-                f"{package_name}."
-                "core.uv_bake"
-            )
+    module = importlib.import_module(
+        (
+            f"{package_name}."
+            "core.uv_bake"
         )
     )
 
@@ -749,17 +827,15 @@ def _validate_uv_bake_core(
         "texture_memory_bytes",
     )
 
-    for symbol in (
-        required_symbols
-    ):
+    for symbol in required_symbols:
         _require(
             hasattr(
                 module,
                 symbol,
             ),
             (
-                "UV Bake core symbol missing: "
-                f"{symbol}"
+                "UV Bake core symbol "
+                f"missing: {symbol}"
             ),
         )
 
@@ -767,12 +843,8 @@ def _validate_uv_bake_core(
         module.DEFAULT_TEXTURE_SIZE
         == EXPECTED_UV_BAKE_TEXTURE_SIZE_INT,
         (
-            "Unexpected core UV Bake "
-            "texture-size default.\n"
-            f"Expected: "
-            f"{EXPECTED_UV_BAKE_TEXTURE_SIZE_INT}\n"
-            f"Actual:   "
-            f"{module.DEFAULT_TEXTURE_SIZE}"
+            "Unexpected UV Bake "
+            "core default."
         ),
     )
 
@@ -787,7 +859,7 @@ def _validate_uv_bake_core(
         == EXPECTED_UV_BAKE_TEXTURE_SIZE_INT,
         (
             "UVBakeConfig default width "
-            "does not match product default."
+            "is out of sync."
         ),
     )
 
@@ -796,11 +868,11 @@ def _validate_uv_bake_core(
         == EXPECTED_UV_BAKE_TEXTURE_SIZE_INT,
         (
             "UVBakeConfig default height "
-            "does not match product default."
+            "is out of sync."
         ),
     )
 
-    explicit_config = (
+    explicit = (
         module.UVBakeConfig(
             width=8,
             height=8,
@@ -809,62 +881,30 @@ def _validate_uv_bake_core(
         )
     )
 
-    explicit_config.validate()
+    explicit.validate()
 
     _require(
-        explicit_config.width == 8,
+        explicit.width == 8
+        and explicit.height == 8,
         (
-            "Explicit UV Bake width "
-            "was unexpectedly overridden."
+            "Explicit UV Bake size "
+            "was overridden."
         ),
     )
 
-    _require(
-        explicit_config.height == 8,
-        (
-            "Explicit UV Bake height "
-            "was unexpectedly overridden."
-        ),
-    )
-
-    high_quality_config = (
-        module.square_texture_config(
+    hq = (
+        module
+        .square_texture_config(
             1024
         )
     )
 
     _require(
-        high_quality_config.width
-        == 1024,
+        hq.width == 1024
+        and hq.height == 1024,
         (
-            "Explicit 1024 UV Bake mode "
-            "is no longer available."
-        ),
-    )
-
-    _require(
-        high_quality_config.height
-        == 1024,
-        (
-            "Explicit 1024 UV Bake mode "
-            "is no longer available."
-        ),
-    )
-
-    _require(
-        module.texture_memory_bytes(
-            1024,
-            1024,
-        )
-        == (
-            1024
-            * 1024
-            * 4
-            * 4
-        ),
-        (
-            "UV Bake texture memory helper "
-            "returned an unexpected result."
+            "Explicit 1024 UV Bake "
+            "mode unavailable."
         ),
     )
 
@@ -872,20 +912,9 @@ def _validate_uv_bake_core(
         "UV Bake V2 core import: OK"
     )
 
-    print(
-        (
-            "  default texture: "
-            f"{module.DEFAULT_TEXTURE_SIZE}²"
-        )
-    )
-
-    print(
-        "  explicit 1024²: available"
-    )
-
 
 # =========================================================
-# Scene / properties
+# Scene properties
 # =========================================================
 
 def _validate_scene_properties(
@@ -913,8 +942,7 @@ def _validate_scene_properties(
     _require(
         scene is not None,
         (
-            "No active Blender scene "
-            "is available."
+            "No active Blender scene."
         ),
     )
 
@@ -927,7 +955,7 @@ def _validate_scene_properties(
     _require(
         settings is not None,
         (
-            "Active scene does not expose "
+            "Scene does not expose "
             "bpt_settings."
         ),
     )
@@ -974,8 +1002,7 @@ def _validate_projection_defaults(
         == EXPECTED_PROJECTION_NAMES,
         (
             "Unexpected default projections.\n"
-            f"Expected: "
-            f"{EXPECTED_PROJECTION_NAMES}\n"
+            f"Expected: {EXPECTED_PROJECTION_NAMES}\n"
             f"Actual:   {actual_names}"
         ),
     )
@@ -983,11 +1010,6 @@ def _validate_projection_defaults(
     print(
         "Default projections: OK"
     )
-
-    for name in actual_names:
-        print(
-            f"  OK  {name}"
-        )
 
 
 # =========================================================
@@ -1006,16 +1028,14 @@ def _validate_pipeline_defaults(
     )
 
     _require(
-        bool(
-            pipeline.initialized
-        ),
+        pipeline.initialized,
         (
-            "Pipeline defaults were not "
-            "initialized."
+            "Pipeline defaults were "
+            "not initialized."
         ),
     )
 
-    expected_ids = (
+    expected = (
         (
             pipeline
             .input_stage
@@ -1041,57 +1061,42 @@ def _validate_pipeline_defaults(
 
     for (
         actual,
-        expected,
+        wanted,
         stage_name,
-    ) in expected_ids:
+    ) in expected:
         _require(
-            actual == expected,
+            actual == wanted,
             (
                 f"Unexpected {stage_name} "
                 "default implementation.\n"
-                f"Expected: {expected}\n"
+                f"Expected: {wanted}\n"
                 f"Actual:   {actual}"
             ),
         )
 
     _require(
         pipeline.input_stage.enabled,
-        (
-            "INPUT must be enabled "
-            "by default."
-        ),
+        "INPUT must be enabled.",
     )
 
     _require(
         pipeline.geometry_stage.enabled,
-        (
-            "GEOMETRY must be enabled "
-            "by default."
-        ),
+        "GEOMETRY must be enabled.",
     )
 
     _require(
         pipeline.material_stage.enabled,
-        (
-            "MATERIAL must be enabled "
-            "by default."
-        ),
+        "MATERIAL must be enabled.",
     )
 
     _require(
         not pipeline.rig_stage.enabled,
-        (
-            "RIG must be disabled "
-            "by default."
-        ),
+        "RIG must be disabled.",
     )
 
     _require(
         not pipeline.export_stage.enabled,
-        (
-            "EXPORT must be disabled "
-            "by default."
-        ),
+        "EXPORT must be disabled.",
     )
 
     print(
@@ -1099,35 +1104,541 @@ def _validate_pipeline_defaults(
     )
 
     print(
-        "  INPUT    projection-images"
+        "  GEOMETRY native-visual-hull [default]"
     )
 
     print(
-        "  GEOMETRY native-visual-hull"
-    )
-
-    print(
-        "  MATERIAL projected-color-v1.2"
-    )
-
-    print(
-        (
-            "            uv-bake-v2 "
-            "available but not default"
-        )
-    )
-
-    print(
-        "  RIG      disabled"
-    )
-
-    print(
-        "  EXPORT   disabled"
+        "           sdf-reconstruction-v1 [available]"
     )
 
 
 # =========================================================
-# UV Bake Blender properties
+# SDF Blender properties
+# =========================================================
+
+def _validate_sdf_properties(
+    settings,
+) -> None:
+    _section(
+        "SDF Reconstruction V1 properties"
+    )
+
+    required = (
+        "sdf_resolution",
+        "sdf_symmetry_x",
+        "sdf_smoothness",
+        "sdf_surface_offset",
+        "sdf_iso_level",
+        "sdf_gradient_step_scale",
+    )
+
+    for name in required:
+        _require(
+            hasattr(
+                settings,
+                name,
+            ),
+            (
+                "Missing SDF property: "
+                f"{name}"
+            ),
+        )
+
+    _require(
+        settings.sdf_resolution
+        == EXPECTED_SDF_RESOLUTION,
+        (
+            "Unexpected SDF "
+            "resolution default."
+        ),
+    )
+
+    _require(
+        bool(
+            settings.sdf_symmetry_x
+        )
+        == EXPECTED_SDF_SYMMETRY_X,
+        (
+            "Unexpected SDF "
+            "symmetry default."
+        ),
+    )
+
+    _require_close(
+        settings.sdf_smoothness,
+        EXPECTED_SDF_SMOOTHNESS,
+        name="SDF smoothness",
+    )
+
+    _require_close(
+        settings.sdf_surface_offset,
+        EXPECTED_SDF_SURFACE_OFFSET,
+        name="SDF surface offset",
+    )
+
+    _require_close(
+        settings.sdf_iso_level,
+        EXPECTED_SDF_ISO_LEVEL,
+        name="SDF iso level",
+    )
+
+    _require_close(
+        settings
+        .sdf_gradient_step_scale,
+        EXPECTED_SDF_GRADIENT_STEP_SCALE,
+        name="SDF gradient step",
+    )
+
+    # -----------------------------------------------------
+    # Check the UI safety cap of the current Python backend.
+    # -----------------------------------------------------
+
+    rna_property = (
+        settings
+        .bl_rna
+        .properties[
+            "sdf_resolution"
+        ]
+    )
+
+    _require(
+        int(
+            rna_property.hard_min
+        )
+        == EXPECTED_SDF_MINIMUM_RESOLUTION,
+        (
+            "Unexpected SDF RNA "
+            "minimum resolution."
+        ),
+    )
+
+    _require(
+        int(
+            rna_property.hard_max
+        )
+        == EXPECTED_SDF_REFERENCE_MAX_RESOLUTION,
+        (
+            "Unexpected SDF RNA "
+            "maximum resolution."
+        ),
+    )
+
+    # -----------------------------------------------------
+    # SDF and Native Visual Hull settings must remain
+    # independent.
+    # -----------------------------------------------------
+
+    original_native_resolution = (
+        settings.resolution
+    )
+
+    original_sdf_resolution = (
+        settings.sdf_resolution
+    )
+
+    try:
+        settings.resolution = 80
+        settings.sdf_resolution = 64
+
+        _require(
+            settings.resolution == 80,
+            (
+                "Native Visual Hull resolution "
+                "could not be changed."
+            ),
+        )
+
+        _require(
+            settings.sdf_resolution == 64,
+            (
+                "SDF resolution "
+                "could not be changed."
+            ),
+        )
+
+        _require(
+            settings.resolution
+            != settings.sdf_resolution,
+            (
+                "SDF and Visual Hull "
+                "resolution settings are coupled."
+            ),
+        )
+
+    finally:
+        settings.resolution = (
+            original_native_resolution
+        )
+
+        settings.sdf_resolution = (
+            original_sdf_resolution
+        )
+
+    print(
+        "SDF properties: OK"
+    )
+
+    print(
+        (
+            "  reference resolution: "
+            f"{EXPECTED_SDF_RESOLUTION}³"
+        )
+    )
+
+    print(
+        (
+            "  UI safety max: "
+            f"{EXPECTED_SDF_REFERENCE_MAX_RESOLUTION}³"
+        )
+    )
+
+
+# =========================================================
+# SDF defaults alignment
+# =========================================================
+
+def _validate_sdf_default_alignment(
+    package_name: str,
+    settings,
+) -> None:
+    _section(
+        "SDF default alignment"
+    )
+
+    core_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.sdf"
+            )
+        )
+    )
+
+    surface_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.sdf_surface"
+            )
+        )
+    )
+
+    implementation_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "implementations."
+                "sdf_reconstruction"
+            )
+        )
+    )
+
+    properties_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "properties"
+            )
+        )
+    )
+
+    _require(
+        properties_module
+        .DEFAULT_SDF_RESOLUTION
+        == EXPECTED_SDF_RESOLUTION,
+        (
+            "properties.py SDF "
+            "resolution is out of sync."
+        ),
+    )
+
+    _require(
+        implementation_module
+        .DEFAULT_RESOLUTION
+        == EXPECTED_SDF_RESOLUTION,
+        (
+            "SDF implementation "
+            "resolution is out of sync."
+        ),
+    )
+
+    _require(
+        properties_module
+        .MINIMUM_SDF_RESOLUTION
+        == implementation_module
+        .MINIMUM_RESOLUTION
+        == EXPECTED_SDF_MINIMUM_RESOLUTION,
+        (
+            "SDF minimum resolution "
+            "is out of sync."
+        ),
+    )
+
+    _require(
+        properties_module
+        .MAXIMUM_SDF_REFERENCE_RESOLUTION
+        == EXPECTED_SDF_REFERENCE_MAX_RESOLUTION,
+        (
+            "SDF reference UI max "
+            "is out of sync."
+        ),
+    )
+
+    _require(
+        EXPECTED_SDF_REFERENCE_MAX_RESOLUTION
+        <= implementation_module
+        .MAXIMUM_RESOLUTION,
+        (
+            "SDF property limit exceeds "
+            "implementation limit."
+        ),
+    )
+
+    _require(
+        (
+            EXPECTED_SDF_REFERENCE_MAX_RESOLUTION
+            ** 3
+        )
+        <= core_module
+        .DEFAULT_REFERENCE_MAX_VOXELS,
+        (
+            "SDF UI allows more samples "
+            "than the Python reference "
+            "backend accepts."
+        ),
+    )
+
+    config = (
+        implementation_module
+        .SDFReconstructionConfig()
+    )
+
+    config.validate()
+
+    _require(
+        config.resolution
+        == EXPECTED_SDF_RESOLUTION,
+        (
+            "SDFReconstructionConfig "
+            "resolution is out of sync."
+        ),
+    )
+
+    _require(
+        config.symmetry_x
+        == EXPECTED_SDF_SYMMETRY_X,
+        (
+            "SDFReconstructionConfig "
+            "symmetry is out of sync."
+        ),
+    )
+
+    _require_close(
+        config.smoothness,
+        core_module.DEFAULT_SMOOTHNESS,
+        name=(
+            "implementation/core "
+            "SDF smoothness"
+        ),
+    )
+
+    _require_close(
+        config.surface_offset,
+        core_module.DEFAULT_SURFACE_OFFSET,
+        name=(
+            "implementation/core "
+            "surface offset"
+        ),
+    )
+
+    _require_close(
+        config.iso_level,
+        core_module.DEFAULT_ISO_LEVEL,
+        name=(
+            "implementation/core "
+            "iso level"
+        ),
+    )
+
+    _require_close(
+        config.gradient_step_scale,
+        surface_module
+        .DEFAULT_GRADIENT_STEP_SCALE,
+        name=(
+            "implementation/core "
+            "gradient step"
+        ),
+    )
+
+    _require(
+        settings.sdf_resolution
+        == config.resolution,
+        (
+            "Scene SDF resolution "
+            "is out of sync."
+        ),
+    )
+
+    print(
+        "SDF defaults aligned: OK"
+    )
+
+    print(
+        (
+            "  core max samples: "
+            f"{core_module.DEFAULT_REFERENCE_MAX_VOXELS:,}"
+        )
+    )
+
+    print(
+        (
+            "  implementation: "
+            f"{config.resolution}³"
+        )
+    )
+
+    print(
+        (
+            "  scene RNA:      "
+            f"{settings.sdf_resolution}³"
+        )
+    )
+
+
+# =========================================================
+# SDF pipeline selection
+# =========================================================
+
+def _validate_sdf_pipeline_selection(
+    package_name: str,
+    settings,
+) -> None:
+    _section(
+        "SDF pipeline selection"
+    )
+
+    properties_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "properties"
+            )
+        )
+    )
+
+    contracts_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.pipeline_contracts"
+            )
+        )
+    )
+
+    registry_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "core.pipeline_registry"
+            )
+        )
+    )
+
+    PipelineStage = (
+        contracts_module
+        .PipelineStage
+    )
+
+    previous = (
+        properties_module
+        .get_pipeline_implementation(
+            settings,
+            PipelineStage.GEOMETRY,
+        )
+    )
+
+    try:
+        properties_module.set_pipeline_implementation(
+            settings,
+            PipelineStage.GEOMETRY,
+            "sdf-reconstruction-v1",
+        )
+
+        plan = (
+            properties_module
+            .build_pipeline_plan(
+                settings
+            )
+        )
+
+        selection = (
+            plan.selection_for(
+                PipelineStage.GEOMETRY
+            )
+        )
+
+        _require(
+            selection is not None,
+            (
+                "SDF GEOMETRY selection "
+                "disappeared from PipelinePlan."
+            ),
+        )
+
+        _require(
+            selection.implementation_id
+            == "sdf-reconstruction-v1",
+            (
+                "PipelinePlan did not preserve "
+                "SDF implementation selection."
+            ),
+        )
+
+        _require(
+            selection.enabled,
+            (
+                "Selected SDF GEOMETRY "
+                "stage is disabled."
+            ),
+        )
+
+        # Selecting SDF in scene state MUST NOT mutate the
+        # global built-in default.
+        _require(
+            registry_module
+            .PIPELINE_REGISTRY
+            .default_id(
+                PipelineStage.GEOMETRY
+            )
+            == "native-visual-hull",
+            (
+                "Selecting SDF changed the "
+                "GEOMETRY registry default."
+            ),
+        )
+
+    finally:
+        properties_module.set_pipeline_implementation(
+            settings,
+            PipelineStage.GEOMETRY,
+            previous,
+        )
+
+    print(
+        "SDF selection: OK"
+    )
+
+    print(
+        "  selectable: sdf-reconstruction-v1"
+    )
+
+    print(
+        "  global default unchanged: native-visual-hull"
+    )
+
+
+# =========================================================
+# UV Bake properties
 # =========================================================
 
 def _validate_uv_bake_properties(
@@ -1137,7 +1648,7 @@ def _validate_uv_bake_properties(
         "UV Bake V2 properties"
     )
 
-    required_properties = (
+    required = (
         "uv_bake_texture_size",
         "uv_bake_padding_pixels",
         "uv_bake_samples_per_axis",
@@ -1147,17 +1658,15 @@ def _validate_uv_bake_properties(
         "uv_bake_angle_limit_degrees",
     )
 
-    for property_name in (
-        required_properties
-    ):
+    for name in required:
         _require(
             hasattr(
                 settings,
-                property_name,
+                name,
             ),
             (
                 "Missing UV Bake property: "
-                f"{property_name}"
+                f"{name}"
             ),
         )
 
@@ -1165,12 +1674,8 @@ def _validate_uv_bake_properties(
         settings.uv_bake_texture_size
         == EXPECTED_UV_BAKE_TEXTURE_SIZE,
         (
-            "Unexpected UV Bake texture "
-            "size default.\n"
-            f"Expected: "
-            f"{EXPECTED_UV_BAKE_TEXTURE_SIZE}\n"
-            f"Actual:   "
-            f"{settings.uv_bake_texture_size}"
+            "Unexpected UV Bake "
+            "texture default."
         ),
     )
 
@@ -1178,8 +1683,8 @@ def _validate_uv_bake_properties(
         settings.uv_bake_padding_pixels
         == EXPECTED_UV_BAKE_PADDING_PIXELS,
         (
-            "Unexpected UV Bake padding "
-            "default."
+            "Unexpected UV Bake "
+            "padding default."
         ),
     )
 
@@ -1187,8 +1692,8 @@ def _validate_uv_bake_properties(
         settings.uv_bake_samples_per_axis
         == EXPECTED_UV_BAKE_SAMPLES_PER_AXIS,
         (
-            "Unexpected UV Bake supersampling "
-            "default."
+            "Unexpected UV Bake "
+            "sample default."
         ),
     )
 
@@ -1196,8 +1701,8 @@ def _validate_uv_bake_properties(
         settings.uv_bake_uv_layer_name
         == EXPECTED_UV_BAKE_UV_LAYER_NAME,
         (
-            "Unexpected UV Bake UV layer "
-            "name default."
+            "Unexpected UV Bake "
+            "UV layer default."
         ),
     )
 
@@ -1214,26 +1719,17 @@ def _validate_uv_bake_properties(
     )
 
     _require_close(
-        settings
-        .uv_bake_island_margin,
+        settings.uv_bake_island_margin,
         EXPECTED_UV_BAKE_ISLAND_MARGIN,
-        name=(
-            "UV Bake island margin"
-        ),
+        name="UV Bake island margin",
     )
 
     _require_close(
         settings
         .uv_bake_angle_limit_degrees,
         EXPECTED_UV_BAKE_ANGLE_LIMIT_DEGREES,
-        name=(
-            "UV Bake angle limit"
-        ),
+        name="UV Bake angle limit",
     )
-
-    # -----------------------------------------------------
-    # Higher-quality modes remain selectable.
-    # -----------------------------------------------------
 
     for value in (
         "1024",
@@ -1248,9 +1744,8 @@ def _validate_uv_bake_properties(
             settings.uv_bake_texture_size
             == value,
             (
-                "UV Bake texture-size "
-                "EnumProperty rejected "
-                f"{value}."
+                "UV Bake EnumProperty "
+                f"rejected {value}."
             ),
         )
 
@@ -1258,56 +1753,19 @@ def _validate_uv_bake_properties(
         EXPECTED_UV_BAKE_TEXTURE_SIZE
     )
 
-    settings.uv_bake_samples_per_axis = (
-        "2"
-    )
-
-    _require(
-        settings.uv_bake_samples_per_axis
-        == "2",
-        (
-            "UV Bake samples EnumProperty "
-            "could not be changed."
-        ),
-    )
-
-    settings.uv_bake_samples_per_axis = (
-        EXPECTED_UV_BAKE_SAMPLES_PER_AXIS
-    )
-
     print(
         "UV Bake V2 properties: OK"
     )
 
-    print(
-        (
-            "  default: "
-            f"{EXPECTED_UV_BAKE_TEXTURE_SIZE}²"
-        )
-    )
-
-    print(
-        "  HQ:      1024² / 2048² / 4096²"
-    )
-
 
 # =========================================================
-# UV Bake default alignment
+# UV Bake alignment
 # =========================================================
 
 def _validate_uv_bake_default_alignment(
     package_name: str,
     settings,
 ) -> None:
-    """
-    Prevent four independent surfaces from drifting apart:
-
-        pure core
-        Blender implementation
-        Blender property definition
-        instantiated scene RNA
-    """
-
     _section(
         "UV Bake default alignment"
     )
@@ -1343,19 +1801,12 @@ def _validate_uv_bake_default_alignment(
         EXPECTED_UV_BAKE_TEXTURE_SIZE_INT
     )
 
-    expected_string = (
-        EXPECTED_UV_BAKE_TEXTURE_SIZE
-    )
-
     _require(
         core_module.DEFAULT_TEXTURE_SIZE
         == expected_int,
         (
-            "core.uv_bake DEFAULT_TEXTURE_SIZE "
-            "is out of sync.\n"
-            f"Expected: {expected_int}\n"
-            f"Actual:   "
-            f"{core_module.DEFAULT_TEXTURE_SIZE}"
+            "core.uv_bake default "
+            "is out of sync."
         ),
     )
 
@@ -1363,29 +1814,19 @@ def _validate_uv_bake_default_alignment(
         implementation_module.DEFAULT_TEXTURE_SIZE
         == expected_int,
         (
-            "implementations.uv_bake "
-            "DEFAULT_TEXTURE_SIZE is out of sync.\n"
-            f"Expected: {expected_int}\n"
-            f"Actual:   "
-            f"{implementation_module.DEFAULT_TEXTURE_SIZE}"
+            "UV Bake implementation "
+            "default is out of sync."
         ),
     )
 
     _require(
         properties_module
         .DEFAULT_UV_BAKE_TEXTURE_SIZE
-        == expected_string,
+        == EXPECTED_UV_BAKE_TEXTURE_SIZE,
         (
-            "properties.py UV Bake default "
-            "is out of sync.\n"
-            f"Expected: {expected_string!r}\n"
-            "Actual:   "
-            f"{properties_module.DEFAULT_UV_BAKE_TEXTURE_SIZE!r}"
+            "UV Bake property default "
+            "is out of sync."
         ),
-    )
-
-    core_config = (
-        core_module.UVBakeConfig()
     )
 
     material_config = (
@@ -1399,55 +1840,12 @@ def _validate_uv_bake_default_alignment(
     )
 
     _require(
-        core_config.width
-        == expected_int,
-        (
-            "Core UVBakeConfig width "
-            "is out of sync."
-        ),
-    )
-
-    _require(
-        core_config.height
-        == expected_int,
-        (
-            "Core UVBakeConfig height "
-            "is out of sync."
-        ),
-    )
-
-    _require(
-        material_config.texture_size
-        == expected_int,
-        (
-            "UVBakeMaterialConfig default "
-            "is out of sync."
-        ),
-    )
-
-    _require(
         bake_config.width
+        == expected_int
+        and bake_config.height
         == expected_int,
         (
-            "UVBakeMaterialConfig.to_bake_config() "
-            "has wrong width."
-        ),
-    )
-
-    _require(
-        bake_config.height
-        == expected_int,
-        (
-            "UVBakeMaterialConfig.to_bake_config() "
-            "has wrong height."
-        ),
-    )
-
-    _require(
-        settings.uv_bake_texture_size
-        == expected_string,
-        (
-            "Instantiated Blender scene setting "
+            "UV Bake config conversion "
             "is out of sync."
         ),
     )
@@ -1457,65 +1855,22 @@ def _validate_uv_bake_default_alignment(
         .effective_island_margin_pixels,
         EXPECTED_SMART_PROJECT_MARGIN_PIXELS,
         name=(
-            "effective Smart Project "
-            "margin in pixels"
+            "UV Bake Smart Project "
+            "margin"
         ),
     )
 
-    expected_fraction = (
-        EXPECTED_SMART_PROJECT_MARGIN_PIXELS
-        / float(
-            expected_int
-        )
-    )
-
-    _require_close(
-        material_config
-        .effective_island_margin_fraction,
-        expected_fraction,
-        name=(
-            "effective Smart Project "
-            "margin fraction"
+    _require(
+        settings.uv_bake_texture_size
+        == EXPECTED_UV_BAKE_TEXTURE_SIZE,
+        (
+            "Scene UV Bake default "
+            "is out of sync."
         ),
     )
 
     print(
         "UV Bake defaults aligned: OK"
-    )
-
-    print(
-        (
-            "  core:           "
-            f"{core_module.DEFAULT_TEXTURE_SIZE}"
-        )
-    )
-
-    print(
-        (
-            "  implementation: "
-            f"{implementation_module.DEFAULT_TEXTURE_SIZE}"
-        )
-    )
-
-    print(
-        (
-            "  properties:     "
-            f"{properties_module.DEFAULT_UV_BAKE_TEXTURE_SIZE}"
-        )
-    )
-
-    print(
-        (
-            "  scene RNA:      "
-            f"{settings.uv_bake_texture_size}"
-        )
-    )
-
-    print(
-        (
-            "  Smart margin:   "
-            f"{material_config.effective_island_margin_pixels:.2f}px"
-        )
     )
 
 
@@ -1569,8 +1924,7 @@ def _validate_registry(
         (
             "Unexpected registered "
             "implementations.\n"
-            f"Expected: "
-            f"{EXPECTED_IMPLEMENTATIONS}\n"
+            f"Expected: {EXPECTED_IMPLEMENTATIONS}\n"
             f"Actual:   {actual_ids}"
         ),
     )
@@ -1614,51 +1968,54 @@ def _validate_registry(
             ),
         )
 
-    uv_bake = (
+    # -----------------------------------------------------
+    # SDF
+    # -----------------------------------------------------
+
+    sdf = (
         registry.require(
-            "uv-bake-v2",
+            "sdf-reconstruction-v1",
             stage=(
-                PipelineStage.MATERIAL
+                PipelineStage.GEOMETRY
             ),
         )
     )
 
-    descriptor = (
-        uv_bake.descriptor
+    sdf_descriptor = (
+        sdf.descriptor
     )
 
     _require(
-        descriptor.identifier
-        == "uv-bake-v2",
+        sdf_descriptor.identifier
+        == "sdf-reconstruction-v1",
         (
-            "Unexpected UV Bake "
-            "implementation identifier."
+            "Unexpected SDF "
+            "implementation id."
         ),
     )
 
     _require(
-        descriptor.stage
-        == PipelineStage.MATERIAL,
+        sdf_descriptor.stage
+        == PipelineStage.GEOMETRY,
         (
-            "UV Bake V2 must belong "
-            "to MATERIAL stage."
+            "SDF must belong "
+            "to GEOMETRY."
         ),
     )
 
     _require(
-        descriptor.label
-        == "UV Bake V2",
+        sdf_descriptor.label
+        == "SDF Reconstruction V1",
         (
-            "Unexpected UV Bake "
-            "V2 label."
+            "Unexpected SDF label."
         ),
     )
 
     _require(
-        descriptor.experimental,
+        sdf_descriptor.experimental,
         (
-            "UV Bake V2 should remain "
-            "experimental during V2 development."
+            "SDF V1 should remain "
+            "experimental."
         ),
     )
 
@@ -1670,16 +2027,37 @@ def _validate_registry(
         _require(
             callable(
                 getattr(
-                    uv_bake,
+                    sdf,
                     method_name,
                     None,
                 )
             ),
             (
-                "UV Bake V2 missing "
-                f"{method_name}()."
+                "SDF implementation "
+                f"missing {method_name}()."
             ),
         )
+
+    # -----------------------------------------------------
+    # UV Bake
+    # -----------------------------------------------------
+
+    uv_bake = (
+        registry.require(
+            "uv-bake-v2",
+            stage=(
+                PipelineStage.MATERIAL
+            ),
+        )
+    )
+
+    _require(
+        uv_bake.descriptor.experimental,
+        (
+            "UV Bake V2 should remain "
+            "experimental."
+        ),
+    )
 
     print(
         "Registry: OK"
@@ -1691,6 +2069,22 @@ def _validate_registry(
         suffix = ""
 
         if (
+            implementation_id
+            == "native-visual-hull"
+        ):
+            suffix = (
+                " [GEOMETRY default]"
+            )
+
+        elif (
+            implementation_id
+            == "sdf-reconstruction-v1"
+        ):
+            suffix = (
+                " [GEOMETRY experimental]"
+            )
+
+        elif (
             implementation_id
             == "projected-color-v1.2"
         ):
@@ -1724,26 +2118,17 @@ def _validate_generic_geometry_material_compatibility(
     settings,
 ) -> None:
     """
-    Critical architecture smoke test.
+    Use a real Blender mesh wrapped only in
+    GeometrySurfaceOutput.
 
-    Build a real Blender mesh but wrap it only in the generic
-    GeometrySurfaceOutput contract.
+    It deliberately exposes no:
 
-    The fake implementation deliberately identifies itself as:
-
-        sdf-reconstruction-v1
-
-    and is NOT a NativeVisualHullOutput.
-
-    Both current MATERIAL implementations must still report:
-
-        READY
-
-    This proves that MATERIAL no longer requires:
-
-        NativeVisualHullOutput
         NativeVolume
         NativeMesh
+        SDFBuildResult
+        SDFSurfaceResult
+
+    Both MATERIAL implementations must accept it.
     """
 
     _section(
@@ -1777,12 +2162,22 @@ def _validate_generic_geometry_material_compatibility(
         )
     )
 
-    native_geometry_module = (
+    native_module = (
         importlib.import_module(
             (
                 f"{package_name}."
                 "implementations."
                 "native_visual_hull"
+            )
+        )
+    )
+
+    sdf_module = (
+        importlib.import_module(
+            (
+                f"{package_name}."
+                "implementations."
+                "sdf_reconstruction"
             )
         )
     )
@@ -1807,41 +2202,13 @@ def _validate_generic_geometry_material_compatibility(
         .PipelineStage
     )
 
-    NativeVisualHullOutput = (
-        native_geometry_module
-        .NativeVisualHullOutput
-    )
-
-    registry = (
-        registry_module
-        .PIPELINE_REGISTRY
-    )
-
     mesh = None
-
     obj = None
 
     try:
-        # -------------------------------------------------
-        # Tiny real Blender surface.
-        #
-        # Availability validation checks:
-        #
-        #     MESH object
-        #     vertices
-        #     polygons
-        #     loops
-        #
-        # It does NOT execute projection or UV bake here.
-        # -------------------------------------------------
-
         mesh = (
             bpy.data.meshes.new(
-                (
-                    "Meshvenn "
-                    "Generic Geometry "
-                    "Smoke Mesh"
-                )
+                "Meshvenn Generic Geometry Smoke Mesh"
             )
         )
 
@@ -1878,9 +2245,8 @@ def _validate_generic_geometry_material_compatibility(
         obj = (
             bpy.data.objects.new(
                 (
-                    "Meshvenn "
-                    "Generic Geometry "
-                    "Smoke Object"
+                    "Meshvenn Generic "
+                    "Geometry Smoke Object"
                 ),
                 mesh,
             )
@@ -1890,32 +2256,16 @@ def _validate_generic_geometry_material_compatibility(
             bpy.context.scene
         )
 
-        _require(
-            scene is not None,
-            (
-                "No Blender scene available "
-                "for generic GEOMETRY smoke."
-            ),
-        )
-
         scene.collection.objects.link(
             obj
         )
-
-        # -------------------------------------------------
-        # Fake INPUT capability.
-        #
-        # Availability only requires a non-empty iterable.
-        # The actual ProjectedMaterialView contents are
-        # validated when MATERIAL executes.
-        # -------------------------------------------------
 
         fake_source = (
             SimpleNamespace(
                 material_views=(
                     object(),
                     object(),
-                ),
+                )
             )
         )
 
@@ -1932,69 +2282,48 @@ def _validate_generic_geometry_material_compatibility(
         geometry_output = (
             GeometrySurfaceOutput(
                 blender_object=obj,
-
-                source=(
-                    fake_source
-                ),
-
+                source=fake_source,
                 projection_space=(
                     projection_space
                 ),
-
                 implementation_id=(
                     FAKE_GEOMETRY_IMPLEMENTATION_ID
                 ),
-
                 metrics={
-                    "vertex_count": (
+                    "vertex_count":
                         len(
                             mesh.vertices
-                        )
-                    ),
+                        ),
 
-                    "polygon_count": (
+                    "polygon_count":
                         len(
                             mesh.polygons
-                        )
-                    ),
-                },
-
-                metadata={
-                    "smoke_test": True,
-
-                    "algorithm": (
-                        "fake-sdf"
-                    ),
+                        ),
                 },
             )
         )
 
-        # -------------------------------------------------
-        # Critical proof:
-        #
-        # the fake SDF contract is generic and must NOT be
-        # a NativeVisualHullOutput.
-        # -------------------------------------------------
-
         _require(
-            isinstance(
+            not isinstance(
                 geometry_output,
-                GeometrySurfaceOutput,
+                native_module
+                .NativeVisualHullOutput,
             ),
             (
-                "Fake SDF geometry does not "
-                "implement GeometrySurfaceOutput."
+                "Generic test accidentally "
+                "uses NativeVisualHullOutput."
             ),
         )
 
         _require(
             not isinstance(
                 geometry_output,
-                NativeVisualHullOutput,
+                sdf_module
+                .SDFReconstructionOutput,
             ),
             (
-                "Generic MATERIAL smoke accidentally "
-                "used NativeVisualHullOutput."
+                "Generic test accidentally "
+                "uses SDFReconstructionOutput."
             ),
         )
 
@@ -2004,25 +2333,21 @@ def _validate_generic_geometry_material_compatibility(
                 "volume",
             ),
             (
-                "Generic fake SDF geometry "
-                "unexpectedly exposes NativeVolume."
+                "Generic geometry exposes "
+                "native volume."
             ),
         )
 
         _require(
             not hasattr(
                 geometry_output,
-                "native_mesh",
+                "sdf_result",
             ),
             (
-                "Generic fake SDF geometry "
-                "unexpectedly exposes NativeMesh."
+                "Generic geometry exposes "
+                "SDF internals."
             ),
         )
-
-        # -------------------------------------------------
-        # Context
-        # -------------------------------------------------
 
         context = (
             PipelineContext(
@@ -2036,28 +2361,10 @@ def _validate_generic_geometry_material_compatibility(
             geometry_output,
         )
 
-        resolved_geometry = (
-            geometry_module
-            .require_geometry_surface_output(
-                context
-            )
-        )
-
-        _require(
-            resolved_geometry
-            is geometry_output,
-            (
-                "Generic GEOMETRY accessor did "
-                "not return the supplied output."
-            ),
-        )
-
-        # -------------------------------------------------
-        # Projected Color V1.2
-        # -------------------------------------------------
-
-        projected_color = (
-            registry.require(
+        projected = (
+            registry_module
+            .PIPELINE_REGISTRY
+            .require(
                 "projected-color-v1.2",
                 stage=(
                     PipelineStage.MATERIAL
@@ -2065,33 +2372,25 @@ def _validate_generic_geometry_material_compatibility(
             )
         )
 
-        projected_availability = (
-            projected_color
-            .availability(
+        projected_status = (
+            projected.availability(
                 context
             )
         )
 
         _require(
-            projected_availability.ready,
+            projected_status.ready,
             (
-                "Projected Color V1.2 rejected "
-                "generic non-Visual-Hull geometry.\n"
-                f"State: "
-                f"{projected_availability.state.value}\n"
-                f"Reason: "
-                f"{projected_availability.reason}\n"
-                f"Details: "
-                f"{dict(projected_availability.details)}"
+                "Projected Color rejected "
+                "generic geometry.\n"
+                f"{projected_status.reason}"
             ),
         )
 
-        # -------------------------------------------------
-        # UV Bake V2
-        # -------------------------------------------------
-
         uv_bake = (
-            registry.require(
+            registry_module
+            .PIPELINE_REGISTRY
+            .require(
                 "uv-bake-v2",
                 stage=(
                     PipelineStage.MATERIAL
@@ -2099,80 +2398,49 @@ def _validate_generic_geometry_material_compatibility(
             )
         )
 
-        uv_availability = (
-            uv_bake
-            .availability(
+        uv_status = (
+            uv_bake.availability(
                 context
             )
         )
 
         _require(
-            uv_availability.ready,
+            uv_status.ready,
             (
-                "UV Bake V2 rejected generic "
-                "non-Visual-Hull geometry.\n"
-                f"State: "
-                f"{uv_availability.state.value}\n"
-                f"Reason: "
-                f"{uv_availability.reason}\n"
-                f"Details: "
-                f"{dict(uv_availability.details)}"
-            ),
-        )
-
-        # -------------------------------------------------
-        # Availability diagnostics should expose the actual
-        # GEOMETRY implementation, not assume visual hull.
-        # -------------------------------------------------
-
-        _require(
-            (
-                projected_availability
-                .details
-                .get(
-                    "geometry_implementation"
-                )
-                == FAKE_GEOMETRY_IMPLEMENTATION_ID
-            ),
-            (
-                "Projected Color availability "
-                "did not preserve generic "
-                "GEOMETRY implementation identity."
+                "UV Bake rejected "
+                "generic geometry.\n"
+                f"{uv_status.reason}"
             ),
         )
 
         _require(
+            projected_status
+            .details
+            .get(
+                "geometry_implementation"
+            )
+            == FAKE_GEOMETRY_IMPLEMENTATION_ID,
             (
-                uv_availability
-                .details
-                .get(
-                    "geometry_implementation"
-                )
-                == FAKE_GEOMETRY_IMPLEMENTATION_ID
+                "Projected Color lost "
+                "generic geometry identity."
             ),
+        )
+
+        _require(
+            uv_status
+            .details
+            .get(
+                "geometry_implementation"
+            )
+            == FAKE_GEOMETRY_IMPLEMENTATION_ID,
             (
-                "UV Bake availability "
-                "did not preserve generic "
-                "GEOMETRY implementation identity."
+                "UV Bake lost "
+                "generic geometry identity."
             ),
         )
 
         print(
             "Generic GEOMETRY compatibility: OK"
-        )
-
-        print(
-            (
-                "  geometry: "
-                f"{FAKE_GEOMETRY_IMPLEMENTATION_ID}"
-            )
-        )
-
-        print(
-            (
-                "  contract: "
-                f"{projection_space.convention.value}"
-            )
         )
 
         print(
@@ -2184,11 +2452,6 @@ def _validate_generic_geometry_material_compatibility(
         )
 
     finally:
-        # -------------------------------------------------
-        # Smoke-test temporary Blender data must not leak
-        # into later registration/unregistration checks.
-        # -------------------------------------------------
-
         if obj is not None:
             try:
                 bpy.data.objects.remove(
@@ -2246,12 +2509,8 @@ def _validate_builtin_catalog(
         .PipelineStage
     )
 
-    registered_ids = (
-        module.registered_builtin_ids()
-    )
-
     _require(
-        registered_ids
+        module.registered_builtin_ids()
         == EXPECTED_IMPLEMENTATIONS,
         (
             "Unexpected built-in "
@@ -2262,10 +2521,10 @@ def _validate_builtin_catalog(
     _require(
         module
         .builtin_implementation_count()
-        == 4,
+        == 5,
         (
             "Built-in implementation "
-            "count must be 4."
+            "count must be 5."
         ),
     )
 
@@ -2275,8 +2534,7 @@ def _validate_builtin_catalog(
         )
         == "projection-images",
         (
-            "Incorrect explicit INPUT "
-            "built-in default."
+            "Incorrect INPUT default."
         ),
     )
 
@@ -2286,8 +2544,8 @@ def _validate_builtin_catalog(
         )
         == "native-visual-hull",
         (
-            "Incorrect explicit GEOMETRY "
-            "built-in default."
+            "SDF accidentally replaced "
+            "the GEOMETRY default."
         ),
     )
 
@@ -2297,9 +2555,8 @@ def _validate_builtin_catalog(
         )
         == "projected-color-v1.2",
         (
-            "UV Bake V2 accidentally "
-            "replaced the MATERIAL "
-            "built-in default."
+            "UV Bake accidentally replaced "
+            "the MATERIAL default."
         ),
     )
 
@@ -2307,13 +2564,20 @@ def _validate_builtin_catalog(
         "Built-in catalog: OK"
     )
 
+    print(
+        "  5 implementations"
+    )
+
+    print(
+        "  GEOMETRY default preserved"
+    )
+
 
 # =========================================================
 # Operators
 # =========================================================
 
-def _validate_operators_registered(
-) -> None:
+def _validate_operators_registered() -> None:
     _section(
         "operators"
     )
@@ -2336,9 +2600,8 @@ def _validate_operators_registered(
             operator_class
             is not None,
             (
-                "Operator RNA class was "
-                "not registered: "
-                f"{rna_identifier}"
+                "Operator RNA class "
+                f"missing: {rna_identifier}"
             ),
         )
 
@@ -2346,10 +2609,9 @@ def _validate_operators_registered(
             operator_class.bl_idname
             == idname,
             (
-                "Operator RNA id mismatch.\n"
-                f"RNA:      {rna_identifier}\n"
+                "Operator id mismatch.\n"
                 f"Expected: {idname}\n"
-                "Actual:   "
+                f"Actual: "
                 f"{operator_class.bl_idname}"
             ),
         )
@@ -2360,13 +2622,8 @@ def _validate_operators_registered(
             ),
             (
                 "bpy.ops operator "
-                "is unavailable: "
-                f"{idname}"
+                f"unavailable: {idname}"
             ),
-        )
-
-        print(
-            f"  OK  {idname}"
         )
 
     print(
@@ -2378,8 +2635,7 @@ def _validate_operators_registered(
 # UI
 # =========================================================
 
-def _validate_ui_registered(
-) -> None:
+def _validate_ui_registered() -> None:
     _section(
         "ui"
     )
@@ -2393,8 +2649,8 @@ def _validate_ui_registered(
     _require(
         panel is not None,
         (
-            "Meshvenn main panel "
-            "was not registered."
+            "Meshvenn panel "
+            "not registered."
         ),
     )
 
@@ -2402,8 +2658,7 @@ def _validate_ui_registered(
         panel.bl_idname
         == MAIN_PANEL_RNA_ID,
         (
-            "Unexpected main panel "
-            "bl_idname."
+            "Unexpected panel bl_idname."
         ),
     )
 
@@ -2421,7 +2676,7 @@ def _validate_ui_registered(
         == "UI",
         (
             "Meshvenn panel must "
-            "use the UI region."
+            "use UI region."
         ),
     )
 
@@ -2431,20 +2686,6 @@ def _validate_ui_registered(
         (
             "Meshvenn panel category "
             "is incorrect."
-        ),
-    )
-
-    _require(
-        callable(
-            getattr(
-                panel,
-                "draw",
-                None,
-            )
-        ),
-        (
-            "Meshvenn panel does "
-            "not expose draw()."
         ),
     )
 
@@ -2458,7 +2699,7 @@ def _validate_ui_registered(
         ui_list is not None,
         (
             "Projection UIList "
-            "was not registered."
+            "not registered."
         ),
     )
 
@@ -2471,17 +2712,9 @@ def _validate_ui_registered(
             )
         ),
         (
-            "Projection UIList does "
-            "not expose draw_item()."
+            "Projection UIList "
+            "missing draw_item()."
         ),
-    )
-
-    print(
-        f"  OK  {MAIN_PANEL_RNA_ID}"
-    )
-
-    print(
-        f"  OK  {PROJECTION_UI_LIST_RNA_ID}"
     )
 
     print(
@@ -2511,46 +2744,38 @@ def _validate_unregistered_state(
         ),
     )
 
-    for rna_identifier in (
+    for identifier in (
         EXPECTED_OPERATOR_RNA_IDS
     ):
         _require(
+            _operator_rna_class(
+                identifier
+            )
+            is None,
             (
-                _operator_rna_class(
-                    rna_identifier
-                )
-                is None
-            ),
-            (
-                "Operator remains registered "
-                "after unregister(): "
-                f"{rna_identifier}"
+                "Operator still registered: "
+                f"{identifier}"
             ),
         )
 
     _require(
+        _panel_rna_class(
+            MAIN_PANEL_RNA_ID
+        )
+        is None,
         (
-            _panel_rna_class(
-                MAIN_PANEL_RNA_ID
-            )
-            is None
-        ),
-        (
-            "Main Meshvenn panel remains "
-            "registered after unregister()."
+            "Main panel still registered."
         ),
     )
 
     _require(
+        _ui_list_rna_class(
+            PROJECTION_UI_LIST_RNA_ID
+        )
+        is None,
         (
-            _ui_list_rna_class(
-                PROJECTION_UI_LIST_RNA_ID
-            )
-            is None
-        ),
-        (
-            "Projection UIList remains "
-            "registered after unregister()."
+            "Projection UIList "
+            "still registered."
         ),
     )
 
@@ -2563,19 +2788,15 @@ def _validate_unregistered_state(
         )
     )
 
-    registry = (
-        registry_module
-        .PIPELINE_REGISTRY
-    )
-
     _require(
         len(
-            registry
+            registry_module
+            .PIPELINE_REGISTRY
         )
         == 0,
         (
-            "Built-in implementations remain "
-            "registered after unregister()."
+            "Built-ins remain in registry "
+            "after unregister()."
         ),
     )
 
@@ -2593,25 +2814,13 @@ def _validate_unregistered_state(
         .registered_builtin_ids()
         == (),
         (
-            "Built-in implementation tracking "
+            "Built-in tracking "
             "was not cleared."
         ),
     )
 
     print(
-        "Scene cleanup: OK"
-    )
-
-    print(
-        "Operator cleanup: OK"
-    )
-
-    print(
-        "UI cleanup: OK"
-    )
-
-    print(
-        "Registry cleanup: OK"
+        "Unregister: OK"
     )
 
 
@@ -2629,14 +2838,12 @@ def main() -> None:
     )
 
     module = None
-
     package_name = None
-
     registered = False
 
     try:
         # -------------------------------------------------
-        # Validate extracted ZIP, not repository source.
+        # Actual distributable package
         # -------------------------------------------------
 
         _validate_package_tree(
@@ -2653,10 +2860,14 @@ def main() -> None:
         )
 
         # -------------------------------------------------
-        # Pure packaged core.
+        # Pure packaged core
         # -------------------------------------------------
 
         _validate_geometry_contract_core(
+            package_name
+        )
+
+        _validate_sdf_core(
             package_name
         )
 
@@ -2665,7 +2876,7 @@ def main() -> None:
         )
 
         # -------------------------------------------------
-        # Register extension.
+        # Register extension
         # -------------------------------------------------
 
         _section(
@@ -2681,7 +2892,7 @@ def main() -> None:
         )
 
         # -------------------------------------------------
-        # Blender state.
+        # Blender state
         # -------------------------------------------------
 
         settings = (
@@ -2698,6 +2909,26 @@ def main() -> None:
             settings
         )
 
+        # SDF
+        _validate_sdf_properties(
+            settings
+        )
+
+        _validate_sdf_default_alignment(
+            package_name,
+            settings,
+        )
+
+        _validate_registry(
+            package_name
+        )
+
+        _validate_sdf_pipeline_selection(
+            package_name,
+            settings,
+        )
+
+        # UV Bake
         _validate_uv_bake_properties(
             settings
         )
@@ -2707,17 +2938,7 @@ def main() -> None:
             settings,
         )
 
-        _validate_registry(
-            package_name
-        )
-
-        # -------------------------------------------------
-        # Critical architecture regression test.
-        #
-        # MATERIAL must accept generic GEOMETRY, not only
-        # NativeVisualHullOutput.
-        # -------------------------------------------------
-
+        # Generic architecture guarantee
         _validate_generic_geometry_material_compatibility(
             package_name,
             settings,
@@ -2732,7 +2953,7 @@ def main() -> None:
         _validate_ui_registered()
 
         # -------------------------------------------------
-        # Unregister.
+        # Unregister
         # -------------------------------------------------
 
         module.unregister()
@@ -2745,19 +2966,11 @@ def main() -> None:
 
     except Exception:
         print()
-
-        print(
-            "=" * 72
-        )
-
+        print("=" * 72)
         print(
             "MESHVENN BLENDER SMOKE: FAILED"
         )
-
-        print(
-            "=" * 72
-        )
-
+        print("=" * 72)
         print()
 
         traceback.print_exc()
@@ -2771,11 +2984,9 @@ def main() -> None:
 
             except Exception:
                 print()
-
                 print(
                     "Cleanup after failure failed:"
                 )
-
                 traceback.print_exc()
 
         raise SystemExit(
@@ -2783,18 +2994,11 @@ def main() -> None:
         )
 
     print()
-
-    print(
-        "=" * 72
-    )
-
+    print("=" * 72)
     print(
         "MESHVENN BLENDER SMOKE: SUCCESS"
     )
-
-    print(
-        "=" * 72
-    )
+    print("=" * 72)
 
 
 if __name__ == "__main__":

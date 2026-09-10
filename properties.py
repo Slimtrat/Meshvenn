@@ -44,9 +44,48 @@ DEFAULT_EXPORT_IMPLEMENTATION_ID = ""
 
 
 # =========================================================
+# SDF Reconstruction V1 defaults
+#
+# These intentionally mirror:
+#
+#     implementations/sdf_reconstruction.py
+#
+# The implementation remains authoritative for runtime
+# validation.
+#
+# The current backend is the pure-Python reference backend.
+# Its dense-field safety limit is ~160³, so the Blender UI
+# deliberately caps the selectable reference resolution at
+# 160 for now.
+#
+# When native SDF acceleration lands this limit can be
+# raised independently from the public implementation id.
+# =========================================================
+
+DEFAULT_SDF_RESOLUTION = 96
+
+MINIMUM_SDF_RESOLUTION = 16
+
+MAXIMUM_SDF_REFERENCE_RESOLUTION = 160
+
+
+DEFAULT_SDF_SYMMETRY_X = False
+
+DEFAULT_SDF_SMOOTHNESS = 0.0
+
+DEFAULT_SDF_SURFACE_OFFSET = 0.0
+
+DEFAULT_SDF_ISO_LEVEL = 0.0
+
+DEFAULT_SDF_GRADIENT_STEP_SCALE = 0.5
+
+
+# =========================================================
 # UV Bake defaults
 #
-# These values deliberately mirror implementations/uv_bake.py.
+# These values deliberately mirror:
+#
+#     implementations/uv_bake.py
 #
 # Keep the implementation as the authority for runtime
 # validation. These Blender properties only expose a safe
@@ -398,13 +437,17 @@ class BPT_PG_Settings(
 
     # =====================================================
     # GEOMETRY — Native Visual Hull
+    #
+    # Keep these historical names stable because existing
+    # .blend files and scripts already use them.
+    #
+    # SDF has its own independent settings below.
     # =====================================================
 
     resolution: IntProperty(
         name="Resolution",
         description=(
-            "Native voxel resolution of the "
-            "generated volume"
+            "Native Visual Hull voxel resolution"
         ),
         default=96,
         min=16,
@@ -414,8 +457,8 @@ class BPT_PG_Settings(
     symmetry_x: BoolProperty(
         name="Symmetry X",
         description=(
-            "Force symmetry along the X axis "
-            "after reconstruction"
+            "Force conservative X symmetry during "
+            "Native Visual Hull reconstruction"
         ),
         default=False,
     )
@@ -431,9 +474,132 @@ class BPT_PG_Settings(
         max=256,
     )
 
+    # =====================================================
+    # GEOMETRY — SDF Reconstruction V1
+    #
+    # These properties are intentionally separate from the
+    # Native Visual Hull configuration.
+    #
+    # Switching implementation therefore preserves the
+    # configuration of both engines independently.
+    # =====================================================
+
+    sdf_resolution: IntProperty(
+        name="Resolution",
+        description=(
+            "Resolution of the dense signed-distance "
+            "field. The current Python reference backend "
+            "is limited to 160³ samples"
+        ),
+        default=(
+            DEFAULT_SDF_RESOLUTION
+        ),
+        min=(
+            MINIMUM_SDF_RESOLUTION
+        ),
+        max=(
+            MAXIMUM_SDF_REFERENCE_RESOLUTION
+        ),
+        soft_max=128,
+    )
+
+    sdf_symmetry_x: BoolProperty(
+        name="Symmetry X",
+        description=(
+            "Apply conservative X symmetry to every SDF "
+            "projection constraint"
+        ),
+        default=(
+            DEFAULT_SDF_SYMMETRY_X
+        ),
+    )
+
+    sdf_smoothness: FloatProperty(
+        name="Constraint Smoothness",
+        description=(
+            "Smooth the maximum used to intersect SDF "
+            "projection constraints. 0 keeps the exact "
+            "hard silhouette intersection"
+        ),
+        default=(
+            DEFAULT_SDF_SMOOTHNESS
+        ),
+        min=0.0,
+        max=2.0,
+        soft_max=0.25,
+        precision=4,
+    )
+
+    sdf_surface_offset: FloatProperty(
+        name="Surface Offset",
+        description=(
+            "Expand or contract the reconstructed signed "
+            "distance field before surface extraction. "
+            "Positive values expand the surface"
+        ),
+        default=(
+            DEFAULT_SDF_SURFACE_OFFSET
+        ),
+        min=-2.0,
+        max=2.0,
+        soft_min=-0.25,
+        soft_max=0.25,
+        precision=4,
+    )
+
+    sdf_iso_level: FloatProperty(
+        name="Iso Level",
+        description=(
+            "Signed-distance value extracted as the "
+            "surface. 0 is the natural SDF boundary"
+        ),
+        default=(
+            DEFAULT_SDF_ISO_LEVEL
+        ),
+        min=-2.0,
+        max=2.0,
+        soft_min=-0.25,
+        soft_max=0.25,
+        precision=4,
+    )
+
     # -----------------------------------------------------
-    # Output normalization
+    # Surface normal estimation
+    #
+    # Not currently drawn by the normal SDF UI because this
+    # is an implementation-detail tuning parameter.
+    #
+    # Keeping it persistent makes it available to advanced
+    # tooling and future diagnostics without hardcoding it.
     # -----------------------------------------------------
+
+    sdf_gradient_step_scale: FloatProperty(
+        name="Gradient Step",
+        description=(
+            "Sampling distance used to estimate SDF "
+            "surface normals, expressed as a fraction "
+            "of one scalar-grid interval"
+        ),
+        default=(
+            DEFAULT_SDF_GRADIENT_STEP_SCALE
+        ),
+        min=0.05,
+        max=2.0,
+        soft_min=0.25,
+        soft_max=1.0,
+        precision=3,
+    )
+
+    # =====================================================
+    # GEOMETRY — shared output normalization
+    #
+    # Both Native Visual Hull and SDF Reconstruction keep
+    # their local projection coordinates untouched.
+    #
+    # Height normalization is applied at object level so
+    # projection-dependent MATERIAL stages still see the
+    # original reconstruction coordinate space.
+    # =====================================================
 
     normalize_height: BoolProperty(
         name="Normalize Height",
@@ -568,6 +734,9 @@ class BPT_PG_Settings(
     #
     # Retained for compatibility with older .blend files and
     # callers. PipelineRunner is now the production path.
+    #
+    # Do not add SDF here: the general pipeline selector is
+    # authoritative for new implementations.
     # =====================================================
 
     generation_mode: EnumProperty(
@@ -704,9 +873,13 @@ def ensure_pipeline_defaults(
     This is also the migration path for .blend files created
     before the generic pipeline existed.
 
-    Implementation-specific settings such as UV Bake V2 are
-    Blender properties with their own defaults and therefore
-    do not need explicit migration here.
+    Implementation-specific settings such as:
+
+        SDF Reconstruction V1
+        UV Bake V2
+
+    are Blender properties with their own defaults and do
+    not need explicit migration here.
     """
 
     pipeline = (
@@ -889,9 +1062,11 @@ def build_pipeline_plan(
             selections.append(
                 PipelineStageSelection(
                     stage=stage,
+
                     implementation_id=(
                         implementation_id
                     ),
+
                     enabled=(
                         stage_settings
                         .enabled

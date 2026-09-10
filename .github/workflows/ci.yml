@@ -1,6 +1,5 @@
 name: CI
 
-
 on:
   push:
     branches:
@@ -12,10 +11,8 @@ on:
 
   workflow_dispatch:
 
-
 permissions:
   contents: write
-
 
 env:
   BLENDER_VERSION: "5.2.1"
@@ -88,19 +85,24 @@ jobs:
             # Generic GEOMETRY contract
             "core/geometry_contracts.py"
 
+            # INPUT / projection
             "core/image_mask.py"
+            "core/projection_math.py"
 
+            # Native GEOMETRY
             "core/native_loader.py"
             "core/native_bridge.py"
             "core/native_scan.py"
             "core/native_mesh_builder.py"
 
-            "core/projection_math.py"
+            # SDF GEOMETRY
+            "core/sdf.py"
+            "core/sdf_surface.py"
 
+            # MATERIAL
             "core/projected_material.py"
             "core/material_visibility.py"
             "core/material_blend.py"
-
             "core/uv_bake.py"
 
 
@@ -111,7 +113,10 @@ jobs:
             "implementations/__init__.py"
 
             "implementations/projection_images.py"
+
             "implementations/native_visual_hull.py"
+            "implementations/sdf_reconstruction.py"
+
             "implementations/projected_color.py"
             "implementations/uv_bake.py"
 
@@ -146,6 +151,11 @@ jobs:
             # Generic GEOMETRY contract
             "tests/test_geometry_contracts.py"
 
+            # SDF GEOMETRY
+            "tests/test_sdf.py"
+            "tests/test_sdf_surface.py"
+
+            # MATERIAL
             "tests/test_uv_bake.py"
 
 
@@ -185,7 +195,11 @@ jobs:
       #
       # Includes:
       #
-      #   test_geometry_contracts.py
+      #   generic geometry contract
+      #   SDF field
+      #   continuous SDF Surface Nets
+      #   materials
+      #   pipeline
       #
       # Blender-specific smoke files deliberately do not
       # match test_*.py.
@@ -625,9 +639,11 @@ jobs:
           # -------------------------------------------------
           # Runtime Python core
           #
-          # Includes:
+          # Automatically includes:
           #
           #   geometry_contracts.py
+          #   sdf.py
+          #   sdf_surface.py
           #   uv_bake.py
           # -------------------------------------------------
 
@@ -638,6 +654,13 @@ jobs:
 
           # -------------------------------------------------
           # Pipeline implementations
+          #
+          # Automatically includes:
+          #
+          #   native_visual_hull.py
+          #   sdf_reconstruction.py
+          #   projected_color.py
+          #   uv_bake.py
           # -------------------------------------------------
 
           cp \
@@ -754,7 +777,7 @@ jobs:
 
 
             # -----------------------------------------------
-            # Core
+            # Core pipeline
             # -----------------------------------------------
 
             "core/__init__.py"
@@ -763,22 +786,42 @@ jobs:
             "core/pipeline_registry.py"
             "core/pipeline_runner.py"
 
-            # Generic GEOMETRY contract
             "core/geometry_contracts.py"
 
+
+            # -----------------------------------------------
+            # INPUT / projection
+            # -----------------------------------------------
+
             "core/image_mask.py"
+            "core/projection_math.py"
+
+
+            # -----------------------------------------------
+            # Native GEOMETRY
+            # -----------------------------------------------
 
             "core/native_loader.py"
             "core/native_bridge.py"
             "core/native_scan.py"
             "core/native_mesh_builder.py"
 
-            "core/projection_math.py"
+
+            # -----------------------------------------------
+            # SDF GEOMETRY
+            # -----------------------------------------------
+
+            "core/sdf.py"
+            "core/sdf_surface.py"
+
+
+            # -----------------------------------------------
+            # MATERIAL
+            # -----------------------------------------------
 
             "core/projected_material.py"
             "core/material_visibility.py"
             "core/material_blend.py"
-
             "core/uv_bake.py"
 
 
@@ -789,7 +832,10 @@ jobs:
             "implementations/__init__.py"
 
             "implementations/projection_images.py"
+
             "implementations/native_visual_hull.py"
+            "implementations/sdf_reconstruction.py"
+
             "implementations/projected_color.py"
             "implementations/uv_bake.py"
 
@@ -1081,7 +1127,17 @@ jobs:
 
 
             # -----------------------------------------------
-            # UV Bake V2
+            # SDF GEOMETRY
+            # -----------------------------------------------
+
+            "blender_projection_tool/core/sdf.py"
+            "blender_projection_tool/core/sdf_surface.py"
+
+            "blender_projection_tool/implementations/sdf_reconstruction.py"
+
+
+            # -----------------------------------------------
+            # MATERIAL
             # -----------------------------------------------
 
             "blender_projection_tool/core/uv_bake.py"
@@ -1200,9 +1256,6 @@ jobs:
 
       # -----------------------------------------------------
       # Extract exactly the ZIP we intend to distribute.
-      #
-      # Both Blender smokes below consume this extracted
-      # package rather than repository source.
       # -----------------------------------------------------
 
       - name: Extract packaged extension for smoke tests
@@ -1233,11 +1286,32 @@ jobs:
           test -f \
             "${PACKAGE_ROOT}/__init__.py"
 
+
+          # Pipeline / generic GEOMETRY
+
           test -f \
             "${PACKAGE_ROOT}/core/geometry_contracts.py"
 
+
+          # SDF GEOMETRY
+
+          test -f \
+            "${PACKAGE_ROOT}/core/sdf.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/sdf_surface.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/sdf_reconstruction.py"
+
+
+          # MATERIAL
+
           test -f \
             "${PACKAGE_ROOT}/core/uv_bake.py"
+
+
+          # Implementation catalog
 
           test -f \
             "${PACKAGE_ROOT}/implementations/__init__.py"
@@ -1265,11 +1339,21 @@ jobs:
       # General extension lifecycle smoke
       #
       # import
+      #
       # generic geometry contract
+      #
+      # SDF core import
+      # SDF Surface Nets import
+      #
       # register
-      # registry
-      # properties
+      #
+      # 5 implementation registry
+      #
+      # SDF properties
+      # SDF pipeline selection
+      #
       # generic GEOMETRY -> MATERIAL compatibility
+      #
       # operators
       # UI
       # unregister
@@ -1326,8 +1410,8 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Artifacts are published only after BOTH Blender
-      # smoke tests succeed.
+      # Artifacts are published only after Blender package
+      # validation succeeds.
       # -----------------------------------------------------
 
       - name: Upload CI artifact
@@ -1420,9 +1504,21 @@ jobs:
             **Geometry**
 
             - Native C++ Visual Hull
-            - Surface Nets
-            - Generic GeometrySurfaceOutput contract
-            - Generic projection-space contract
+              - production default
+              - multithreaded occupancy reconstruction
+              - Surface Nets
+
+            - SDF Reconstruction V1
+              - experimental
+              - pure-Python reference backend
+              - exact 2D Euclidean distance fields
+              - continuous multi-view SDF intersection
+              - optional smooth intersection
+              - surface offset / iso-level control
+              - sub-voxel Surface Nets extraction
+              - SDF gradient normals
+              - generic GeometrySurfaceOutput
+              - generic projection-space compatibility
 
             **Material**
 
@@ -1454,17 +1550,55 @@ jobs:
             The release package has passed:
 
             - pure Python tests
+
             - generic GEOMETRY contract tests
+
+            - SDF signed-distance field tests
+              - Euclidean distance transform
+              - silhouette sign
+              - projection constraints
+              - multi-view intersection
+              - conservative symmetry
+              - dense 3D field
+
+            - continuous SDF Surface Nets tests
+              - analytic planes
+              - sub-voxel interpolation
+              - analytic spheres
+              - outward normals
+              - quad winding
+              - topology
+              - continuous iso-level movement
+
             - non-Visual-Hull GEOMETRY compatibility tests
+
             - UV Bake V2 rasterization tests
+
             - Linux native tests
             - Windows native tests
+
             - package completeness validation
             - source/package parity validation
             - ZIP integrity validation
+
             - Blender 5.2.1 extension lifecycle smoke test
+            - Blender 5.2.1 SDF registry/property smoke test
             - Blender 5.2.1 generic GEOMETRY → MATERIAL smoke test
             - Blender 5.2.1 UV Bake V2 functional smoke test
+
+            ### SDF V1 status
+
+            SDF Reconstruction V1 currently uses the
+            correctness-oriented Python reference backend.
+
+            Native Visual Hull remains the default GEOMETRY
+            implementation.
+
+            SDF is selectable as an experimental GEOMETRY
+            implementation.
+
+            Native acceleration will be introduced after
+            visual comparison against the reference backend.
 
             ### Installation
 
