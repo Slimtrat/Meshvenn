@@ -1,23 +1,290 @@
 from __future__ import annotations
 
 import math
+import textwrap
 
 import bpy
 
-from bpy.types import Panel, UIList
-
-from .core.native_loader import (
-    NativeAbiMismatchError,
-    NativeLibraryLoadError,
-    NativeLibraryNotFoundError,
-    find_native_library,
-    load_native_library,
+from bpy.types import (
+    Panel,
+    UIList,
 )
-from .translations import tr
-from .version import get_version_label
+
+from .core.pipeline_contracts import (
+    PipelineStage,
+    PIPELINE_STAGE_ORDER,
+    stage_spec,
+)
+from .core.pipeline_registry import (
+    PIPELINE_REGISTRY,
+)
+from .operators import (
+    get_last_pipeline_context,
+    get_last_pipeline_report,
+)
+from .properties import (
+    pipeline_stage_settings,
+)
+from .version import (
+    get_version_label,
+)
 
 
-class BPT_UL_ProjectionViews(UIList):
+# ---------------------------------------------------------
+# UI constants
+# ---------------------------------------------------------
+
+STAGE_ICONS: dict[
+    PipelineStage,
+    str,
+] = {
+    PipelineStage.INPUT:
+        "CAMERA_DATA",
+
+    PipelineStage.GEOMETRY:
+        "MESH_DATA",
+
+    PipelineStage.MATERIAL:
+        "MATERIAL",
+
+    PipelineStage.RIG:
+        "ARMATURE_DATA",
+
+    PipelineStage.EXPORT:
+        "EXPORT",
+}
+
+
+STAGE_RUN_LABELS: dict[
+    PipelineStage,
+    str,
+] = {
+    PipelineStage.GEOMETRY:
+        "Run Geometry",
+
+    PipelineStage.MATERIAL:
+        "Build Material",
+
+    PipelineStage.RIG:
+        "Generate Rig",
+
+    PipelineStage.EXPORT:
+        "Export",
+}
+
+
+# ---------------------------------------------------------
+# Small UI helpers
+# ---------------------------------------------------------
+
+def _draw_wrapped_text(
+    layout,
+    text: str,
+    *,
+    width: int = 42,
+    icon: str = "NONE",
+) -> None:
+    """
+    Blender labels do not wrap automatically.
+    """
+
+    normalized = (
+        str(
+            text
+        )
+        .strip()
+    )
+
+    if not normalized:
+        return
+
+    lines = textwrap.wrap(
+        normalized,
+        width=width,
+    )
+
+    for index, line in enumerate(
+        lines
+    ):
+        layout.label(
+            text=line,
+            icon=(
+                icon
+                if index == 0
+                else "NONE"
+            ),
+        )
+
+
+def _descriptor_for_selection(
+    stage: PipelineStage,
+    implementation_id: str,
+):
+    if not implementation_id:
+        return None
+
+    try:
+        entry = (
+            PIPELINE_REGISTRY
+            .require_entry(
+                implementation_id
+            )
+        )
+
+    except Exception:
+        return None
+
+    if (
+        entry.descriptor.stage
+        != stage
+    ):
+        return None
+
+    return (
+        entry.descriptor
+    )
+
+
+def _stage_status(
+    context: bpy.types.Context,
+    stage: PipelineStage,
+):
+    """
+    Return:
+
+        text
+        icon
+        alert
+    """
+
+    settings = (
+        context
+        .scene
+        .bpt_settings
+    )
+
+    stage_settings = (
+        pipeline_stage_settings(
+            settings,
+            stage,
+        )
+    )
+
+    descriptors = (
+        PIPELINE_REGISTRY
+        .descriptors(
+            stage
+        )
+    )
+
+    if not descriptors:
+        return (
+            "Not implemented",
+            "INFO",
+            False,
+        )
+
+    if not stage_settings.enabled:
+        return (
+            "Disabled",
+            "INFO",
+            False,
+        )
+
+    implementation_id = (
+        stage_settings
+        .implementation_id
+        .strip()
+    )
+
+    if not implementation_id:
+        return (
+            "Not configured",
+            "ERROR",
+            True,
+        )
+
+    descriptor = (
+        _descriptor_for_selection(
+            stage,
+            implementation_id,
+        )
+    )
+
+    if descriptor is None:
+        return (
+            "Implementation missing",
+            "ERROR",
+            True,
+        )
+
+    report = (
+        get_last_pipeline_report(
+            context.scene
+        )
+    )
+
+    if report is not None:
+        record = (
+            report.record_for(
+                stage
+            )
+        )
+
+        if record is not None:
+            if record.success:
+                return (
+                    "Last run OK",
+                    "CHECKMARK",
+                    False,
+                )
+
+            if record.failed:
+                return (
+                    "Last run failed",
+                    "ERROR",
+                    True,
+                )
+
+            if record.skipped:
+                return (
+                    "Skipped",
+                    "INFO",
+                    False,
+                )
+
+    pipeline_context = (
+        get_last_pipeline_context(
+            context.scene
+        )
+    )
+
+    if (
+        pipeline_context is not None
+        and pipeline_context.has_output(
+            stage
+        )
+    ):
+        return (
+            "Output ready",
+            "CHECKMARK",
+            False,
+        )
+
+    return (
+        "Configured",
+        "INFO",
+        False,
+    )
+
+
+# ---------------------------------------------------------
+# Projection UI list
+# ---------------------------------------------------------
+
+class BPT_UL_ProjectionViews(
+    UIList
+):
     def draw_item(
         self,
         context: bpy.types.Context,
@@ -32,7 +299,7 @@ class BPT_UL_ProjectionViews(UIList):
         projection = item
 
         row = layout.row(
-            align=True,
+            align=True
         )
 
         row.prop(
@@ -49,219 +316,709 @@ class BPT_UL_ProjectionViews(UIList):
             icon="CAMERA_DATA",
         )
 
-        row.label(
-            text=f"{math.degrees(projection.azimuth):.1f}°",
+        angle_row = row.row()
+
+        angle_row.alignment = (
+            "RIGHT"
+        )
+
+        angle_row.label(
+            text=(
+                f"{math.degrees(projection.azimuth):.0f}°"
+            )
+        )
+
+        angle_row.label(
+            text="",
+            icon=(
+                "CHECKMARK"
+                if projection.image
+                is not None
+                else "ERROR"
+            ),
         )
 
 
-class BPT_PT_MainPanel(Panel):
-    bl_label = "Projection Tool"
-    bl_idname = "BPT_PT_main_panel"
+# ---------------------------------------------------------
+# Main panel
+# ---------------------------------------------------------
 
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
-    bl_category = "Projection Tool"
+class BPT_PT_MainPanel(
+    Panel
+):
+    bl_label = (
+        "Meshvenn"
+    )
+
+    bl_idname = (
+        "BPT_PT_main_panel"
+    )
+
+    bl_space_type = (
+        "VIEW_3D"
+    )
+
+    bl_region_type = (
+        "UI"
+    )
+
+    bl_category = (
+        "Meshvenn"
+    )
+
+    # -----------------------------------------------------
+    # Draw
+    # -----------------------------------------------------
 
     def draw(
         self,
         context: bpy.types.Context,
     ) -> None:
-        layout = self.layout
-        settings = context.scene.bpt_settings
+        layout = (
+            self.layout
+        )
+
+        scene = (
+            context.scene
+        )
+
+        settings = getattr(
+            scene,
+            "bpt_settings",
+            None,
+        )
+
+        if settings is None:
+            box = layout.box()
+
+            box.alert = True
+
+            box.label(
+                text=(
+                    "Meshvenn settings unavailable"
+                ),
+                icon="ERROR",
+            )
+
+            return
 
         self._draw_header(
             layout
         )
 
-        self._draw_native_status(
-            layout
-        )
+        layout.separator()
 
-        self._draw_projection_section(
-            layout,
-            settings,
-        )
+        for stage in (
+            PIPELINE_STAGE_ORDER
+        ):
+            self._draw_stage(
+                layout,
+                context,
+                settings,
+                stage,
+            )
 
-        self._draw_diagnostics(
-            layout,
-            settings,
-        )
+        layout.separator()
 
-        self._draw_generation_section(
+        self._draw_generate_all(
             layout,
             settings,
         )
 
         layout.separator()
 
-        button = layout.row()
-        button.scale_y = 1.6
-
-        button.operator(
-            "bpt.generate_character",
-            text=tr("generate_scan"),
-            icon="OUTLINER_OB_MESH",
+        self._draw_last_run(
+            layout,
+            context,
+            settings,
         )
 
-        layout.separator()
-
-        self._draw_workflow_info(
-            layout
+        self._draw_advanced(
+            layout,
+            context,
+            settings,
         )
+
+    # -----------------------------------------------------
+    # Header
+    # -----------------------------------------------------
 
     def _draw_header(
         self,
         layout,
     ) -> None:
-        row = layout.row()
+        row = layout.row(
+            align=True
+        )
 
         row.label(
-            text="Native C++",
-            icon="CONSOLE",
+            text="Meshvenn",
+            icon="MESH_ICOSPHERE",
         )
 
-        version_row = row.row()
-        version_row.alignment = "RIGHT"
+        version = row.row()
 
-        version_row.label(
+        version.alignment = (
+            "RIGHT"
+        )
+
+        version.label(
             text=get_version_label(),
-            icon="INFO",
         )
 
-    def _draw_native_status(
+        description = (
+            layout.row()
+        )
+
+        description.label(
+            text=(
+                "Images → Geometry → Material → Rig → Export"
+            )
+        )
+
+    # -----------------------------------------------------
+    # Generic stage card
+    # -----------------------------------------------------
+
+    def _draw_stage(
         self,
         layout,
+        context: bpy.types.Context,
+        settings,
+        stage: PipelineStage,
     ) -> None:
-        box = layout.box()
-
-        box.label(
-            text="Native Engine",
-            icon="PREFERENCES",
+        spec = (
+            stage_spec(
+                stage
+            )
         )
 
-        try:
-            path = find_native_library()
+        stage_settings = (
+            pipeline_stage_settings(
+                settings,
+                stage,
+            )
+        )
 
-            library = load_native_library(
-                path
+        descriptors = (
+            PIPELINE_REGISTRY
+            .descriptors(
+                stage
+            )
+        )
+
+        (
+            status_text,
+            status_icon,
+            status_alert,
+        ) = _stage_status(
+            context,
+            stage,
+        )
+
+        box = layout.box()
+
+        # -------------------------------------------------
+        # Header
+        # -------------------------------------------------
+
+        header = box.row(
+            align=True
+        )
+
+        header.prop(
+            stage_settings,
+            "expanded",
+            text="",
+            emboss=False,
+            icon=(
+                "TRIA_DOWN"
+                if stage_settings.expanded
+                else "TRIA_RIGHT"
+            ),
+        )
+
+        enabled_column = (
+            header.row(
+                align=True
+            )
+        )
+
+        enabled_column.enabled = bool(
+            descriptors
+        )
+
+        enabled_column.prop(
+            stage_settings,
+            "enabled",
+            text="",
+        )
+
+        header.label(
+            text=(
+                spec.label.upper()
+            ),
+            icon=(
+                STAGE_ICONS[
+                    stage
+                ]
+            ),
+        )
+
+        status = (
+            header.row()
+        )
+
+        status.alignment = (
+            "RIGHT"
+        )
+
+        status.alert = (
+            status_alert
+        )
+
+        status.label(
+            text=status_text,
+            icon=status_icon,
+        )
+
+        if not stage_settings.expanded:
+            return
+
+        # -------------------------------------------------
+        # Stage body
+        # -------------------------------------------------
+
+        body = box.column()
+
+        self._draw_implementation_selector(
+            body,
+            context,
+            settings,
+            stage,
+            descriptors,
+        )
+
+        implementation_id = (
+            stage_settings
+            .implementation_id
+            .strip()
+        )
+
+        if (
+            implementation_id
+            and descriptors
+        ):
+            body.separator()
+
+            config = body.column()
+
+            config.enabled = (
+                stage_settings.enabled
             )
 
-            abi = int(
-                library.bpt_abi_version()
+            self._draw_implementation_settings(
+                config,
+                context,
+                settings,
+                stage,
+                implementation_id,
             )
 
-            row = box.row()
+        # -------------------------------------------------
+        # Per-stage action
+        # -------------------------------------------------
 
-            row.label(
-                text="Status",
+        if (
+            stage
+            != PipelineStage.INPUT
+        ):
+            self._draw_stage_action(
+                body,
+                stage,
+                stage_settings,
+                descriptors,
             )
 
-            row.label(
-                text="Ready",
+    # -----------------------------------------------------
+    # Implementation selector
+    # -----------------------------------------------------
+
+    def _draw_implementation_selector(
+        self,
+        layout,
+        context,
+        settings,
+        stage: PipelineStage,
+        descriptors,
+    ) -> None:
+        stage_settings = (
+            pipeline_stage_settings(
+                settings,
+                stage,
+            )
+        )
+
+        current_id = (
+            stage_settings
+            .implementation_id
+            .strip()
+        )
+
+        if not descriptors:
+            info = layout.box()
+
+            info.label(
+                text=(
+                    "No implementation registered yet"
+                ),
+                icon="INFO",
+            )
+
+            _draw_wrapped_text(
+                info,
+                (
+                    "The pipeline stage already exists. "
+                    "Adding an implementation will make it "
+                    "available here automatically."
+                ),
+                width=40,
+            )
+
+            return
+
+        selected_descriptor = (
+            _descriptor_for_selection(
+                stage,
+                current_id,
+            )
+        )
+
+        selection_box = (
+            layout.box()
+        )
+
+        header = (
+            selection_box.row()
+        )
+
+        header.label(
+            text="Implementation",
+            icon="SETTINGS",
+        )
+
+        if selected_descriptor is not None:
+            selected = (
+                selection_box.row(
+                    align=True
+                )
+            )
+
+            selected.label(
+                text=(
+                    selected_descriptor.label
+                ),
                 icon="CHECKMARK",
             )
 
-            row = box.row()
-
-            row.label(
-                text="ABI",
+            version = (
+                selected.row()
             )
 
-            row.label(
-                text=str(abi),
+            version.alignment = (
+                "RIGHT"
             )
 
-            row = box.row()
-
-            row.label(
-                text="Library",
+            version.label(
+                text=(
+                    f"v{selected_descriptor.version}"
+                )
             )
 
-            row.label(
-                text=path.name,
+            if (
+                selected_descriptor
+                .description
+            ):
+                _draw_wrapped_text(
+                    selection_box,
+                    selected_descriptor
+                    .description,
+                    width=40,
+                )
+
+        else:
+            warning = (
+                selection_box.row()
             )
 
-        except NativeLibraryNotFoundError:
-            row = box.row()
+            warning.alert = True
 
-            row.alert = True
-
-            row.label(
-                text="Native library not found",
+            warning.label(
+                text=(
+                    "Select an implementation"
+                ),
                 icon="ERROR",
             )
 
-        except NativeAbiMismatchError as exc:
-            row = box.row()
+        # -------------------------------------------------
+        # Only show implementation choices when there is
+        # something to choose.
+        # -------------------------------------------------
 
-            row.alert = True
+        if (
+            len(descriptors) > 1
+            or selected_descriptor
+            is None
+        ):
+            selection_box.separator()
 
-            row.label(
-                text="ABI mismatch",
+            for descriptor in (
+                descriptors
+            ):
+                is_selected = (
+                    descriptor.identifier
+                    == current_id
+                )
+
+                row = (
+                    selection_box.row()
+                )
+
+                operator = row.operator(
+                    (
+                        "bpt."
+                        "set_pipeline_implementation"
+                    ),
+                    text=(
+                        descriptor.label
+                    ),
+                    icon=(
+                        "CHECKMARK"
+                        if is_selected
+                        else "NONE"
+                    ),
+                    depress=(
+                        is_selected
+                    ),
+                )
+
+                operator.stage = (
+                    stage.value
+                )
+
+                operator.implementation_id = (
+                    descriptor.identifier
+                )
+
+                operator.enable_stage = True
+
+    # -----------------------------------------------------
+    # Implementation settings dispatch
+    # -----------------------------------------------------
+
+    def _draw_implementation_settings(
+        self,
+        layout,
+        context: bpy.types.Context,
+        settings,
+        stage: PipelineStage,
+        implementation_id: str,
+    ) -> None:
+        """
+        Generic UI extension mechanism.
+
+        Future implementations can optionally implement:
+
+            draw_settings(layout, context)
+
+        without modifying this central panel.
+
+        Built-in implementations which predate this optional
+        hook have small compatibility drawers below.
+        """
+
+        implementation = (
+            PIPELINE_REGISTRY
+            .get(
+                implementation_id
+            )
+        )
+
+        if implementation is not None:
+            custom_draw = getattr(
+                implementation,
+                "draw_settings",
+                None,
+            )
+
+            if callable(
+                custom_draw
+            ):
+                try:
+                    custom_draw(
+                        layout,
+                        context,
+                    )
+
+                except Exception as exc:
+                    warning = (
+                        layout.box()
+                    )
+
+                    warning.alert = True
+
+                    warning.label(
+                        text=(
+                            "Implementation UI failed"
+                        ),
+                        icon="ERROR",
+                    )
+
+                    _draw_wrapped_text(
+                        warning,
+                        str(
+                            exc
+                        ),
+                    )
+
+                return
+
+        # -------------------------------------------------
+        # Current built-in compatibility drawers.
+        # -------------------------------------------------
+
+        if (
+            implementation_id
+            == "projection-images"
+        ):
+            self._draw_projection_input(
+                layout,
+                settings,
+            )
+
+            return
+
+        if (
+            implementation_id
+            == "native-visual-hull"
+        ):
+            self._draw_native_geometry(
+                layout,
+                settings,
+            )
+
+            return
+
+        if (
+            implementation_id
+            == "projected-color-v1.2"
+        ):
+            self._draw_projected_material(
+                layout,
+                implementation,
+            )
+
+            return
+
+        # -------------------------------------------------
+        # Generic fallback.
+        # -------------------------------------------------
+
+        if implementation is not None:
+            descriptor = (
+                implementation
+                .descriptor
+            )
+
+            if descriptor.capabilities:
+                capability_box = (
+                    layout.box()
+                )
+
+                capability_box.label(
+                    text="Capabilities",
+                    icon="INFO",
+                )
+
+                for capability in (
+                    descriptor.capabilities
+                ):
+                    capability_box.label(
+                        text=(
+                            capability
+                        )
+                    )
+
+        else:
+            warning = (
+                layout.box()
+            )
+
+            warning.alert = True
+
+            warning.label(
+                text=(
+                    "Implementation unavailable"
+                ),
                 icon="ERROR",
             )
 
-            details = box.row()
+    # -----------------------------------------------------
+    # INPUT
+    # -----------------------------------------------------
 
-            details.label(
-                text=str(exc),
-            )
-
-        except NativeLibraryLoadError as exc:
-            row = box.row()
-
-            row.alert = True
-
-            row.label(
-                text="Native library failed to load",
-                icon="ERROR",
-            )
-
-            details = box.row()
-
-            details.label(
-                text=str(exc),
-            )
-
-        except Exception as exc:
-            row = box.row()
-
-            row.alert = True
-
-            row.label(
-                text="Native engine error",
-                icon="ERROR",
-            )
-
-            details = box.row()
-
-            details.label(
-                text=str(exc),
-            )
-
-    def _draw_projection_section(
+    def _draw_projection_input(
         self,
         layout,
         settings,
     ) -> None:
-        box = layout.box()
+        active_views = 0
 
-        header = box.row()
+        ready_views = 0
 
-        header.label(
-            text=tr("projection_views"),
-            icon="CAMERA_DATA",
+        missing_views = 0
+
+        for projection in (
+            settings.projections
+        ):
+            if not projection.enabled:
+                continue
+
+            active_views += 1
+
+            if projection.image is None:
+                missing_views += 1
+
+            else:
+                ready_views += 1
+
+        # -------------------------------------------------
+        # Input status
+        # -------------------------------------------------
+
+        status = (
+            layout.row(
+                align=True
+            )
         )
 
-        header.label(
-            text=str(
-                len(
-                    settings.projections
-                )
+        status.label(
+            text=(
+                f"{ready_views}/{active_views} "
+                "enabled views ready"
+            ),
+            icon=(
+                "CHECKMARK"
+                if ready_views >= 2
+                else "ERROR"
             ),
         )
 
-        row = box.row()
+        # -------------------------------------------------
+        # Projection list
+        # -------------------------------------------------
+
+        row = layout.row()
 
         row.template_list(
             "BPT_UL_ProjectionViews",
@@ -273,8 +1030,10 @@ class BPT_PT_MainPanel(Panel):
             rows=5,
         )
 
-        controls = row.column(
-            align=True,
+        controls = (
+            row.column(
+                align=True
+            )
         )
 
         controls.operator(
@@ -283,336 +1042,846 @@ class BPT_PT_MainPanel(Panel):
             icon="ADD",
         )
 
-        if len(settings.projections) > 0:
-            remove = controls.operator(
-                "bpt.remove_projection",
-                text="",
-                icon="REMOVE",
+        if len(
+            settings.projections
+        ) > 0:
+            remove = (
+                controls.operator(
+                    "bpt.remove_projection",
+                    text="",
+                    icon="REMOVE",
+                )
             )
 
             remove.index = (
-                settings.active_projection_index
+                settings
+                .active_projection_index
             )
 
-        box.separator()
+        # -------------------------------------------------
+        # Import / presets
+        # -------------------------------------------------
 
-        preset_box = box.box()
-
-        preset_box.label(
-            text=tr("turntable_presets"),
-            icon="FILE_REFRESH",
+        tools = (
+            layout.box()
         )
 
-        quick_row = preset_box.row()
-
-        quick_row.operator(
-            "bpt.add_front_side_preset",
-            text=tr("front_side_preset"),
-            icon="AXIS_FRONT",
+        tools.label(
+            text="Add Views",
+            icon="CAMERA_DATA",
         )
 
-        preset_row = preset_box.row(
-            align=True,
+        import_row = (
+            tools.row()
         )
-
-        preset_4 = preset_row.operator(
-            "bpt.add_turntable_preset",
-            text="4",
-        )
-
-        preset_4.view_count = 4
-
-        preset_8 = preset_row.operator(
-            "bpt.add_turntable_preset",
-            text="8",
-        )
-
-        preset_8.view_count = 8
-
-        preset_16 = preset_row.operator(
-            "bpt.add_turntable_preset",
-            text="16",
-        )
-
-        preset_16.view_count = 16
-
-        import_row = preset_box.row()
 
         import_row.operator(
-            "bpt.import_turntable_images",
-            text=tr("import_turntable_images"),
+            (
+                "bpt."
+                "import_turntable_images"
+            ),
+            text="Import Images",
             icon="FILE_FOLDER",
         )
 
-        if not settings.projections:
-            return
-
-        index = min(
-            settings.active_projection_index,
-            len(settings.projections) - 1,
+        preset = (
+            tools.row(
+                align=True
+            )
         )
 
-        projection = (
-            settings.projections[
+        preset.operator(
+            (
+                "bpt."
+                "add_front_side_preset"
+            ),
+            text="Front + Side",
+        )
+
+        for count in (
+            4,
+            8,
+            16,
+        ):
+            operator = (
+                preset.operator(
+                    (
+                        "bpt."
+                        "add_turntable_preset"
+                    ),
+                    text=str(
+                        count
+                    ),
+                )
+            )
+
+            operator.view_count = (
+                count
+            )
+
+        # -------------------------------------------------
+        # Selected projection
+        # -------------------------------------------------
+
+        if settings.projections:
+            index = min(
+                settings
+                .active_projection_index,
+                len(
+                    settings.projections
+                )
+                - 1,
+            )
+
+            projection = (
+                settings.projections[
+                    index
+                ]
+            )
+
+            detail = (
+                layout.box()
+            )
+
+            detail.label(
+                text="Selected View",
+                icon="IMAGE_DATA",
+            )
+
+            detail.prop(
+                projection,
+                "enabled",
+            )
+
+            detail.prop(
+                projection,
+                "name",
+            )
+
+            detail.prop(
+                projection,
+                "image",
+            )
+
+            load = (
+                detail.operator(
+                    (
+                        "bpt."
+                        "load_projection_image"
+                    ),
+                    text="Load Image",
+                    icon="FILE_IMAGE",
+                )
+            )
+
+            load.index = (
                 index
-            ]
-        )
-
-        detail_box = box.box()
-
-        detail_box.label(
-            text=tr("selected_projection"),
-            icon="IMAGE_DATA",
-        )
-
-        detail_box.prop(
-            projection,
-            "enabled",
-            text=tr("enabled"),
-        )
-
-        detail_box.prop(
-            projection,
-            "name",
-            text=tr("name"),
-        )
-
-        detail_box.prop(
-            projection,
-            "image",
-            text=tr("image"),
-        )
-
-        load_row = detail_box.row()
-
-        load_op = load_row.operator(
-            "bpt.load_projection_image",
-            text=tr("load_image"),
-            icon="FILE_IMAGE",
-        )
-
-        load_op.index = index
-
-        detail_box.prop(
-            projection,
-            "azimuth",
-            text=tr("azimuth"),
-        )
-
-        detail_box.prop(
-            projection,
-            "elevation",
-            text=tr("elevation"),
-        )
-
-        detail_box.prop(
-            projection,
-            "flip_x",
-            text=tr("flip_x"),
-        )
-
-    def _draw_diagnostics(
-        self,
-        layout,
-        settings,
-    ) -> None:
-        active_views = 0
-        ready_views = 0
-        missing_images = 0
-
-        for projection in settings.projections:
-            if not projection.enabled:
-                continue
-
-            active_views += 1
-
-            if projection.image is None:
-                missing_images += 1
-            else:
-                ready_views += 1
-
-        box = layout.box()
-
-        box.label(
-            text=tr("diagnostics"),
-            icon="INFO",
-        )
-
-        row = box.row()
-
-        row.label(
-            text=tr("active_views"),
-        )
-
-        row.label(
-            text=str(
-                active_views
-            ),
-        )
-
-        row = box.row()
-
-        row.label(
-            text="Ready views",
-        )
-
-        row.label(
-            text=str(
-                ready_views
-            ),
-            icon=(
-                "CHECKMARK"
-                if ready_views >= 2
-                else "ERROR"
-            ),
-        )
-
-        row = box.row()
-
-        row.label(
-            text=tr("missing_images"),
-        )
-
-        if missing_images == 0:
-            row.label(
-                text="0",
-                icon="CHECKMARK",
             )
-        else:
-            row.label(
-                text=str(
-                    missing_images
-                ),
-                icon="ERROR",
+
+            detail.prop(
+                projection,
+                "azimuth",
             )
+
+            detail.prop(
+                projection,
+                "elevation",
+            )
+
+            detail.prop(
+                projection,
+                "flip_x",
+            )
+
+            detail.prop(
+                projection,
+                "weight",
+                slider=True,
+            )
+
+        # -------------------------------------------------
+        # Input extraction
+        # -------------------------------------------------
+
+        extraction = (
+            layout.box()
+        )
+
+        extraction.label(
+            text="Silhouette",
+            icon="MOD_MASK",
+        )
+
+        extraction.prop(
+            settings,
+            "alpha_threshold",
+            text="Alpha Threshold",
+            slider=True,
+        )
 
         if ready_views < 2:
-            warning = box.row()
+            warning = (
+                extraction.row()
+            )
 
             warning.alert = True
 
             warning.label(
-                text="At least 2 ready projections required",
+                text=(
+                    "At least 2 images required"
+                ),
                 icon="ERROR",
             )
 
-    def _draw_generation_section(
+        elif missing_views > 0:
+            warning = (
+                extraction.row()
+            )
+
+            warning.label(
+                text=(
+                    f"{missing_views} enabled view"
+                    + (
+                        "s"
+                        if missing_views != 1
+                        else ""
+                    )
+                    + " without image"
+                ),
+                icon="INFO",
+            )
+
+    # -----------------------------------------------------
+    # GEOMETRY
+    # -----------------------------------------------------
+
+    def _draw_native_geometry(
         self,
         layout,
         settings,
     ) -> None:
-        box = layout.box()
-
-        box.label(
-            text=tr("generation"),
-            icon="MESH_CUBE",
+        quality = (
+            layout.box()
         )
 
-        box.prop(
-            settings,
-            "generation_mode",
-            text="Engine",
+        quality.label(
+            text="Reconstruction",
+            icon="MESH_DATA",
         )
 
-        box.prop(
+        quality.prop(
             settings,
             "resolution",
-            text=tr("resolution"),
+            text="Resolution",
             slider=True,
         )
 
-        box.prop(
-            settings,
-            "alpha_threshold",
-            text=tr("threshold"),
-            slider=True,
-        )
-
-        box.prop(
+        quality.prop(
             settings,
             "symmetry_x",
-            text=tr("symmetry_x"),
+            text="Symmetry X",
         )
 
-        performance_box = box.box()
+        quality.label(
+            text=(
+                "Surface: Surface Nets"
+            ),
+            icon="INFO",
+        )
 
-        performance_box.label(
+        performance = (
+            layout.box()
+        )
+
+        performance.label(
             text="Performance",
             icon="TIME",
         )
 
-        performance_box.prop(
+        performance.prop(
             settings,
             "thread_count",
             text="Threads",
         )
 
-        if settings.thread_count == 0:
-            performance_box.label(
-                text="0 = automatic CPU detection",
+        if (
+            settings.thread_count
+            == 0
+        ):
+            performance.label(
+                text=(
+                    "0 = automatic CPU detection"
+                ),
                 icon="INFO",
             )
 
-        quality_box = box.box()
+        output = (
+            layout.box()
+        )
 
-        quality_box.label(
+        output.label(
             text="Output",
             icon="OBJECT_DATA",
         )
 
-        quality_box.prop(
+        output.prop(
             settings,
             "normalize_height",
-            text=tr("normalize_height"),
+            text="Normalize Height",
         )
 
         if settings.normalize_height:
-            quality_box.prop(
+            output.prop(
                 settings,
                 "target_height",
-                text=tr("target_height"),
+                text="Target Height",
             )
 
-    def _draw_workflow_info(
+    # -----------------------------------------------------
+    # MATERIAL
+    # -----------------------------------------------------
+
+    def _draw_projected_material(
         self,
         layout,
+        implementation,
     ) -> None:
-        info_box = layout.box()
+        info = (
+            layout.box()
+        )
 
-        info_box.label(
-            text=tr("workflow"),
+        info.label(
+            text="Projected Color V1.2",
+            icon="MATERIAL",
+        )
+
+        info.label(
+            text="Visibility-aware projection",
+            icon="CHECKMARK",
+        )
+
+        info.label(
+            text="Adaptive multi-view blend",
+            icon="CHECKMARK",
+        )
+
+        info.label(
+            text="Top-K contributors",
+            icon="CHECKMARK",
+        )
+
+        info.label(
+            text="Backface safety fallback",
+            icon="CHECKMARK",
+        )
+
+        if implementation is not None:
+            descriptor = (
+                implementation
+                .descriptor
+            )
+
+            if descriptor.capabilities:
+                capabilities = (
+                    layout.box()
+                )
+
+                capabilities.label(
+                    text="Capabilities",
+                    icon="INFO",
+                )
+
+                for capability in (
+                    descriptor.capabilities
+                ):
+                    capabilities.label(
+                        text=capability,
+                    )
+
+        defaults = (
+            layout.box()
+        )
+
+        defaults.label(
+            text="Current Defaults",
+            icon="SETTINGS",
+        )
+
+        defaults.label(
+            text=(
+                "Min facing: 0.10"
+            )
+        )
+
+        defaults.label(
+            text=(
+                "Relative cutoff: 0.20"
+            )
+        )
+
+        defaults.label(
+            text=(
+                "Max contributors: 3"
+            )
+        )
+
+        defaults.label(
+            text=(
+                "Weight power: 1.5"
+            )
+        )
+
+    # -----------------------------------------------------
+    # Stage action
+    # -----------------------------------------------------
+
+    def _draw_stage_action(
+        self,
+        layout,
+        stage: PipelineStage,
+        stage_settings,
+        descriptors,
+    ) -> None:
+        if not descriptors:
+            return
+
+        implementation_id = (
+            stage_settings
+            .implementation_id
+            .strip()
+        )
+
+        if not implementation_id:
+            return
+
+        row = (
+            layout.row()
+        )
+
+        row.enabled = (
+            stage_settings.enabled
+            and (
+                _descriptor_for_selection(
+                    stage,
+                    implementation_id,
+                )
+                is not None
+            )
+        )
+
+        row.scale_y = 1.15
+
+        operator = (
+            row.operator(
+                "bpt.run_pipeline_stage",
+                text=(
+                    STAGE_RUN_LABELS
+                    .get(
+                        stage,
+                        "Run Stage",
+                    )
+                ),
+                icon="PLAY",
+            )
+        )
+
+        operator.stage = (
+            stage.value
+        )
+
+    # -----------------------------------------------------
+    # Generate all
+    # -----------------------------------------------------
+
+    def _draw_generate_all(
+        self,
+        layout,
+        settings,
+    ) -> None:
+        box = (
+            layout.box()
+        )
+
+        row = (
+            box.row()
+        )
+
+        row.scale_y = 1.8
+
+        row.operator(
+            "bpt.run_pipeline",
+            text="GENERATE ALL",
+            icon="PLAY",
+        )
+
+        enabled_labels = []
+
+        for stage in (
+            PIPELINE_STAGE_ORDER
+        ):
+            current = (
+                pipeline_stage_settings(
+                    settings,
+                    stage,
+                )
+            )
+
+            if (
+                current.enabled
+                and current
+                .implementation_id
+                .strip()
+            ):
+                enabled_labels.append(
+                    stage_spec(
+                        stage
+                    )
+                    .label
+                )
+
+        if enabled_labels:
+            box.label(
+                text=(
+                    " → ".join(
+                        enabled_labels
+                    )
+                ),
+                icon="INFO",
+            )
+
+    # -----------------------------------------------------
+    # Last pipeline run
+    # -----------------------------------------------------
+
+    def _draw_last_run(
+        self,
+        layout,
+        context: bpy.types.Context,
+        settings,
+    ) -> None:
+        pipeline = (
+            settings.pipeline
+        )
+
+        box = (
+            layout.box()
+        )
+
+        header = (
+            box.row(
+                align=True
+            )
+        )
+
+        header.prop(
+            pipeline,
+            "diagnostics_expanded",
+            text="",
+            emboss=False,
+            icon=(
+                "TRIA_DOWN"
+                if (
+                    pipeline
+                    .diagnostics_expanded
+                )
+                else "TRIA_RIGHT"
+            ),
+        )
+
+        header.label(
+            text="Last Run",
             icon="INFO",
         )
 
-        info_box.label(
-            text=tr("use_transparent"),
+        report = (
+            get_last_pipeline_report(
+                context.scene
+            )
         )
 
-        info_box.label(
-            text=tr("more_angles"),
+        if report is None:
+            status = (
+                header.row()
+            )
+
+            status.alignment = (
+                "RIGHT"
+            )
+
+            status.label(
+                text="None",
+            )
+
+            if (
+                pipeline
+                .diagnostics_expanded
+            ):
+                box.label(
+                    text=(
+                        "No pipeline execution yet."
+                    ),
+                    icon="INFO",
+                )
+
+            return
+
+        status = (
+            header.row()
         )
 
-        info_box.label(
-            text=tr("start_low"),
+        status.alignment = (
+            "RIGHT"
         )
 
-        info_box.separator()
-
-        info_box.label(
-            text="Native pipeline:",
-            icon="CONSOLE",
+        status.alert = (
+            not report.success
         )
 
-        info_box.label(
-            text="Images → Masks → C++ Hull → Mesh",
+        status.label(
+            text=(
+                "Success"
+                if report.success
+                else "Failed"
+            ),
+            icon=(
+                "CHECKMARK"
+                if report.success
+                else "ERROR"
+            ),
         )
 
+        if not (
+            pipeline
+            .diagnostics_expanded
+        ):
+            return
+
+        summary = (
+            box.row()
+        )
+
+        summary.label(
+            text=(
+                f"{report.duration_seconds:.3f}s"
+            ),
+            icon="TIME",
+        )
+
+        for record in (
+            report.records
+        ):
+            stage_box = (
+                box.box()
+            )
+
+            row = (
+                stage_box.row()
+            )
+
+            row.label(
+                text=(
+                    stage_spec(
+                        record.stage
+                    )
+                    .label
+                ),
+                icon=(
+                    STAGE_ICONS[
+                        record.stage
+                    ]
+                ),
+            )
+
+            state = (
+                row.row()
+            )
+
+            state.alignment = (
+                "RIGHT"
+            )
+
+            state.alert = (
+                record.failed
+            )
+
+            state.label(
+                text=(
+                    record
+                    .result
+                    .state
+                    .value
+                    .title()
+                ),
+                icon=(
+                    "CHECKMARK"
+                    if record.success
+                    else (
+                        "ERROR"
+                        if record.failed
+                        else "INFO"
+                    )
+                ),
+            )
+
+            if (
+                record.result.message
+            ):
+                _draw_wrapped_text(
+                    stage_box,
+                    record
+                    .result
+                    .message,
+                    width=38,
+                )
+
+            stage_box.label(
+                text=(
+                    f"{record.duration_seconds:.3f}s"
+                ),
+                icon="TIME",
+            )
+
+    # -----------------------------------------------------
+    # Advanced
+    # -----------------------------------------------------
+
+    def _draw_advanced(
+        self,
+        layout,
+        context: bpy.types.Context,
+        settings,
+    ) -> None:
+        pipeline = (
+            settings.pipeline
+        )
+
+        box = (
+            layout.box()
+        )
+
+        header = (
+            box.row(
+                align=True
+            )
+        )
+
+        header.prop(
+            pipeline,
+            "advanced_expanded",
+            text="",
+            emboss=False,
+            icon=(
+                "TRIA_DOWN"
+                if (
+                    pipeline
+                    .advanced_expanded
+                )
+                else "TRIA_RIGHT"
+            ),
+        )
+
+        header.label(
+            text="Advanced",
+            icon="PREFERENCES",
+        )
+
+        if not (
+            pipeline
+            .advanced_expanded
+        ):
+            return
+
+        registry = (
+            box.box()
+        )
+
+        registry.label(
+            text="Pipeline Registry",
+            icon="SETTINGS",
+        )
+
+        registry.label(
+            text=(
+                f"{len(PIPELINE_REGISTRY)} "
+                "implementations registered"
+            )
+        )
+
+        for stage in (
+            PIPELINE_STAGE_ORDER
+        ):
+            stage_settings = (
+                pipeline_stage_settings(
+                    settings,
+                    stage,
+                )
+            )
+
+            row = (
+                registry.row()
+            )
+
+            row.label(
+                text=(
+                    stage_spec(
+                        stage
+                    )
+                    .label
+                ),
+                icon=(
+                    STAGE_ICONS[
+                        stage
+                    ]
+                ),
+            )
+
+            value = (
+                row.row()
+            )
+
+            value.alignment = (
+                "RIGHT"
+            )
+
+            implementation_id = (
+                stage_settings
+                .implementation_id
+                .strip()
+            )
+
+            value.label(
+                text=(
+                    implementation_id
+                    or "—"
+                )
+            )
+
+        box.separator()
+
+        reset = (
+            box.row()
+        )
+
+        reset.operator(
+            "bpt.reset_pipeline_settings",
+            text="Reset Pipeline Configuration",
+            icon="FILE_REFRESH",
+        )
+
+
+# ---------------------------------------------------------
+# Classes
+# ---------------------------------------------------------
 
 CLASSES = (
     BPT_UL_ProjectionViews,
     BPT_PT_MainPanel,
 )
 
+
+# ---------------------------------------------------------
+# Registration
+# ---------------------------------------------------------
 
 def register() -> None:
     for cls in CLASSES:

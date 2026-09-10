@@ -1,5 +1,6 @@
 name: CI
 
+
 on:
   push:
     branches:
@@ -16,25 +17,37 @@ permissions:
   contents: write
 
 
+env:
+  BLENDER_VERSION: "5.2.1"
+  BLENDER_ARCHIVE: "blender-5.2.1-linux-x64.tar.xz"
+  BLENDER_BASE_URL: "https://download.blender.org/release/Blender5.2"
+  BLENDER_ROOT: "${{ github.workspace }}/.blender"
+
+
 jobs:
 
-  # ---------------------------------------------------------
-  # Validate repository + Python tests
-  # ---------------------------------------------------------
+  # =========================================================
+  # Repository validation + pure Python tests
+  # =========================================================
 
   validate:
     name: Validate extension
+
     runs-on: ubuntu-latest
+
+    timeout-minutes: 10
 
     steps:
 
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
 
       # -----------------------------------------------------
       # Repository structure
@@ -46,54 +59,114 @@ jobs:
           set -euo pipefail
 
           required_files=(
+
+            # -----------------------------------------------
+            # Blender extension
+            # -----------------------------------------------
+
             "blender_manifest.toml"
+
             "__init__.py"
+
             "version.py"
             "translations.py"
             "properties.py"
             "operators.py"
             "ui.py"
 
+            # -----------------------------------------------
+            # Runtime core
+            # -----------------------------------------------
+
             "core/__init__.py"
+
             "core/image_mask.py"
+
             "core/native_loader.py"
             "core/native_bridge.py"
             "core/native_scan.py"
             "core/native_mesh_builder.py"
 
             "core/projection_math.py"
+
             "core/projected_material.py"
             "core/material_visibility.py"
+            "core/material_blend.py"
+
+            # -----------------------------------------------
+            # Generic pipeline
+            # -----------------------------------------------
+
+            "core/pipeline_contracts.py"
+            "core/pipeline_registry.py"
+            "core/pipeline_runner.py"
+
+            # -----------------------------------------------
+            # Built-in implementations
+            # -----------------------------------------------
+
+            "implementations/__init__.py"
+
+            "implementations/projection_images.py"
+            "implementations/native_visual_hull.py"
+            "implementations/projected_color.py"
+
+            # -----------------------------------------------
+            # Native engine
+            # -----------------------------------------------
 
             "native/CMakeLists.txt"
+
             "native/include/bpt_core.h"
+
             "native/src/api.cpp"
             "native/src/visual_hull.cpp"
             "native/src/mesh.cpp"
+
             "native/tests/test_visual_hull.cpp"
 
+            # -----------------------------------------------
+            # Tests
+            # -----------------------------------------------
+
             "tests/test_preview_baseline.py"
+
             "tests/test_material_visibility.py"
+            "tests/test_material_blend.py"
+
+            "tests/test_pipeline_registry.py"
+            "tests/test_pipeline_runner.py"
+
+            "tests/blender_smoke_test.py"
+
+            # -----------------------------------------------
+            # Documentation
+            # -----------------------------------------------
 
             "README.md"
           )
 
           for file in "${required_files[@]}"; do
+
             if [[ ! -f "${file}" ]]; then
+
               echo "Missing required file: ${file}"
+
               exit 1
+
             fi
+
           done
 
+          echo
           echo "Repository structure valid."
+
 
       # -----------------------------------------------------
       # Pure Python tests
       #
-      # These tests deliberately do not require Blender.
-      #
-      # material_visibility.py imports mathutils lazily,
-      # allowing the BVH decision layer to be tested here.
+      # blender_smoke_test.py is deliberately excluded by
+      # the test_*.py pattern because it requires Blender.
       # -----------------------------------------------------
 
       - name: Run Python tests
@@ -108,9 +181,9 @@ jobs:
             -v
 
 
-  # ---------------------------------------------------------
-  # Build native binaries
-  # ---------------------------------------------------------
+  # =========================================================
+  # Native binaries
+  # =========================================================
 
   native:
     name: Native ${{ matrix.platform }}
@@ -123,6 +196,7 @@ jobs:
 
       matrix:
         include:
+
           - platform: linux
             os: ubuntu-latest
             library_name: libbpt_core.so
@@ -132,6 +206,8 @@ jobs:
             library_name: bpt_core.dll
 
     runs-on: ${{ matrix.os }}
+
+    timeout-minutes: 20
 
     steps:
 
@@ -156,6 +232,7 @@ jobs:
             ninja-build \
             g++
 
+
       - name: Configure native core - Linux
         if: matrix.platform == 'linux'
         shell: bash
@@ -169,6 +246,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DBPT_BUILD_TESTS=ON
 
+
       - name: Build native core - Linux
         if: matrix.platform == 'linux'
         shell: bash
@@ -178,6 +256,7 @@ jobs:
           cmake \
             --build build/native \
             --parallel
+
 
       - name: Test native core - Linux
         if: matrix.platform == 'linux'
@@ -189,13 +268,15 @@ jobs:
             --test-dir build/native \
             --output-on-failure
 
+
       - name: Stage Linux library
         if: matrix.platform == 'linux'
         shell: bash
         run: |
           set -euo pipefail
 
-          mkdir -p native/bin
+          mkdir -p \
+            native/bin
 
           LIB_PATH="$(
             find build/native \
@@ -205,15 +286,19 @@ jobs:
           )"
 
           if [[ -z "${LIB_PATH}" ]]; then
+
             echo "libbpt_core.so not found"
+
             exit 1
+
           fi
 
           cp \
             "${LIB_PATH}" \
             native/bin/libbpt_core.so
 
-          ls -lh native/bin
+          ls -lh \
+            native/bin
 
 
       # -----------------------------------------------------
@@ -234,6 +319,7 @@ jobs:
               exit $LASTEXITCODE
           }
 
+
       - name: Build native core - Windows
         if: matrix.platform == 'windows'
         shell: pwsh
@@ -247,6 +333,7 @@ jobs:
               exit $LASTEXITCODE
           }
 
+
       - name: Test native core - Windows
         if: matrix.platform == 'windows'
         shell: pwsh
@@ -259,6 +346,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
               exit $LASTEXITCODE
           }
+
 
       - name: Stage Windows library
         if: matrix.platform == 'windows'
@@ -277,8 +365,11 @@ jobs:
             | Select-Object -First 1
 
           if (-not $dll) {
+
               Write-Error "bpt_core.dll not found"
+
               exit 1
+
           }
 
           Copy-Item `
@@ -289,26 +380,31 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Upload platform artifact
+      # Native build artifact
       # -----------------------------------------------------
 
       - name: Upload native binary
         uses: actions/upload-artifact@v4
         with:
           name: native-${{ matrix.platform }}
+
           path: native/bin/${{ matrix.library_name }}
+
           if-no-files-found: error
+
           retention-days: 1
 
 
-  # ---------------------------------------------------------
-  # Package Blender extension
-  # ---------------------------------------------------------
+  # =========================================================
+  # Blender extension package
+  # =========================================================
 
   package:
     name: Build Blender Extension
 
     runs-on: ubuntu-latest
+
+    timeout-minutes: 30
 
     needs:
       - validate
@@ -323,6 +419,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -330,7 +427,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Download native binaries
+      # Native binaries
       # -----------------------------------------------------
 
       - name: Download Linux native binary
@@ -339,26 +436,34 @@ jobs:
           name: native-linux
           path: native/bin
 
+
       - name: Download Windows native binary
         uses: actions/download-artifact@v4
         with:
           name: native-windows
           path: native/bin
 
+
       - name: Verify native binaries
         shell: bash
         run: |
           set -euo pipefail
 
-          test -f native/bin/libbpt_core.so
-          test -f native/bin/bpt_core.dll
+          test -f \
+            native/bin/libbpt_core.so
 
+          test -f \
+            native/bin/bpt_core.dll
+
+          echo
           echo "Native binaries:"
-          ls -lh native/bin
+
+          ls -lh \
+            native/bin
 
 
       # -----------------------------------------------------
-      # Calculate version
+      # Build version
       # -----------------------------------------------------
 
       - name: Calculate build version
@@ -376,20 +481,31 @@ jobs:
           ) as file:
               manifest = tomllib.load(file)
 
-          base_version = manifest["version"]
+          base_version = manifest[
+              "version"
+          ]
 
-          parts = base_version.split(".")
+          parts = base_version.split(
+              "."
+          )
 
           if len(parts) != 3:
               raise RuntimeError(
                   f"Invalid semantic version: {base_version}"
               )
 
-          major = int(parts[0])
-          minor = int(parts[1])
+          major = int(
+              parts[0]
+          )
+
+          minor = int(
+              parts[1]
+          )
 
           build = int(
-              os.environ["BUILD_NUMBER"]
+              os.environ[
+                  "BUILD_NUMBER"
+              ]
           )
 
           version = (
@@ -397,7 +513,9 @@ jobs:
           )
 
           with open(
-              os.environ["GITHUB_OUTPUT"],
+              os.environ[
+                  "GITHUB_OUTPUT"
+              ],
               "a",
               encoding="utf-8",
           ) as output:
@@ -420,20 +538,22 @@ jobs:
 
           echo \
             "zip_name=${ZIP_NAME}" \
-            >> "$GITHUB_OUTPUT"
+            >> "${GITHUB_OUTPUT}"
+
+          echo \
+            "ZIP: ${ZIP_NAME}"
 
 
       # -----------------------------------------------------
       # Build package tree
       #
-      # IMPORTANT:
+      # Runtime code belongs to:
       #
-      # Copy all Python modules from core rather than
-      # maintaining another manual list here.
+      #   root Python modules
+      #   core/
+      #   implementations/
       #
-      # The previous implementation silently produced an
-      # incomplete extension whenever a new runtime core
-      # module was added.
+      # Tests/scripts/examples must not be shipped.
       # -----------------------------------------------------
 
       - name: Build package directory
@@ -448,57 +568,100 @@ jobs:
 
           mkdir -p \
             "${PACKAGE_ROOT}/core" \
+            "${PACKAGE_ROOT}/implementations" \
             "${PACKAGE_ROOT}/native/bin"
 
-          cp blender_manifest.toml \
-            "${PACKAGE_ROOT}/"
-
-          cp __init__.py \
-            "${PACKAGE_ROOT}/"
-
-          cp version.py \
-            "${PACKAGE_ROOT}/"
-
-          cp translations.py \
-            "${PACKAGE_ROOT}/"
-
-          cp properties.py \
-            "${PACKAGE_ROOT}/"
-
-          cp operators.py \
-            "${PACKAGE_ROOT}/"
-
-          cp ui.py \
-            "${PACKAGE_ROOT}/"
-
-          cp README.md \
-            "${PACKAGE_ROOT}/"
 
           # -------------------------------------------------
-          # Runtime Python core
+          # Root extension files
           # -------------------------------------------------
 
-          cp core/*.py \
+          cp \
+            blender_manifest.toml \
+            "${PACKAGE_ROOT}/"
+
+          cp \
+            __init__.py \
+            "${PACKAGE_ROOT}/"
+
+          cp \
+            version.py \
+            "${PACKAGE_ROOT}/"
+
+          cp \
+            translations.py \
+            "${PACKAGE_ROOT}/"
+
+          cp \
+            properties.py \
+            "${PACKAGE_ROOT}/"
+
+          cp \
+            operators.py \
+            "${PACKAGE_ROOT}/"
+
+          cp \
+            ui.py \
+            "${PACKAGE_ROOT}/"
+
+          cp \
+            README.md \
+            "${PACKAGE_ROOT}/"
+
+
+          # -------------------------------------------------
+          # Runtime core
+          # -------------------------------------------------
+
+          cp \
+            core/*.py \
             "${PACKAGE_ROOT}/core/"
+
+
+          # -------------------------------------------------
+          # Pipeline implementations
+          #
+          # REQUIRED:
+          #
+          # root __init__.py imports this package.
+          # -------------------------------------------------
+
+          cp \
+            implementations/*.py \
+            "${PACKAGE_ROOT}/implementations/"
+
 
           # -------------------------------------------------
           # Native libraries
           # -------------------------------------------------
 
-          cp native/bin/libbpt_core.so \
+          cp \
+            native/bin/libbpt_core.so \
             "${PACKAGE_ROOT}/native/bin/"
 
-          cp native/bin/bpt_core.dll \
+          cp \
+            native/bin/bpt_core.dll \
             "${PACKAGE_ROOT}/native/bin/"
+
+
+          # -------------------------------------------------
+          # License
+          # -------------------------------------------------
 
           if [[ -f LICENSE ]]; then
-            cp LICENSE \
+
+            cp \
+              LICENSE \
               "${PACKAGE_ROOT}/"
+
           fi
+
 
           echo
           echo "Package tree:"
-          find "${PACKAGE_ROOT}" \
+
+          find \
+            "${PACKAGE_ROOT}" \
             -type f \
             -print \
             | sort
@@ -547,9 +710,13 @@ jobs:
               encoding="utf-8",
           )
 
+          print(
+              f"Packaged version: {version}"
+          )
+
 
       # -----------------------------------------------------
-      # Validate package
+      # Explicit package validation
       # -----------------------------------------------------
 
       - name: Validate packaged files
@@ -560,24 +727,53 @@ jobs:
           PACKAGE_ROOT="dist/blender_projection_tool"
 
           required_files=(
+
             "blender_manifest.toml"
+
             "__init__.py"
+
             "version.py"
             "translations.py"
             "properties.py"
             "operators.py"
             "ui.py"
 
+            # -----------------------------------------------
+            # Core
+            # -----------------------------------------------
+
             "core/__init__.py"
+
             "core/image_mask.py"
+
             "core/native_loader.py"
             "core/native_bridge.py"
             "core/native_scan.py"
             "core/native_mesh_builder.py"
 
             "core/projection_math.py"
+
             "core/projected_material.py"
             "core/material_visibility.py"
+            "core/material_blend.py"
+
+            "core/pipeline_contracts.py"
+            "core/pipeline_registry.py"
+            "core/pipeline_runner.py"
+
+            # -----------------------------------------------
+            # Implementations
+            # -----------------------------------------------
+
+            "implementations/__init__.py"
+
+            "implementations/projection_images.py"
+            "implementations/native_visual_hull.py"
+            "implementations/projected_color.py"
+
+            # -----------------------------------------------
+            # Native
+            # -----------------------------------------------
 
             "native/bin/libbpt_core.so"
             "native/bin/bpt_core.dll"
@@ -586,30 +782,23 @@ jobs:
           )
 
           for file in "${required_files[@]}"; do
+
             if [[ ! -f "${PACKAGE_ROOT}/${file}" ]]; then
+
               echo "Missing packaged file: ${file}"
+
               exit 1
+
             fi
+
           done
 
-          echo "Package validated."
-
           echo
-          echo "Packaged core modules:"
-
-          find "${PACKAGE_ROOT}/core" \
-            -maxdepth 1 \
-            -type f \
-            -name "*.py" \
-            -print \
-            | sort
+          echo "Package required-file validation: OK"
 
 
       # -----------------------------------------------------
-      # Ensure source/package core parity
-      #
-      # Since the extension now copies core/*.py, this also
-      # protects against a future packaging regression.
+      # Source/package core parity
       # -----------------------------------------------------
 
       - name: Verify packaged core parity
@@ -637,28 +826,38 @@ jobs:
               | sort
           )
 
+          echo
           echo "Source core modules:"
-          printf '  - %s\n' \
+
+          printf \
+            '  - %s\n' \
             "${SOURCE_CORE[@]}"
 
           echo
           echo "Packaged core modules:"
-          printf '  - %s\n' \
+
+          printf \
+            '  - %s\n' \
             "${PACKAGE_CORE[@]}"
 
           if ! diff \
             <(
-              printf '%s\n' \
+              printf \
+                '%s\n' \
                 "${SOURCE_CORE[@]}"
             ) \
             <(
-              printf '%s\n' \
+              printf \
+                '%s\n' \
                 "${PACKAGE_CORE[@]}"
             )
           then
+
             echo
             echo "Packaged core differs from source core."
+
             exit 1
+
           fi
 
           echo
@@ -666,7 +865,139 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Create ZIP
+      # Source/package implementation parity
+      # -----------------------------------------------------
+
+      - name: Verify packaged implementation parity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_ROOT="dist/blender_projection_tool"
+
+          mapfile -t SOURCE_IMPLEMENTATIONS < <(
+            find implementations \
+              -maxdepth 1 \
+              -type f \
+              -name "*.py" \
+              -printf '%f\n' \
+              | sort
+          )
+
+          mapfile -t PACKAGE_IMPLEMENTATIONS < <(
+            find "${PACKAGE_ROOT}/implementations" \
+              -maxdepth 1 \
+              -type f \
+              -name "*.py" \
+              -printf '%f\n' \
+              | sort
+          )
+
+          echo
+          echo "Source implementations:"
+
+          printf \
+            '  - %s\n' \
+            "${SOURCE_IMPLEMENTATIONS[@]}"
+
+          echo
+          echo "Packaged implementations:"
+
+          printf \
+            '  - %s\n' \
+            "${PACKAGE_IMPLEMENTATIONS[@]}"
+
+          if ! diff \
+            <(
+              printf \
+                '%s\n' \
+                "${SOURCE_IMPLEMENTATIONS[@]}"
+            ) \
+            <(
+              printf \
+                '%s\n' \
+                "${PACKAGE_IMPLEMENTATIONS[@]}"
+            )
+          then
+
+            echo
+            echo \
+              "Packaged implementations differ from source."
+
+            exit 1
+
+          fi
+
+          echo
+          echo \
+            "Packaged implementations match source."
+
+
+      # -----------------------------------------------------
+      # Make sure no development Python files leak into the
+      # runtime package.
+      # -----------------------------------------------------
+
+      - name: Verify package boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_ROOT="dist/blender_projection_tool"
+
+          forbidden_paths=(
+
+            "${PACKAGE_ROOT}/tests"
+
+            "${PACKAGE_ROOT}/scripts"
+
+            "${PACKAGE_ROOT}/example"
+
+            "${PACKAGE_ROOT}/.github"
+
+            "${PACKAGE_ROOT}/native/src"
+
+            "${PACKAGE_ROOT}/native/include"
+
+            "${PACKAGE_ROOT}/native/tests"
+          )
+
+          for path in "${forbidden_paths[@]}"; do
+
+            if [[ -e "${path}" ]]; then
+
+              echo \
+                "Forbidden development path packaged: ${path}"
+
+              exit 1
+
+            fi
+
+          done
+
+          if find \
+            "${PACKAGE_ROOT}" \
+            -type f \
+            \( \
+              -name "*.pyc" \
+              -o \
+              -name "*.pyo" \
+            \) \
+            | grep -q .
+          then
+
+            echo "Compiled Python cache found in package."
+
+            exit 1
+
+          fi
+
+          echo
+          echo "Package boundaries: OK"
+
+
+      # -----------------------------------------------------
+      # Create distribution ZIP
       # -----------------------------------------------------
 
       - name: Create ZIP
@@ -681,13 +1012,225 @@ jobs:
             "${{ steps.package_info.outputs.zip_name }}" \
             blender_projection_tool
 
+          echo
+          echo "Archive contents:"
+
+          unzip \
+            -l \
+            "${{ steps.package_info.outputs.zip_name }}"
+
+
+      # -----------------------------------------------------
+      # Verify the archive itself.
+      #
+      # Do not trust only the staging directory.
+      # -----------------------------------------------------
+
+      - name: Verify ZIP contents
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ZIP_PATH="dist/${{ steps.package_info.outputs.zip_name }}"
+
+          unzip \
+            -t \
+            "${ZIP_PATH}"
+
+          required_archive_files=(
+
+            "blender_projection_tool/blender_manifest.toml"
+
+            "blender_projection_tool/__init__.py"
+
+            "blender_projection_tool/core/pipeline_contracts.py"
+            "blender_projection_tool/core/pipeline_registry.py"
+            "blender_projection_tool/core/pipeline_runner.py"
+
+            "blender_projection_tool/implementations/__init__.py"
+            "blender_projection_tool/implementations/projection_images.py"
+            "blender_projection_tool/implementations/native_visual_hull.py"
+            "blender_projection_tool/implementations/projected_color.py"
+
+            "blender_projection_tool/native/bin/libbpt_core.so"
+            "blender_projection_tool/native/bin/bpt_core.dll"
+          )
+
+          mapfile -t ARCHIVE_FILES < <(
+            unzip \
+              -Z1 \
+              "${ZIP_PATH}"
+          )
+
+          for required in "${required_archive_files[@]}"; do
+
+            if ! printf \
+              '%s\n' \
+              "${ARCHIVE_FILES[@]}" \
+              | grep \
+                -Fxq \
+                "${required}"
+            then
+
+              echo \
+                "Missing archive file: ${required}"
+
+              exit 1
+
+            fi
+
+          done
+
+          echo
+          echo "ZIP validation: OK"
+
+
+      # =====================================================
+      # Blender smoke test
+      #
+      # Test the ZIP that will actually be distributed.
+      # =====================================================
+
+      - name: Cache Blender
+        id: blender-cache
+        uses: actions/cache@v4
+        with:
+          path: .blender
+
+          key: blender-linux-x64-${{ env.BLENDER_VERSION }}
+
+
+      - name: Download Blender
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p \
+            "${BLENDER_ROOT}"
+
+          URL="${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
+
+          ARCHIVE="/tmp/${BLENDER_ARCHIVE}"
+
+          echo \
+            "Downloading ${URL}"
+
+          curl \
+            --fail \
+            --show-error \
+            --location \
+            --retry 5 \
+            --retry-all-errors \
+            --connect-timeout 20 \
+            --max-time 900 \
+            --output "${ARCHIVE}" \
+            "${URL}"
+
+          xz \
+            --test \
+            "${ARCHIVE}"
+
+          tar \
+            -xJf "${ARCHIVE}" \
+            -C "${BLENDER_ROOT}" \
+            --strip-components=1
+
+          rm \
+            "${ARCHIVE}"
+
+
+      - name: Verify Blender
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          "${BLENDER_ROOT}/blender" \
+            --version
+
+
+      # -----------------------------------------------------
+      # Extract a fresh copy.
+      #
+      # The smoke test MUST NOT import from
+      # dist/blender_projection_tool directly.
+      #
+      # Otherwise a ZIP packaging omission could be masked by
+      # files still existing in the staging directory.
+      # -----------------------------------------------------
+
+      - name: Extract packaged extension for smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ZIP_PATH="dist/${{ steps.package_info.outputs.zip_name }}"
+
+          SMOKE_ROOT="${RUNNER_TEMP}/meshvenn-smoke"
+
+          rm -rf \
+            "${SMOKE_ROOT}"
+
+          mkdir -p \
+            "${SMOKE_ROOT}"
+
+          unzip \
+            -q \
+            "${ZIP_PATH}" \
+            -d "${SMOKE_ROOT}"
+
+          PACKAGE_ROOT="${SMOKE_ROOT}/blender_projection_tool"
+
+          test -f \
+            "${PACKAGE_ROOT}/blender_manifest.toml"
+
+          test -f \
+            "${PACKAGE_ROOT}/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/__init__.py"
+
+          echo
+          echo "Smoke package:"
+
+          find \
+            "${PACKAGE_ROOT}" \
+            -type f \
+            -print \
+            | sort
+
+
+      - name: Blender packaged extension smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_ROOT="${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python \
+              tests/blender_smoke_test.py \
+            -- \
+            --package-root \
+              "${PACKAGE_ROOT}"
+
+
+      # -----------------------------------------------------
+      # Publish package artifacts only after the real Blender
+      # smoke test succeeds.
+      # -----------------------------------------------------
 
       - name: Upload CI artifact
         uses: actions/upload-artifact@v4
         with:
           name: blender-projection-tool-${{ steps.version.outputs.version }}
+
           path: dist/${{ steps.package_info.outputs.zip_name }}
+
           if-no-files-found: error
+
           retention-days: 30
 
 
@@ -695,14 +1238,17 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-zip
+
           path: dist/${{ steps.package_info.outputs.zip_name }}
+
           if-no-files-found: error
+
           retention-days: 1
 
 
-  # ---------------------------------------------------------
-  # Release
-  # ---------------------------------------------------------
+  # =========================================================
+  # GitHub Release
+  # =========================================================
 
   release:
     name: GitHub Release
@@ -722,14 +1268,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-zip
+
           path: dist
+
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.package.outputs.version }}
 
-          name: Projection Tool v${{ needs.package.outputs.version }}
+          name: Meshvenn v${{ needs.package.outputs.version }}
 
           generate_release_notes: true
 
@@ -737,9 +1285,9 @@ jobs:
             dist/${{ needs.package.outputs.zip_name }}
 
           body: |
-            ## Blender Projection Tool
+            ## Meshvenn
 
-            Native C++ Blender extension build
+            Blender extension build
             **v${{ needs.package.outputs.version }}**.
 
             ### Native platforms
@@ -747,16 +1295,52 @@ jobs:
             - Windows x64
             - Linux x64
 
-            ### Engine
+            ### Pipeline
 
-            - native C++ visual hull
-            - multithreaded reconstruction
-            - arbitrary azimuth / elevation
-            - native mesh generation
-            - ctypes bridge
-            - Blender direct mesh injection
-            - projected material
-            - visibility-aware material projection
+            Input
+            → Geometry
+            → Material
+            → Rig
+            → Export
+
+            ### Current implementations
+
+            **Input**
+
+            - Projection Images
+
+            **Geometry**
+
+            - Native C++ Visual Hull
+            - Surface Nets
+
+            **Material**
+
+            - Projected Color V1.2
+            - visibility-aware projection
+            - adaptive multi-view blending
+
+            **Rig**
+
+            - pipeline stage ready
+            - implementation pending
+
+            **Export**
+
+            - pipeline stage ready
+            - implementation pending
+
+            ### Validation
+
+            The release package has passed:
+
+            - pure Python tests
+            - Linux native tests
+            - Windows native tests
+            - package completeness validation
+            - source/package parity validation
+            - ZIP integrity validation
+            - Blender 5.2.1 extension import/register/unregister smoke test
 
             ### Installation
 
