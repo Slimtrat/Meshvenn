@@ -1558,8 +1558,7 @@ def _validate_sdf_pipeline_selection(
     )
 
     try:
-        properties_module
-        .set_pipeline_implementation(
+        properties_module.set_pipeline_implementation(
             settings,
             PipelineStage.GEOMETRY,
             "sdf-reconstruction-v1",
@@ -1619,8 +1618,7 @@ def _validate_sdf_pipeline_selection(
         )
 
     finally:
-        properties_module
-        .set_pipeline_implementation(
+        properties_module.set_pipeline_implementation(
             settings,
             PipelineStage.GEOMETRY,
             previous,
