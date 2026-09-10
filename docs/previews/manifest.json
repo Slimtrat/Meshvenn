@@ -1,0 +1,44 @@
+{
+  "configuration": {
+    "material_mode": "projected-color-v1",
+    "mesh_mode": "surface_nets",
+    "render_size": 384,
+    "renderer_version": 1,
+    "resolution": 64,
+    "samples": 1,
+    "turntable_views": 8
+  },
+  "outputs": {
+    "geometry": "geometry.png",
+    "material": "material.png",
+    "turntable": "turntable.png"
+  },
+  "profiles": [
+    "L2",
+    "L10"
+  ],
+  "schema_version": 1,
+  "sheets": {
+    "sheet1": {
+      "source": "example/mascotte/test1/sheets/sheet1.png",
+      "source_sha256": "158863fd2139efca8c1dea2fb5c462dd8e0d955cb3cd17361a5f243180235cf2"
+    },
+    "sheet2": {
+      "source": "example/mascotte/test1/sheets/sheet2.png",
+      "source_sha256": "b08d59b0ab6de81fbeb47d72dafb21fa95ee5d698d49e055a5a9d4a1e6b00965"
+    },
+    "sheet3": {
+      "source": "example/mascotte/test1/sheets/sheet3.png",
+      "source_sha256": "3b1201daffe7a09f9a498d28e1e75b6b7781d0a0a4fecfd87f5c5025c9d9e9ed"
+    },
+    "sheet4": {
+      "source": "example/mascotte/test1/sheets/sheet4.png",
+      "source_sha256": "6ada26c93b0a70285b3bbef352bf99cbb6bbfff9b593c3b0edbb0af4cf288e4d"
+    },
+    "sheet5": {
+      "source": "example/mascotte/test1/sheets/sheet5.png",
+      "source_sha256": "5608c6046cca27708c10e2144c7146948eadd5b6e0a1801495fbbd5664536bc1"
+    }
+  },
+  "source_commit": "3f5cbd7d4995ba60bbf2e31073c0dd8fdf7f2dc0"
+}
