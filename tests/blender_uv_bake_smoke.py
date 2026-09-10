@@ -37,6 +37,8 @@ TEXTURE_SIZE = 8
 
 FLOAT_TOLERANCE = 1e-5
 
+RGBA8_TOLERANCE = 1e-6
+
 
 REQUIRED_PACKAGE_FILES = (
     "__init__.py",
@@ -129,9 +131,7 @@ def _require_close(
     expected: float,
     *,
     message: str,
-    tolerance: float = (
-        FLOAT_TOLERANCE
-    ),
+    tolerance: float = FLOAT_TOLERANCE,
 ) -> None:
     if not math.isclose(
         float(actual),
@@ -148,6 +148,88 @@ def _require_close(
         )
 
 
+def _clamp01(
+    value: float,
+) -> float:
+    return max(
+        0.0,
+        min(
+            1.0,
+            float(value),
+        ),
+    )
+
+
+def _quantize_unorm8(
+    value: float,
+) -> float:
+    """
+    Reproduce the expected storage precision of the Blender
+    image created by UV Bake V2:
+
+        float_buffer=False
+
+    Example:
+
+        0.0625
+            ↓
+        round(0.0625 * 255)
+            ↓
+        16
+            ↓
+        16 / 255
+            ↓
+        0.062745098...
+    """
+
+    normalized = (
+        _clamp01(
+            value
+        )
+    )
+
+    integer = math.floor(
+        normalized
+        * 255.0
+        + 0.5
+    )
+
+    integer = max(
+        0,
+        min(
+            255,
+            integer,
+        ),
+    )
+
+    return (
+        float(integer)
+        / 255.0
+    )
+
+
+def _require_rgba8_close(
+    actual: float,
+    source_float: float,
+    *,
+    message: str,
+) -> None:
+    expected = (
+        _quantize_unorm8(
+            source_float
+        )
+    )
+
+    _require_close(
+        actual,
+        expected,
+        message=message,
+        tolerance=(
+            RGBA8_TOLERANCE
+        ),
+    )
+
+
 def _purge_package_modules(
     package_name: str,
 ) -> None:
@@ -156,7 +238,7 @@ def _purge_package_modules(
         + "."
     )
 
-    modules = [
+    names = [
         name
         for name
         in tuple(
@@ -171,7 +253,7 @@ def _purge_package_modules(
     ]
 
     for name in sorted(
-        modules,
+        names,
         key=len,
         reverse=True,
     ):
@@ -240,17 +322,17 @@ def _import_package(
         package_name
     )
 
-    parent_string = str(
+    package_parent_string = str(
         package_parent
     )
 
     if (
-        parent_string
+        package_parent_string
         not in sys.path
     ):
         sys.path.insert(
             0,
-            parent_string,
+            package_parent_string,
         )
 
     package = (
@@ -312,14 +394,10 @@ def _cleanup_datablock(
             datablock,
             bpy.types.Material,
         ):
-            if (
-                datablock.name
-                in bpy.data.materials
-            ):
-                bpy.data.materials.remove(
-                    datablock,
-                    do_unlink=True,
-                )
+            bpy.data.materials.remove(
+                datablock,
+                do_unlink=True,
+            )
 
             return
 
@@ -327,14 +405,10 @@ def _cleanup_datablock(
             datablock,
             bpy.types.Image,
         ):
-            if (
-                datablock.name
-                in bpy.data.images
-            ):
-                bpy.data.images.remove(
-                    datablock,
-                    do_unlink=True,
-                )
+            bpy.data.images.remove(
+                datablock,
+                do_unlink=True,
+            )
 
             return
 
@@ -342,14 +416,10 @@ def _cleanup_datablock(
             datablock,
             bpy.types.Object,
         ):
-            if (
-                datablock.name
-                in bpy.data.objects
-            ):
-                bpy.data.objects.remove(
-                    datablock,
-                    do_unlink=True,
-                )
+            bpy.data.objects.remove(
+                datablock,
+                do_unlink=True,
+            )
 
             return
 
@@ -357,14 +427,10 @@ def _cleanup_datablock(
             datablock,
             bpy.types.Mesh,
         ):
-            if (
-                datablock.name
-                in bpy.data.meshes
-            ):
-                bpy.data.meshes.remove(
-                    datablock,
-                    do_unlink=True,
-                )
+            bpy.data.meshes.remove(
+                datablock,
+                do_unlink=True,
+            )
 
     except Exception:
         print(
@@ -390,15 +456,13 @@ def _set_loop_uv(
     ],
 ) -> None:
     """
-    Blender 5.x exposes the UV attribute through:
+    Blender 5.x:
 
         uv_layer.uv[index].vector
 
-    Older API versions expose:
+    Older fallback:
 
         uv_layer.data[index].uv
-
-    Keep the smoke compatible with both representations.
     """
 
     try:
@@ -445,14 +509,11 @@ def _create_test_mesh(
     )
 
     # -----------------------------------------------------
-    # Unit square in XY.
-    #
     # Geometry deliberately matches UV coordinates:
     #
-    #     position.x == uv.u
-    #     position.y == uv.v
+    #     X == U
+    #     Y == V
     #
-    # This makes the synthetic sampler trivial to verify.
     #
     #        3 -------- 2
     #        |        / |
@@ -461,6 +522,7 @@ def _create_test_mesh(
     #        |  /       |
     #        |/         |
     #        0 -------- 1
+    #
     # -----------------------------------------------------
 
     vertices = (
@@ -527,13 +589,6 @@ def _create_test_mesh(
         )
     )
 
-    # -----------------------------------------------------
-    # One UV per loop.
-    #
-    # Since every vertex coordinate already lies inside
-    # [0,1], position.xy maps directly to UV.
-    # -----------------------------------------------------
-
     for loop in mesh.loops:
         vertex = (
             mesh.vertices[
@@ -541,19 +596,17 @@ def _create_test_mesh(
             ]
         )
 
-        uv = (
-            float(
-                vertex.co.x
-            ),
-            float(
-                vertex.co.y
-            ),
-        )
-
         _set_loop_uv(
             uv_layer,
             loop.index,
-            uv,
+            (
+                float(
+                    vertex.co.x
+                ),
+                float(
+                    vertex.co.y
+                ),
+            ),
         )
 
     mesh.uv_layers.active = (
@@ -574,7 +627,7 @@ def _create_test_mesh(
         )
         == 4,
         (
-            "Test mesh should contain "
+            "Test mesh must contain "
             "4 vertices."
         ),
     )
@@ -585,7 +638,7 @@ def _create_test_mesh(
         )
         == 2,
         (
-            "Test mesh should contain "
+            "Test mesh must contain "
             "2 polygons."
         ),
     )
@@ -596,7 +649,7 @@ def _create_test_mesh(
         )
         == 6,
         (
-            "Test mesh should contain "
+            "Test mesh must contain "
             "6 loops."
         ),
     )
@@ -606,15 +659,24 @@ def _create_test_mesh(
     )
 
     print(
-        f"  vertices: {len(mesh.vertices)}"
+        (
+            "  vertices: "
+            f"{len(mesh.vertices)}"
+        )
     )
 
     print(
-        f"  polygons: {len(mesh.polygons)}"
+        (
+            "  polygons: "
+            f"{len(mesh.polygons)}"
+        )
     )
 
     print(
-        f"  loops:    {len(mesh.loops)}"
+        (
+            "  loops:    "
+            f"{len(mesh.loops)}"
+        )
     )
 
     return (
@@ -651,7 +713,7 @@ def _validate_triangle_adapter(
         )
         == 2,
         (
-            "Expected two triangulated "
+            "Expected exactly two "
             "UV bake triangles."
         ),
     )
@@ -715,12 +777,16 @@ def _validate_triangle_adapter(
                 ),
             )
 
-            normal = (
+            (
+                nx,
+                ny,
+                nz,
+            ) = (
                 vertex.normal
             )
 
             _require_close(
-                normal[0],
+                nx,
                 0.0,
                 message=(
                     "Unexpected normal X."
@@ -728,7 +794,7 @@ def _validate_triangle_adapter(
             )
 
             _require_close(
-                normal[1],
+                ny,
                 0.0,
                 message=(
                     "Unexpected normal Y."
@@ -736,7 +802,7 @@ def _validate_triangle_adapter(
             )
 
             _require_close(
-                normal[2],
+                nz,
                 1.0,
                 message=(
                     "Unexpected normal Z."
@@ -751,7 +817,7 @@ def _validate_triangle_adapter(
 
 
 # =========================================================
-# Pure UV bake
+# Core UV bake
 # =========================================================
 
 def _run_core_bake(
@@ -763,15 +829,14 @@ def _run_core_bake(
     )
 
     # -----------------------------------------------------
-    # Synthetic surface shader:
+    # Synthetic shader:
     #
     #     R = X
     #     G = Y
     #     B = 0.25
-    #     A = 1
+    #     A = 1.0
     #
-    # Since position XY == UV, texture coordinates have a
-    # directly predictable color.
+    # Since X/Y == U/V, texels are deterministic.
     # -----------------------------------------------------
 
     def sampler(
@@ -782,7 +847,8 @@ def _run_core_bake(
             normal[0],
             0.0,
             message=(
-                "Sampler received invalid normal X."
+                "Sampler received invalid "
+                "normal X."
             ),
         )
 
@@ -790,7 +856,8 @@ def _run_core_bake(
             normal[1],
             0.0,
             message=(
-                "Sampler received invalid normal Y."
+                "Sampler received invalid "
+                "normal Y."
             ),
         )
 
@@ -798,7 +865,8 @@ def _run_core_bake(
             normal[2],
             1.0,
             message=(
-                "Sampler received invalid normal Z."
+                "Sampler received invalid "
+                "normal Z."
             ),
         )
 
@@ -816,26 +884,20 @@ def _run_core_bake(
             )
         )
 
-    config = (
-        uv_bake_module
-        .UVBakeConfig(
-            width=(
-                TEXTURE_SIZE
-            ),
-            height=(
-                TEXTURE_SIZE
-            ),
-            padding_pixels=0,
-            samples_per_axis=1,
-        )
-    )
-
     result = (
         uv_bake_module
         .bake_uv_texture(
             triangles,
             sampler,
-            config=config,
+            config=(
+                uv_bake_module
+                .UVBakeConfig(
+                    width=TEXTURE_SIZE,
+                    height=TEXTURE_SIZE,
+                    padding_pixels=0,
+                    samples_per_axis=1,
+                )
+            ),
         )
     )
 
@@ -844,48 +906,53 @@ def _run_core_bake(
     )
 
     _require(
-        stats.triangle_count == 2,
+        stats.triangle_count
+        == 2,
         (
-            "Unexpected bake triangle count."
+            "Unexpected triangle count."
         ),
     )
 
     _require(
-        stats.rasterized_triangles == 2,
+        stats.rasterized_triangles
+        == 2,
         (
-            "Both test triangles should "
-            "rasterize."
+            "Both test triangles "
+            "must rasterize."
         ),
     )
 
     _require(
-        stats.degenerate_triangles == 0,
+        stats.degenerate_triangles
+        == 0,
         (
-            "No test triangle should "
-            "be degenerate."
+            "Test mesh must contain no "
+            "degenerate UV triangle."
         ),
+    )
+
+    expected_pixels = (
+        TEXTURE_SIZE
+        * TEXTURE_SIZE
     )
 
     _require(
         stats.covered_pixels
-        == (
-            TEXTURE_SIZE
-            * TEXTURE_SIZE
-        ),
+        == expected_pixels,
         (
-            "Full square UV map should cover "
-            "the complete texture.\n"
-            f"Expected: "
-            f"{TEXTURE_SIZE * TEXTURE_SIZE}\n"
+            "Unit square UV map should "
+            "cover the entire texture.\n"
+            f"Expected: {expected_pixels}\n"
             f"Actual:   "
             f"{stats.covered_pixels}"
         ),
     )
 
     _require(
-        stats.padded_pixels == 0,
+        stats.padded_pixels
+        == 0,
         (
-            "Padding should be disabled "
+            "Padding must be disabled "
             "for this smoke."
         ),
     )
@@ -894,8 +961,8 @@ def _run_core_bake(
         stats.surface_samples
         >= stats.covered_pixels,
         (
-            "Surface sample count cannot be "
-            "smaller than covered texels."
+            "Surface sample count cannot "
+            "be smaller than coverage."
         ),
     )
 
@@ -906,24 +973,25 @@ def _run_core_bake(
             * 2
         ),
         (
-            "SurfaceColorSample diagnostics "
-            "were not accumulated correctly."
+            "SurfaceColorSample selected "
+            "sample diagnostics are wrong."
         ),
     )
 
     _require(
-        stats.fallback_samples == 0,
+        stats.fallback_samples
+        == 0,
         (
             "Synthetic sampler must not "
             "report fallback samples."
         ),
     )
 
-    _require(
-        stats.coverage_ratio == 1.0,
-        (
-            "Full-square UV bake should have "
-            "100% coverage."
+    _require_close(
+        stats.coverage_ratio,
+        1.0,
+        message=(
+            "Expected complete UV coverage."
         ),
     )
 
@@ -964,7 +1032,7 @@ def _run_core_bake(
 
 
 # =========================================================
-# Texture validation
+# TextureBuffer
 # =========================================================
 
 def _expected_coordinate(
@@ -972,14 +1040,33 @@ def _expected_coordinate(
 ) -> float:
     return (
         (
-            float(
-                pixel
-            )
+            float(pixel)
             + 0.5
         )
         / float(
             TEXTURE_SIZE
         )
+    )
+
+
+def _expected_source_color(
+    x: int,
+    y: int,
+) -> tuple[
+    float,
+    float,
+    float,
+    float,
+]:
+    return (
+        _expected_coordinate(
+            x
+        ),
+        _expected_coordinate(
+            y
+        ),
+        0.25,
+        1.0,
     )
 
 
@@ -1012,10 +1099,8 @@ def _validate_texture_buffer(
     for (
         x,
         y,
-    ) in (
-        test_pixels
-    ):
-        color = (
+    ) in test_pixels:
+        actual = (
             result
             .texture
             .rgba(
@@ -1024,49 +1109,29 @@ def _validate_texture_buffer(
             )
         )
 
-        expected_u = (
-            _expected_coordinate(
-                x
+        expected = (
+            _expected_source_color(
+                x,
+                y,
             )
         )
 
-        expected_v = (
-            _expected_coordinate(
-                y
+        for channel in range(
+            4
+        ):
+            _require_close(
+                actual[
+                    channel
+                ],
+                expected[
+                    channel
+                ],
+                message=(
+                    "TextureBuffer mismatch "
+                    f"at ({x}, {y}), "
+                    f"channel {channel}."
+                ),
             )
-        )
-
-        _require_close(
-            color[0],
-            expected_u,
-            message=(
-                f"Unexpected red at ({x}, {y})."
-            ),
-        )
-
-        _require_close(
-            color[1],
-            expected_v,
-            message=(
-                f"Unexpected green at ({x}, {y})."
-            ),
-        )
-
-        _require_close(
-            color[2],
-            0.25,
-            message=(
-                f"Unexpected blue at ({x}, {y})."
-            ),
-        )
-
-        _require_close(
-            color[3],
-            1.0,
-            message=(
-                f"Unexpected alpha at ({x}, {y})."
-            ),
-        )
 
         _require(
             result.is_covered(
@@ -1075,7 +1140,7 @@ def _validate_texture_buffer(
             ),
             (
                 "Expected texel is not "
-                f"covered: ({x}, {y})"
+                f"covered: ({x}, {y})."
             ),
         )
 
@@ -1085,8 +1150,55 @@ def _validate_texture_buffer(
 
 
 # =========================================================
-# Blender image
+# Blender Image
 # =========================================================
+
+def _image_pixel_rgba(
+    image: bpy.types.Image,
+    x: int,
+    y: int,
+) -> tuple[
+    float,
+    float,
+    float,
+    float,
+]:
+    width = int(
+        image.size[0]
+    )
+
+    offset = (
+        (
+            y
+            * width
+            + x
+        )
+        * 4
+    )
+
+    return (
+        float(
+            image.pixels[
+                offset
+            ]
+        ),
+        float(
+            image.pixels[
+                offset + 1
+            ]
+        ),
+        float(
+            image.pixels[
+                offset + 2
+            ]
+        ),
+        float(
+            image.pixels[
+                offset + 3
+            ]
+        ),
+    )
+
 
 def _validate_blender_image(
     implementation_module,
@@ -1126,46 +1238,123 @@ def _validate_blender_image(
     )
 
     # -----------------------------------------------------
-    # Check the bottom-left pixel copied from TextureBuffer.
+    # UV Bake V2 deliberately creates:
+    #
+    #     float_buffer=False
+    #
+    # The core TextureBuffer is FLOAT32, but the Blender
+    # image stores each channel as normalized 8-bit.
+    #
+    # The smoke therefore verifies the expected UNORM8
+    # representation rather than requiring impossible
+    # float-exact equality.
     # -----------------------------------------------------
 
-    pixel = (
-        image.pixels
+    test_pixels = (
+        (
+            0,
+            0,
+        ),
+        (
+            3,
+            2,
+        ),
+        (
+            4,
+            4,
+        ),
+        (
+            7,
+            7,
+        ),
     )
 
-    expected = (
-        _expected_coordinate(
-            0
-        ),
-        _expected_coordinate(
-            0
-        ),
-        0.25,
-        1.0,
-    )
-
-    for channel in range(
-        4
-    ):
-        _require_close(
-            pixel[
-                channel
-            ],
-            expected[
-                channel
-            ],
-            message=(
-                "Blender image pixel buffer "
-                f"mismatch at channel {channel}."
-            ),
+    for (
+        x,
+        y,
+    ) in test_pixels:
+        actual = (
+            _image_pixel_rgba(
+                image,
+                x,
+                y,
+            )
         )
+
+        source = (
+            _expected_source_color(
+                x,
+                y,
+            )
+        )
+
+        for channel in range(
+            4
+        ):
+            _require_rgba8_close(
+                actual[
+                    channel
+                ],
+                source[
+                    channel
+                ],
+                message=(
+                    "Blender RGBA8 pixel "
+                    "mismatch at "
+                    f"({x}, {y}), "
+                    f"channel {channel}."
+                ),
+            )
+
+    # -----------------------------------------------------
+    # Explicit regression for the CI failure that motivated
+    # this test.
+    #
+    # Core:
+    #
+    #     0.0625
+    #
+    # Blender byte image:
+    #
+    #     16 / 255
+    #     == 0.062745098...
+    # -----------------------------------------------------
+
+    bottom_left = (
+        _image_pixel_rgba(
+            image,
+            0,
+            0,
+        )
+    )
+
+    expected_quantized = (
+        _quantize_unorm8(
+            0.0625
+        )
+    )
+
+    _require_close(
+        bottom_left[0],
+        expected_quantized,
+        message=(
+            "Blender image did not "
+            "store expected RGBA8 value."
+        ),
+        tolerance=(
+            RGBA8_TOLERANCE
+        ),
+    )
 
     print(
         "Blender image: OK"
     )
 
     print(
-        f"  name: {image.name}"
+        (
+            "  name: "
+            f"{image.name}"
+        )
     )
 
     print(
@@ -1176,11 +1365,32 @@ def _validate_blender_image(
         )
     )
 
+    print(
+        (
+            "  source R: "
+            "0.062500000"
+        )
+    )
+
+    print(
+        (
+            "  stored R: "
+            f"{bottom_left[0]:.9f}"
+        )
+    )
+
+    print(
+        (
+            "  RGBA8 R: "
+            f"{expected_quantized:.9f}"
+        )
+    )
+
     return image
 
 
 # =========================================================
-# Blender material
+# Blender Material
 # =========================================================
 
 def _validate_blender_material(
@@ -1212,7 +1422,8 @@ def _validate_blender_material(
     _require(
         material.use_nodes,
         (
-            "UV Bake material must use nodes."
+            "UV Bake material must "
+            "use nodes."
         ),
     )
 
@@ -1234,7 +1445,7 @@ def _validate_blender_material(
         == material,
         (
             "Generated UV Bake material "
-            "was not assigned to mesh."
+            "was not assigned to the mesh."
         ),
     )
 
@@ -1254,8 +1465,10 @@ def _validate_blender_material(
         node
         for node
         in node_tree.nodes
-        if node.bl_idname
-        == "ShaderNodeTexImage"
+        if (
+            node.bl_idname
+            == "ShaderNodeTexImage"
+        )
     ]
 
     _require(
@@ -1264,7 +1477,7 @@ def _validate_blender_material(
         )
         == 1,
         (
-            "Generated material should contain "
+            "Generated material must contain "
             "exactly one Image Texture node."
         ),
     )
@@ -1288,8 +1501,10 @@ def _validate_blender_material(
         node
         for node
         in node_tree.nodes
-        if node.bl_idname
-        == "ShaderNodeUVMap"
+        if (
+            node.bl_idname
+            == "ShaderNodeUVMap"
+        )
     ]
 
     _require(
@@ -1298,7 +1513,7 @@ def _validate_blender_material(
         )
         == 1,
         (
-            "Generated material should contain "
+            "Generated material must contain "
             "exactly one UV Map node."
         ),
     )
@@ -1309,8 +1524,8 @@ def _validate_blender_material(
         ].uv_map
         == uv_layer.name,
         (
-            "UV Map node references the "
-            "wrong UV layer."
+            "UV Map node references "
+            "the wrong UV layer."
         ),
     )
 
@@ -1318,8 +1533,10 @@ def _validate_blender_material(
         node
         for node
         in node_tree.nodes
-        if node.bl_idname
-        == "ShaderNodeBsdfPrincipled"
+        if (
+            node.bl_idname
+            == "ShaderNodeBsdfPrincipled"
+        )
     ]
 
     _require(
@@ -1328,17 +1545,25 @@ def _validate_blender_material(
         )
         == 1,
         (
-            "Generated material should contain "
+            "Generated material must contain "
             "exactly one Principled BSDF."
         ),
+    )
+
+    principled = (
+        principled_nodes[
+            0
+        ]
     )
 
     output_nodes = [
         node
         for node
         in node_tree.nodes
-        if node.bl_idname
-        == "ShaderNodeOutputMaterial"
+        if (
+            node.bl_idname
+            == "ShaderNodeOutputMaterial"
+        )
     ]
 
     _require(
@@ -1347,19 +1572,158 @@ def _validate_blender_material(
         )
         == 1,
         (
-            "Generated material should contain "
+            "Generated material must contain "
             "exactly one Material Output."
         ),
     )
 
-    _require(
-        len(
-            node_tree.links
+    output = (
+        output_nodes[
+            0
+        ]
+    )
+
+    # -----------------------------------------------------
+    # Verify graph connectivity, not merely node presence.
+    # -----------------------------------------------------
+
+    image_color_output = (
+        image_node.outputs.get(
+            "Color"
         )
-        >= 3,
+    )
+
+    base_color_input = (
+        principled.inputs.get(
+            "Base Color"
+        )
+    )
+
+    bsdf_output = (
+        principled.outputs.get(
+            "BSDF"
+        )
+    )
+
+    surface_input = (
+        output.inputs.get(
+            "Surface"
+        )
+    )
+
+    uv_output = (
+        uv_nodes[
+            0
+        ].outputs.get(
+            "UV"
+        )
+    )
+
+    vector_input = (
+        image_node.inputs.get(
+            "Vector"
+        )
+    )
+
+    _require(
+        image_color_output
+        is not None,
         (
-            "UV Bake material node graph "
-            "is incomplete."
+            "Image Texture has no "
+            "Color output."
+        ),
+    )
+
+    _require(
+        base_color_input
+        is not None,
+        (
+            "Principled BSDF has no "
+            "Base Color input."
+        ),
+    )
+
+    _require(
+        bsdf_output
+        is not None,
+        (
+            "Principled BSDF has no "
+            "BSDF output."
+        ),
+    )
+
+    _require(
+        surface_input
+        is not None,
+        (
+            "Material Output has no "
+            "Surface input."
+        ),
+    )
+
+    _require(
+        uv_output
+        is not None,
+        (
+            "UV Map node has no "
+            "UV output."
+        ),
+    )
+
+    _require(
+        vector_input
+        is not None,
+        (
+            "Image Texture has no "
+            "Vector input."
+        ),
+    )
+
+    def has_link(
+        source_socket,
+        destination_socket,
+    ) -> bool:
+        return any(
+            (
+                link.from_socket
+                == source_socket
+                and link.to_socket
+                == destination_socket
+            )
+            for link
+            in node_tree.links
+        )
+
+    _require(
+        has_link(
+            uv_output,
+            vector_input,
+        ),
+        (
+            "UV Map is not connected "
+            "to Image Texture Vector."
+        ),
+    )
+
+    _require(
+        has_link(
+            image_color_output,
+            base_color_input,
+        ),
+        (
+            "Image Texture Color is not "
+            "connected to Base Color."
+        ),
+    )
+
+    _require(
+        has_link(
+            bsdf_output,
+            surface_input,
+        ),
+        (
+            "Principled BSDF is not "
+            "connected to Material Output."
         ),
     )
 
@@ -1368,15 +1732,28 @@ def _validate_blender_material(
     )
 
     print(
-        f"  material: {material.name}"
+        (
+            "  material: "
+            f"{material.name}"
+        )
     )
 
     print(
-        f"  image:    {image.name}"
+        (
+            "  image:    "
+            f"{image.name}"
+        )
     )
 
     print(
-        f"  UV map:   {uv_layer.name}"
+        (
+            "  UV map:   "
+            f"{uv_layer.name}"
+        )
+    )
+
+    print(
+        "  graph:     UV → Image → Principled → Output"
     )
 
     return material
@@ -1405,7 +1782,7 @@ def main() -> None:
 
     try:
         # -------------------------------------------------
-        # Package
+        # Validate distributed package.
         # -------------------------------------------------
 
         _validate_package_tree(
@@ -1447,68 +1824,53 @@ def main() -> None:
             "modules"
         )
 
-        _require(
-            callable(
-                getattr(
-                    uv_bake_module,
-                    "bake_uv_texture",
-                    None,
-                )
+        required_functions = (
+            (
+                uv_bake_module,
+                "bake_uv_texture",
             ),
             (
-                "Packaged UV bake core "
-                "is incomplete."
+                implementation_module,
+                "_build_uv_triangles",
+            ),
+            (
+                implementation_module,
+                "_create_baked_image",
+            ),
+            (
+                implementation_module,
+                "_create_baked_material",
+            ),
+            (
+                implementation_module,
+                "_assign_material",
             ),
         )
 
-        _require(
-            callable(
-                getattr(
-                    implementation_module,
-                    "_build_uv_triangles",
-                    None,
-                )
-            ),
-            (
-                "UV Bake Blender triangle "
-                "adapter is missing."
-            ),
-        )
-
-        _require(
-            callable(
-                getattr(
-                    implementation_module,
-                    "_create_baked_image",
-                    None,
-                )
-            ),
-            (
-                "UV Bake Blender image "
-                "adapter is missing."
-            ),
-        )
-
-        _require(
-            callable(
-                getattr(
-                    implementation_module,
-                    "_create_baked_material",
-                    None,
-                )
-            ),
-            (
-                "UV Bake Blender material "
-                "adapter is missing."
-            ),
-        )
+        for (
+            module,
+            function_name,
+        ) in required_functions:
+            _require(
+                callable(
+                    getattr(
+                        module,
+                        function_name,
+                        None,
+                    )
+                ),
+                (
+                    "Required UV Bake function "
+                    f"is missing: {function_name}"
+                ),
+            )
 
         print(
             "Packaged UV Bake modules: OK"
         )
 
         # -------------------------------------------------
-        # Blender test mesh.
+        # Blender mesh + UVs.
         # -------------------------------------------------
 
         (
@@ -1520,7 +1882,7 @@ def main() -> None:
         )
 
         # -------------------------------------------------
-        # Blender mesh -> pure core representation.
+        # Blender → core representation.
         # -------------------------------------------------
 
         triangles = (
@@ -1532,7 +1894,7 @@ def main() -> None:
         )
 
         # -------------------------------------------------
-        # Pure rasterizer.
+        # Pure core bake.
         # -------------------------------------------------
 
         result = (
@@ -1547,7 +1909,7 @@ def main() -> None:
         )
 
         # -------------------------------------------------
-        # TextureBuffer -> Blender image.
+        # Core texture → Blender image.
         # -------------------------------------------------
 
         image = (
@@ -1559,7 +1921,7 @@ def main() -> None:
         )
 
         # -------------------------------------------------
-        # Image -> Blender material.
+        # Blender image → material graph.
         # -------------------------------------------------
 
         material = (
@@ -1596,7 +1958,7 @@ def main() -> None:
 
     finally:
         # -------------------------------------------------
-        # Explicitly clean everything created by the smoke.
+        # Explicit cleanup.
         # -------------------------------------------------
 
         _cleanup_datablock(
