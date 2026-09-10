@@ -14,6 +14,8 @@ on:
       - "scripts/render_turntable.py"
       - "scripts/render_projection_sheet.py"
       - "scripts/generate_*native.py"
+      - "scripts/preview_baseline.py"
+      - "tests/test_preview_baseline.py"
       - "example/**"
       - ".github/workflows/visual_preview.yml"
 
@@ -26,6 +28,8 @@ on:
       - "scripts/render_turntable.py"
       - "scripts/render_projection_sheet.py"
       - "scripts/generate_*native.py"
+      - "scripts/preview_baseline.py"
+      - "tests/test_preview_baseline.py"
       - "example/**"
       - ".github/workflows/visual_preview.yml"
 
@@ -89,26 +93,29 @@ env:
 
   MATERIAL_MODE: "projected-color-v1"
 
-  # One technical branch for every open PR.
-  #
-  # Permanent previews are committed to main.
-  # This branch only exists so GitHub can display
-  # generated images inside PR comments.
+  PREVIEW_RENDERER_VERSION: "1"
+
   ASSET_BRANCH: "visual-preview-assets"
 
 
 jobs:
 
   # =========================================================
-  # Remove transient PR assets when a PR closes
+  # Closed, non-merged PR
+  #
+  # Merged PR assets are deliberately NOT removed here.
+  #
+  # They remain available until the corresponding main run
+  # successfully persists its new baseline.
   # =========================================================
 
   cleanup-pr-assets:
-    name: Clean PR preview assets
+    name: Clean abandoned PR preview assets
 
     if: >-
       github.event_name == 'pull_request'
       && github.event.action == 'closed'
+      && github.event.pull_request.merged == false
       && github.event.pull_request.head.repo.full_name == github.repository
 
     runs-on: ubuntu-latest
@@ -116,7 +123,7 @@ jobs:
 
     steps:
 
-      - name: Remove PR assets
+      - name: Remove closed PR assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -129,14 +136,11 @@ jobs:
 
           REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
 
-          rm -rf \
-            "${ROOT}"
+          rm -rf "${ROOT}"
 
-          mkdir -p \
-            "${ROOT}"
+          mkdir -p "${ROOT}"
 
-          cd \
-            "${ROOT}"
+          cd "${ROOT}"
 
           git init
 
@@ -187,15 +191,40 @@ jobs:
           fi
 
           git commit \
-            -m "preview: remove PR #${PR_NUMBER}"
+            -m "preview: remove closed PR #${PR_NUMBER}"
 
-          git push \
-            origin \
-            "HEAD:refs/heads/${ASSET_BRANCH}"
+          PUSHED="false"
+
+          for ATTEMPT in 1 2 3; do
+
+            if git push \
+              origin \
+              "HEAD:refs/heads/${ASSET_BRANCH}"
+            then
+              PUSHED="true"
+              break
+            fi
+
+            echo \
+              "Asset branch changed concurrently; retry ${ATTEMPT}/3."
+
+            git fetch \
+              origin \
+              "${ASSET_BRANCH}"
+
+            git rebase \
+              "origin/${ASSET_BRANCH}"
+
+          done
+
+          if [[ "${PUSHED}" != "true" ]]; then
+            echo "Could not clean PR preview assets."
+            exit 1
+          fi
 
 
   # =========================================================
-  # Build current branch native core
+  # Native core + cheap Python tests
   # =========================================================
 
   native:
@@ -219,6 +248,24 @@ jobs:
               && github.event.pull_request.head.sha
               || github.sha
             }}
+
+      - name: Verify Python
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python --version
+
+      - name: Run preview baseline tests
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python -m unittest \
+            discover \
+            -s tests \
+            -p "test_preview_baseline.py" \
+            -v
 
       - name: Verify build tools
         shell: bash
@@ -295,7 +342,7 @@ jobs:
 
 
   # =========================================================
-  # Generate current branch previews
+  # Preview
   # =========================================================
 
   preview:
@@ -314,7 +361,7 @@ jobs:
     steps:
 
       # -----------------------------------------------------
-      # Checkout
+      # Checkout exact source revision.
       # -----------------------------------------------------
 
       - name: Checkout
@@ -327,6 +374,37 @@ jobs:
               || github.sha
             }}
           fetch-depth: 0
+
+      # -----------------------------------------------------
+      # actions/checkout with an explicit commit SHA leaves
+      # us detached.
+      #
+      # Generation should stay pinned to GITHUB_SHA, but main
+      # needs an attached local branch for the documentation
+      # commit later.
+      # -----------------------------------------------------
+
+      - name: Attach main branch
+        if: >-
+          github.event_name == 'push'
+          && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git switch \
+            -C main \
+            "${GITHUB_SHA}"
+
+          test "$(
+            git branch \
+              --show-current
+          )" = "main"
+
+          test "$(
+            git rev-parse \
+              HEAD
+          )" = "${GITHUB_SHA}"
 
       - name: Download native library
         uses: actions/download-artifact@v4
@@ -435,7 +513,8 @@ jobs:
             "${RESOLUTION}" \
             "${VIEWS}" \
             "${SIZE}" \
-            "${SAMPLES}"
+            "${SAMPLES}" \
+            "${PREVIEW_RENDERER_VERSION}"
           do
             if ! [[ "${VALUE}" =~ ^[0-9]+$ ]]; then
               echo "Invalid numeric value: ${VALUE}"
@@ -460,6 +539,7 @@ jobs:
             echo "samples=${SAMPLES}"
             echo "mesh_mode=${MESH_MODE}"
             echo "material_mode=${MATERIAL_MODE}"
+            echo "renderer_version=${PREVIEW_RENDERER_VERSION}"
           } >> "${GITHUB_OUTPUT}"
 
           echo "Resolution: ${RESOLUTION}"
@@ -469,6 +549,7 @@ jobs:
           echo "Samples: ${SAMPLES}"
           echo "Mesh mode: ${MESH_MODE}"
           echo "Material mode: ${MATERIAL_MODE}"
+          echo "Renderer version: ${PREVIEW_RENDERER_VERSION}"
 
 
       # -----------------------------------------------------
@@ -557,13 +638,7 @@ jobs:
       # -----------------------------------------------------
       # Current branch rendering
       #
-      # Two independent projection sheets are generated:
-      #
-      # geometry:
-      #   forced neutral material
-      #
-      # material:
-      #   preserve the actual GLB material
+      # Geometry and appearance stay independent.
       # -----------------------------------------------------
 
       - name: Render previews
@@ -621,7 +696,7 @@ jobs:
               echo
 
               # ---------------------------------------------
-              # Neutral turntable
+              # Turntable
               # ---------------------------------------------
 
               "${BLENDER_ROOT}/blender" \
@@ -636,7 +711,7 @@ jobs:
                 --samples "${{ steps.config.outputs.samples }}"
 
               # ---------------------------------------------
-              # Geometry projection sheet
+              # Geometry
               # ---------------------------------------------
 
               "${BLENDER_ROOT}/blender" \
@@ -651,7 +726,7 @@ jobs:
                 --material-mode neutral
 
               # ---------------------------------------------
-              # Material projection sheet
+              # Material
               # ---------------------------------------------
 
               "${BLENDER_ROOT}/blender" \
@@ -670,7 +745,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Verify current branch
+      # Current branch verification
       # -----------------------------------------------------
 
       - name: Verify previews
@@ -691,20 +766,18 @@ jobs:
               GEOMETRY="visual-preview/${SHEET}/${LEVEL}/projection_geometry.png"
               MATERIAL="visual-preview/${SHEET}/${LEVEL}/projection_material.png"
 
-              if [[ ! -s "${CONTACT}" ]]; then
-                echo "Missing contact sheet: ${CONTACT}"
-                exit 1
-              fi
+              for FILE in \
+                "${CONTACT}" \
+                "${GEOMETRY}" \
+                "${MATERIAL}"
+              do
 
-              if [[ ! -s "${GEOMETRY}" ]]; then
-                echo "Missing geometry projection: ${GEOMETRY}"
-                exit 1
-              fi
+                if [[ ! -s "${FILE}" ]]; then
+                  echo "Missing preview: ${FILE}"
+                  exit 1
+                fi
 
-              if [[ ! -s "${MATERIAL}" ]]; then
-                echo "Missing material projection: ${MATERIAL}"
-                exit 1
-              fi
+              done
 
               echo
               echo "${SHEET}/${LEVEL}"
@@ -719,11 +792,7 @@ jobs:
 
 
       # =====================================================
-      # PERMANENT MAIN DOCUMENTATION
-      #
-      # Only main owns permanent generated previews.
-      #
-      # PR images remain transient.
+      # Permanent main baseline
       # =====================================================
 
       - name: Prepare documentation previews
@@ -786,7 +855,45 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Persistent Markdown on main
+      # Baseline metadata
+      # -----------------------------------------------------
+
+      - name: Generate baseline manifest
+        if: >-
+          github.event_name == 'push'
+          && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          read -ra SHEETS \
+            <<< "${{ steps.sheets.outputs.sheet_names }}"
+
+          read -ra PROFILES \
+            <<< "${{ steps.config.outputs.profiles }}"
+
+          python scripts/preview_baseline.py \
+            write \
+            --repo-root "${GITHUB_WORKSPACE}" \
+            --sheets-dir "${SHEETS_DIR}" \
+            --sheet-names "${SHEETS[@]}" \
+            --profiles "${PROFILES[@]}" \
+            --source-commit "${GITHUB_SHA}" \
+            --output "docs/previews/manifest.json" \
+            --resolution "${{ steps.config.outputs.resolution }}" \
+            --mesh-mode "${{ steps.config.outputs.mesh_mode }}" \
+            --material-mode "${MATERIAL_MODE}" \
+            --samples "${{ steps.config.outputs.samples }}" \
+            --turntable-views "${{ steps.config.outputs.views }}" \
+            --render-size "${{ steps.config.outputs.size }}" \
+            --renderer-version "${PREVIEW_RENDERER_VERSION}"
+
+          python -m json.tool \
+            docs/previews/manifest.json
+
+
+      # -----------------------------------------------------
+      # Persistent Markdown
       # -----------------------------------------------------
 
       - name: Generate visual preview Markdown
@@ -846,7 +953,7 @@ jobs:
             echo
             echo "Automatically generated from the Projection Tool reference sheets."
             echo
-            echo "Geometry and appearance are rendered independently so changes to the mesher and changes to the projected material remain directly comparable."
+            echo "Geometry and appearance are rendered independently so changes to the mesher and projected material remain directly comparable."
             echo
 
             echo "## Example"
@@ -856,6 +963,8 @@ jobs:
             echo "- Discovered sheets: **${#SHEETS[@]}**"
             echo "- Mesh mode: **${{ steps.config.outputs.mesh_mode }}**"
             echo "- Material mode: **${MATERIAL_MODE}**"
+            echo "- Renderer baseline version: **${PREVIEW_RENDERER_VERSION}**"
+            echo "- Baseline metadata: \`previews/manifest.json\`"
             echo
 
             echo "## Scan levels"
@@ -925,18 +1034,14 @@ jobs:
             echo "- Cycles CPU;"
             echo "- the Projection Tool sheets in \`${SHEETS_DIR}/\`."
             echo
-            echo "The committed images represent the latest successful preview generated from \`main\`."
+            echo "The committed images and manifest represent the latest successful baseline generated from \`main\`."
 
           } > docs/visual-preview.md
 
 
       # =====================================================
-      # PR COMPARISON
+      # PR base
       # =====================================================
-
-      # -----------------------------------------------------
-      # Resolve base implementation
-      # -----------------------------------------------------
 
       - name: Resolve PR base
         if: github.event_name == 'pull_request'
@@ -963,46 +1068,62 @@ jobs:
           )"
 
           # --------------------------------------------------
-          # Mesh mode
+          # Compatibility fallback for repositories before
+          # manifest.json existed.
           # --------------------------------------------------
 
           BASE_MESH_MODE="blocks"
-
-          BASE_WORKFLOW="$(
-            git show \
-              "${BASE_SHA}:.github/workflows/visual_preview.yml" \
-              2>/dev/null \
-              || true
-          )"
-
-          if printf '%s\n' "${BASE_WORKFLOW}" \
-            | grep -q 'MESH_MODE="surface_nets"'
-          then
-            BASE_MESH_MODE="surface_nets"
-          fi
-
-          # --------------------------------------------------
-          # Material mode
-          #
-          # Current pre-material main is labelled "legacy".
-          #
-          # After this PR merges, future PRs naturally detect
-          # projected-color-v1 as their base appearance.
-          # --------------------------------------------------
-
           BASE_MATERIAL_MODE="legacy"
 
-          BASE_GENERATOR="$(
+          BASE_MANIFEST_JSON="$(
             git show \
-              "${BASE_SHA}:scripts/generate_example_native.py" \
+              "${BASE_SHA}:docs/previews/manifest.json" \
               2>/dev/null \
               || true
           )"
 
-          if printf '%s\n' "${BASE_GENERATOR}" \
-            | grep -q 'projected-color-v1'
-          then
-            BASE_MATERIAL_MODE="projected-color-v1"
+          if [[ -n "${BASE_MANIFEST_JSON}" ]]; then
+
+            BASE_MESH_MODE="$(
+              printf '%s' "${BASE_MANIFEST_JSON}" \
+                | python -c \
+                  'import json,sys; print(json.load(sys.stdin)["configuration"]["mesh_mode"])'
+            )"
+
+            BASE_MATERIAL_MODE="$(
+              printf '%s' "${BASE_MANIFEST_JSON}" \
+                | python -c \
+                  'import json,sys; print(json.load(sys.stdin)["configuration"]["material_mode"])'
+            )"
+
+          else
+
+            BASE_WORKFLOW="$(
+              git show \
+                "${BASE_SHA}:.github/workflows/visual_preview.yml" \
+                2>/dev/null \
+                || true
+            )"
+
+            if printf '%s\n' "${BASE_WORKFLOW}" \
+              | grep -q 'MESH_MODE="surface_nets"'
+            then
+              BASE_MESH_MODE="surface_nets"
+            fi
+
+            BASE_GENERATOR="$(
+              git show \
+                "${BASE_SHA}:scripts/generate_example_native.py" \
+                2>/dev/null \
+                || true
+            )"
+
+            if printf '%s\n' "${BASE_GENERATOR}" \
+              | grep -q 'projected-color-v1'
+            then
+              BASE_MATERIAL_MODE="projected-color-v1"
+            fi
+
           fi
 
           {
@@ -1019,9 +1140,9 @@ jobs:
           echo "Base material mode: ${BASE_MATERIAL_MODE}"
 
 
-      # -----------------------------------------------------
-      # Prepare PR + cached main comparisons
-      # -----------------------------------------------------
+      # =====================================================
+      # PR baseline preparation
+      # =====================================================
 
       - name: Prepare PR visual comparison
         if: github.event_name == 'pull_request'
@@ -1031,6 +1152,8 @@ jobs:
           set -euo pipefail
 
           BASE_SHA="${{ steps.base.outputs.sha }}"
+          BASE_MESH_MODE="${{ steps.base.outputs.mesh_mode }}"
+          BASE_MATERIAL_MODE="${{ steps.base.outputs.material_mode }}"
 
           rm -rf \
             visual-compare
@@ -1042,8 +1165,31 @@ jobs:
             visual-compare/status
 
           MISSING_FILE="${RUNNER_TEMP}/bpt-missing-main.tsv"
+          BASE_MANIFEST="${RUNNER_TEMP}/bpt-base-preview-manifest.json"
 
           : > "${MISSING_FILE}"
+
+          HAS_BASE_MANIFEST="false"
+
+          if git cat-file \
+            -e \
+            "${BASE_SHA}:docs/previews/manifest.json" \
+            2>/dev/null
+          then
+
+            git show \
+              "${BASE_SHA}:docs/previews/manifest.json" \
+              > "${BASE_MANIFEST}"
+
+            HAS_BASE_MANIFEST="true"
+
+            echo "Base manifest found."
+
+          else
+
+            echo "Base manifest missing; legacy compatibility mode."
+
+          fi
 
           read -ra SHEETS \
             <<< "${{ steps.sheets.outputs.sheet_names }}"
@@ -1071,6 +1217,7 @@ jobs:
               "${BASE_SHA}:${SOURCE_SHEET}" \
               2>/dev/null
             then
+
               SOURCE_CHANGED="true"
 
             elif ! git diff \
@@ -1080,19 +1227,19 @@ jobs:
               -- \
               "${SOURCE_SHEET}"
             then
+
               SOURCE_CHANGED="true"
+
             fi
 
             for LEVEL in "${PROFILES[@]}"; do
 
+              STATUS_DIR="visual-compare/status/${SHEET}/${LEVEL}"
+
               mkdir -p \
                 "visual-compare/main/${SHEET}/${LEVEL}" \
                 "visual-compare/pr/${SHEET}/${LEVEL}" \
-                "visual-compare/status/${SHEET}/${LEVEL}"
-
-              # ---------------------------------------------
-              # Current PR always comes from this run.
-              # ---------------------------------------------
+                "${STATUS_DIR}"
 
               cp \
                 "visual-preview/${SHEET}/${LEVEL}/projection_geometry.png" \
@@ -1105,8 +1252,9 @@ jobs:
               MAIN_GEOMETRY_OUTPUT="visual-compare/main/${SHEET}/${LEVEL}/geometry.png"
               MAIN_MATERIAL_OUTPUT="visual-compare/main/${SHEET}/${LEVEL}/material.png"
 
-              GEOMETRY_STATUS="visual-compare/status/${SHEET}/${LEVEL}/geometry.txt"
-              MATERIAL_STATUS="visual-compare/status/${SHEET}/${LEVEL}/material.txt"
+              GEOMETRY_STATUS="${STATUS_DIR}/geometry.txt"
+              MATERIAL_STATUS="${STATUS_DIR}/material.txt"
+              COMPATIBILITY_STATUS="${STATUS_DIR}/compatibility.txt"
 
               NEW_GEOMETRY_DOC="docs/previews/${SHEET}/${LEVEL}/geometry.png"
               LEGACY_GEOMETRY_DOC="docs/previews/${SHEET}/${LEVEL}/projection.png"
@@ -1115,18 +1263,67 @@ jobs:
               NEED_GEOMETRY="false"
               NEED_MATERIAL="false"
 
+              BASELINE_COMPATIBLE="false"
+
               # ---------------------------------------------
-              # Geometry cache
-              #
-              # New format:
-              #   geometry.png
-              #
-              # Compatibility with the previews generated
-              # before this material PR:
-              #   projection.png
+              # Manifest validation
               # ---------------------------------------------
 
-              if [[ "${SOURCE_CHANGED}" == "false" ]]; then
+              if [[ "${SOURCE_CHANGED}" == "true" ]]; then
+
+                echo \
+                  "source-changed" \
+                  > "${COMPATIBILITY_STATUS}"
+
+              elif [[ "${HAS_BASE_MANIFEST}" == "true" ]]; then
+
+                set +e
+
+                CHECK_OUTPUT="$(
+                  python scripts/preview_baseline.py \
+                    check \
+                    --manifest "${BASE_MANIFEST}" \
+                    --sheet "${SHEET}" \
+                    --source "${SOURCE_SHEET}" \
+                    --profile "${LEVEL}" \
+                    --resolution "${{ steps.config.outputs.resolution }}" \
+                    --mesh-mode "${BASE_MESH_MODE}" \
+                    --material-mode "${BASE_MATERIAL_MODE}" \
+                    --samples "${{ steps.config.outputs.samples }}" \
+                    --turntable-views "${{ steps.config.outputs.views }}" \
+                    --render-size "${{ steps.config.outputs.size }}" \
+                    --renderer-version "${PREVIEW_RENDERER_VERSION}" \
+                    2>&1
+                )"
+
+                CHECK_RESULT=$?
+
+                set -e
+
+                printf '%s\n' \
+                  "${CHECK_OUTPUT}" \
+                  > "${COMPATIBILITY_STATUS}"
+
+                if [[ "${CHECK_RESULT}" -eq 0 ]]; then
+                  BASELINE_COMPATIBLE="true"
+                fi
+
+              else
+
+                echo \
+                  "legacy-no-manifest" \
+                  > "${COMPATIBILITY_STATUS}"
+
+              fi
+
+              # ---------------------------------------------
+              # Manifest-backed baseline
+              # ---------------------------------------------
+
+              if [[ "${SOURCE_CHANGED}" == "false" ]] \
+                && [[ "${HAS_BASE_MANIFEST}" == "true" ]] \
+                && [[ "${BASELINE_COMPATIBLE}" == "true" ]]
+              then
 
                 if git cat-file \
                   -e \
@@ -1140,6 +1337,62 @@ jobs:
 
                   echo \
                     "reused" \
+                    > "${GEOMETRY_STATUS}"
+
+                else
+
+                  NEED_GEOMETRY="true"
+
+                  echo \
+                    "generated-preview-missing" \
+                    > "${GEOMETRY_STATUS}"
+
+                fi
+
+                if git cat-file \
+                  -e \
+                  "${BASE_SHA}:${MATERIAL_DOC}" \
+                  2>/dev/null
+                then
+
+                  git show \
+                    "${BASE_SHA}:${MATERIAL_DOC}" \
+                    > "${MAIN_MATERIAL_OUTPUT}"
+
+                  echo \
+                    "reused" \
+                    > "${MATERIAL_STATUS}"
+
+                else
+
+                  NEED_MATERIAL="true"
+
+                  echo \
+                    "generated-preview-missing" \
+                    > "${MATERIAL_STATUS}"
+
+                fi
+
+              # ---------------------------------------------
+              # Legacy baseline without metadata
+              # ---------------------------------------------
+
+              elif [[ "${SOURCE_CHANGED}" == "false" ]] \
+                && [[ "${HAS_BASE_MANIFEST}" == "false" ]]
+              then
+
+                if git cat-file \
+                  -e \
+                  "${BASE_SHA}:${NEW_GEOMETRY_DOC}" \
+                  2>/dev/null
+                then
+
+                  git show \
+                    "${BASE_SHA}:${NEW_GEOMETRY_DOC}" \
+                    > "${MAIN_GEOMETRY_OUTPUT}"
+
+                  echo \
+                    "reused-legacy" \
                     > "${GEOMETRY_STATUS}"
 
                 elif git cat-file \
@@ -1166,55 +1419,65 @@ jobs:
 
                 fi
 
-              else
-
-                NEED_GEOMETRY="true"
-
-                echo \
-                  "generated-input-changed" \
-                  > "${GEOMETRY_STATUS}"
-
-              fi
-
-              # ---------------------------------------------
-              # Material cache
-              # ---------------------------------------------
-
-              if [[ "${SOURCE_CHANGED}" == "false" ]] \
-                && git cat-file \
+                if git cat-file \
                   -e \
                   "${BASE_SHA}:${MATERIAL_DOC}" \
                   2>/dev/null
-              then
+                then
 
-                git show \
-                  "${BASE_SHA}:${MATERIAL_DOC}" \
-                  > "${MAIN_MATERIAL_OUTPUT}"
+                  git show \
+                    "${BASE_SHA}:${MATERIAL_DOC}" \
+                    > "${MAIN_MATERIAL_OUTPUT}"
 
-                echo \
-                  "reused" \
-                  > "${MATERIAL_STATUS}"
-
-              else
-
-                NEED_MATERIAL="true"
-
-                if [[ "${SOURCE_CHANGED}" == "true" ]]; then
                   echo \
-                    "generated-input-changed" \
+                    "reused-legacy" \
                     > "${MATERIAL_STATUS}"
+
                 else
+
+                  NEED_MATERIAL="true"
+
                   echo \
                     "generated-preview-missing" \
                     > "${MATERIAL_STATUS}"
+
+                fi
+
+              # ---------------------------------------------
+              # Changed source or incompatible manifest.
+              #
+              # Rebuild base with current source sheet so the
+              # PR comparison remains apples-to-apples.
+              # ---------------------------------------------
+
+              else
+
+                NEED_GEOMETRY="true"
+                NEED_MATERIAL="true"
+
+                if [[ "${SOURCE_CHANGED}" == "true" ]]; then
+
+                  echo \
+                    "generated-input-changed" \
+                    > "${GEOMETRY_STATUS}"
+
+                  echo \
+                    "generated-input-changed" \
+                    > "${MATERIAL_STATUS}"
+
+                else
+
+                  echo \
+                    "generated-baseline-incompatible" \
+                    > "${GEOMETRY_STATUS}"
+
+                  echo \
+                    "generated-baseline-incompatible" \
+                    > "${MATERIAL_STATUS}"
+
                 fi
 
               fi
-
-              # ---------------------------------------------
-              # One base reconstruction can serve both
-              # missing render types.
-              # ---------------------------------------------
 
               if \
                 [[ "${NEED_GEOMETRY}" == "true" ]] \
@@ -1242,6 +1505,7 @@ jobs:
           {
             echo "missing_count=${MISSING_COUNT}"
             echo "missing_file=${MISSING_FILE}"
+            echo "has_base_manifest=${HAS_BASE_MANIFEST}"
           } >> "${GITHUB_OUTPUT}"
 
           echo
@@ -1253,10 +1517,9 @@ jobs:
           fi
 
 
-      # -----------------------------------------------------
-      # Rebuild main only when a persistent baseline
-      # cannot be reused.
-      # -----------------------------------------------------
+      # =====================================================
+      # Base regeneration
+      # =====================================================
 
       - name: Generate missing main baselines
         if: >-
@@ -1333,10 +1596,6 @@ jobs:
           echo "Base mesh mode: ${BASE_MESH_MODE}"
           echo
 
-          # -----------------------------------------------
-          # Build base native core
-          # -----------------------------------------------
-
           cmake \
             -S "${MAIN_WORKTREE}/native" \
             -B "${MAIN_BUILD}" \
@@ -1367,11 +1626,6 @@ jobs:
             "${MAIN_LIB}" \
             "${MAIN_WORKTREE}/native/bin/libbpt_core.so"
 
-          # -----------------------------------------------
-          # Compatibility with base versions predating
-          # --mesh-mode.
-          # -----------------------------------------------
-
           BASE_MESH_ARGS=()
 
           if grep \
@@ -1387,10 +1641,6 @@ jobs:
 
           fi
 
-          # -----------------------------------------------
-          # Generate base GLBs
-          # -----------------------------------------------
-
           "${BLENDER_ROOT}/blender" \
             --background \
             --factory-startup \
@@ -1403,14 +1653,6 @@ jobs:
             "${BASE_MESH_ARGS[@]}" \
             --thread-count 0 \
             --skip-blend
-
-          # -----------------------------------------------
-          # Render only the baseline types that were missing.
-          #
-          # The PR renderer is intentionally used on both
-          # sides so camera/layout/render changes do not
-          # contaminate engine comparison.
-          # -----------------------------------------------
 
           while IFS=$'\t' read -r \
             SHEET \
@@ -1471,7 +1713,7 @@ jobs:
 
 
       # -----------------------------------------------------
-      # Verify Original / main / PR
+      # Comparison verification
       # -----------------------------------------------------
 
       - name: Verify PR comparison
@@ -1497,22 +1739,14 @@ jobs:
 
             for LEVEL in "${PROFILES[@]}"; do
 
-              MAIN_GEOMETRY="visual-compare/main/${SHEET}/${LEVEL}/geometry.png"
-              MAIN_MATERIAL="visual-compare/main/${SHEET}/${LEVEL}/material.png"
-
-              PR_GEOMETRY="visual-compare/pr/${SHEET}/${LEVEL}/geometry.png"
-              PR_MATERIAL="visual-compare/pr/${SHEET}/${LEVEL}/material.png"
-
-              GEOMETRY_STATUS="visual-compare/status/${SHEET}/${LEVEL}/geometry.txt"
-              MATERIAL_STATUS="visual-compare/status/${SHEET}/${LEVEL}/material.txt"
-
               for FILE in \
-                "${MAIN_GEOMETRY}" \
-                "${MAIN_MATERIAL}" \
-                "${PR_GEOMETRY}" \
-                "${PR_MATERIAL}" \
-                "${GEOMETRY_STATUS}" \
-                "${MATERIAL_STATUS}"
+                "visual-compare/main/${SHEET}/${LEVEL}/geometry.png" \
+                "visual-compare/main/${SHEET}/${LEVEL}/material.png" \
+                "visual-compare/pr/${SHEET}/${LEVEL}/geometry.png" \
+                "visual-compare/pr/${SHEET}/${LEVEL}/material.png" \
+                "visual-compare/status/${SHEET}/${LEVEL}/geometry.txt" \
+                "visual-compare/status/${SHEET}/${LEVEL}/material.txt" \
+                "visual-compare/status/${SHEET}/${LEVEL}/compatibility.txt"
               do
 
                 if [[ ! -s "${FILE}" ]]; then
@@ -1527,20 +1761,7 @@ jobs:
 
 
       # =====================================================
-      # PR IMAGE HOSTING
-      #
-      # One shared transient branch:
-      #
-      # visual-preview-assets
-      #
-      # No more:
-      #
-      # visual-preview-pr-1
-      # visual-preview-pr-2
-      # visual-preview-pr-3
-      # ...
-      #
-      # Each open PR gets one directory instead.
+      # Transient PR hosting branch
       # =====================================================
 
       - name: Publish PR preview images
@@ -1648,13 +1869,6 @@ jobs:
             git commit \
               -m "preview: update PR #${PR_NUMBER}"
 
-            # ---------------------------------------------
-            # Shared branch can be updated by several PRs.
-            #
-            # Retry after rebasing if another PR pushed
-            # between our fetch and push.
-            # ---------------------------------------------
-
             PUSHED="false"
 
             for ATTEMPT in 1 2 3; do
@@ -1693,15 +1907,7 @@ jobs:
 
 
       # =====================================================
-      # STICKY PR COMMENT
-      #
-      # L10:
-      #   open
-      #   material visible immediately
-      #   geometry folded inside
-      #
-      # L2/L4/L8:
-      #   completely folded
+      # Sticky comment
       # =====================================================
 
       - name: Build sticky PR comment
@@ -1735,7 +1941,6 @@ jobs:
 
           COMMENT_PROFILES=()
 
-          # L10 first.
           for LEVEL in "${PROFILES[@]}"; do
             if [[ "${LEVEL}" == "L10" ]]; then
               COMMENT_PROFILES+=(
@@ -1744,7 +1949,6 @@ jobs:
             fi
           done
 
-          # Then every lower level.
           for LEVEL in "${PROFILES[@]}"; do
             if [[ "${LEVEL}" != "L10" ]]; then
               COMMENT_PROFILES+=(
@@ -1782,7 +1986,7 @@ jobs:
               esac
 
               case "${MSTATUS}" in
-                reused)
+                reused|reused-legacy)
                   MATERIAL_REUSED=$((MATERIAL_REUSED + 1))
                   ;;
                 *)
@@ -1799,11 +2003,11 @@ jobs:
             case "${status}" in
 
               reused)
-                echo "cached from ${BASE_REF}"
+                echo "validated baseline from ${BASE_REF}"
                 ;;
 
               reused-legacy)
-                echo "cached legacy preview from ${BASE_REF}"
+                echo "legacy cached baseline from ${BASE_REF}"
                 ;;
 
               generated-input-changed)
@@ -1812,6 +2016,10 @@ jobs:
 
               generated-preview-missing)
                 echo "generated · preview missing"
+                ;;
+
+              generated-baseline-incompatible)
+                echo "generated · baseline incompatible"
                 ;;
 
               *)
@@ -1839,13 +2047,16 @@ jobs:
             echo "**Sheets:** ${#SHEETS[@]} · **Profiles:** ${{ steps.config.outputs.profiles }}"
             echo
 
+            echo "**Persistent baseline manifest:** ${{ steps.main-baseline.outputs.has_base_manifest }}"
+            echo
+
             echo "**Geometry baselines:** ${GEOMETRY_REUSED} reused · ${GEOMETRY_GENERATED} generated"
             echo
 
             echo "**Material baselines:** ${MATERIAL_REUSED} reused · ${MATERIAL_GENERATED} generated"
             echo
 
-            echo "> **L10 is open by default. Its material comparison is immediately visible; geometry stays folded. L2/L4/L8 are folded completely.**"
+            echo "> **L10 is open by default. Material is visible immediately; geometry stays folded. L2/L4/L8 are folded completely.**"
             echo
 
             for SHEET in "${SHEETS[@]}"; do
@@ -1929,7 +2140,7 @@ jobs:
 
             echo "---"
             echo
-            echo "<sub>Generated automatically. PR assets are transient; successful main previews are committed permanently to docs/previews.</sub>"
+            echo "<sub>PR assets are transient. Successful main previews are validated by metadata and committed permanently under docs/previews.</sub>"
 
           } > "${COMMENT_FILE}"
 
@@ -2007,7 +2218,7 @@ jobs:
 
 
       # =====================================================
-      # Actions summary
+      # Summary / artifacts
       # =====================================================
 
       - name: Generate preview summary
@@ -2033,6 +2244,9 @@ jobs:
             echo
 
             echo "Material mode: **${MATERIAL_MODE}**"
+            echo
+
+            echo "Renderer baseline version: **${PREVIEW_RENDERER_VERSION}**"
             echo
 
             echo "Profiles: **${{ steps.config.outputs.profiles }}**"
@@ -2105,16 +2319,15 @@ jobs:
               echo "PR material mode: **${MATERIAL_MODE}**"
               echo
 
+              echo "Persistent base manifest: **${{ steps.main-baseline.outputs.has_base_manifest }}**"
+              echo
+
               echo "Base reconstructions required: **${{ steps.main-baseline.outputs.missing_count }}**"
 
             fi
 
           } >> "${GITHUB_STEP_SUMMARY}"
 
-
-      # =====================================================
-      # Artifact
-      # =====================================================
 
       - name: Upload visual previews
         if: always()
@@ -2124,27 +2337,305 @@ jobs:
           path: |
             visual-preview/**
             visual-compare/**
+            docs/previews/manifest.json
             example/mascotte/test1/generated/**/manifest.json
           if-no-files-found: warn
           retention-days: 14
 
 
       # =====================================================
-      # Remove legacy per-PR branches
+      # Persist main
       #
-      # This intentionally runs only on main.
+      # Important:
       #
-      # Old workflow created:
+      # If main changed while this expensive rendering job
+      # was running, do NOT push a stale baseline on top.
       #
-      # visual-preview-pr-N
+      # The newer main push owns its own workflow run.
+      # =====================================================
+
+      - name: Commit visual documentation
+        if: >-
+          github.event_name == 'push'
+          && github.ref == 'refs/heads/main'
+        id: persist
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch \
+            origin \
+            main
+
+          REMOTE_MAIN="$(
+            git rev-parse \
+              origin/main
+          )"
+
+          if [[ "${REMOTE_MAIN}" != "${GITHUB_SHA}" ]]; then
+
+            echo
+            echo "main advanced while previews were rendering."
+            echo "Generated baseline belongs to: ${GITHUB_SHA}"
+            echo "Current origin/main is:        ${REMOTE_MAIN}"
+            echo
+            echo "Skipping stale baseline commit."
+
+            echo \
+              "result=stale" \
+              >> "${GITHUB_OUTPUT}"
+
+            exit 0
+
+          fi
+
+          CURRENT_BRANCH="$(
+            git branch \
+              --show-current
+          )"
+
+          if [[ "${CURRENT_BRANCH}" != "main" ]]; then
+            echo "Expected attached main branch, got: ${CURRENT_BRANCH}"
+            exit 1
+          fi
+
+          git config \
+            user.name \
+            "github-actions[bot]"
+
+          git config \
+            user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            docs/visual-preview.md \
+            docs/previews
+
+          if git diff \
+            --cached \
+            --quiet
+          then
+
+            echo "Visual documentation is already up to date."
+
+            echo \
+              "result=up-to-date" \
+              >> "${GITHUB_OUTPUT}"
+
+            exit 0
+
+          fi
+
+          git commit \
+            -m "docs: update visual preview baseline [skip ci]"
+
+          git push \
+            origin \
+            HEAD:main
+
+          echo \
+            "result=committed" \
+            >> "${GITHUB_OUTPUT}"
+
+          echo
+          echo "Persistent visual baseline committed to main."
+
+
+      # =====================================================
+      # Find the PR that produced this main commit.
       #
-      # The new workflow uses one shared branch instead.
+      # This happens AFTER persistence.
+      # =====================================================
+
+      - name: Resolve merged PRs
+        if: >-
+          github.event_name == 'push'
+          && github.ref == 'refs/heads/main'
+          && steps.persist.outputs.result != 'stale'
+        id: merged-prs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pulls =
+              await github.paginate(
+                github.rest.repos.listPullRequestsAssociatedWithCommit,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  commit_sha: context.sha,
+                  per_page: 100,
+                }
+              );
+
+            const merged =
+              pulls
+                .filter(
+                  (pr) =>
+                    pr.merged_at
+                    && pr.base.ref === "main"
+                )
+                .map(
+                  (pr) => pr.number
+                );
+
+            const unique =
+              [...new Set(merged)];
+
+            core.info(
+              `Merged PRs associated with ${context.sha}: ${unique.join(", ")}`
+            );
+
+            core.setOutput(
+              "numbers",
+              unique.join(" ")
+            );
+
+
+      # =====================================================
+      # Now it is safe to delete merged PR assets.
+      # =====================================================
+
+      - name: Clean merged PR preview assets
+        if: >-
+          github.event_name == 'push'
+          && github.ref == 'refs/heads/main'
+          && steps.persist.outputs.result != 'stale'
+          && steps.merged-prs.outputs.numbers != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBERS: ${{ steps.merged-prs.outputs.numbers }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ROOT="${RUNNER_TEMP}/bpt-preview-assets-after-merge"
+
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          rm -rf \
+            "${ROOT}"
+
+          mkdir -p \
+            "${ROOT}"
+
+          cd \
+            "${ROOT}"
+
+          git init
+
+          git remote add \
+            origin \
+            "${REMOTE}"
+
+          if ! git ls-remote \
+            --exit-code \
+            --heads \
+            origin \
+            "refs/heads/${ASSET_BRANCH}" \
+            >/dev/null 2>&1
+          then
+
+            echo "Preview asset branch does not exist."
+            exit 0
+
+          fi
+
+          git fetch \
+            --depth=1 \
+            origin \
+            "${ASSET_BRANCH}"
+
+          git checkout \
+            -B "${ASSET_BRANCH}" \
+            FETCH_HEAD
+
+          git config \
+            user.name \
+            "github-actions[bot]"
+
+          git config \
+            user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          CHANGED="false"
+
+          for PR_NUMBER in ${PR_NUMBERS}; do
+
+            if [[ -d "pr/${PR_NUMBER}" ]]; then
+
+              echo \
+                "Removing merged PR #${PR_NUMBER} assets."
+
+              rm -rf \
+                "pr/${PR_NUMBER}"
+
+              CHANGED="true"
+
+            fi
+
+          done
+
+          if [[ "${CHANGED}" != "true" ]]; then
+            echo "No merged PR preview assets found."
+            exit 0
+          fi
+
+          git add \
+            -A
+
+          if git diff \
+            --cached \
+            --quiet
+          then
+            echo "Nothing to commit."
+            exit 0
+          fi
+
+          git commit \
+            -m "preview: clean merged PR assets"
+
+          PUSHED="false"
+
+          for ATTEMPT in 1 2 3; do
+
+            if git push \
+              origin \
+              "HEAD:refs/heads/${ASSET_BRANCH}"
+            then
+              PUSHED="true"
+              break
+            fi
+
+            echo \
+              "Asset branch changed concurrently; retry ${ATTEMPT}/3."
+
+            git fetch \
+              origin \
+              "${ASSET_BRANCH}"
+
+            git rebase \
+              "origin/${ASSET_BRANCH}"
+
+          done
+
+          if [[ "${PUSHED}" != "true" ]]; then
+            echo "Could not clean merged PR assets."
+            exit 1
+          fi
+
+
+      # =====================================================
+      # Remove obsolete historical branches.
+      #
+      # Fixed version: no multiline awk.
       # =====================================================
 
       - name: Remove legacy preview branches
         if: >-
           github.event_name == 'push'
           && github.ref == 'refs/heads/main'
+          && steps.persist.outputs.result != 'stale'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -2158,14 +2649,9 @@ jobs:
               --heads \
               "${REMOTE}" \
               "refs/heads/visual-preview-pr-*" \
-              | awk '{
-                  sub(
-                    "refs/heads/",
-                    "",
-                    $2
-                  );
-                  print $2
-                }'
+              | cut -f2 \
+              | sed \
+                  's#^refs/heads/##'
           )
 
           if [[ "${#LEGACY_BRANCHES[@]}" -eq 0 ]]; then
@@ -2186,41 +2672,3 @@ jobs:
               "${BRANCH}"
 
           done
-
-
-      # =====================================================
-      # Persist main documentation
-      # =====================================================
-
-      - name: Commit visual documentation
-        if: >-
-          github.event_name == 'push'
-          && github.ref == 'refs/heads/main'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          git config \
-            user.name \
-            "github-actions[bot]"
-
-          git config \
-            user.email \
-            "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add \
-            docs/visual-preview.md \
-            docs/previews
-
-          if git diff \
-            --cached \
-            --quiet
-          then
-            echo "Visual documentation is already up to date."
-            exit 0
-          fi
-
-          git commit \
-            -m "docs: update geometry and material previews [skip ci]"
-
-          git push
