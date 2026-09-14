@@ -67,9 +67,41 @@ jobs:
 
             "version.py"
             "translations.py"
-            "properties.py"
-            "operators.py"
-            "ui.py"
+            "properties/__init__.py"
+            "properties/base_groups.py"
+            "properties/constants.py"
+            "properties/defaults.py"
+            "properties/groups.py"
+            "properties/pipeline.py"
+            "properties/registration.py"
+            "properties/settings.py"
+            "properties/stage_mapping.py"
+            "operators/__init__.py"
+            "operators/constants.py"
+            "operators/pipeline.py"
+            "operators/presets.py"
+            "operators/projection_edit.py"
+            "operators/projection_load.py"
+            "operators/projections.py"
+            "operators/registration.py"
+            "operators/runtime_execution.py"
+            "operators/runtime_state.py"
+            "operators/runtime.py"
+            "operators/selection.py"
+            "operators/turntable_import.py"
+            "ui/__init__.py"
+            "ui/actions.py"
+            "ui/advanced.py"
+            "ui/diagnostics.py"
+            "ui/drawer_geometry_material.py"
+            "ui/drawer_input.py"
+            "ui/drawer_selection.py"
+            "ui/drawers.py"
+            "ui/helpers.py"
+            "ui/panel.py"
+            "ui/projection_list.py"
+            "ui/registration.py"
+            "ui/stage_cards.py"
 
 
             # -----------------------------------------------
@@ -78,32 +110,91 @@ jobs:
 
             "core/__init__.py"
 
-            "core/pipeline_contracts.py"
-            "core/pipeline_registry.py"
-            "core/pipeline_runner.py"
+            "core/pipeline_contracts/__init__.py"
+            "core/pipeline_contracts/context.py"
+            "core/pipeline_contracts/identifiers.py"
+            "core/pipeline_contracts/implementations.py"
+            "core/pipeline_contracts/plan.py"
+            "core/pipeline_contracts/results.py"
+            "core/pipeline_contracts/stages.py"
+            "core/pipeline_registry/__init__.py"
+            "core/pipeline_registry/helpers.py"
+            "core/pipeline_registry/models.py"
+            "core/pipeline_registry/registry.py"
+            "core/pipeline_runner/__init__.py"
+            "core/pipeline_runner/models.py"
+            "core/pipeline_runner/results.py"
+            "core/pipeline_runner/runner.py"
 
             # Generic GEOMETRY contract
-            "core/geometry_contracts.py"
+            "core/geometry_contracts/__init__.py"
+            "core/geometry_contracts/projection.py"
+            "core/geometry_contracts/surface.py"
+            "core/geometry_contracts/validation.py"
 
             # INPUT / projection
             "core/image_mask.py"
-            "core/projection_math.py"
+            "core/projection_math/__init__.py"
+            "core/projection_math/coordinates.py"
+            "core/projection_math/models.py"
+            "core/projection_math/projection.py"
+            "core/projection_math/vectors.py"
 
             # Native GEOMETRY
             "core/native_loader.py"
-            "core/native_bridge.py"
+            "core/native_bridge/__init__.py"
+            "core/native_bridge/abi.py"
+            "core/native_bridge/conversion.py"
+            "core/native_bridge/errors.py"
+            "core/native_bridge/models.py"
+            "core/native_bridge/runtime.py"
             "core/native_scan.py"
             "core/native_mesh_builder.py"
 
             # SDF GEOMETRY
-            "core/sdf.py"
-            "core/sdf_surface.py"
+            "core/sdf/__init__.py"
+            "core/sdf/build.py"
+            "core/sdf/constants.py"
+            "core/sdf/distance_transform.py"
+            "core/sdf/fusion.py"
+            "core/sdf/mask.py"
+            "core/sdf/projection.py"
+            "core/sdf/utils.py"
+            "core/sdf/volume.py"
+
+            "core/sdf_surface/__init__.py"
+            "core/sdf_surface/cells.py"
+            "core/sdf_surface/faces.py"
+            "core/sdf_surface/models.py"
+            "core/sdf_surface/normals.py"
+            "core/sdf_surface/numeric.py"
+            "core/sdf_surface/surface_nets.py"
 
             # MATERIAL
-            "core/projected_material.py"
-            "core/material_visibility.py"
-            "core/material_blend.py"
-            "core/uv_bake.py"
+            "core/material_blend/__init__.py"
+            "core/material_blend/domain.py"
+            "core/material_blend/blending.py"
+            "core/material_visibility/__init__.py"
+            "core/material_visibility/domain.py"
+            "core/material_visibility/blender_backend.py"
+            "core/material_visibility/tester.py"
+            "core/projected_material/__init__.py"
+            "core/projected_material/constants.py"
+            "core/projected_material/image_buffer.py"
+            "core/projected_material/models.py"
+            "core/projected_material/sampling.py"
+            "core/projected_material/blending.py"
+            "core/projected_material/blender_material.py"
+            "core/projected_material/application.py"
+            "core/uv_bake/__init__.py"
+            "core/uv_bake/api.py"
+            "core/uv_bake/constants.py"
+            "core/uv_bake/geometry.py"
+            "core/uv_bake/models.py"
+            "core/uv_bake/padding.py"
+            "core/uv_bake/primitives.py"
+            "core/uv_bake/rasterizer.py"
+            "core/uv_bake/texture.py"
 
 
             # -----------------------------------------------
@@ -111,14 +202,53 @@ jobs:
             # -----------------------------------------------
 
             "implementations/__init__.py"
+            "implementations/catalog.py"
+            "implementations/registration.py"
 
-            "implementations/projection_images.py"
+            "implementations/projection_images/__init__.py"
+            "implementations/projection_images/context.py"
+            "implementations/projection_images/implementation.py"
+            "implementations/projection_images/models.py"
+            "implementations/projection_images/preparation.py"
 
-            "implementations/native_visual_hull.py"
-            "implementations/sdf_reconstruction.py"
+            "implementations/native_visual_hull/__init__.py"
+            "implementations/native_visual_hull/availability.py"
+            "implementations/native_visual_hull/blender_output.py"
+            "implementations/native_visual_hull/config.py"
+            "implementations/native_visual_hull/constants.py"
+            "implementations/native_visual_hull/execution.py"
+            "implementations/native_visual_hull/implementation.py"
+            "implementations/native_visual_hull/output.py"
+            "implementations/sdf_reconstruction/__init__.py"
+            "implementations/sdf_reconstruction/availability.py"
+            "implementations/sdf_reconstruction/blender_mesh.py"
+            "implementations/sdf_reconstruction/config.py"
+            "implementations/sdf_reconstruction/diagnostics.py"
+            "implementations/sdf_reconstruction/execution.py"
+            "implementations/sdf_reconstruction/implementation.py"
+            "implementations/sdf_reconstruction/metadata.py"
+            "implementations/sdf_reconstruction/output.py"
+            "implementations/sdf_reconstruction/resolution.py"
+            "implementations/sdf_reconstruction/ui_settings.py"
 
-            "implementations/projected_color.py"
-            "implementations/uv_bake.py"
+            "implementations/projected_color/__init__.py"
+            "implementations/projected_color/configuration.py"
+            "implementations/projected_color/geometry.py"
+            "implementations/projected_color/metadata.py"
+            "implementations/projected_color/implementation.py"
+            "implementations/uv_bake/__init__.py"
+            "implementations/uv_bake/assets.py"
+            "implementations/uv_bake/config.py"
+            "implementations/uv_bake/constants.py"
+            "implementations/uv_bake/diagnostics.py"
+            "implementations/uv_bake/execution.py"
+            "implementations/uv_bake/geometry.py"
+            "implementations/uv_bake/implementation.py"
+            "implementations/uv_bake/metadata.py"
+            "implementations/uv_bake/sampler.py"
+            "implementations/uv_bake/settings.py"
+            "implementations/uv_bake/triangles.py"
+            "implementations/uv_bake/ui.py"
 
 
             # -----------------------------------------------
@@ -142,21 +272,90 @@ jobs:
 
             "tests/test_preview_baseline.py"
 
-            "tests/test_material_visibility.py"
-            "tests/test_material_blend.py"
+            "tests/test_material_architecture.py"
+            "tests/test_material_blend/__init__.py"
+            "tests/test_material_blend/helpers.py"
+            "tests/test_material_blend/test_primitives_and_config.py"
+            "tests/test_material_blend/test_scoring.py"
+            "tests/test_material_blend/test_selection.py"
+            "tests/test_material_blend/test_weighting_and_metrics.py"
+            "tests/test_material_visibility/__init__.py"
+            "tests/test_material_visibility/helpers.py"
+            "tests/test_material_visibility/test_backends.py"
+            "tests/test_material_visibility/test_configuration_and_distances.py"
+            "tests/test_material_visibility/test_queries.py"
 
-            "tests/test_pipeline_registry.py"
-            "tests/test_pipeline_runner.py"
+            "tests/pipeline_registry_test_support.py"
+            "tests/pipeline_runner_test_support.py"
+            "tests/test_pipeline_architecture.py"
+            "tests/test_pipeline_registry_availability.py"
+            "tests/test_pipeline_registry_clear.py"
+            "tests/test_pipeline_registry_context.py"
+            "tests/test_pipeline_registry_default_plan.py"
+            "tests/test_pipeline_registry_default.py"
+            "tests/test_pipeline_registry_empty_registry.py"
+            "tests/test_pipeline_registry_lookup.py"
+            "tests/test_pipeline_registry_ordering.py"
+            "tests/test_pipeline_registry_plan_validation.py"
+            "tests/test_pipeline_registry_register_many.py"
+            "tests/test_pipeline_registry_registration.py"
+            "tests/test_pipeline_registry_replacement.py"
+            "tests/test_pipeline_registry_selection.py"
+            "tests/test_pipeline_registry_unregister.py"
+            "tests/test_pipeline_runner_availability.py"
+            "tests/test_pipeline_runner_convenience_facade.py"
+            "tests/test_pipeline_runner_dependency.py"
+            "tests/test_pipeline_runner_direct_context_output.py"
+            "tests/test_pipeline_runner_disabled_stage.py"
+            "tests/test_pipeline_runner_exception.py"
+            "tests/test_pipeline_runner_metrics.py"
+            "tests/test_pipeline_runner_preflight.py"
+            "tests/test_pipeline_runner_report.py"
+            "tests/test_pipeline_runner_result_contract.py"
+            "tests/test_pipeline_runner_stage_failure.py"
+            "tests/test_pipeline_runner_stage_ordering.py"
+            "tests/test_pipeline_runner_stage_run_record.py"
+            "tests/test_pipeline_runner_successful_pipeline.py"
+            "tests/test_pipeline_runner_timing.py"
 
             # Generic GEOMETRY contract
-            "tests/test_geometry_contracts.py"
+            "tests/geometry_contracts_test_support.py"
+            "tests/test_geometry_contract_compatibility.py"
+            "tests/test_geometry_projection_contracts.py"
+            "tests/test_geometry_surface_contracts.py"
+            "tests/test_projection_module_architecture.py"
+            "tests/test_native_geometry_architecture.py"
 
             # SDF GEOMETRY
-            "tests/test_sdf.py"
-            "tests/test_sdf_surface.py"
+            "tests/sdf_surface_test_support.py"
+            "tests/sdf_test_support.py"
+            "tests/test_sdf_architecture.py"
+            "tests/test_sdf_build_config.py"
+            "tests/test_sdf_build.py"
+            "tests/test_sdf_fusion.py"
+            "tests/test_sdf_mask.py"
+            "tests/test_sdf_projection.py"
+            "tests/test_sdf_surface_config.py"
+            "tests/test_sdf_surface_edge_cases.py"
+            "tests/test_sdf_surface_mesh.py"
+            "tests/test_sdf_surface_normals.py"
+            "tests/test_sdf_surface_plane.py"
+            "tests/test_sdf_surface_regression.py"
+            "tests/test_sdf_surface_sphere.py"
+            "tests/test_sdf_surface_stats.py"
+            "tests/test_sdf_visual_hull_semantics.py"
+            "tests/test_sdf_volume.py"
 
             # MATERIAL
-            "tests/test_uv_bake.py"
+            "tests/test_uv_bake_architecture.py"
+            "tests/test_uv_bake_color_diagnostics.py"
+            "tests/test_uv_bake_convenience.py"
+            "tests/test_uv_bake_models.py"
+            "tests/test_uv_bake_padding.py"
+            "tests/test_uv_bake_progress_api.py"
+            "tests/test_uv_bake_rasterization.py"
+            "tests/test_uv_bake_sampling_overlap.py"
+            "tests/test_uv_bake_texture.py"
 
 
             # -----------------------------------------------
@@ -619,16 +818,10 @@ jobs:
             translations.py \
             "${PACKAGE_ROOT}/"
 
-          cp \
-            properties.py \
-            "${PACKAGE_ROOT}/"
-
-          cp \
-            operators.py \
-            "${PACKAGE_ROOT}/"
-
-          cp \
-            ui.py \
+          cp -R \
+            properties \
+            operators \
+            ui \
             "${PACKAGE_ROOT}/"
 
           cp \
@@ -641,14 +834,33 @@ jobs:
           #
           # Automatically includes:
           #
-          #   geometry_contracts.py
-          #   sdf.py
-          #   sdf_surface.py
-          #   uv_bake.py
+          #   geometry_contracts/ (recursive package)
+          #   native_bridge/ (recursive package)
+          #   pipeline_contracts/ (recursive package)
+          #   pipeline_registry/ (recursive package)
+          #   pipeline_runner/ (recursive package)
+          #   sdf/ (recursive package)
+          #   sdf_surface/ (recursive package)
+          #   uv_bake/ (recursive package)
           # -------------------------------------------------
 
           cp \
             core/*.py \
+            "${PACKAGE_ROOT}/core/"
+
+          cp -R \
+            core/geometry_contracts \
+            core/native_bridge \
+            core/sdf \
+            core/sdf_surface \
+            core/projection_math \
+            core/material_blend \
+            core/material_visibility \
+            core/projected_material \
+            core/pipeline_contracts \
+            core/pipeline_registry \
+            core/pipeline_runner \
+            core/uv_bake \
             "${PACKAGE_ROOT}/core/"
 
 
@@ -657,14 +869,22 @@ jobs:
           #
           # Automatically includes:
           #
-          #   native_visual_hull.py
-          #   sdf_reconstruction.py
-          #   projected_color.py
-          #   uv_bake.py
+          #   native_visual_hull/ (recursive package)
+          #   sdf_reconstruction/ (recursive package)
+          #   projected_color/ (recursive package)
+          #   uv_bake/ (recursive package)
           # -------------------------------------------------
 
           cp \
             implementations/*.py \
+            "${PACKAGE_ROOT}/implementations/"
+
+          cp -R \
+            implementations/native_visual_hull \
+            implementations/sdf_reconstruction \
+            implementations/projected_color \
+            implementations/uv_bake \
+            implementations/projection_images \
             "${PACKAGE_ROOT}/implementations/"
 
 
@@ -771,9 +991,41 @@ jobs:
 
             "version.py"
             "translations.py"
-            "properties.py"
-            "operators.py"
-            "ui.py"
+            "properties/__init__.py"
+            "properties/base_groups.py"
+            "properties/constants.py"
+            "properties/defaults.py"
+            "properties/groups.py"
+            "properties/pipeline.py"
+            "properties/registration.py"
+            "properties/settings.py"
+            "properties/stage_mapping.py"
+            "operators/__init__.py"
+            "operators/constants.py"
+            "operators/pipeline.py"
+            "operators/presets.py"
+            "operators/projection_edit.py"
+            "operators/projection_load.py"
+            "operators/projections.py"
+            "operators/registration.py"
+            "operators/runtime_execution.py"
+            "operators/runtime_state.py"
+            "operators/runtime.py"
+            "operators/selection.py"
+            "operators/turntable_import.py"
+            "ui/__init__.py"
+            "ui/actions.py"
+            "ui/advanced.py"
+            "ui/diagnostics.py"
+            "ui/drawer_geometry_material.py"
+            "ui/drawer_input.py"
+            "ui/drawer_selection.py"
+            "ui/drawers.py"
+            "ui/helpers.py"
+            "ui/panel.py"
+            "ui/projection_list.py"
+            "ui/registration.py"
+            "ui/stage_cards.py"
 
 
             # -----------------------------------------------
@@ -782,11 +1034,26 @@ jobs:
 
             "core/__init__.py"
 
-            "core/pipeline_contracts.py"
-            "core/pipeline_registry.py"
-            "core/pipeline_runner.py"
+            "core/pipeline_contracts/__init__.py"
+            "core/pipeline_contracts/context.py"
+            "core/pipeline_contracts/identifiers.py"
+            "core/pipeline_contracts/implementations.py"
+            "core/pipeline_contracts/plan.py"
+            "core/pipeline_contracts/results.py"
+            "core/pipeline_contracts/stages.py"
+            "core/pipeline_registry/__init__.py"
+            "core/pipeline_registry/helpers.py"
+            "core/pipeline_registry/models.py"
+            "core/pipeline_registry/registry.py"
+            "core/pipeline_runner/__init__.py"
+            "core/pipeline_runner/models.py"
+            "core/pipeline_runner/results.py"
+            "core/pipeline_runner/runner.py"
 
-            "core/geometry_contracts.py"
+            "core/geometry_contracts/__init__.py"
+            "core/geometry_contracts/projection.py"
+            "core/geometry_contracts/surface.py"
+            "core/geometry_contracts/validation.py"
 
 
             # -----------------------------------------------
@@ -794,7 +1061,11 @@ jobs:
             # -----------------------------------------------
 
             "core/image_mask.py"
-            "core/projection_math.py"
+            "core/projection_math/__init__.py"
+            "core/projection_math/coordinates.py"
+            "core/projection_math/models.py"
+            "core/projection_math/projection.py"
+            "core/projection_math/vectors.py"
 
 
             # -----------------------------------------------
@@ -802,7 +1073,12 @@ jobs:
             # -----------------------------------------------
 
             "core/native_loader.py"
-            "core/native_bridge.py"
+            "core/native_bridge/__init__.py"
+            "core/native_bridge/abi.py"
+            "core/native_bridge/conversion.py"
+            "core/native_bridge/errors.py"
+            "core/native_bridge/models.py"
+            "core/native_bridge/runtime.py"
             "core/native_scan.py"
             "core/native_mesh_builder.py"
 
@@ -811,18 +1087,53 @@ jobs:
             # SDF GEOMETRY
             # -----------------------------------------------
 
-            "core/sdf.py"
-            "core/sdf_surface.py"
+            "core/sdf/__init__.py"
+            "core/sdf/build.py"
+            "core/sdf/constants.py"
+            "core/sdf/distance_transform.py"
+            "core/sdf/fusion.py"
+            "core/sdf/mask.py"
+            "core/sdf/projection.py"
+            "core/sdf/utils.py"
+            "core/sdf/volume.py"
+
+            "core/sdf_surface/__init__.py"
+            "core/sdf_surface/cells.py"
+            "core/sdf_surface/faces.py"
+            "core/sdf_surface/models.py"
+            "core/sdf_surface/normals.py"
+            "core/sdf_surface/numeric.py"
+            "core/sdf_surface/surface_nets.py"
 
 
             # -----------------------------------------------
             # MATERIAL
             # -----------------------------------------------
 
-            "core/projected_material.py"
-            "core/material_visibility.py"
-            "core/material_blend.py"
-            "core/uv_bake.py"
+            "core/material_blend/__init__.py"
+            "core/material_blend/domain.py"
+            "core/material_blend/blending.py"
+            "core/material_visibility/__init__.py"
+            "core/material_visibility/domain.py"
+            "core/material_visibility/blender_backend.py"
+            "core/material_visibility/tester.py"
+            "core/projected_material/__init__.py"
+            "core/projected_material/constants.py"
+            "core/projected_material/image_buffer.py"
+            "core/projected_material/models.py"
+            "core/projected_material/sampling.py"
+            "core/projected_material/blending.py"
+            "core/projected_material/blender_material.py"
+            "core/projected_material/application.py"
+            "core/uv_bake/__init__.py"
+            "core/uv_bake/api.py"
+            "core/uv_bake/constants.py"
+            "core/uv_bake/geometry.py"
+            "core/uv_bake/models.py"
+            "core/uv_bake/padding.py"
+            "core/uv_bake/primitives.py"
+            "core/uv_bake/rasterizer.py"
+            "core/uv_bake/texture.py"
 
 
             # -----------------------------------------------
@@ -830,14 +1141,53 @@ jobs:
             # -----------------------------------------------
 
             "implementations/__init__.py"
+            "implementations/catalog.py"
+            "implementations/registration.py"
 
-            "implementations/projection_images.py"
+            "implementations/projection_images/__init__.py"
+            "implementations/projection_images/context.py"
+            "implementations/projection_images/implementation.py"
+            "implementations/projection_images/models.py"
+            "implementations/projection_images/preparation.py"
 
-            "implementations/native_visual_hull.py"
-            "implementations/sdf_reconstruction.py"
+            "implementations/native_visual_hull/__init__.py"
+            "implementations/native_visual_hull/availability.py"
+            "implementations/native_visual_hull/blender_output.py"
+            "implementations/native_visual_hull/config.py"
+            "implementations/native_visual_hull/constants.py"
+            "implementations/native_visual_hull/execution.py"
+            "implementations/native_visual_hull/implementation.py"
+            "implementations/native_visual_hull/output.py"
+            "implementations/sdf_reconstruction/__init__.py"
+            "implementations/sdf_reconstruction/availability.py"
+            "implementations/sdf_reconstruction/blender_mesh.py"
+            "implementations/sdf_reconstruction/config.py"
+            "implementations/sdf_reconstruction/diagnostics.py"
+            "implementations/sdf_reconstruction/execution.py"
+            "implementations/sdf_reconstruction/implementation.py"
+            "implementations/sdf_reconstruction/metadata.py"
+            "implementations/sdf_reconstruction/output.py"
+            "implementations/sdf_reconstruction/resolution.py"
+            "implementations/sdf_reconstruction/ui_settings.py"
 
-            "implementations/projected_color.py"
-            "implementations/uv_bake.py"
+            "implementations/projected_color/__init__.py"
+            "implementations/projected_color/configuration.py"
+            "implementations/projected_color/geometry.py"
+            "implementations/projected_color/metadata.py"
+            "implementations/projected_color/implementation.py"
+            "implementations/uv_bake/__init__.py"
+            "implementations/uv_bake/assets.py"
+            "implementations/uv_bake/config.py"
+            "implementations/uv_bake/constants.py"
+            "implementations/uv_bake/diagnostics.py"
+            "implementations/uv_bake/execution.py"
+            "implementations/uv_bake/geometry.py"
+            "implementations/uv_bake/implementation.py"
+            "implementations/uv_bake/metadata.py"
+            "implementations/uv_bake/sampler.py"
+            "implementations/uv_bake/settings.py"
+            "implementations/uv_bake/triangles.py"
+            "implementations/uv_bake/ui.py"
 
 
             # -----------------------------------------------
@@ -879,19 +1229,17 @@ jobs:
 
           mapfile -t SOURCE_CORE < <(
             find core \
-              -maxdepth 1 \
               -type f \
               -name "*.py" \
-              -printf '%f\n' \
+              -printf '%P\n' \
               | sort
           )
 
           mapfile -t PACKAGE_CORE < <(
             find "${PACKAGE_ROOT}/core" \
-              -maxdepth 1 \
               -type f \
               -name "*.py" \
-              -printf '%f\n' \
+              -printf '%P\n' \
               | sort
           )
 
@@ -946,19 +1294,17 @@ jobs:
 
           mapfile -t SOURCE_IMPLEMENTATIONS < <(
             find implementations \
-              -maxdepth 1 \
               -type f \
               -name "*.py" \
-              -printf '%f\n' \
+              -printf '%P\n' \
               | sort
           )
 
           mapfile -t PACKAGE_IMPLEMENTATIONS < <(
             find "${PACKAGE_ROOT}/implementations" \
-              -maxdepth 1 \
               -type f \
               -name "*.py" \
-              -printf '%f\n' \
+              -printf '%P\n' \
               | sort
           )
 
@@ -1109,40 +1455,164 @@ jobs:
 
             "blender_projection_tool/__init__.py"
 
+            "blender_projection_tool/properties/__init__.py"
+            "blender_projection_tool/properties/base_groups.py"
+            "blender_projection_tool/properties/constants.py"
+            "blender_projection_tool/properties/defaults.py"
+            "blender_projection_tool/properties/groups.py"
+            "blender_projection_tool/properties/pipeline.py"
+            "blender_projection_tool/properties/registration.py"
+            "blender_projection_tool/properties/settings.py"
+            "blender_projection_tool/properties/stage_mapping.py"
+            "blender_projection_tool/operators/__init__.py"
+            "blender_projection_tool/operators/constants.py"
+            "blender_projection_tool/operators/pipeline.py"
+            "blender_projection_tool/operators/presets.py"
+            "blender_projection_tool/operators/projection_edit.py"
+            "blender_projection_tool/operators/projection_load.py"
+            "blender_projection_tool/operators/projections.py"
+            "blender_projection_tool/operators/registration.py"
+            "blender_projection_tool/operators/runtime_execution.py"
+            "blender_projection_tool/operators/runtime_state.py"
+            "blender_projection_tool/operators/runtime.py"
+            "blender_projection_tool/operators/selection.py"
+            "blender_projection_tool/operators/turntable_import.py"
+            "blender_projection_tool/ui/__init__.py"
+            "blender_projection_tool/ui/actions.py"
+            "blender_projection_tool/ui/advanced.py"
+            "blender_projection_tool/ui/diagnostics.py"
+            "blender_projection_tool/ui/drawer_geometry_material.py"
+            "blender_projection_tool/ui/drawer_input.py"
+            "blender_projection_tool/ui/drawer_selection.py"
+            "blender_projection_tool/ui/drawers.py"
+            "blender_projection_tool/ui/helpers.py"
+            "blender_projection_tool/ui/panel.py"
+            "blender_projection_tool/ui/projection_list.py"
+            "blender_projection_tool/ui/registration.py"
+            "blender_projection_tool/ui/stage_cards.py"
+
 
             # -----------------------------------------------
             # Pipeline
             # -----------------------------------------------
 
-            "blender_projection_tool/core/pipeline_contracts.py"
-            "blender_projection_tool/core/pipeline_registry.py"
-            "blender_projection_tool/core/pipeline_runner.py"
+            "blender_projection_tool/core/pipeline_contracts/__init__.py"
+            "blender_projection_tool/core/pipeline_contracts/context.py"
+            "blender_projection_tool/core/pipeline_contracts/identifiers.py"
+            "blender_projection_tool/core/pipeline_contracts/implementations.py"
+            "blender_projection_tool/core/pipeline_contracts/plan.py"
+            "blender_projection_tool/core/pipeline_contracts/results.py"
+            "blender_projection_tool/core/pipeline_contracts/stages.py"
+            "blender_projection_tool/core/pipeline_registry/__init__.py"
+            "blender_projection_tool/core/pipeline_registry/helpers.py"
+            "blender_projection_tool/core/pipeline_registry/models.py"
+            "blender_projection_tool/core/pipeline_registry/registry.py"
+            "blender_projection_tool/core/pipeline_runner/__init__.py"
+            "blender_projection_tool/core/pipeline_runner/models.py"
+            "blender_projection_tool/core/pipeline_runner/results.py"
+            "blender_projection_tool/core/pipeline_runner/runner.py"
 
 
             # -----------------------------------------------
             # Generic GEOMETRY contract
             # -----------------------------------------------
 
-            "blender_projection_tool/core/geometry_contracts.py"
+            "blender_projection_tool/core/geometry_contracts/__init__.py"
+            "blender_projection_tool/core/geometry_contracts/projection.py"
+            "blender_projection_tool/core/geometry_contracts/surface.py"
+            "blender_projection_tool/core/geometry_contracts/validation.py"
+
+            "blender_projection_tool/core/projection_math/__init__.py"
+            "blender_projection_tool/core/projection_math/coordinates.py"
+            "blender_projection_tool/core/projection_math/models.py"
+            "blender_projection_tool/core/projection_math/projection.py"
+            "blender_projection_tool/core/projection_math/vectors.py"
+            "blender_projection_tool/core/native_bridge/__init__.py"
+            "blender_projection_tool/core/native_bridge/abi.py"
+            "blender_projection_tool/core/native_bridge/conversion.py"
+            "blender_projection_tool/core/native_bridge/errors.py"
+            "blender_projection_tool/core/native_bridge/models.py"
+            "blender_projection_tool/core/native_bridge/runtime.py"
 
 
             # -----------------------------------------------
             # SDF GEOMETRY
             # -----------------------------------------------
 
-            "blender_projection_tool/core/sdf.py"
-            "blender_projection_tool/core/sdf_surface.py"
+            "blender_projection_tool/core/sdf/__init__.py"
+            "blender_projection_tool/core/sdf/build.py"
+            "blender_projection_tool/core/sdf/constants.py"
+            "blender_projection_tool/core/sdf/distance_transform.py"
+            "blender_projection_tool/core/sdf/fusion.py"
+            "blender_projection_tool/core/sdf/mask.py"
+            "blender_projection_tool/core/sdf/projection.py"
+            "blender_projection_tool/core/sdf/utils.py"
+            "blender_projection_tool/core/sdf/volume.py"
 
-            "blender_projection_tool/implementations/sdf_reconstruction.py"
+            "blender_projection_tool/core/sdf_surface/__init__.py"
+            "blender_projection_tool/core/sdf_surface/cells.py"
+            "blender_projection_tool/core/sdf_surface/faces.py"
+            "blender_projection_tool/core/sdf_surface/models.py"
+            "blender_projection_tool/core/sdf_surface/normals.py"
+            "blender_projection_tool/core/sdf_surface/numeric.py"
+            "blender_projection_tool/core/sdf_surface/surface_nets.py"
+
+            "blender_projection_tool/implementations/sdf_reconstruction/__init__.py"
+            "blender_projection_tool/implementations/sdf_reconstruction/availability.py"
+            "blender_projection_tool/implementations/sdf_reconstruction/blender_mesh.py"
+            "blender_projection_tool/implementations/sdf_reconstruction/config.py"
+            "blender_projection_tool/implementations/sdf_reconstruction/diagnostics.py"
+            "blender_projection_tool/implementations/sdf_reconstruction/execution.py"
+            "blender_projection_tool/implementations/sdf_reconstruction/implementation.py"
+            "blender_projection_tool/implementations/sdf_reconstruction/metadata.py"
+            "blender_projection_tool/implementations/sdf_reconstruction/output.py"
+            "blender_projection_tool/implementations/sdf_reconstruction/resolution.py"
+            "blender_projection_tool/implementations/sdf_reconstruction/ui_settings.py"
 
 
             # -----------------------------------------------
             # MATERIAL
             # -----------------------------------------------
 
-            "blender_projection_tool/core/uv_bake.py"
+            "blender_projection_tool/core/material_blend/__init__.py"
+            "blender_projection_tool/core/material_blend/domain.py"
+            "blender_projection_tool/core/material_blend/blending.py"
+            "blender_projection_tool/core/material_visibility/__init__.py"
+            "blender_projection_tool/core/material_visibility/domain.py"
+            "blender_projection_tool/core/material_visibility/blender_backend.py"
+            "blender_projection_tool/core/material_visibility/tester.py"
+            "blender_projection_tool/core/projected_material/__init__.py"
+            "blender_projection_tool/core/projected_material/constants.py"
+            "blender_projection_tool/core/projected_material/image_buffer.py"
+            "blender_projection_tool/core/projected_material/models.py"
+            "blender_projection_tool/core/projected_material/sampling.py"
+            "blender_projection_tool/core/projected_material/blending.py"
+            "blender_projection_tool/core/projected_material/blender_material.py"
+            "blender_projection_tool/core/projected_material/application.py"
 
-            "blender_projection_tool/implementations/uv_bake.py"
+            "blender_projection_tool/core/uv_bake/__init__.py"
+            "blender_projection_tool/core/uv_bake/api.py"
+            "blender_projection_tool/core/uv_bake/constants.py"
+            "blender_projection_tool/core/uv_bake/geometry.py"
+            "blender_projection_tool/core/uv_bake/models.py"
+            "blender_projection_tool/core/uv_bake/padding.py"
+            "blender_projection_tool/core/uv_bake/primitives.py"
+            "blender_projection_tool/core/uv_bake/rasterizer.py"
+            "blender_projection_tool/core/uv_bake/texture.py"
+
+            "blender_projection_tool/implementations/uv_bake/__init__.py"
+            "blender_projection_tool/implementations/uv_bake/assets.py"
+            "blender_projection_tool/implementations/uv_bake/config.py"
+            "blender_projection_tool/implementations/uv_bake/constants.py"
+            "blender_projection_tool/implementations/uv_bake/diagnostics.py"
+            "blender_projection_tool/implementations/uv_bake/execution.py"
+            "blender_projection_tool/implementations/uv_bake/geometry.py"
+            "blender_projection_tool/implementations/uv_bake/implementation.py"
+            "blender_projection_tool/implementations/uv_bake/metadata.py"
+            "blender_projection_tool/implementations/uv_bake/sampler.py"
+            "blender_projection_tool/implementations/uv_bake/settings.py"
+            "blender_projection_tool/implementations/uv_bake/triangles.py"
+            "blender_projection_tool/implementations/uv_bake/ui.py"
 
 
             # -----------------------------------------------
@@ -1150,9 +1620,26 @@ jobs:
             # -----------------------------------------------
 
             "blender_projection_tool/implementations/__init__.py"
-            "blender_projection_tool/implementations/projection_images.py"
-            "blender_projection_tool/implementations/native_visual_hull.py"
-            "blender_projection_tool/implementations/projected_color.py"
+            "blender_projection_tool/implementations/catalog.py"
+            "blender_projection_tool/implementations/registration.py"
+            "blender_projection_tool/implementations/projection_images/__init__.py"
+            "blender_projection_tool/implementations/projection_images/context.py"
+            "blender_projection_tool/implementations/projection_images/implementation.py"
+            "blender_projection_tool/implementations/projection_images/models.py"
+            "blender_projection_tool/implementations/projection_images/preparation.py"
+            "blender_projection_tool/implementations/native_visual_hull/__init__.py"
+            "blender_projection_tool/implementations/native_visual_hull/availability.py"
+            "blender_projection_tool/implementations/native_visual_hull/blender_output.py"
+            "blender_projection_tool/implementations/native_visual_hull/config.py"
+            "blender_projection_tool/implementations/native_visual_hull/constants.py"
+            "blender_projection_tool/implementations/native_visual_hull/execution.py"
+            "blender_projection_tool/implementations/native_visual_hull/implementation.py"
+            "blender_projection_tool/implementations/native_visual_hull/output.py"
+            "blender_projection_tool/implementations/projected_color/__init__.py"
+            "blender_projection_tool/implementations/projected_color/configuration.py"
+            "blender_projection_tool/implementations/projected_color/geometry.py"
+            "blender_projection_tool/implementations/projected_color/metadata.py"
+            "blender_projection_tool/implementations/projected_color/implementation.py"
 
 
             # -----------------------------------------------
@@ -1287,28 +1774,155 @@ jobs:
             "${PACKAGE_ROOT}/__init__.py"
 
 
+          # Blender registration packages
+
+          test -f \
+            "${PACKAGE_ROOT}/properties/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/operators/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/ui/__init__.py"
+
+          # INPUT / projection
+
+          test -f \
+            "${PACKAGE_ROOT}/core/projection_math/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/projection_images/__init__.py"
+
           # Pipeline / generic GEOMETRY
 
           test -f \
-            "${PACKAGE_ROOT}/core/geometry_contracts.py"
+            "${PACKAGE_ROOT}/core/pipeline_contracts/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/pipeline_registry/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/pipeline_runner/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/geometry_contracts/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/geometry_contracts/projection.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/geometry_contracts/surface.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/geometry_contracts/validation.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/native_bridge/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/native_bridge/abi.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/native_bridge/conversion.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/native_bridge/errors.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/native_bridge/models.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/native_bridge/runtime.py"
 
 
           # SDF GEOMETRY
 
           test -f \
-            "${PACKAGE_ROOT}/core/sdf.py"
+            "${PACKAGE_ROOT}/core/sdf/__init__.py"
 
           test -f \
-            "${PACKAGE_ROOT}/core/sdf_surface.py"
+            "${PACKAGE_ROOT}/core/sdf/build.py"
 
           test -f \
-            "${PACKAGE_ROOT}/implementations/sdf_reconstruction.py"
+            "${PACKAGE_ROOT}/core/sdf_surface/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/sdf_surface/surface_nets.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/sdf_reconstruction/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/sdf_reconstruction/execution.py"
 
 
           # MATERIAL
 
           test -f \
-            "${PACKAGE_ROOT}/core/uv_bake.py"
+            "${PACKAGE_ROOT}/core/material_blend/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/material_blend/domain.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/material_blend/blending.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/material_visibility/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/material_visibility/domain.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/material_visibility/blender_backend.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/material_visibility/tester.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/projected_material/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/projected_material/constants.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/projected_material/image_buffer.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/projected_material/models.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/projected_material/sampling.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/projected_material/blending.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/projected_material/blender_material.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/projected_material/application.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/projected_color/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/projected_color/configuration.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/projected_color/geometry.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/projected_color/metadata.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/projected_color/implementation.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/uv_bake/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/uv_bake/api.py"
 
 
           # Implementation catalog
@@ -1317,13 +1931,41 @@ jobs:
             "${PACKAGE_ROOT}/implementations/__init__.py"
 
           test -f \
-            "${PACKAGE_ROOT}/implementations/native_visual_hull.py"
+            "${PACKAGE_ROOT}/implementations/catalog.py"
 
           test -f \
-            "${PACKAGE_ROOT}/implementations/projected_color.py"
+            "${PACKAGE_ROOT}/implementations/registration.py"
 
           test -f \
-            "${PACKAGE_ROOT}/implementations/uv_bake.py"
+            "${PACKAGE_ROOT}/implementations/native_visual_hull/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/native_visual_hull/availability.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/native_visual_hull/blender_output.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/native_visual_hull/config.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/native_visual_hull/constants.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/native_visual_hull/execution.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/native_visual_hull/implementation.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/native_visual_hull/output.py"
+
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/uv_bake/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/uv_bake/execution.py"
 
           echo
           echo "Smoke package:"
