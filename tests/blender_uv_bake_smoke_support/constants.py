@@ -31,8 +31,8 @@ RGBA8_TOLERANCE = 1e-6
 REQUIRED_PACKAGE_FILES = (
     "__init__.py",
 
-    "core/uv_bake.py",
+    "core/uv_bake/__init__.py",
 
     "implementations/__init__.py",
-    "implementations/uv_bake.py",
+    "implementations/uv_bake/__init__.py",
 )
