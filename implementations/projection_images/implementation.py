@@ -37,6 +37,7 @@ class ProjectionImagesImplementation:
             "rgba-material-source",
             "arbitrary-view-angle",
             "view-weight",
+            "view-alignment",
         ),
     )
 
@@ -161,6 +162,7 @@ class ProjectionImagesImplementation:
             "elevation_degrees": view.elevation_degrees,
             "flip_x": view.flip_x,
             "weight": view.weight,
+            "alignment": view.alignment.as_dict(),
             "mask_pixels": view.mask_pixels,
             "empty_mask": view.empty_mask,
         }

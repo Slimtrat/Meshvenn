@@ -78,6 +78,7 @@ REQUIRED_PACKAGE_FILES = (
 
     # Input / projection
     "core/image_mask.py",
+    "core/projection_alignment.py",
     "core/projection_math/__init__.py",
     "core/projection_math/coordinates.py",
     "core/projection_math/models.py",

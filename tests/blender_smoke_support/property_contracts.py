@@ -108,6 +108,13 @@ def _validate_projection_defaults(
         ),
     )
 
+    for projection in settings.projections:
+        _require(
+            (projection.alignment_offset_u, projection.alignment_offset_v,
+             projection.alignment_scale) == (0.0, 0.0, 1.0),
+            "Default alignment must leave existing projections unchanged.",
+        )
+
     print(
         "Default projections: OK"
     )
