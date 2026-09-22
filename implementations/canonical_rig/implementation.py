@@ -84,7 +84,7 @@ class CanonicalRigImplementation:
 
     def execute(self, context: PipelineContext) -> StageExecutionResult:
         try:
-            geometry, mesh, _, bones, quality = _prepare(context)
+            geometry, mesh, bounds, bones, quality = _prepare(context)
         except Exception as exc:
             return StageExecutionResult.failed_result(
                 stage=PipelineStage.RIG,
@@ -97,11 +97,18 @@ class CanonicalRigImplementation:
         original_modifiers = {modifier.name for modifier in mesh.modifiers}
         original_parent = mesh.parent
         original_world = mesh.matrix_world.copy()
-        rig_properties = ("meshvenn_rig_implementation", "meshvenn_rig_semantics", "meshvenn_rig_quality")
+        rig_properties = (
+            "meshvenn_rig_implementation", "meshvenn_rig_semantics",
+            "meshvenn_rig_quality", "meshvenn_rig_skinning_algorithm",
+        )
         original_metadata = {key: mesh[key] for key in rig_properties if key in mesh}
         try:
             armature = create_armature(mesh, bones)
-            binding_method, max_influences = bind_mesh(mesh, armature, bones)
+            binding_method, max_influences = bind_mesh(mesh, armature, bones, bounds)
+            skinning_algorithm = (
+                "regional-distance-v1"
+                if binding_method == "canonical-distance" else "blender-bone-heat"
+            )
             semantic_bones = {spec.name: spec.name for spec in bones}
             metrics = {
                 "bone_count": len(bones),
@@ -122,9 +129,11 @@ class CanonicalRigImplementation:
             mesh["meshvenn_rig_implementation"] = IMPLEMENTATION_ID
             mesh["meshvenn_rig_semantics"] = json.dumps(semantic_bones, sort_keys=True)
             mesh["meshvenn_rig_quality"] = json.dumps(quality.as_dict(), sort_keys=True)
+            mesh["meshvenn_rig_skinning_algorithm"] = skinning_algorithm
             armature["meshvenn_rig_implementation"] = IMPLEMENTATION_ID
             context.metadata["rig_object_name"] = armature.name
             context.metadata["rig_binding_method"] = binding_method
+            context.metadata["rig_skinning_algorithm"] = skinning_algorithm
             context.metadata["rig_quality"] = quality.as_dict()
             warning_suffix = (
                 f" Geometry warnings: {', '.join(quality.warnings)}."
@@ -141,6 +150,7 @@ class CanonicalRigImplementation:
                     "mesh_name": mesh.name,
                     "geometry_implementation": geometry.implementation_id,
                     "binding_method": binding_method,
+                    "skinning_algorithm": skinning_algorithm,
                     "rig_quality": quality.as_dict(),
                 },
             )
@@ -166,5 +176,5 @@ class CanonicalRigImplementation:
         box = layout.box()
         box.label(text="Canonical Biped V1", icon="ARMATURE_DATA")
         box.label(text="Fits an A-pose skeleton to mesh bounds")
-        box.label(text="Automatic skinning with deterministic fallback")
+        box.label(text="Automatic skinning with region-aware fallback")
         box.label(text="Best for upright biped characters", icon="INFO")

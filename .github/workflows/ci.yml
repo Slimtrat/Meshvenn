@@ -133,6 +133,7 @@ jobs:
             "core/geometry_contracts/validation.py"
             "core/canonical_rig.py"
             "core/rig_quality.py"
+            "core/rig_skinning.py"
             "core/rig_contracts.py"
 
             # INPUT / projection
@@ -389,6 +390,7 @@ jobs:
             "tests/blender_native_scan_trace_smoke.py"
             "tests/test_canonical_rig.py"
             "tests/test_rig_quality.py"
+            "tests/test_rig_skinning.py"
 
             # SDF GEOMETRY
             "tests/sdf_surface_test_support.py"
@@ -1122,6 +1124,7 @@ jobs:
             "core/geometry_contracts/validation.py"
             "core/canonical_rig.py"
             "core/rig_quality.py"
+            "core/rig_skinning.py"
             "core/rig_contracts.py"
 
 
@@ -1598,6 +1601,7 @@ jobs:
             "blender_projection_tool/core/geometry_contracts/validation.py"
             "blender_projection_tool/core/canonical_rig.py"
             "blender_projection_tool/core/rig_quality.py"
+            "blender_projection_tool/core/rig_skinning.py"
             "blender_projection_tool/core/rig_contracts.py"
 
             "blender_projection_tool/core/projection_alignment.py"
