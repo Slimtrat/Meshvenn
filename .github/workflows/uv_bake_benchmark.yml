@@ -822,8 +822,9 @@ jobs:
           set -euo pipefail
 
           python \
-            -m unittest \
-            tests.test_uv_bake \
+            -m unittest discover \
+            -s tests \
+            -p "test_uv_bake_*.py" \
             -v
 
 
