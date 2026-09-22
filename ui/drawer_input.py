@@ -246,6 +246,12 @@ class ProjectionInputDrawerMixin:
                 "flip_x",
             )
 
+            alignment = detail.box()
+            alignment.label(text="Align Silhouette + Color", icon="ORIENTATION_VIEW")
+            alignment.prop(projection, "alignment_offset_u")
+            alignment.prop(projection, "alignment_offset_v")
+            alignment.prop(projection, "alignment_scale")
+
             detail.prop(
                 projection,
                 "weight",

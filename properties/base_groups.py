@@ -72,6 +72,35 @@ class BPT_PG_ProjectionView(
         default=False,
     )
 
+    alignment_offset_u: FloatProperty(
+        name="Horizontal Offset",
+        description="Shift the source silhouette right by a fraction of image width before Flip X",
+        default=0.0,
+        min=-0.5,
+        max=0.5,
+        precision=3,
+    )
+
+    alignment_offset_v: FloatProperty(
+        name="Vertical Offset",
+        description="Shift the source silhouette up by a fraction of image height",
+        default=0.0,
+        min=-0.5,
+        max=0.5,
+        precision=3,
+    )
+
+    alignment_scale: FloatProperty(
+        name="Silhouette Scale",
+        description="Uniformly scale silhouette and source color around the image center",
+        default=1.0,
+        min=0.25,
+        max=4.0,
+        soft_min=0.75,
+        soft_max=1.25,
+        precision=3,
+    )
+
     weight: FloatProperty(
         name="Weight",
         description=(

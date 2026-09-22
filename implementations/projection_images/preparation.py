@@ -7,7 +7,9 @@ import bpy
 
 from ...core.image_mask import rgba_to_mask
 from ...core.native_bridge import NativeProjection
+from ...core.projection_alignment import ProjectionAlignment
 from ...core.projected_material import ProjectedMaterialView
+from ...core.projected_material.image_buffer import ImageBuffer
 from .models import PreparedProjectionView
 
 
@@ -32,12 +34,18 @@ def prepare_projection(projection, *, alpha_threshold: float) -> PreparedProject
         raise ValueError(f'Projection "{projection.name}" has no image.')
 
     pixels, width, height = image_pixels(image)
-    mask = rgba_to_mask(
+    source_mask = rgba_to_mask(
         pixels=pixels,
         width=width,
         height=height,
         alpha_threshold=alpha_threshold,
     )
+    alignment = ProjectionAlignment(
+        offset_u=float(getattr(projection, "alignment_offset_u", 0.0)),
+        offset_v=float(getattr(projection, "alignment_offset_v", 0.0)),
+        scale=float(getattr(projection, "alignment_scale", 1.0)),
+    )
+    mask = alignment.align_mask(source_mask)
     azimuth_degrees = math.degrees(float(projection.azimuth))
     elevation_degrees = math.degrees(float(projection.elevation))
     flip_x = bool(projection.flip_x)
@@ -50,13 +58,14 @@ def prepare_projection(projection, *, alpha_threshold: float) -> PreparedProject
         elevation_degrees=elevation_degrees,
         flip_x=flip_x,
     )
-    material_view = ProjectedMaterialView.from_blender_image(
+    material_view = ProjectedMaterialView.from_image_buffer(
         name=name,
-        image=image,
+        image_buffer=ImageBuffer(width=width, height=height, pixels=pixels),
         azimuth_degrees=azimuth_degrees,
         elevation_degrees=elevation_degrees,
         flip_x=flip_x,
         weight=weight,
+        alignment=alignment,
         mask=mask,
     )
     return PreparedProjectionView(
@@ -68,6 +77,7 @@ def prepare_projection(projection, *, alpha_threshold: float) -> PreparedProject
         elevation_degrees=elevation_degrees,
         flip_x=flip_x,
         weight=weight,
+        alignment=alignment,
         mask=mask,
         native_projection=native_projection,
         material_view=material_view,

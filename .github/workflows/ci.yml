@@ -137,6 +137,7 @@ jobs:
 
             # INPUT / projection
             "core/image_mask.py"
+            "core/projection_alignment.py"
             "core/projection_math/__init__.py"
             "core/projection_math/coordinates.py"
             "core/projection_math/models.py"
@@ -381,6 +382,7 @@ jobs:
             "tests/test_geometry_projection_contracts.py"
             "tests/test_geometry_surface_contracts.py"
             "tests/test_projection_module_architecture.py"
+            "tests/test_projection_alignment.py"
             "tests/test_native_geometry_architecture.py"
             "tests/test_native_scan_diagnostics.py"
             "tests/test_native_scan_trace.py"
@@ -1128,6 +1130,7 @@ jobs:
             # -----------------------------------------------
 
             "core/image_mask.py"
+            "core/projection_alignment.py"
             "core/projection_math/__init__.py"
             "core/projection_math/coordinates.py"
             "core/projection_math/models.py"
@@ -1597,6 +1600,7 @@ jobs:
             "blender_projection_tool/core/rig_quality.py"
             "blender_projection_tool/core/rig_contracts.py"
 
+            "blender_projection_tool/core/projection_alignment.py"
             "blender_projection_tool/core/projection_math/__init__.py"
             "blender_projection_tool/core/projection_math/coordinates.py"
             "blender_projection_tool/core/projection_math/models.py"

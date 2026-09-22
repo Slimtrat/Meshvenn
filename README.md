@@ -120,6 +120,7 @@ The project combines a Blender/Python integration layer with a native reconstruc
 * Configurable azimuth
 * Configurable elevation
 * Horizontal image flipping
+* Per-view silhouette and color alignment (horizontal/vertical offset and uniform scale)
 * Enable/disable individual projections
 * Transparent PNG silhouettes
 * Configurable alpha threshold
@@ -333,7 +334,12 @@ background:
 alpha = 0.0
 ```
 
-The silhouette mask is derived from alpha.
+The silhouette mask is derived from alpha. In each view's **Align Silhouette + Color**
+controls, offsets shift the source by a fraction of image width/height and scale
+changes its size around the image center. Alignment is applied before Flip X
+and affects both reconstruction (native visual hull or SDF) and projected
+material color. Neutral values (0, 0, 1) preserve the original image exactly.
+Large shifts or scales can crop a silhouette at the image edge.
 
 Conceptually:
 

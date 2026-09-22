@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ...core.image_mask import BinaryMask
+from ...core.projection_alignment import ProjectionAlignment
 from ...core.native_bridge import NativeProjection
 from ...core.projected_material import ProjectedMaterialView
 
@@ -19,6 +20,7 @@ class PreparedProjectionView:
     elevation_degrees: float
     flip_x: bool
     weight: float
+    alignment: ProjectionAlignment
     mask: BinaryMask
     native_projection: NativeProjection
     material_view: ProjectedMaterialView

@@ -7,6 +7,7 @@ from .catalog_contracts import _validate_builtin_catalog
 from .core_contracts import (_validate_geometry_contract_core, _validate_sdf_core, _validate_uv_bake_core)
 from .material_compatibility import _validate_generic_geometry_material_compatibility
 from .property_contracts import (_validate_pipeline_defaults, _validate_projection_defaults, _validate_scene_properties)
+from .projection_alignment import _validate_projection_alignment
 from .registration_contracts import (_validate_operators_registered, _validate_ui_registered, _validate_unregistered_state)
 from .registry_contracts import _validate_registry
 from .sdf_pipeline import (_validate_sdf_default_alignment, _validate_sdf_pipeline_selection)
@@ -94,6 +95,8 @@ def main() -> None:
         _validate_projection_defaults(
             settings
         )
+
+        _validate_projection_alignment(package_name, settings)
 
         _validate_pipeline_defaults(
             settings
