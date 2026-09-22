@@ -131,6 +131,8 @@ jobs:
             "core/geometry_contracts/projection.py"
             "core/geometry_contracts/surface.py"
             "core/geometry_contracts/validation.py"
+            "core/canonical_rig.py"
+            "core/rig_contracts.py"
 
             # INPUT / projection
             "core/image_mask.py"
@@ -249,6 +251,9 @@ jobs:
             "implementations/uv_bake/settings.py"
             "implementations/uv_bake/triangles.py"
             "implementations/uv_bake/ui.py"
+            "implementations/canonical_rig/__init__.py"
+            "implementations/canonical_rig/binding.py"
+            "implementations/canonical_rig/implementation.py"
 
 
             # -----------------------------------------------
@@ -325,6 +330,7 @@ jobs:
             "tests/test_geometry_surface_contracts.py"
             "tests/test_projection_module_architecture.py"
             "tests/test_native_geometry_architecture.py"
+            "tests/test_canonical_rig.py"
 
             # SDF GEOMETRY
             "tests/sdf_surface_test_support.py"
@@ -364,6 +370,7 @@ jobs:
 
             "tests/blender_smoke_test.py"
             "tests/blender_uv_bake_smoke.py"
+            "tests/blender_rig_smoke.py"
 
 
             # -----------------------------------------------
@@ -884,6 +891,7 @@ jobs:
             implementations/sdf_reconstruction \
             implementations/projected_color \
             implementations/uv_bake \
+            implementations/canonical_rig \
             implementations/projection_images \
             "${PACKAGE_ROOT}/implementations/"
 
@@ -1054,6 +1062,8 @@ jobs:
             "core/geometry_contracts/projection.py"
             "core/geometry_contracts/surface.py"
             "core/geometry_contracts/validation.py"
+            "core/canonical_rig.py"
+            "core/rig_contracts.py"
 
 
             # -----------------------------------------------
@@ -1188,6 +1198,9 @@ jobs:
             "implementations/uv_bake/settings.py"
             "implementations/uv_bake/triangles.py"
             "implementations/uv_bake/ui.py"
+            "implementations/canonical_rig/__init__.py"
+            "implementations/canonical_rig/binding.py"
+            "implementations/canonical_rig/implementation.py"
 
 
             # -----------------------------------------------
@@ -1521,6 +1534,8 @@ jobs:
             "blender_projection_tool/core/geometry_contracts/projection.py"
             "blender_projection_tool/core/geometry_contracts/surface.py"
             "blender_projection_tool/core/geometry_contracts/validation.py"
+            "blender_projection_tool/core/canonical_rig.py"
+            "blender_projection_tool/core/rig_contracts.py"
 
             "blender_projection_tool/core/projection_math/__init__.py"
             "blender_projection_tool/core/projection_math/coordinates.py"
@@ -1613,6 +1628,9 @@ jobs:
             "blender_projection_tool/implementations/uv_bake/settings.py"
             "blender_projection_tool/implementations/uv_bake/triangles.py"
             "blender_projection_tool/implementations/uv_bake/ui.py"
+            "blender_projection_tool/implementations/canonical_rig/__init__.py"
+            "blender_projection_tool/implementations/canonical_rig/binding.py"
+            "blender_projection_tool/implementations/canonical_rig/implementation.py"
 
 
             # -----------------------------------------------
@@ -2052,6 +2070,21 @@ jobs:
 
 
       # -----------------------------------------------------
+      # Canonical Rig V1: fit, bind, deform and GLB roundtrip
+      - name: Blender Canonical Rig V1 functional smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_ROOT="${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python tests/blender_rig_smoke.py \
+            -- \
+            --package-root "${PACKAGE_ROOT}"
+
       # Artifacts are published only after Blender package
       # validation succeeds.
       # -----------------------------------------------------
@@ -2179,8 +2212,10 @@ jobs:
 
             **Rig**
 
-            - pipeline stage ready
-            - implementation pending
+            - Canonical Biped V1 (experimental)
+            - A-pose 18-bone hierarchy, semantic names
+            - automatic skinning with deterministic fallback
+            - GLB skin/armature roundtrip validated
 
             **Export**
 

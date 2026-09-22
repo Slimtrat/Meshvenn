@@ -80,7 +80,7 @@ def _validate_registry(
             "projected-color-v1.2",
 
         PipelineStage.RIG:
-            None,
+            "canonical-biped-v1",
 
         PipelineStage.EXPORT:
             None,

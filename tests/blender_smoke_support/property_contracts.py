@@ -158,6 +158,11 @@ def _validate_pipeline_defaults(
             "projected-color-v1.2",
             "MATERIAL",
         ),
+        (
+            pipeline.rig_stage.implementation_id,
+            "canonical-biped-v1",
+            "RIG",
+        ),
     )
 
     for (
