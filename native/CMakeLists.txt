@@ -179,6 +179,17 @@ if(BPT_BUILD_TESTS)
         bpt_visual_hull_tests
         tests/test_visual_hull.cpp
     )
+    target_sources(
+        bpt_visual_hull_tests
+        PRIVATE
+            tests/test_visual_hull_masks.cpp
+            tests/test_visual_hull_volume.cpp
+            tests/test_visual_hull_session.cpp
+            tests/test_visual_hull_projections.cpp
+            tests/test_visual_hull_threading.cpp
+            tests/test_visual_hull_mesh.cpp
+            tests/test_visual_hull_api.cpp
+    )
 
     # -----------------------------------------------------
     # Historical block mesher
@@ -196,6 +207,14 @@ if(BPT_BUILD_TESTS)
     bpt_add_test(
         bpt_surface_nets_tests
         tests/test_surface_nets.cpp
+    )
+    target_sources(
+        bpt_surface_nets_tests
+        PRIVATE
+            tests/test_surface_nets_helpers.cpp
+            tests/test_surface_nets_basic.cpp
+            tests/test_surface_nets_shapes.cpp
+            tests/test_surface_nets_regression.cpp
     )
 
     # -----------------------------------------------------
