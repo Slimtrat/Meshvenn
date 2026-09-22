@@ -207,6 +207,12 @@ def process_sheet(
             result.available_views
         )
 
+        manifest["view_diagnostics"] = [
+            view.as_dict() for view in result.view_diagnostics
+        ]
+        for view in result.view_diagnostics:
+            if view.status != "ok":
+                logger.warning("Projection reduced visual hull", **view.as_dict())
         manifest[
             "profiles"
         ] = {}

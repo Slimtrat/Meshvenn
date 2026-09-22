@@ -293,6 +293,9 @@ def benchmark_sheet(
             )
         )
 
+        for view in scan_result.view_diagnostics:
+            if view.status != "ok":
+                logger.warning("Projection reduced visual hull", **view.as_dict())
         write_json(
             (
                 sheet_root
@@ -315,6 +318,10 @@ def benchmark_sheet(
                     scan_result
                     .available_views
                 ),
+
+                "view_diagnostics": [
+                    view.as_dict() for view in scan_result.view_diagnostics
+                ],
 
                 "profiles": list(
                     scan_result

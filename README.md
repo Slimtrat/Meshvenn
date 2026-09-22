@@ -186,6 +186,12 @@ The native engine has its own:
 * tests
 * dedicated CI
 
+The native GEOMETRY stage and batch-generation manifests record voxel retention
+after every projection (view_diagnostics). An empty status identifies the
+view that emptied the hull; sharp-drop warns when a later view removes at
+least 90% of the remaining voxels. The warning helps diagnose mask alignment
+and calibration, but does not reject a valid reconstruction.
+
 ### Projected materials
 
 MeshVenn can also reuse the source projections after reconstruction.
