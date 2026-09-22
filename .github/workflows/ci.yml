@@ -1733,15 +1733,14 @@ jobs:
               "${ZIP_PATH}"
           )
 
+          declare -A archive_file_set=()
+          for archive_file in "${ARCHIVE_FILES[@]}"; do
+            archive_file_set["${archive_file}"]=1
+          done
+
           for required in "${required_archive_files[@]}"; do
 
-            if ! printf \
-              '%s\n' \
-              "${ARCHIVE_FILES[@]}" \
-              | grep \
-                -Fxq \
-                "${required}"
-            then
+            if [[ -z "${archive_file_set[$required]:-}" ]]; then
 
               echo \
                 "Missing archive file: ${required}"
