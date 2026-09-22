@@ -25,6 +25,9 @@ add_library(
 
     src/api.cpp
     src/visual_hull.cpp
+    src/visual_hull_common.cpp
+    src/visual_hull_projection.cpp
+    src/visual_hull_apply.cpp
     src/mesh.cpp
     src/block_mesh.cpp
     src/block_mesh_builder.cpp
