@@ -267,6 +267,9 @@ jobs:
             "native/src/api.cpp"
             "native/src/visual_hull.cpp"
             "native/src/mesh.cpp"
+            "native/src/block_mesh.cpp"
+            "native/src/block_mesh_builder.cpp"
+            "native/src/block_mesh_builder.h"
 
             "native/tests/test_visual_hull.cpp"
             "native/tests/test_visual_hull_support.h"

@@ -26,6 +26,8 @@ add_library(
     src/api.cpp
     src/visual_hull.cpp
     src/mesh.cpp
+    src/block_mesh.cpp
+    src/block_mesh_builder.cpp
     src/surface_nets.cpp
 )
 
