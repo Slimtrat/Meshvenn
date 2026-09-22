@@ -6,6 +6,7 @@ from .catalog import (
     ImplementationFactory,
     builtin_default_id,
 )
+from .canonical_rig import CanonicalRigImplementation
 from .native_visual_hull import NativeVisualHullImplementation
 from .projected_color import ProjectedColorImplementation
 from .projection_images import ProjectionImagesImplementation
@@ -29,6 +30,7 @@ __all__ = (
     "SDFReconstructionImplementation",
     "ProjectedColorImplementation",
     "UVBakeImplementation",
+    "CanonicalRigImplementation",
     "register_builtin_implementations",
     "unregister_builtin_implementations",
     "register",

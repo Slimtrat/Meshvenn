@@ -388,7 +388,19 @@ Increase resolution only after projection alignment is correct.
 17. Final texturing
 ```
 
-MeshVenn is designed to accelerate the **first half** of that workflow.
+MeshVenn accelerates reconstruction, first-pass materials, and now first-pass rigging.
+The optional **Canonical Biped V1** RIG stage fits an 18-bone A-pose armature to
+an upright biped mesh, assigns normalized skin weights (at most four influences
+per vertex), and exposes semantic bone names for downstream animation systems.
+It works from either built-in GEOMETRY implementation through the generic
+surface contract. The rig stage remains disabled by default; enable it in the
+pipeline only for an upright character whose local Z axis is up and whose front
+faces -Y. A GLB export can carry the armature and skin when both mesh and
+armature are selected.
+
+This is an envelope fit, not anatomical inference or motion generation.
+Asymmetric poses, non-bipeds, facial rigs, and production retopology still need
+purpose-built work.
 
 It does not try to replace Blender's full modeling pipeline.
 

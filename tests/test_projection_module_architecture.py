@@ -133,6 +133,7 @@ class ProjectionPackageArchitectureTests(unittest.TestCase):
                 "SDFReconstructionImplementation",
                 "ProjectedColorImplementation",
                 "UVBakeImplementation",
+                "CanonicalRigImplementation",
             ],
         )
         source = ast.unparse(assignments["BUILTIN_DEFAULT_IMPLEMENTATION_IDS"])

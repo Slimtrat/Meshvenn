@@ -72,6 +72,8 @@ REQUIRED_PACKAGE_FILES = (
     "core/geometry_contracts/projection.py",
     "core/geometry_contracts/surface.py",
     "core/geometry_contracts/validation.py",
+    "core/canonical_rig.py",
+    "core/rig_contracts.py",
 
     # Input / projection
     "core/image_mask.py",
@@ -182,6 +184,9 @@ REQUIRED_PACKAGE_FILES = (
     "implementations/uv_bake/settings.py",
     "implementations/uv_bake/triangles.py",
     "implementations/uv_bake/ui.py",
+    "implementations/canonical_rig/__init__.py",
+    "implementations/canonical_rig/binding.py",
+    "implementations/canonical_rig/implementation.py",
 
     # Native binaries
     "native/bin/libbpt_core.so",
@@ -195,6 +200,7 @@ EXPECTED_IMPLEMENTATIONS = (
     "sdf-reconstruction-v1",
     "projected-color-v1.2",
     "uv-bake-v2",
+    "canonical-biped-v1",
 )
 
 

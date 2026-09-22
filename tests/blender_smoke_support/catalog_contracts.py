@@ -60,10 +60,10 @@ def _validate_builtin_catalog(
     _require(
         module
         .builtin_implementation_count()
-        == 5,
+        == 6,
         (
             "Built-in implementation "
-            "count must be 5."
+            "count must be 6."
         ),
     )
 
@@ -99,12 +99,17 @@ def _validate_builtin_catalog(
         ),
     )
 
+    _require(
+        module.builtin_default_id(PipelineStage.RIG) == "canonical-biped-v1",
+        "Incorrect RIG default.",
+    )
+
     print(
         "Built-in catalog: OK"
     )
 
     print(
-        "  5 implementations"
+        "  6 implementations"
     )
 
     print(
