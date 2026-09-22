@@ -1,0 +1,105 @@
+name: GLB V2 Benchmark
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      asset:
+        description: Static GLB to reconstruct from rendered views
+        type: choice
+        default: avocado
+        options:
+          - avocado
+          - barramundi_fish
+          - boom_box
+          - toy_car
+
+permissions:
+  contents: read
+
+concurrency:
+  group: glb-v2-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  BLENDER_VERSION: "5.2.1"
+  BLENDER_ARCHIVE: "blender-5.2.1-linux-x64.tar.xz"
+  BLENDER_BASE_URL: "https://download.blender.org/release/Blender5.2"
+  BLENDER_ROOT: "${{ github.workspace }}/.blender"
+
+jobs:
+  benchmark:
+    name: GLB import and 2D to 3D score
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Verify pinned V2 assets and metric semantics
+        run: python -m unittest tests.test_v2_assets tests.test_glb_v2_metrics -v
+
+      - name: Build native reconstruction engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S native -B build/native -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DBPT_BUILD_TESTS=OFF
+          cmake --build build/native --parallel
+          mkdir -p native/bin
+          cp build/native/libbpt_core.so native/bin/libbpt_core.so
+
+      - name: Cache Blender
+        id: blender-cache
+        uses: actions/cache@v4
+        with:
+          path: .blender
+          key: blender-linux-x64-${{ env.BLENDER_VERSION }}
+
+      - name: Download Blender
+        if: steps.blender-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${BLENDER_ROOT}"
+          archive="${RUNNER_TEMP}/${BLENDER_ARCHIVE}"
+          curl --fail --show-error --location --retry 5 --retry-all-errors \
+            --connect-timeout 20 --max-time 900 \
+            --output "${archive}" "${BLENDER_BASE_URL}/${BLENDER_ARCHIVE}"
+          xz --test "${archive}"
+          tar -xJf "${archive}" -C "${BLENDER_ROOT}" --strip-components=1
+          rm "${archive}"
+
+      - name: Run GLB V2 reconstruction benchmarks
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            assets=("${{ inputs.asset }}")
+          else
+            assets=(avocado barramundi_fish boom_box toy_car)
+          fi
+          for asset in "${assets[@]}"; do
+            "${BLENDER_ROOT}/blender" --background --factory-startup \
+              --python-exit-code 1 --python scripts/benchmark_glb_v2.py -- \
+              --asset "${asset}" --resolution 48 --min-iou 0.65 \
+              --output "${RUNNER_TEMP}/v2-benchmark/${asset}"
+          done
+
+      - name: Upload V2 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: glb-v2-benchmark
+          path: ${{ runner.temp }}/v2-benchmark
+          if-no-files-found: warn
+          retention-days: 14

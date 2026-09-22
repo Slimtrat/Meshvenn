@@ -560,6 +560,10 @@ Python / Blender validation
 
 The CI also creates installable Blender extension artifacts.
 
+The [GLB reference examples V2](example/v2/README.md) provide seven pinned,
+individually licensed models. A dedicated CI workflow benchmarks reconstruction
+from ten rendered views and publishes per-model silhouette scores.
+
 ---
 
 # Status
