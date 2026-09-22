@@ -25,6 +25,7 @@ on:
 
     paths:
       - "scripts/benchmark_uv_bake_resolution.py"
+      - "scripts/benchmark_uv_bake_support/**"
       - ".github/workflows/uv_bake_benchmark.yml"
 
 
