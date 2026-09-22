@@ -1,0 +1,1 @@
+"""Material comparison generator components."""

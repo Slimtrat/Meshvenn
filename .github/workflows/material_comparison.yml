@@ -715,6 +715,17 @@ jobs:
       # Without it Blender may still return process exit 0.
       # ====================================================
 
+      - name: Smoke-test material comparison rendering
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup --python-exit-code 1 \
+            --python tests/blender_material_comparison_render_smoke.py
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup --python-exit-code 1 \
+            --python tests/blender_material_comparison_pipeline_smoke.py
+
       - name: Generate MATERIAL variants
         shell: bash
         env:
