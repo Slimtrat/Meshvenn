@@ -270,6 +270,12 @@ jobs:
             "native/src/block_mesh.cpp"
             "native/src/block_mesh_builder.cpp"
             "native/src/block_mesh_builder.h"
+            "native/src/surface_nets.cpp"
+            "native/src/surface_nets_internal.h"
+            "native/src/surface_nets_field.cpp"
+            "native/src/surface_nets_cells.cpp"
+            "native/src/surface_nets_edges.cpp"
+            "native/src/surface_nets_result.cpp"
 
             "native/tests/test_visual_hull.cpp"
             "native/tests/test_visual_hull_support.h"
