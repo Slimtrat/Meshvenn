@@ -1,0 +1,93 @@
+{
+  "schema_version": 2,
+  "source": {
+    "repository": "https://github.com/KhronosGroup/glTF-Sample-Assets",
+    "revision": "c6a6bd13ab2b3c685c7903d03561b8a9392f38b8"
+  },
+  "assets": [
+    {
+      "id": "avocado",
+      "file": "assets/Avocado.glb",
+      "license": "CC0-1.0",
+      "credit": "Microsoft",
+      "purpose": "organic geometry and concavity",
+      "meshes": 1,
+      "skins": 0,
+      "animations": 0,
+      "bytes": 8110040,
+      "sha256": "ccc9c3ce56423720b09399c2351537207cd5a65f859f9e6e2f30922762f3abd4"
+    },
+    {
+      "id": "barramundi_fish",
+      "file": "assets/BarramundiFish.glb",
+      "license": "CC0-1.0",
+      "credit": "Microsoft",
+      "purpose": "organic geometry with thin features",
+      "meshes": 1,
+      "skins": 0,
+      "animations": 0,
+      "bytes": 12488144,
+      "sha256": "ecc3bafb6b00f2c8b810863c388e3768a7b7ea0d0335e8cb8c574c266e571f4a"
+    },
+    {
+      "id": "boom_box",
+      "file": "assets/BoomBox.glb",
+      "license": "CC0-1.0",
+      "credit": "Microsoft",
+      "purpose": "hard-surface geometry",
+      "meshes": 1,
+      "skins": 0,
+      "animations": 0,
+      "bytes": 10614184,
+      "sha256": "f8b918445ebdd006768232205a62f5182d2208ca57f84c6ccc084943c0bc8f15"
+    },
+    {
+      "id": "toy_car",
+      "file": "assets/ToyCar.glb",
+      "license": "CC0-1.0",
+      "credit": "Guido Odendahl (model); Eric Chadwick (extensions and scene)",
+      "purpose": "multi-mesh and material-extension stress case",
+      "meshes": 3,
+      "skins": 0,
+      "animations": 0,
+      "bytes": 5422412,
+      "sha256": "01a60862de55cd4b9f3acfab0b0def86451800f9c42467fcd61052c16cb9838c"
+    },
+    {
+      "id": "rigged_simple",
+      "file": "assets/RiggedSimple.glb",
+      "license": "CC-BY-4.0",
+      "credit": "Cesium",
+      "purpose": "minimal skinning and animation import",
+      "meshes": 1,
+      "skins": 1,
+      "animations": 1,
+      "bytes": 15104,
+      "sha256": "3a79dabb67bb0cd598a18d08b954d9d357c27c30672f82ef5d3f4e7fe6ca3401"
+    },
+    {
+      "id": "rigged_figure",
+      "file": "assets/RiggedFigure.glb",
+      "license": "CC-BY-4.0",
+      "credit": "Cesium",
+      "purpose": "character skinning and animation import",
+      "meshes": 1,
+      "skins": 1,
+      "animations": 1,
+      "bytes": 50116,
+      "sha256": "d6be85417d3e256861ee733eea6916093a7af7c79c16366181fd8abcaeb38cf5"
+    },
+    {
+      "id": "fox",
+      "file": "assets/Fox.glb",
+      "license": "CC0-1.0 AND CC-BY-4.0",
+      "credit": "PixelMannen (model); tomkranis (rig and animation); AsoboStudio and scurest (glTF conversion)",
+      "purpose": "quadruped rig and three animation clips",
+      "meshes": 1,
+      "skins": 1,
+      "animations": 3,
+      "bytes": 162852,
+      "sha256": "d97044e701822bac5a62696459b27d7b375aada5de8574ed4362edbba94771f7"
+    }
+  ]
+}
