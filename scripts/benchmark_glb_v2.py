@@ -21,6 +21,7 @@ import bpy
 from scripts.generate_example_native_support.extraction import extract_sheet
 from scripts.generate_example_native_support.pipeline import process_sheet
 from scripts.glb_v2_metrics import score_silhouettes
+from scripts.glb_v2_surface_metrics import compare_glb_surfaces
 from scripts.render_projection_sheet_support.pipeline import main as render_sheet
 from scripts.render_turntable import clear_scene
 from scripts.run_logger import RunLogger
@@ -32,6 +33,8 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--resolution", type=int, default=48)
     parser.add_argument("--min-iou", type=float, default=0.65)
+    parser.add_argument("--min-surface-fscore", type=float, default=0.60)
+    parser.add_argument("--max-extent-error", type=float, default=0.25)
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     return parser.parse_args(argv)
 
@@ -102,6 +105,9 @@ def main() -> None:
     args = arguments()
     if args.resolution < 16 or not 0.0 <= args.min_iou <= 1.0:
         raise ValueError("resolution must be >= 16 and min-iou must be between 0 and 1")
+    if not 0.0 <= args.min_surface_fscore <= 1.0 or not 0.0 <= args.max_extent_error <= 1.0:
+        raise ValueError("3D surface thresholds must be between 0 and 1")
+
     root = REPO_ROOT / "example" / "v2"
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
     assets = manifest["assets"]
@@ -127,21 +133,28 @@ def main() -> None:
         alpha_threshold=0.1, logger=RunLogger(),
     )
     score = score_silhouettes(reference_views, candidate_views)
+    surface = compare_glb_surfaces(root / selected["file"], generated_glb)
     report = {
-        "schema_version": 1,
+        "schema_version": 2,
         "source_asset": selected["id"],
         "source_sha256": selected["sha256"],
         "resolution": args.resolution,
         "profile": "L10",
         "metric": "mean ten-view silhouette IoU",
         "minimum_smoke_iou": args.min_iou,
+        "minimum_surface_fscore": args.min_surface_fscore,
+        "maximum_extent_error": args.max_extent_error,
         "imports": imports,
+        "surface_3d": surface,
         **score,
     }
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"V2 benchmark score: {score['mean_iou']:.4f} ({score['valid_input_views']}/{score['total_views']} valid source views)")
+    print(f"V2 3D F-score: {surface['surface_fscore']:.4f}; Chamfer: {surface['symmetric_chamfer_mean']:.4f}; extent error: {surface['max_extent_error']:.4f}")
     if score["valid_input_views"] != score["total_views"] or score["mean_iou"] < args.min_iou:
         raise AssertionError("V2 source rendering or reconstruction fell below the smoke contract")
+    if surface["surface_fscore"] < args.min_surface_fscore or surface["max_extent_error"] > args.max_extent_error:
+        raise AssertionError("V2 reconstructed 3D surface fell below the quality contract")
 
 
 if __name__ == "__main__":

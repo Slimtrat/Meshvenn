@@ -4,7 +4,11 @@ Seven open-content GLB files from [Khronos glTF Sample Assets](https://github.co
 
 The geometry cases are Avocado, BarramundiFish, BoomBox and ToyCar. The rig cases are RiggedSimple, RiggedFigure and Fox. ToyCar includes material extensions and cameras; Fox is a quadruped and must not be treated as a Canonical Biped V1 success case.
 
-The asset bytes, SHA-256 hashes and glTF structure are checked by `tests/test_v2_assets.py`. The Blender CI imports all seven files, checks mesh, armature and animation data, and benchmarks all four static geometry assets. Each benchmark renders the source GLB into a ten-view projection sheet, reconstructs it with the native engine, renders the result and reports per-view silhouette IoU. The source GLB is never passed to reconstruction. A mean IoU below 0.65 fails CI; invalid or empty input views score zero.
+The asset bytes, SHA-256 hashes and glTF structure are checked by `tests/test_v2_assets.py`. Blender CI imports all seven files and benchmarks the four static geometry assets. Each source GLB is rendered into ten 2D views, which alone feed the native reconstruction. The report measures silhouette IoU (minimum 0.65), plus a symmetric 3D surface Chamfer and F-score (minimum 0.60 at a distance of 5% of the longest model extent). A shape-proportion error above 0.25 also fails CI. The 3D comparison centres each model and normalizes its longest dimension, but never rotates or ICP-aligns it. Empty input views score zero.
+
+The rig benchmark uses RiggedFigure's geometry with its original armature stripped off. Canonical Biped V1 sees only this unrigged mesh; the source skeleton is reserved for scoring 17 corresponding joint positions. CI also checks 100% skin coverage, at most four influences per vertex, normalized weights, localized pose deformation, and GLB export/import preservation. The accepted mean joint-head error is at most 0.15 model heights; the maximum individual error is 0.20. RiggedSimple and Fox remain import/animation cases, not Canonical Biped success fixtures.
+
+These surface and joint metrics measure real 3D output, but do not certify hidden interiors, watertight volume or animation retargeting quality.
 
 ## Licensing and attribution
 
@@ -26,6 +30,7 @@ With Blender and the native library available:
 
 ```sh
 blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_glb_v2.py -- --asset avocado --output output/v2-benchmark
+blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- --output output/v2-rig
 ```
 
-The output contains source and reconstructed sheets, the generated GLB, and `report.json`. The CI uses a conservative smoke threshold; the reported IoU is a measurable baseline, not a claim that the underlying 3D shape is fully recovered from silhouettes.
+The geometry output contains source and reconstructed sheets, the generated GLB, and `report.json` with both silhouette and 3D surface measurements. The rig output contains its own `report.json` and an exported canonical-rig GLB. CI thresholds are regression gates, not a claim that silhouettes fully recover an object's 3D shape or that this rig is production-ready for every character.
