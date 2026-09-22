@@ -890,7 +890,7 @@ jobs:
             implementations/native_visual_hull \
             implementations/sdf_reconstruction \
             implementations/projected_color \
-            implementations/uv_bake 
+            implementations/uv_bake \
             implementations/canonical_rig \
             implementations/projection_images \
             "${PACKAGE_ROOT}/implementations/"
