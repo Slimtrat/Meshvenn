@@ -8,6 +8,8 @@ on:
       - "native/**"
       - "core/native_*.py"
       - "scripts/generate_*native.py"
+      - "scripts/generate_example_native_support/**"
+      - "scripts/generate_all_native_support/**"
       - "example/**/sheets/**"
       - ".github/workflows/native_examples.yml"
 
@@ -325,6 +327,17 @@ jobs:
       # -----------------------------------------------------
       # Show config
       # -----------------------------------------------------
+
+      - name: Smoke test native batch orchestration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tests/blender_generate_all_native_smoke.py
 
       - name: Show generation config
         shell: bash
