@@ -283,6 +283,8 @@ jobs:
             "tests/preview_baseline_cases/compatibility.py"
             "tests/preview_baseline_cases/cli.py"
 
+            "tests/test_generate_all_native.py"
+            "tests/blender_generate_all_native_smoke.py"
             "tests/test_material_architecture.py"
             "tests/test_material_comparison_generator.py"
             "tests/test_material_comparison_render.py"

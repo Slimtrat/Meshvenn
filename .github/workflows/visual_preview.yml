@@ -20,6 +20,8 @@ on:
       - "scripts/render_projection_sheet.py"
       - "scripts/render_projection_sheet_support/**"
       - "scripts/generate_*native.py"
+      - "scripts/generate_example_native_support/**"
+      - "scripts/generate_all_native_support/**"
       - "scripts/preview_baseline.py"
       - "scripts/preview_baseline_support/**"
       - "tests/**"
@@ -37,6 +39,8 @@ on:
       - "scripts/render_projection_sheet.py"
       - "scripts/render_projection_sheet_support/**"
       - "scripts/generate_*native.py"
+      - "scripts/generate_example_native_support/**"
+      - "scripts/generate_all_native_support/**"
       - "scripts/preview_baseline.py"
       - "scripts/preview_baseline_support/**"
       - "tests/**"
@@ -1121,17 +1125,32 @@ jobs:
               BASE_MESH_MODE="surface_nets"
             fi
 
-            BASE_GENERATOR="$(
+            BASE_MATERIAL_CONSTANTS="$(
               git show \
-                "${BASE_SHA}:scripts/generate_example_native.py" \
+                "${BASE_SHA}:core/projected_material/constants.py" \
                 2>/dev/null \
                 || true
             )"
 
-            if printf '%s\n' "${BASE_GENERATOR}" \
-              | grep -q 'projected-color-v1'
-            then
-              BASE_MATERIAL_MODE="projected-color-v1"
+            if [[ -n "${BASE_MATERIAL_CONSTANTS}" ]]; then
+              BASE_MATERIAL_MODE="$(
+                printf '%s\n' "${BASE_MATERIAL_CONSTANTS}" \
+                  | python -c \
+                    'import ast, sys; tree = ast.parse(sys.stdin.read()); print(next(node.value.value for node in tree.body if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "MATERIAL_MODE" for target in node.targets)))'
+              )"
+            else
+              BASE_GENERATOR="$(
+                git show \
+                  "${BASE_SHA}:scripts/generate_example_native.py" \
+                  2>/dev/null \
+                  || true
+              )"
+
+              if printf '%s\n' "${BASE_GENERATOR}" \
+                | grep -q 'projected-color-v1'
+              then
+                BASE_MATERIAL_MODE="projected-color-v1"
+              fi
             fi
 
           fi
@@ -1641,7 +1660,14 @@ jobs:
           if grep \
             -q \
             -- '"--mesh-mode"' \
-            "${MAIN_WORKTREE}/scripts/generate_example_native.py"
+            "${MAIN_WORKTREE}/scripts/generate_example_native.py" \
+            || {
+              [[ -f "${MAIN_WORKTREE}/scripts/generate_example_native_support/cli.py" ]] \
+                && grep \
+                  -q \
+                  -- '"--mesh-mode"' \
+                  "${MAIN_WORKTREE}/scripts/generate_example_native_support/cli.py"
+            }
           then
 
             BASE_MESH_ARGS=(
