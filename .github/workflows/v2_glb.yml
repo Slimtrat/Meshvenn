@@ -91,7 +91,7 @@ jobs:
           for asset in "${assets[@]}"; do
             "${BLENDER_ROOT}/blender" --background --factory-startup \
               --python-exit-code 1 --python scripts/benchmark_glb_v2.py -- \
-              --asset "${asset}" --resolution 48 --min-iou 0.10 \
+              --asset "${asset}" --resolution 48 --min-iou 0.65 \
               --output "${RUNNER_TEMP}/v2-benchmark/${asset}"
           done
 

@@ -4,7 +4,7 @@ Seven open-content GLB files from [Khronos glTF Sample Assets](https://github.co
 
 The geometry cases are Avocado, BarramundiFish, BoomBox and ToyCar. The rig cases are RiggedSimple, RiggedFigure and Fox. ToyCar includes material extensions and cameras; Fox is a quadruped and must not be treated as a Canonical Biped V1 success case.
 
-The asset bytes, SHA-256 hashes and glTF structure are checked by `tests/test_v2_assets.py`. The Blender smoke test imports all seven files, checks mesh, armature and animation data, and runs the Avocado reconstruction benchmark. The benchmark renders a source GLB into the ten-view projection sheet, reconstructs it with the native engine, renders the result and reports per-view silhouette IoU. The source GLB is never passed to reconstruction.
+The asset bytes, SHA-256 hashes and glTF structure are checked by `tests/test_v2_assets.py`. The Blender CI imports all seven files, checks mesh, armature and animation data, and benchmarks all four static geometry assets. Each benchmark renders the source GLB into a ten-view projection sheet, reconstructs it with the native engine, renders the result and reports per-view silhouette IoU. The source GLB is never passed to reconstruction. A mean IoU below 0.65 fails CI; invalid or empty input views score zero.
 
 ## Licensing and attribution
 

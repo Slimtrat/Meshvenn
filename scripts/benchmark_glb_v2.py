@@ -31,7 +31,7 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--asset", default="avocado")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--resolution", type=int, default=48)
-    parser.add_argument("--min-iou", type=float, default=0.10)
+    parser.add_argument("--min-iou", type=float, default=0.65)
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     return parser.parse_args(argv)
 
