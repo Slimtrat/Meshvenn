@@ -404,6 +404,8 @@ MeshVenn accelerates reconstruction, first-pass materials, and now first-pass ri
 The optional **Canonical Biped V1** RIG stage fits an 18-bone A-pose armature to
 an upright biped mesh, assigns normalized skin weights (at most four influences
 per vertex), and exposes semantic bone names for downstream animation systems.
+If Blender's bone-heat binding fails, a deterministic region-aware fallback keeps
+arm, torso, and leg influences on their intended sides while preserving GLB skinning.
 It works from either built-in GEOMETRY implementation through the generic
 surface contract. The rig stage remains disabled by default; enable it in the
 pipeline only for an upright character whose local Z axis is up and whose front

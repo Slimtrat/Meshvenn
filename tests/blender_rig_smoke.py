@@ -44,7 +44,7 @@ def _import_package(package_root: Path):
     package_root = package_root.resolve()
     _require(package_root.is_dir(), f"Package root does not exist: {package_root}")
     for relative in (
-        "__init__.py", "core/canonical_rig.py", "core/rig_quality.py", "core/rig_contracts.py",
+        "__init__.py", "core/canonical_rig.py", "core/rig_quality.py", "core/rig_skinning.py", "core/rig_contracts.py",
         "implementations/canonical_rig/__init__.py",
         "implementations/canonical_rig/implementation.py",
     ):
@@ -258,6 +258,68 @@ def _check_non_biped_warning(package_name: str, implementation):
     print("Non-biped proportions reported without blocking the rig")
 
 
+def _check_regional_fallback(package_name: str, implementation):
+    binding = importlib.import_module(
+        f"{package_name}.implementations.canonical_rig.binding"
+    )
+    original_bone_heat = binding._bind_with_bone_heat
+
+    def _force_fallback(*_args):
+        raise RuntimeError("Forced bone-heat failure for fallback smoke")
+
+    obj = _create_biped_mesh()
+    obj.location = (1.0, -2.0, 0.3)
+    bpy.context.view_layer.update()
+    initial_world = obj.matrix_world.copy()
+    context, _, _ = _context(package_name, obj)
+    try:
+        binding._bind_with_bone_heat = _force_fallback
+        result = implementation.execute(context)
+    finally:
+        binding._bind_with_bone_heat = original_bone_heat
+    _require(result.success, f"Regional fallback failed: {result.message}")
+    rig = result.payload
+    _require(rig.binding_method == "canonical-distance", "Fallback was not exercised")
+    _require(obj.parent is rig.armature_object, "Fallback mesh must be parented for GLB export")
+    _require(all(abs(a - b) < 1e-5 for row_a, row_b in zip(initial_world, obj.matrix_world)
+                 for a, b in zip(row_a, row_b)), "Fallback changed the mesh world transform")
+    _require(result.metadata["skinning_algorithm"] == "regional-distance-v1",
+             "Fallback algorithm was not identified")
+    _require(obj["meshvenn_rig_skinning_algorithm"] == "regional-distance-v1",
+             "Mesh lost fallback algorithm metadata")
+
+    def names_for(vertex):
+        return {
+            obj.vertex_groups[member.group].name
+            for member in vertex.groups if member.weight > 1e-5
+        }
+
+    leg_prefixes = ("thigh.", "shin.", "foot.")
+    for vertex in tuple(obj.data.vertices)[4:8]:
+        _require(not any(name.startswith(leg_prefixes) for name in names_for(vertex)),
+                 f"Torso vertex {vertex.index} was contaminated by leg weights")
+    right_arm = tuple(obj.data.vertices)[16:24]
+    left_arm = tuple(obj.data.vertices)[32:40]
+    for vertex in right_arm:
+        _require(not any(name.endswith(".L") for name in names_for(vertex)),
+                 f"Right arm vertex {vertex.index} received left-side weights")
+
+    rest = _evaluated_positions(obj)
+    pose_bone = rig.armature_object.pose.bones["upper_arm.R"]
+    pose_bone.rotation_mode = "XYZ"
+    pose_bone.rotation_euler[1] = math.radians(35)
+    bpy.context.view_layer.update()
+    posed = _evaluated_positions(obj)
+    right_motion = max(math.dist(rest[v.index], posed[v.index]) for v in right_arm)
+    left_motion = max(math.dist(rest[v.index], posed[v.index]) for v in left_arm)
+    _require(right_motion > .005, "Regional fallback right arm did not deform")
+    _require(left_motion < .001, "Regional fallback deformed the opposite arm")
+    pose_bone.rotation_euler[1] = 0.0
+    bpy.context.view_layer.update()
+    _check_glb_roundtrip(obj, rig.armature_object)
+    print("Regional fallback preserves torso, sided limbs, pose, and GLB skin")
+
+
 def _check_invalid_mesh(package_name: str, implementation):
     obj = _create_empty_mesh()
     context, _, pipeline = _context(package_name, obj)
@@ -301,6 +363,7 @@ def main() -> None:
         implementation = implementation_module.CanonicalRigImplementation()
         _check_success(package_name, implementation)
         _check_non_biped_warning(package_name, implementation)
+        _check_regional_fallback(package_name, implementation)
         _check_invalid_mesh(package_name, implementation)
         print("Canonical Rig Blender smoke: PASS")
     finally:

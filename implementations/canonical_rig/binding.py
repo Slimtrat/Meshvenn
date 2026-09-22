@@ -5,7 +5,8 @@ from __future__ import annotations
 import math
 import bpy
 
-from ...core.canonical_rig import BoneSpec, fallback_weights
+from ...core.canonical_rig import BoneSpec, MeshBounds
+from ...core.rig_skinning import regional_fallback_weights
 
 
 def _selection_snapshot():
@@ -129,19 +130,26 @@ def _bind_with_bone_heat(mesh_object, armature) -> None:
         _restore_selection(active, selected)
 
 
-def _bind_with_distance_weights(mesh_object, armature, bones: tuple[BoneSpec, ...]) -> None:
+def _bind_with_distance_weights(
+    mesh_object, armature, bones: tuple[BoneSpec, ...], bounds: MeshBounds
+) -> None:
     groups = {
         spec.name: mesh_object.vertex_groups.new(name=spec.name)
         for spec in bones if spec.deform
     }
     for vertex in mesh_object.data.vertices:
-        for name, weight in fallback_weights(vertex.co, bones).items():
+        for name, weight in regional_fallback_weights(vertex.co, bones, bounds).items():
             groups[name].add((vertex.index,), weight, "REPLACE")
     modifier = mesh_object.modifiers.new("Meshvenn Skin", "ARMATURE")
     modifier.object = armature
+    world = mesh_object.matrix_world.copy()
+    mesh_object.parent = armature
+    mesh_object.matrix_world = world
 
 
-def bind_mesh(mesh_object, armature, bones: tuple[BoneSpec, ...]) -> tuple[str, int]:
+def bind_mesh(
+    mesh_object, armature, bones: tuple[BoneSpec, ...], bounds: MeshBounds
+) -> tuple[str, int]:
     """Prefer Blender bone heat; use deterministic weights on failure.
 
     Both paths create actual vertex groups and an Armature modifier, so the
@@ -162,7 +170,7 @@ def bind_mesh(mesh_object, armature, bones: tuple[BoneSpec, ...]) -> tuple[str, 
             return "blender-bone-heat", max_influences
         except Exception:
             _remove_new_binding(mesh_object, original_groups, original_modifiers, original_parent, original_world)
-            _bind_with_distance_weights(mesh_object, armature, bones)
+            _bind_with_distance_weights(mesh_object, armature, bones, bounds)
             _normalize_skin_weights(mesh_object, bones)
             max_influences, unweighted = _skin_coverage(mesh_object, bones)
             if unweighted:
