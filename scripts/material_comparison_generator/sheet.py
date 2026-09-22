@@ -219,6 +219,12 @@ def process_sheet(
         )
 
         # -------------------------------------------------
+        manifest["view_diagnostics"] = [
+            view.as_dict() for view in scan_result.view_diagnostics
+        ]
+        for view in scan_result.view_diagnostics:
+            if view.status != "ok":
+                logger.warning("Projection reduced visual hull", **view.as_dict())
         # Compare MATERIAL implementations.
         # -------------------------------------------------
 

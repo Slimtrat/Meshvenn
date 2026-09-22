@@ -22,6 +22,7 @@ from .native_loader import (
     library_filename,
     load_native_library,
 )
+from .native_scan_diagnostics import ViewScanDiagnostic
 from .native_scan import (
     NativeScanner,
     NativeScanResult,
@@ -56,4 +57,5 @@ __all__ = (
     "ScanLevel",
     "ScanSnapshot",
     "SCAN_LEVELS",
+    "ViewScanDiagnostic",
 )

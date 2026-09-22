@@ -151,6 +151,8 @@ jobs:
             "core/native_bridge/models.py"
             "core/native_bridge/runtime.py"
             "core/native_scan.py"
+            "core/native_scan_diagnostics.py"
+            "core/native_scan_trace.py"
             "core/native_mesh_builder.py"
 
             # SDF GEOMETRY
@@ -379,6 +381,9 @@ jobs:
             "tests/test_geometry_surface_contracts.py"
             "tests/test_projection_module_architecture.py"
             "tests/test_native_geometry_architecture.py"
+            "tests/test_native_scan_diagnostics.py"
+            "tests/test_native_scan_trace.py"
+            "tests/blender_native_scan_trace_smoke.py"
             "tests/test_canonical_rig.py"
 
             # SDF GEOMETRY
@@ -1139,6 +1144,8 @@ jobs:
             "core/native_bridge/models.py"
             "core/native_bridge/runtime.py"
             "core/native_scan.py"
+            "core/native_scan_diagnostics.py"
+            "core/native_scan_trace.py"
             "core/native_mesh_builder.py"
 
 
@@ -1597,6 +1604,9 @@ jobs:
             "blender_projection_tool/core/native_bridge/errors.py"
             "blender_projection_tool/core/native_bridge/models.py"
             "blender_projection_tool/core/native_bridge/runtime.py"
+            "blender_projection_tool/core/native_scan.py"
+            "blender_projection_tool/core/native_scan_diagnostics.py"
+            "blender_projection_tool/core/native_scan_trace.py"
 
 
             # -----------------------------------------------
@@ -2083,6 +2093,23 @@ jobs:
             -- \
             --package-root \
               "${PACKAGE_ROOT}"
+
+
+      # Native scan trace: incremental/bulk parity and empty view
+      - name: Blender native scan trace parity smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_ROOT="${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tests/blender_native_scan_trace_smoke.py \
+            -- \
+            --package-root "${PACKAGE_ROOT}"
 
 
       # -----------------------------------------------------

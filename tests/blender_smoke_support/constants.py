@@ -93,6 +93,8 @@ REQUIRED_PACKAGE_FILES = (
     "core/native_bridge/runtime.py",
     "core/native_mesh_builder.py",
     "core/native_scan.py",
+    "core/native_scan_diagnostics.py",
+    "core/native_scan_trace.py",
 
     # SDF geometry
     "core/sdf/__init__.py",

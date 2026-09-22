@@ -1,6 +1,7 @@
 from __future__ import annotations
 import bpy
 from ...core.native_bridge import NativeCore
+from ...core.native_scan_trace import scan_named_projections
 from ...core.native_mesh_builder import (
     create_blender_mesh_from_native,
     shade_smooth_native_object,
@@ -63,21 +64,29 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
     obj: bpy.types.Object | None = None
     try:
         core = NativeCore()
-        volume = core.build_visual_hull(
-            source.native_projections,
+        trace = scan_named_projections(
+            core,
+            ((view.name, view.native_projection) for view in source.views),
             resolution=config.resolution,
             symmetry_x=config.symmetry_x,
             thread_count=config.thread_count,
         )
+        volume = trace.volume
+        view_diagnostics = [view.as_dict() for view in trace.views]
         if volume.occupied_count == 0:
             return StageExecutionResult.failed_result(
                 stage=PipelineStage.GEOMETRY,
                 implementation_id=IMPLEMENTATION_ID,
-                message="The projections produced an empty visual hull.",
+                message=(
+                    "The projections produced an empty visual hull."
+                    + (f" View {trace.emptying_view} emptied it." if trace.emptying_view else "")
+                ),
                 metadata={
                     "projection_count": source.projection_count,
                     "empty_masks": source.empty_mask_count,
                     "resolution": config.resolution,
+                    "view_diagnostics": view_diagnostics,
+                    "emptying_view": trace.emptying_view,
                 },
             )
         native_mesh = core.build_surface_mesh(
@@ -131,6 +140,7 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
             "index_count": native_mesh.index_count,
             "polygon_count": native_mesh.polygon_count,
             "normalization_scale": normalization_scale,
+            "sharp_drop_view_count": len(trace.sharp_drop_views),
         }
         output_metadata = {
             "mesh_mode": config.mesh_mode,
@@ -139,6 +149,8 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
             "normalized_height": config.normalize_height,
             "target_height": config.target_height if config.normalize_height else None,
             "native_local_coordinates_preserved": True,
+            "view_diagnostics": view_diagnostics,
+            "sharp_drop_views": list(trace.sharp_drop_views),
             "projection_convention": projection_space.convention.value,
         }
         output = NativeVisualHullOutput(
@@ -162,6 +174,7 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
         context.metadata["geometry_contract"] = "surface-output-v1"
         context.metadata["geometry_mesh_mode"] = config.mesh_mode
         context.metadata["geometry_occupied_voxels"] = volume.occupied_count
+        context.metadata["geometry_view_diagnostics"] = view_diagnostics
         context.metadata["geometry_projection_space"] = {
             "width": projection_space.width,
             "depth": projection_space.depth,
@@ -175,7 +188,14 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
             stage=PipelineStage.GEOMETRY,
             implementation_id=IMPLEMENTATION_ID,
             payload=output,
-            message=f"Native visual hull generated: {volume.occupied_count} voxels, {native_mesh.vertex_count} vertices, {native_mesh.polygon_count} polygons.",
+            message=(
+                f"Native visual hull generated: {volume.occupied_count} voxels, "
+                f"{native_mesh.vertex_count} vertices, {native_mesh.polygon_count} polygons."
+                + (
+                    f" Check sharp-drop view(s): {', '.join(trace.sharp_drop_views)}."
+                    if trace.sharp_drop_views else ""
+                )
+            ),
             metrics={
                 "projections": source.projection_count,
                 "resolution": config.resolution,
@@ -184,6 +204,7 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
                 "indices": native_mesh.index_count,
                 "polygons": native_mesh.polygon_count,
                 "normalization_scale": normalization_scale,
+                "sharp_drop_view_count": len(trace.sharp_drop_views),
             },
             metadata={
                 "object_name": created_object.name,
@@ -215,6 +236,8 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
                     config.target_height if config.normalize_height else None
                 ),
                 "native_local_coordinates_preserved": True,
+                "view_diagnostics": view_diagnostics,
+                "sharp_drop_views": list(trace.sharp_drop_views),
             },
         )
     except Exception:

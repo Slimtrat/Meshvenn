@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
+from .native_scan_diagnostics import ViewScanDiagnostic
 from .native_bridge import (
     NativeCore,
     NativeMesh,
@@ -129,6 +130,7 @@ class NativeScanResult:
     snapshots: dict[str, ScanSnapshot]
     requested_levels: tuple[str, ...]
     available_views: tuple[str, ...]
+    view_diagnostics: tuple[ViewScanDiagnostic, ...] = ()
 
     @property
     def generated_levels(
@@ -239,6 +241,8 @@ class NativeScanner:
         ] = {}
 
         applied_views: list[str] = []
+        view_diagnostics: list[ViewScanDiagnostic] = []
+        preceding_voxels = resolution ** 3
 
         with self.core.create_session(
             resolution=resolution,
@@ -265,6 +269,16 @@ class NativeScanner:
                         projection
                     )
                 )
+
+                view_diagnostics.append(
+                    ViewScanDiagnostic(
+                        view=view_name,
+                        order_index=len(applied_views),
+                        before=preceding_voxels,
+                        after=surviving_voxels,
+                    )
+                )
+                preceding_voxels = surviving_voxels
 
                 applied_views.append(
                     view_name
@@ -334,6 +348,7 @@ class NativeScanner:
             available_views=(
                 available_views
             ),
+            view_diagnostics=tuple(view_diagnostics),
         )
 
     @staticmethod
