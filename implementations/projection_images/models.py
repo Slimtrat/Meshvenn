@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ...core.image_mask import BinaryMask
 from ...core.projection_alignment import ProjectionAlignment
@@ -20,10 +20,10 @@ class PreparedProjectionView:
     elevation_degrees: float
     flip_x: bool
     weight: float
-    alignment: ProjectionAlignment
     mask: BinaryMask
     native_projection: NativeProjection
     material_view: ProjectedMaterialView
+    alignment: ProjectionAlignment = field(default_factory=ProjectionAlignment)
 
     @property
     def mask_pixels(self) -> int:

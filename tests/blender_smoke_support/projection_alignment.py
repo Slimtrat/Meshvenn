@@ -46,6 +46,17 @@ def _validate_projection_alignment(package_name: str, settings) -> None:
                  "Silhouette did not shift by one source pixel")
         _require(neutral.mask.get(2, 2) and not neutral.mask.get(3, 2),
                  "Neutral alignment changed the source mask")
+        legacy_view = type(neutral)(
+            name=neutral.name, image_name=neutral.image_name,
+            width=neutral.width, height=neutral.height,
+            azimuth_degrees=neutral.azimuth_degrees,
+            elevation_degrees=neutral.elevation_degrees,
+            flip_x=neutral.flip_x, weight=neutral.weight,
+            mask=neutral.mask, native_projection=neutral.native_projection,
+            material_view=neutral.material_view,
+        )
+        _require(legacy_view.alignment.is_identity,
+                 "Legacy prepared-view constructors must default to neutral alignment")
         _require(aligned.native_projection.mask is aligned.mask,
                  "Native geometry did not receive the aligned mask")
         _require(aligned.material_view.mask is aligned.mask,
