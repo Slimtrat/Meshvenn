@@ -3,12 +3,12 @@ import math
 from dataclasses import dataclass
 from typing import Any
 import bpy
-from ..core.geometry_contracts import GeometrySurfaceOutput, require_geometry_surface_output
-from ..core.material_blend import MaterialBlendConfig
-from ..core.material_visibility import MeshVisibilityTester
-from ..core.pipeline_contracts import ImplementationAvailability, ImplementationDescriptor, PipelineContext, PipelineStage, StageExecutionResult
-from ..core.projected_material import DEFAULT_FALLBACK_COLOR, blend_projected_color
-from ..core.uv_bake import SurfaceColorSample, UVBakeConfig, UVBakeResult, UVBakeTriangle, UVBakeVertex, bake_uv_texture
+from ...core.geometry_contracts import GeometrySurfaceOutput, require_geometry_surface_output
+from ...core.material_blend import MaterialBlendConfig
+from ...core.material_visibility import MeshVisibilityTester
+from ...core.pipeline_contracts import ImplementationAvailability, ImplementationDescriptor, PipelineContext, PipelineStage, StageExecutionResult
+from ...core.projected_material import DEFAULT_FALLBACK_COLOR, blend_projected_color
+from ...core.uv_bake import SurfaceColorSample, UVBakeConfig, UVBakeResult, UVBakeTriangle, UVBakeVertex, bake_uv_texture
 from . import constants as _dependency_0
 from . import config as _dependency_1
 from . import diagnostics as _dependency_2

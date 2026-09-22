@@ -7,28 +7,28 @@ from typing import Any
 
 import bpy
 
-from ..core.geometry_contracts import (
+from ...core.geometry_contracts import (
     GeometrySurfaceOutput,
     require_geometry_surface_output,
 )
-from ..core.material_blend import (
+from ...core.material_blend import (
     MaterialBlendConfig,
 )
-from ..core.material_visibility import (
+from ...core.material_visibility import (
     MeshVisibilityTester,
 )
-from ..core.pipeline_contracts import (
+from ...core.pipeline_contracts import (
     ImplementationAvailability,
     ImplementationDescriptor,
     PipelineContext,
     PipelineStage,
     StageExecutionResult,
 )
-from ..core.projected_material import (
+from ...core.projected_material import (
     DEFAULT_FALLBACK_COLOR,
     blend_projected_color,
 )
-from ..core.uv_bake import (
+from ...core.uv_bake import (
     SurfaceColorSample,
     UVBakeConfig,
     UVBakeResult,

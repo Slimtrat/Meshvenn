@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import importlib
 import traceback
 from pathlib import Path
+from types import SimpleNamespace
 
 import bpy
 
@@ -9,7 +11,7 @@ from .blender_data import (_cleanup_datablock, _create_test_mesh, _remove_named_
 from .core_bake import _run_core_bake
 from .material_validation import _validate_blender_material
 from .package_loading import _import_package, _validate_package_tree
-from .support import _parse_arguments, _section
+from .support import _parse_arguments, _require, _section
 from .texture_validation import (_validate_blender_image, _validate_texture_buffer)
 from .triangle_adapter import _validate_triangle_adapter
 
@@ -74,6 +76,15 @@ def main() -> None:
             )
         )
 
+        triangles_module = importlib.import_module(f"{package_name}.implementations.uv_bake.triangles")
+        assets_module = importlib.import_module(f"{package_name}.implementations.uv_bake.assets")
+        metadata_module = importlib.import_module(f"{package_name}.implementations.uv_bake.metadata")
+        implementation_module = SimpleNamespace(
+            _build_uv_triangles=triangles_module._build_uv_triangles,
+            _create_baked_image=assets_module._create_baked_image,
+            _create_baked_material=assets_module._create_baked_material,
+            _assign_material=metadata_module._assign_material,
+        )
         _section(
             "modules"
         )
