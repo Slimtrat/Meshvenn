@@ -29,6 +29,10 @@ add_library(
     src/block_mesh.cpp
     src/block_mesh_builder.cpp
     src/surface_nets.cpp
+    src/surface_nets_field.cpp
+    src/surface_nets_cells.cpp
+    src/surface_nets_edges.cpp
+    src/surface_nets_result.cpp
 )
 
 target_include_directories(
