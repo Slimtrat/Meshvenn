@@ -79,15 +79,21 @@ jobs:
           tar -xJf "${archive}" -C "${BLENDER_ROOT}" --strip-components=1
           rm "${archive}"
 
-      - name: Run GLB V2 reconstruction benchmark
+      - name: Run GLB V2 reconstruction benchmarks
         shell: bash
         run: |
           set -euo pipefail
-          "${BLENDER_ROOT}/blender" --background --factory-startup \
-            --python-exit-code 1 --python scripts/benchmark_glb_v2.py -- \
-            --asset "${{ inputs.asset || 'avocado' }}" \
-            --resolution 48 --min-iou 0.10 \
-            --output "${RUNNER_TEMP}/v2-benchmark"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            assets=("${{ inputs.asset }}")
+          else
+            assets=(avocado barramundi_fish boom_box toy_car)
+          fi
+          for asset in "${assets[@]}"; do
+            "${BLENDER_ROOT}/blender" --background --factory-startup \
+              --python-exit-code 1 --python scripts/benchmark_glb_v2.py -- \
+              --asset "${asset}" --resolution 48 --min-iou 0.10 \
+              --output "${RUNNER_TEMP}/v2-benchmark/${asset}"
+          done
 
       - name: Upload V2 evidence
         if: always()
