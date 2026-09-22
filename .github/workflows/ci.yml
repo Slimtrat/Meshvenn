@@ -284,6 +284,10 @@ jobs:
             "tests/preview_baseline_cases/cli.py"
 
             "tests/test_material_architecture.py"
+            "tests/test_material_comparison_generator.py"
+            "tests/test_material_comparison_render.py"
+            "tests/blender_material_comparison_render_smoke.py"
+            "tests/blender_material_comparison_pipeline_smoke.py"
             "tests/test_material_blend/__init__.py"
             "tests/test_material_blend/helpers.py"
             "tests/test_material_blend/test_primitives_and_config.py"
