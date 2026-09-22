@@ -138,6 +138,7 @@ if(BPT_BUILD_TESTS)
                 ${CMAKE_CURRENT_SOURCE_DIR}/tests
         )
 
+        # Release builds define NDEBUG globally; test assertions must still run.
         if(MSVC)
 
             target_compile_options(
@@ -146,6 +147,7 @@ if(BPT_BUILD_TESTS)
                 PRIVATE
                     /W4
                     /permissive-
+                    /UNDEBUG
             )
 
         else()
@@ -157,6 +159,7 @@ if(BPT_BUILD_TESTS)
                     -Wall
                     -Wextra
                     -Wpedantic
+                    -UNDEBUG
             )
 
         endif()
