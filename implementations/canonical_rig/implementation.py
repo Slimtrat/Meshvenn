@@ -15,6 +15,7 @@ from ...core.pipeline_contracts import (
     PipelineStage,
     StageExecutionResult,
 )
+from ...core.rig_quality import assess_biped_geometry
 from ...core.rig_contracts import RigOutput
 from .binding import _remove_new_binding, bind_mesh, create_armature
 
@@ -38,6 +39,7 @@ def _require_mesh(context: PipelineContext):
 def _prepare(context: PipelineContext):
     geometry, mesh = _require_mesh(context)
     bounds = bounds_from_vertices(vertex.co for vertex in mesh.data.vertices)
+    quality = assess_biped_geometry((vertex.co for vertex in mesh.data.vertices), bounds)
     bones = fit_canonical_biped(bounds)
     existing = {group.name for group in mesh.vertex_groups}
     conflicts = existing.intersection(spec.name for spec in bones)
@@ -46,7 +48,7 @@ def _prepare(context: PipelineContext):
             "Existing vertex groups conflict with Canonical Biped bones: "
             + ", ".join(sorted(conflicts))
         )
-    return geometry, mesh, bounds, bones
+    return geometry, mesh, bounds, bones, quality
 
 
 class CanonicalRigImplementation:
@@ -69,7 +71,7 @@ class CanonicalRigImplementation:
 
     def availability(self, context: PipelineContext) -> ImplementationAvailability:
         try:
-            geometry, mesh, bounds, _ = _prepare(context)
+            geometry, mesh, bounds, _, quality = _prepare(context)
         except Exception as exc:
             return ImplementationAvailability.unavailable(str(exc))
         return ImplementationAvailability.ready_state(details={
@@ -77,11 +79,12 @@ class CanonicalRigImplementation:
             "vertex_count": len(mesh.data.vertices),
             "mesh_height": bounds.height,
             "preset": "canonical-biped-v1",
+            "rig_quality": quality.as_dict(),
         })
 
     def execute(self, context: PipelineContext) -> StageExecutionResult:
         try:
-            geometry, mesh, _, bones = _prepare(context)
+            geometry, mesh, _, bones, quality = _prepare(context)
         except Exception as exc:
             return StageExecutionResult.failed_result(
                 stage=PipelineStage.RIG,
@@ -94,7 +97,8 @@ class CanonicalRigImplementation:
         original_modifiers = {modifier.name for modifier in mesh.modifiers}
         original_parent = mesh.parent
         original_world = mesh.matrix_world.copy()
-        original_metadata = {key: mesh[key] for key in ("meshvenn_rig_implementation", "meshvenn_rig_semantics") if key in mesh}
+        rig_properties = ("meshvenn_rig_implementation", "meshvenn_rig_semantics", "meshvenn_rig_quality")
+        original_metadata = {key: mesh[key] for key in rig_properties if key in mesh}
         try:
             armature = create_armature(mesh, bones)
             binding_method, max_influences = bind_mesh(mesh, armature, bones)
@@ -104,6 +108,7 @@ class CanonicalRigImplementation:
                 "deform_bone_count": sum(spec.deform for spec in bones),
                 "vertex_count": len(mesh.data.vertices),
                 "max_influences_per_vertex": max_influences,
+                "rig_quality_warning_count": len(quality.warnings),
             }
             output = RigOutput(
                 geometry=geometry,
@@ -116,26 +121,33 @@ class CanonicalRigImplementation:
             )
             mesh["meshvenn_rig_implementation"] = IMPLEMENTATION_ID
             mesh["meshvenn_rig_semantics"] = json.dumps(semantic_bones, sort_keys=True)
+            mesh["meshvenn_rig_quality"] = json.dumps(quality.as_dict(), sort_keys=True)
             armature["meshvenn_rig_implementation"] = IMPLEMENTATION_ID
             context.metadata["rig_object_name"] = armature.name
             context.metadata["rig_binding_method"] = binding_method
+            context.metadata["rig_quality"] = quality.as_dict()
+            warning_suffix = (
+                f" Geometry warnings: {', '.join(quality.warnings)}."
+                if quality.warnings else ""
+            )
             return StageExecutionResult.succeeded(
                 stage=PipelineStage.RIG,
                 implementation_id=IMPLEMENTATION_ID,
                 payload=output,
-                message=f"Canonical rig created with {len(bones)} bones and {binding_method} skinning.",
+                message=f"Canonical rig created with {len(bones)} bones and {binding_method} skinning.{warning_suffix}",
                 metrics=metrics,
                 metadata={
                     "armature_name": armature.name,
                     "mesh_name": mesh.name,
                     "geometry_implementation": geometry.implementation_id,
                     "binding_method": binding_method,
+                    "rig_quality": quality.as_dict(),
                 },
             )
         except Exception as exc:
             if armature is not None:
                 _remove_new_binding(mesh, original_groups, original_modifiers, original_parent, original_world)
-                for key in ("meshvenn_rig_implementation", "meshvenn_rig_semantics"):
+                for key in rig_properties:
                     if key in original_metadata:
                         mesh[key] = original_metadata[key]
                     elif key in mesh:

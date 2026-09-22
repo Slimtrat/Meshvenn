@@ -402,7 +402,10 @@ It works from either built-in GEOMETRY implementation through the generic
 surface contract. The rig stage remains disabled by default; enable it in the
 pipeline only for an upright character whose local Z axis is up and whose front
 faces -Y. A GLB export can carry the armature and skin when both mesh and
-armature are selected.
+armature are selected. The stage reports non-blocking rig-quality diagnostics
+(height-to-width ratio, lateral envelope asymmetry, and bilateral vertex
+coverage) in the stage metadata and on the mesh. Warnings flag risky input;
+they are not anatomical validation and do not prevent rig generation.
 
 This is an envelope fit, not anatomical inference or motion generation.
 Asymmetric poses, non-bipeds, facial rigs, and production retopology still need
