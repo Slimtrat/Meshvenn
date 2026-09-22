@@ -442,7 +442,23 @@ Meshvenn/
 │   ├── native_scan.py
 │   ├── presheet_layout.py
 │   ├── projected_material.py
-│   └── projection_math.py
+│   └── projection_math/
+│       ├── __init__.py
+│       ├── coordinates.py
+│       ├── models.py
+│       ├── projection.py
+│       └── vectors.py
+│
+├── implementations/
+│   ├── __init__.py
+│   ├── catalog.py
+│   ├── registration.py
+│   └── projection_images/
+│       ├── __init__.py
+│       ├── context.py
+│       ├── implementation.py
+│       ├── models.py
+│       └── preparation.py
 │
 ├── native/
 │   ├── include/
@@ -454,10 +470,10 @@ Meshvenn/
 ├── example/
 ├── scripts/
 │
-├── operators.py
-├── properties.py
+├── operators/
+├── properties/
 ├── translations.py
-├── ui.py
+├── ui/
 ├── version.py
 ├── blender_manifest.toml
 ├── LICENSE
