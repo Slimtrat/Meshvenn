@@ -73,6 +73,7 @@ REQUIRED_PACKAGE_FILES = (
     "core/geometry_contracts/surface.py",
     "core/geometry_contracts/validation.py",
     "core/canonical_rig.py",
+    "core/rig_quality.py",
     "core/rig_contracts.py",
 
     # Input / projection

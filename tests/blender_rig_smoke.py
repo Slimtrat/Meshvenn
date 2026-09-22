@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
 import math
 import sys
 import tempfile
@@ -43,7 +44,7 @@ def _import_package(package_root: Path):
     package_root = package_root.resolve()
     _require(package_root.is_dir(), f"Package root does not exist: {package_root}")
     for relative in (
-        "__init__.py", "core/canonical_rig.py", "core/rig_contracts.py",
+        "__init__.py", "core/canonical_rig.py", "core/rig_quality.py", "core/rig_contracts.py",
         "implementations/canonical_rig/__init__.py",
         "implementations/canonical_rig/implementation.py",
     ):
@@ -132,6 +133,9 @@ def _check_success(package_name: str, implementation):
     bpy.context.view_layer.update()
     initial_world = obj.matrix_world.copy()
     context, geometry, pipeline = _context(package_name, obj)
+    availability = implementation.availability(context)
+    _require(availability.ready, f"Valid biped unavailable: {availability.reason}")
+    _require("rig_quality" in availability.details, "Availability omitted rig quality")
     result = implementation.execute(context)
     _require(result.success, f"Rig stage failed: {result.message}")
     _require(result.stage == pipeline.PipelineStage.RIG, "Incorrect result stage")
@@ -140,6 +144,14 @@ def _check_success(package_name: str, implementation):
     _require(isinstance(rig, rig_contracts.RigOutput), "Result payload is not RigOutput")
     _require((rig.schema_version, rig.up_axis, rig.forward_axis) == (1, "Z", "-Y"), "Rig axes or schema changed")
     _require(rig.geometry is geometry and rig.blender_object is obj, "Output lost source mesh")
+    quality = result.metadata.get("rig_quality")
+    _require(isinstance(quality, dict) and quality["schema_version"] == 1,
+             "Rig result omitted geometry assessment")
+    _require(quality == availability.details["rig_quality"], "Availability and result quality differ")
+    _require(quality == context.metadata.get("rig_quality"), "Context lost rig quality")
+    _require(quality == json.loads(obj["meshvenn_rig_quality"]), "Mesh lost rig quality")
+    _require(rig.metrics["rig_quality_warning_count"] == len(quality["warnings"]),
+             "Rig warning count disagrees with assessment")
 
     _require(all(abs(a - b) < 1e-5 for row_a, row_b in zip(initial_world, obj.matrix_world)
                  for a, b in zip(row_a, row_b)), "Rigging changed the mesh world transform")
@@ -202,11 +214,48 @@ def _check_glb_roundtrip(mesh, armature) -> None:
     imported_arms = [obj for obj in imported if obj.type == "ARMATURE"]
     imported_meshes = [obj for obj in imported if obj.type == "MESH"]
     _require(imported_arms and imported_meshes, "GLB lost its mesh or armature")
-    _require(any(
-        modifier.type == "ARMATURE" and modifier.object in imported_arms
-        for obj in imported_meshes for modifier in obj.modifiers
-    ), "GLB lost the skin binding")
-    print("GLB export/import preserved armature and skin binding")
+    imported_armature = imported_arms[0]
+    _require(set(imported_armature.data.bones.keys()) == EXPECTED_BONES,
+             "GLB changed the canonical bone set")
+    _require(imported_armature.data.bones["forearm.L"].parent.name == "upper_arm.L",
+             "GLB changed arm hierarchy")
+    bound_meshes = [obj for obj in imported_meshes if any(
+        modifier.type == "ARMATURE" and modifier.object is imported_armature
+        for modifier in obj.modifiers
+    )]
+    _require(bound_meshes, "GLB lost the skin binding")
+    imported_mesh = max(bound_meshes, key=lambda obj: len(obj.data.vertices))
+    imported_groups = {group.index for group in imported_mesh.vertex_groups
+                       if group.name in EXPECTED_BONES and group.name != "root"}
+    _require(imported_groups, "GLB lost canonical vertex groups")
+    for vertex in imported_mesh.data.vertices:
+        weights = [member.weight for member in vertex.groups
+                   if member.group in imported_groups and member.weight > 0]
+        _require(weights, f"GLB left vertex {vertex.index} unskinned")
+        _require(len(weights) <= 4, f"GLB added too many influences to vertex {vertex.index}")
+        _require(abs(sum(weights) - 1.0) < .02,
+                 f"GLB changed weight normalization at vertex {vertex.index}")
+    print("GLB export/import preserved canonical bones, hierarchy, and skin weights")
+
+
+def _check_non_biped_warning(package_name: str, implementation):
+    vertices, faces = [], []
+    _add_box(vertices, faces, -3.0, 3.0, -.2, .2, 0.0, .4)
+    mesh = bpy.data.meshes.new("MeshvennRigSmokeWideMesh")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.update()
+    obj = bpy.data.objects.new("MeshvennRigSmokeWide", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    context, _, _ = _context(package_name, obj)
+    availability = implementation.availability(context)
+    _require(availability.ready, "Wide mesh should produce diagnostics, not be rejected")
+    _require("low_height_to_width" in availability.details["rig_quality"]["warnings"],
+             "Wide mesh failed to trigger proportion warning")
+    result = implementation.execute(context)
+    _require(result.success, f"Warning should not block rigging: {result.message}")
+    _require("low_height_to_width" in result.metadata["rig_quality"]["warnings"],
+             "Rig result lost wide-mesh warning")
+    print("Non-biped proportions reported without blocking the rig")
 
 
 def _check_invalid_mesh(package_name: str, implementation):
@@ -251,6 +300,7 @@ def main() -> None:
         )
         implementation = implementation_module.CanonicalRigImplementation()
         _check_success(package_name, implementation)
+        _check_non_biped_warning(package_name, implementation)
         _check_invalid_mesh(package_name, implementation)
         print("Canonical Rig Blender smoke: PASS")
     finally:
