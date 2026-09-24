@@ -73,6 +73,7 @@ def animated_glb_roundtrip(
         export_format="GLB",
         use_selection=True,
         export_animations=True,
+        export_animation_mode="ACTIVE_ACTIONS",
     )
     if "FINISHED" not in result or not path.is_file():
         raise AssertionError("Animated character GLB export failed")

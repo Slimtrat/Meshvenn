@@ -25,9 +25,12 @@ from scripts.benchmark_rig_v2 import (
     EXPECTED_BONES,
     _package_modules,
     _pose_response,
-    _roundtrip,
     _skin_rows,
     _unrigged_world_mesh,
+)
+from scripts.glb_v2_animation_fixture import (
+    animated_glb_roundtrip,
+    inspect_isolated_reference,
 )
 from scripts.generate_example_native_support.extraction import extract_sheet
 from scripts.glb_v2_character_support import assert_unrigged_mesh, normalized_landmarks
@@ -42,10 +45,11 @@ def arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--resolution", type=int, default=48)
-    parser.add_argument("--min-iou", type=float, default=0.50)
-    parser.add_argument("--min-surface-fscore", type=float, default=0.45)
-    parser.add_argument("--max-mean-joint-error", type=float, default=0.20)
-    parser.add_argument("--max-joint-error", type=float, default=0.30)
+    parser.add_argument("--min-iou", type=float, default=0.65)
+    parser.add_argument("--min-surface-fscore", type=float, default=0.85)
+    parser.add_argument("--max-extent-error", type=float, default=0.25)
+    parser.add_argument("--max-mean-joint-error", type=float, default=0.10)
+    parser.add_argument("--max-joint-error", type=float, default=0.16)
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     return parser.parse_args(argv)
 
@@ -54,7 +58,7 @@ def _world_vertices(mesh: bpy.types.Object) -> list[tuple[float, float, float]]:
     return [tuple(mesh.matrix_world @ vertex.co) for vertex in mesh.data.vertices]
 
 
-def _export_unrigged_reference(source_path: Path, output_path: Path) -> tuple[dict, list]:
+def _export_unrigged_reference(source_path: Path, output_path: Path) -> tuple[dict, list, dict]:
     clear_scene()
     bpy.ops.import_scene.gltf(filepath=str(source_path.resolve()))
     armature = next(obj for obj in bpy.context.scene.objects if obj.type == "ARMATURE")
@@ -80,7 +84,8 @@ def _export_unrigged_reference(source_path: Path, output_path: Path) -> tuple[di
     )
     if "FINISHED" not in result or not output_path.is_file():
         raise AssertionError("Could not create isolated unrigged reference GLB")
-    return reference_heads, reference_vertices
+    isolation = inspect_isolated_reference(output_path)
+    return reference_heads, reference_vertices, isolation
 
 
 def _rig_reconstruction(generated_glb: Path, output: Path, resolution: int) -> dict:
@@ -119,7 +124,7 @@ def _rig_reconstruction(generated_glb: Path, output: Path, resolution: int) -> d
     candidate_vertices = _world_vertices(mesh)
     weights = skin_weight_summary(_skin_rows(mesh, rig.armature_object))
     pose = _pose_response(mesh, rig.armature_object)
-    roundtrip = _roundtrip(mesh, rig.armature_object, output / "character_rigged.glb")
+    roundtrip = animated_glb_roundtrip(mesh, rig.armature_object, output / "character_animated.glb")
     return {
         "rig_implementation": rig.implementation_id,
         "binding_method": rig.binding_method,
@@ -135,7 +140,7 @@ def _rig_reconstruction(generated_glb: Path, output: Path, resolution: int) -> d
 def main() -> None:
     args = arguments()
     thresholds = (
-        args.min_iou, args.min_surface_fscore,
+        args.min_iou, args.min_surface_fscore, args.max_extent_error,
         args.max_mean_joint_error, args.max_joint_error,
     )
     if args.resolution < 16 or any(not 0.0 <= value <= 1.0 for value in thresholds):
@@ -146,7 +151,9 @@ def main() -> None:
     asset = next(item for item in manifest["assets"] if item["id"] == "rigged_figure")
     source_path = REPO_ROOT / "example" / "v2" / asset["file"]
     isolated_path = output / "reference_unrigged.glb"
-    reference_heads, reference_vertices = _export_unrigged_reference(source_path, isolated_path)
+    reference_heads, reference_vertices, isolation = _export_unrigged_reference(
+        source_path, isolated_path
+    )
 
     template = output / "blank_template.png"
     source_sheet = output / "source_sheet.png"
@@ -174,11 +181,14 @@ def main() -> None:
     acceptance = {
         "minimum_silhouette_iou": args.min_iou,
         "minimum_surface_fscore": args.min_surface_fscore,
+        "maximum_extent_error": args.max_extent_error,
         "maximum_mean_joint_error_in_heights": args.max_mean_joint_error,
         "maximum_joint_error_in_heights": args.max_joint_error,
         "minimum_skin_coverage": 1.0,
         "maximum_influences_per_vertex": 4,
         "maximum_weight_sum_error": 0.02,
+        "minimum_left_pose_displacement": 0.0025,
+        "maximum_right_pose_displacement": 0.001,
     }
     report = {
         "schema_version": 1,
@@ -186,6 +196,7 @@ def main() -> None:
         "source_asset": asset["id"],
         "source_sha256": asset["sha256"],
         "source_rig_isolation": {
+            **isolation,
             "armature_passed_to_reconstruction": False,
             "skin_weights_passed_to_reconstruction": False,
             "reference_armature_used_for": "normalized landmark scoring only",
@@ -206,7 +217,11 @@ def main() -> None:
     )
     if silhouette["valid_input_views"] != silhouette["total_views"]:
         raise AssertionError("Character source rendering contains invalid views")
-    if silhouette["mean_iou"] < args.min_iou or surface["surface_fscore"] < args.min_surface_fscore:
+    if (
+        silhouette["mean_iou"] < args.min_iou
+        or surface["surface_fscore"] < args.min_surface_fscore
+        or surface["max_extent_error"] > args.max_extent_error
+    ):
         raise AssertionError("Character reconstruction fell below its geometry contract")
     if landmarks["mean_error_in_heights"] > args.max_mean_joint_error:
         raise AssertionError("Character mean joint placement fell below its rig contract")
@@ -218,8 +233,21 @@ def main() -> None:
         raise AssertionError("Character skinning coverage or influence count regressed")
     if weights["max_weight_sum_error"] > 0.02:
         raise AssertionError("Character skin weights are not normalized")
+    pose = rig["pose_response"]
+    if pose["left_mean_displacement"] <= acceptance["minimum_left_pose_displacement"]:
+        raise AssertionError("Character pose did not deform the requested arm")
+    if pose["right_mean_displacement"] > acceptance["maximum_right_pose_displacement"]:
+        raise AssertionError("Character pose leaked into the opposite arm")
     if roundtrip["weighted_fraction"] < 1.0 or roundtrip["max_influences_per_vertex"] > 4:
         raise AssertionError("Character GLB roundtrip lost usable skinning")
+    if roundtrip["max_weight_sum_error"] > acceptance["maximum_weight_sum_error"]:
+        raise AssertionError("Character GLB roundtrip lost normalized skin weights")
+    if roundtrip["animation_count"] < 1:
+        raise AssertionError("Character GLB roundtrip lost its animation")
+    if roundtrip["left_mean_displacement"] <= acceptance["minimum_left_pose_displacement"]:
+        raise AssertionError("Imported character animation did not deform the requested arm")
+    if roundtrip["right_mean_displacement"] > acceptance["maximum_right_pose_displacement"]:
+        raise AssertionError("Imported character animation leaked into the opposite arm")
 
 
 if __name__ == "__main__":
