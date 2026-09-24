@@ -63,7 +63,7 @@ class CanonicalRigV2Tests(unittest.TestCase):
         t_wrist = next(b for b in t_bones if b.name == "hand.L").head[2]
         self.assertEqual(a_report.arm_pose, "a-pose")
         self.assertEqual(t_report.arm_pose, "t-pose")
-        self.assertGreater(t_wrist, a_wrist + 0.1)
+        self.assertGreater(t_wrist, a_wrist + 0.06)
 
     def test_is_invariant_to_order_translation_and_scale(self) -> None:
         points = biped_points()

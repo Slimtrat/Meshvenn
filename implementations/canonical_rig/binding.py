@@ -179,3 +179,31 @@ def bind_mesh(
     except Exception:
         _remove_new_binding(mesh_object, original_groups, original_modifiers, original_parent, original_world)
         raise
+
+
+def bind_mesh_deterministic(
+    mesh_object, armature, bones: tuple[BoneSpec, ...], bounds: MeshBounds
+) -> tuple[str, int]:
+    """Bind with the deterministic regional solver used by Canonical V2."""
+    original_groups = {group.name for group in mesh_object.vertex_groups}
+    original_modifiers = {modifier.name for modifier in mesh_object.modifiers}
+    original_parent = mesh_object.parent
+    original_world = mesh_object.matrix_world.copy()
+    try:
+        _bind_with_distance_weights(mesh_object, armature, bones, bounds)
+        _normalize_skin_weights(mesh_object, bones)
+        max_influences, unweighted = _skin_coverage(mesh_object, bones)
+        if unweighted:
+            raise RuntimeError(
+                f"Deterministic binding left {unweighted} vertices without skin weights."
+            )
+        return "canonical-envelope-v2", max_influences
+    except Exception:
+        _remove_new_binding(
+            mesh_object,
+            original_groups,
+            original_modifiers,
+            original_parent,
+            original_world,
+        )
+        raise

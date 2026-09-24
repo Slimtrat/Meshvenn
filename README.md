@@ -401,11 +401,13 @@ Increase resolution only after projection alignment is correct.
 ```
 
 MeshVenn accelerates reconstruction, first-pass materials, and now first-pass rigging.
-The optional **Canonical Biped V1** RIG stage fits an 18-bone A-pose armature to
-an upright biped mesh, assigns normalized skin weights (at most four influences
-per vertex), and exposes semantic bone names for downstream animation systems.
-If Blender's bone-heat binding fails, a deterministic region-aware fallback keeps
-arm, torso, and leg influences on their intended sides while preserving GLB skinning.
+The optional RIG stage provides two compatible 18-bone A-pose implementations.
+**Canonical Biped V1** is the stable default. **Canonical Biped V2** is registered
+alongside it and fits the arm span, arm height, torso and leg centres from the
+observed mesh envelope before applying deterministic region-aware skinning. Both
+implementations expose the same semantic bone contract for downstream animation
+systems, with normalized weights and at most four influences per vertex. V1 can
+fall back to that deterministic binding when Blender's bone-heat solver fails.
 It works from either built-in GEOMETRY implementation through the generic
 surface contract. The rig stage remains disabled by default; enable it in the
 pipeline only for an upright character whose local Z axis is up and whose front
@@ -417,7 +419,8 @@ they are not anatomical validation and do not prevent rig generation.
 
 This is an envelope fit, not anatomical inference or motion generation.
 Asymmetric poses, non-bipeds, facial rigs, and production retopology still need
-purpose-built work.
+purpose-built work. V2 is deliberately kept opt-in until its A/B evidence has run
+on every supported Blender version in CI.
 
 It does not try to replace Blender's full modeling pipeline.
 

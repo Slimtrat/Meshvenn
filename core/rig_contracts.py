@@ -37,5 +37,5 @@ class RigOutput:
         if not self.binding_method:
             raise ValueError("RigOutput requires a binding method.")
         if self.schema_version != 1 or self.up_axis != "Z" or self.forward_axis != "-Y":
-            raise ValueError("Canonical Rig V1 requires schema 1, Z up, and -Y forward.")
+            raise ValueError("Canonical rig output requires schema 1, Z up, and -Y forward.")
         object.__setattr__(self, "metrics", dict(self.metrics))

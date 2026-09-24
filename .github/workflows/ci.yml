@@ -132,6 +132,7 @@ jobs:
             "core/geometry_contracts/surface.py"
             "core/geometry_contracts/validation.py"
             "core/canonical_rig.py"
+            "core/canonical_rig_v2.py"
             "core/rig_quality.py"
             "core/rig_skinning.py"
             "core/rig_contracts.py"
@@ -259,6 +260,8 @@ jobs:
             "implementations/canonical_rig/__init__.py"
             "implementations/canonical_rig/binding.py"
             "implementations/canonical_rig/implementation.py"
+            "implementations/canonical_rig_v2/__init__.py"
+            "implementations/canonical_rig_v2/implementation.py"
 
 
             # -----------------------------------------------
@@ -951,6 +954,7 @@ jobs:
             implementations/sdf_reconstruction \
             implementations/projected_color \
             implementations/uv_bake \
+            implementations/canonical_rig_v2 \
             implementations/canonical_rig \
             implementations/projection_images \
             "${PACKAGE_ROOT}/implementations/"
@@ -1122,6 +1126,7 @@ jobs:
             "core/geometry_contracts/projection.py"
             "core/geometry_contracts/surface.py"
             "core/geometry_contracts/validation.py"
+            "core/canonical_rig_v2.py"
             "core/canonical_rig.py"
             "core/rig_quality.py"
             "core/rig_skinning.py"
@@ -1265,6 +1270,8 @@ jobs:
             "implementations/uv_bake/ui.py"
             "implementations/canonical_rig/__init__.py"
             "implementations/canonical_rig/binding.py"
+            "implementations/canonical_rig_v2/__init__.py"
+            "implementations/canonical_rig_v2/implementation.py"
             "implementations/canonical_rig/implementation.py"
 
 
@@ -1598,6 +1605,7 @@ jobs:
             "blender_projection_tool/core/geometry_contracts/__init__.py"
             "blender_projection_tool/core/geometry_contracts/projection.py"
             "blender_projection_tool/core/geometry_contracts/surface.py"
+            "blender_projection_tool/core/canonical_rig_v2.py"
             "blender_projection_tool/core/geometry_contracts/validation.py"
             "blender_projection_tool/core/canonical_rig.py"
             "blender_projection_tool/core/rig_quality.py"
@@ -1700,6 +1708,8 @@ jobs:
             "blender_projection_tool/implementations/uv_bake/triangles.py"
             "blender_projection_tool/implementations/uv_bake/ui.py"
             "blender_projection_tool/implementations/canonical_rig/__init__.py"
+            "blender_projection_tool/implementations/canonical_rig_v2/__init__.py"
+            "blender_projection_tool/implementations/canonical_rig_v2/implementation.py"
             "blender_projection_tool/implementations/canonical_rig/binding.py"
             "blender_projection_tool/implementations/canonical_rig/implementation.py"
 
