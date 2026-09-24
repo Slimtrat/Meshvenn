@@ -45,8 +45,11 @@ def _import_package(package_root: Path):
     _require(package_root.is_dir(), f"Package root does not exist: {package_root}")
     for relative in (
         "__init__.py", "core/canonical_rig.py", "core/rig_quality.py", "core/rig_skinning.py", "core/rig_contracts.py",
+        "core/canonical_rig_v2.py",
         "implementations/canonical_rig/__init__.py",
         "implementations/canonical_rig/implementation.py",
+        "implementations/canonical_rig_v2/__init__.py",
+        "implementations/canonical_rig_v2/implementation.py",
     ):
         _require((package_root / relative).is_file(), f"Missing packaged file: {relative}")
     parent = str(package_root.parent)

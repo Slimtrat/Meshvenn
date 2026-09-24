@@ -1,4 +1,4 @@
-"""Benchmark Canonical Rig V1 against RiggedFigure's real source skeleton.
+"""Benchmark a canonical rig implementation against RiggedFigure's source skeleton.
 
 The source armature is used only for scoring. MeshVenn receives a new,
 world-space, unrigged copy of the reference mesh as its GEOMETRY output.
@@ -35,17 +35,28 @@ EXPECTED_BONES = {
 def arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--implementation",
+        choices=("canonical-biped-v1", "canonical-biped-v2"),
+        default="canonical-biped-v1",
+    )
+    parser.add_argument("--max-mean-joint-error", type=float, default=0.15)
+    parser.add_argument("--max-joint-error", type=float, default=0.20)
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     return parser.parse_args(argv)
 
 
-def _package_modules():
+def _package_modules(implementation_id: str = "canonical-biped-v1"):
+    module_name = (
+        "canonical_rig_v2" if implementation_id == "canonical-biped-v2"
+        else "canonical_rig"
+    )
     package_name = REPO_ROOT.name
     importlib.import_module(package_name)
     return (
         importlib.import_module(f"{package_name}.core.geometry_contracts"),
         importlib.import_module(f"{package_name}.core.pipeline_contracts"),
-        importlib.import_module(f"{package_name}.implementations.canonical_rig"),
+        importlib.import_module(f"{package_name}.implementations.{module_name}"),
     )
 
 
@@ -130,9 +141,10 @@ def _roundtrip(mesh: bpy.types.Object, armature: bpy.types.Object, path: Path) -
 
 
 def main() -> None:
-    output = arguments().output.resolve()
+    args = arguments()
+    output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    geometry_contracts, pipeline, rig_module = _package_modules()
+    geometry_contracts, pipeline, rig_module = _package_modules(args.implementation)
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
     path = REPO_ROOT / "example" / "v2" / "assets" / "RiggedFigure.glb"
@@ -158,16 +170,19 @@ def main() -> None:
         implementation_id="glb-v2-reference-mesh",
     )
     context.set_output(pipeline.PipelineStage.GEOMETRY, geometry)
-    implementation = rig_module.CanonicalRigImplementation()
+    implementation_class = getattr(
+        rig_module, "CanonicalRigV2Implementation", None
+    ) or rig_module.CanonicalRigImplementation
+    implementation = implementation_class()
     availability = implementation.availability(context)
     if not availability.ready:
         raise AssertionError(f"Real reference biped was rejected: {availability.reason}")
     result = implementation.execute(context)
     if not result.success:
-        raise AssertionError(f"Canonical Rig V1 failed on RiggedFigure: {result.message}")
+        raise AssertionError(f"Canonical rig failed on RiggedFigure: {result.message}")
     rig = result.payload
     if set(rig.armature_object.data.bones.keys()) != EXPECTED_BONES:
-        raise AssertionError("Canonical Rig V1 produced the wrong bone set")
+        raise AssertionError("Canonical rig produced the wrong bone set")
     candidate_heads = {
         bone.name: tuple(rig.armature_object.matrix_world @ bone.head_local)
         for bone in rig.armature_object.data.bones
@@ -182,11 +197,12 @@ def main() -> None:
         "rig_implementation": rig.implementation_id,
         "binding_method": rig.binding_method,
         "geometry_warnings": result.metadata["rig_quality"]["warnings"],
+        "fit": result.metadata.get("rig_fit"),
         "source_bone_count": len(source_armature.data.bones),
         "generated_bone_count": len(rig.armature_object.data.bones),
         "acceptance": {
-            "max_mean_landmark_error_in_heights": 0.15,
-            "max_landmark_error_in_heights": 0.20,
+            "max_mean_landmark_error_in_heights": args.max_mean_joint_error,
+            "max_landmark_error_in_heights": args.max_joint_error,
             "min_left_pose_displacement": 0.005,
             "max_right_pose_displacement": 0.001,
         },
@@ -196,7 +212,7 @@ def main() -> None:
         "glb_roundtrip": roundtrip,
     }
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    print(f"V2 rig mean joint error: {landmarks['mean_error_in_heights']:.4f} heights; "
+    print(f"{rig.implementation_id} mean joint error: {landmarks['mean_error_in_heights']:.4f} heights; "
           f"skin coverage: {weights['weighted_fraction']:.3f}; "
           f"left pose displacement: {pose['left_mean_displacement']:.4f}")
     if weights["weighted_fraction"] < 1.0 or weights["max_influences_per_vertex"] > 4:

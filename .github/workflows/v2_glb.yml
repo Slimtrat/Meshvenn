@@ -46,7 +46,7 @@ jobs:
           python-version: "3.11"
 
       - name: Verify pinned V2 assets and metric semantics
-        run: python -m unittest tests.test_v2_assets tests.test_glb_v2_metrics tests.test_glb_v2_rig_metrics tests.test_glb_v2_character_support -v
+        run: python -m unittest tests.test_v2_assets tests.test_glb_v2_metrics tests.test_glb_v2_rig_metrics tests.test_glb_v2_character_support tests.test_canonical_rig_v2 -v
 
       - name: Build native reconstruction engine
         shell: bash
@@ -111,6 +111,16 @@ jobs:
             --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- \
             --output "${RUNNER_TEMP}/v2-benchmark/rigged_figure"
 
+      - name: Benchmark Canonical Rig V2 against RiggedFigure
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- \
+            --implementation canonical-biped-v2 \
+            --max-mean-joint-error 0.06 --max-joint-error 0.10 \
+            --output "${RUNNER_TEMP}/v2-benchmark/rigged_figure_v2"
+
       - name: Run complete character reconstruction and animated GLB roundtrip
         shell: bash
         run: |
@@ -121,6 +131,18 @@ jobs:
             --max-extent-error 0.25 --max-mean-joint-error 0.10 \
             --max-joint-error 0.16 \
             --output "${RUNNER_TEMP}/v2-benchmark/character_e2e"
+
+      - name: Run complete character pipeline with Canonical Rig V2
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/benchmark_character_v2.py -- \
+            --rig-implementation canonical-biped-v2 --resolution 48 \
+            --min-iou 0.65 --min-surface-fscore 0.85 \
+            --max-extent-error 0.25 --max-mean-joint-error 0.08 \
+            --max-joint-error 0.14 \
+            --output "${RUNNER_TEMP}/v2-benchmark/character_e2e_v2"
 
       - name: Upload V2 evidence
         if: always()

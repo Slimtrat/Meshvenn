@@ -8,6 +8,7 @@ from .catalog import (
 )
 from .canonical_rig import CanonicalRigImplementation
 from .native_visual_hull import NativeVisualHullImplementation
+from .canonical_rig_v2 import CanonicalRigV2Implementation
 from .projected_color import ProjectedColorImplementation
 from .projection_images import ProjectionImagesImplementation
 from .registration import (
@@ -31,6 +32,7 @@ __all__ = (
     "ProjectedColorImplementation",
     "UVBakeImplementation",
     "CanonicalRigImplementation",
+    "CanonicalRigV2Implementation",
     "register_builtin_implementations",
     "unregister_builtin_implementations",
     "register",

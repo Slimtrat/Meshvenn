@@ -73,6 +73,7 @@ REQUIRED_PACKAGE_FILES = (
     "core/geometry_contracts/surface.py",
     "core/geometry_contracts/validation.py",
     "core/canonical_rig.py",
+    "core/canonical_rig_v2.py",
     "core/rig_quality.py",
     "core/rig_skinning.py",
     "core/rig_contracts.py",
@@ -192,6 +193,8 @@ REQUIRED_PACKAGE_FILES = (
     "implementations/canonical_rig/__init__.py",
     "implementations/canonical_rig/binding.py",
     "implementations/canonical_rig/implementation.py",
+    "implementations/canonical_rig_v2/__init__.py",
+    "implementations/canonical_rig_v2/implementation.py",
 
     # Native binaries
     "native/bin/libbpt_core.so",
@@ -206,6 +209,7 @@ EXPECTED_IMPLEMENTATIONS = (
     "projected-color-v1.2",
     "uv-bake-v2",
     "canonical-biped-v1",
+    "canonical-biped-v2",
 )
 
 

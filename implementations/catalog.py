@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from ..core.pipeline_contracts import PipelineImplementation, PipelineStage
+from .canonical_rig_v2 import CanonicalRigV2Implementation
 from .canonical_rig import CanonicalRigImplementation
 from .native_visual_hull import NativeVisualHullImplementation
 from .projected_color import ProjectedColorImplementation
@@ -20,6 +21,7 @@ BUILTIN_IMPLEMENTATION_FACTORIES: tuple[ImplementationFactory, ...] = (
     ProjectedColorImplementation,
     UVBakeImplementation,
     CanonicalRigImplementation,
+    CanonicalRigV2Implementation,
 )
 
 BUILTIN_DEFAULT_IMPLEMENTATION_IDS: dict[PipelineStage, str] = {

@@ -45,6 +45,11 @@ def arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--resolution", type=int, default=48)
+    parser.add_argument(
+        "--rig-implementation",
+        choices=("canonical-biped-v1", "canonical-biped-v2"),
+        default="canonical-biped-v1",
+    )
     parser.add_argument("--min-iou", type=float, default=0.65)
     parser.add_argument("--min-surface-fscore", type=float, default=0.85)
     parser.add_argument("--max-extent-error", type=float, default=0.25)
@@ -88,8 +93,10 @@ def _export_unrigged_reference(source_path: Path, output_path: Path) -> tuple[di
     return reference_heads, reference_vertices, isolation
 
 
-def _rig_reconstruction(generated_glb: Path, output: Path, resolution: int) -> dict:
-    geometry_contracts, pipeline, rig_module = _package_modules()
+def _rig_reconstruction(
+    generated_glb: Path, output: Path, resolution: int, implementation_id: str
+) -> dict:
+    geometry_contracts, pipeline, rig_module = _package_modules(implementation_id)
     clear_scene()
     bpy.ops.import_scene.gltf(filepath=str(generated_glb.resolve()))
     mesh = max(
@@ -107,7 +114,10 @@ def _rig_reconstruction(generated_glb: Path, output: Path, resolution: int) -> d
         implementation_id="native-visual-hull",
     )
     context.set_output(pipeline.PipelineStage.GEOMETRY, geometry)
-    implementation = rig_module.CanonicalRigImplementation()
+    implementation_class = getattr(
+        rig_module, "CanonicalRigV2Implementation", None
+    ) or rig_module.CanonicalRigImplementation
+    implementation = implementation_class()
     availability = implementation.availability(context)
     if not availability.ready:
         raise AssertionError(f"Reconstructed biped rejected by rig: {availability.reason}")
@@ -172,7 +182,9 @@ def main() -> None:
     )
     silhouette = score_silhouettes(reference_views, candidate_views)
     surface = compare_glb_surfaces(isolated_path, generated_glb)
-    rig = _rig_reconstruction(generated_glb, output, args.resolution)
+    rig = _rig_reconstruction(
+        generated_glb, output, args.resolution, args.rig_implementation
+    )
     reference_normalized = normalized_landmarks(reference_heads, reference_vertices)
     candidate_normalized = normalized_landmarks(
         rig.pop("candidate_heads"), rig.pop("candidate_vertices")
@@ -187,8 +199,8 @@ def main() -> None:
         "minimum_skin_coverage": 1.0,
         "maximum_influences_per_vertex": 4,
         "maximum_weight_sum_error": 0.02,
-        "minimum_left_pose_displacement": 0.0025,
-        "maximum_right_pose_displacement": 0.001,
+        "minimum_left_pose_peak_displacement": 0.02,
+        "maximum_right_pose_peak_displacement": 0.001,
     }
     report = {
         "schema_version": 1,
@@ -234,9 +246,9 @@ def main() -> None:
     if weights["max_weight_sum_error"] > 0.02:
         raise AssertionError("Character skin weights are not normalized")
     pose = rig["pose_response"]
-    if pose["left_mean_displacement"] <= acceptance["minimum_left_pose_displacement"]:
+    if pose["left_max_displacement"] <= acceptance["minimum_left_pose_peak_displacement"]:
         raise AssertionError("Character pose did not deform the requested arm")
-    if pose["right_mean_displacement"] > acceptance["maximum_right_pose_displacement"]:
+    if pose["right_max_displacement"] > acceptance["maximum_right_pose_peak_displacement"]:
         raise AssertionError("Character pose leaked into the opposite arm")
     if roundtrip["weighted_fraction"] < 1.0 or roundtrip["max_influences_per_vertex"] > 4:
         raise AssertionError("Character GLB roundtrip lost usable skinning")
@@ -244,9 +256,9 @@ def main() -> None:
         raise AssertionError("Character GLB roundtrip lost normalized skin weights")
     if roundtrip["animation_count"] < 1:
         raise AssertionError("Character GLB roundtrip lost its animation")
-    if roundtrip["left_mean_displacement"] <= acceptance["minimum_left_pose_displacement"]:
+    if roundtrip["left_max_displacement"] <= acceptance["minimum_left_pose_peak_displacement"]:
         raise AssertionError("Imported character animation did not deform the requested arm")
-    if roundtrip["right_mean_displacement"] > acceptance["maximum_right_pose_displacement"]:
+    if roundtrip["right_max_displacement"] > acceptance["maximum_right_pose_peak_displacement"]:
         raise AssertionError("Imported character animation leaked into the opposite arm")
 
 

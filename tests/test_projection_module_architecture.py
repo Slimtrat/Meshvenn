@@ -134,6 +134,7 @@ class ProjectionPackageArchitectureTests(unittest.TestCase):
                 "ProjectedColorImplementation",
                 "UVBakeImplementation",
                 "CanonicalRigImplementation",
+                "CanonicalRigV2Implementation",
             ],
         )
         source = ast.unparse(assignments["BUILTIN_DEFAULT_IMPLEMENTATION_IDS"])
