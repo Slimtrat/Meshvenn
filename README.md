@@ -106,7 +106,7 @@ Blender Mesh
       │
       ├──▶ Projected Material
       │
-      └──▶ Canonical Rig ──▶ Motion Retarget ──▶ Animated Armature + Action
+      └──▶ Canonical Rig ──▶ Motion Retarget ──▶ Validated GLB Export
 ```
 
 The project combines a Blender/Python integration layer with a native reconstruction engine.
@@ -437,6 +437,18 @@ biped mapping. This stage is not yet a universal retargeter: arbitrary skeleton
 auto-mapping, root-motion preservation, facial animation and motion synthesis
 are not supported yet.
 
+The optional **GLB Export V1** stage publishes the current geometry as a glTF
+2.0 binary. When compatible Rig and Motion outputs are enabled, the same export
+also carries the canonical skin and the explicitly produced motion clips. The
+stage writes to a temporary sibling file, validates the GLB container and
+manifest, records its size and SHA-256 digest, then atomically publishes it to
+the chosen path. Existing files are replaced only when the overwrite option is
+enabled, and the Motion source GLB cannot be used as the destination.
+
+This first exporter intentionally targets `.glb` only. Its checks establish
+artifact integrity and pipeline provenance; they do not guarantee identical
+rendering in every external engine or DCC application.
+
 It does not try to replace Blender's full modeling pipeline.
 
 ---
@@ -581,7 +593,9 @@ The CI also creates installable Blender extension artifacts.
 The [GLB reference examples V2](example/v2/README.md) provide seven pinned,
 individually licensed models. A dedicated CI workflow benchmarks reconstruction
 from ten rendered views and publishes silhouette, 3D surface and rig-quality scores.
-It also gates a complete character reconstruction, fresh rig, animated GLB export and reimport.
+It also gates the complete product path through fresh rigging, Motion, GLB Export
+V1 and reimport, while the package workflow separately checks a static exported
+artifact from the installable extension.
 
 ---
 

@@ -196,22 +196,31 @@ def _check_success(package_name: str, implementation):
     _require(displacement > .005, f"Pose did not deform mesh (maximum displacement {displacement})")
     pose_bone.rotation_euler[1] = 0.0
     bpy.context.view_layer.update()
-    _check_glb_roundtrip(obj, armature)
+    context.set_output(pipeline.PipelineStage.RIG, rig)
+    _check_glb_roundtrip(package_name, context, rig)
     print(f"Rig OK: {len(actual_bones)} bones, {len(rest)} skinned vertices, {displacement:.4f} pose displacement")
 
 
-def _check_glb_roundtrip(mesh, armature) -> None:
-    for obj in tuple(bpy.context.selected_objects):
-        obj.select_set(False)
-    mesh.select_set(True)
-    armature.select_set(True)
-    bpy.context.view_layer.objects.active = mesh
+def _check_glb_roundtrip(package_name: str, context, rig) -> None:
     before = {obj.as_pointer() for obj in bpy.data.objects}
     with tempfile.TemporaryDirectory(prefix="meshvenn-rig-") as temporary:
-        path = str(Path(temporary) / "canonical-biped.glb")
-        result = bpy.ops.export_scene.gltf(filepath=path, export_format="GLB", use_selection=True)
-        _require("FINISHED" in result and Path(path).stat().st_size > 0, "GLB export failed")
-        result = bpy.ops.import_scene.gltf(filepath=path)
+        path = Path(temporary) / "canonical-biped.glb"
+        context.metadata["export_output_path"] = str(path)
+        context.metadata["export_overwrite_existing"] = False
+        export_module = importlib.import_module(
+            f"{package_name}.implementations.glb_export"
+        )
+        implementation = export_module.GLBExportImplementation()
+        availability = implementation.availability(context)
+        _require(availability.ready, f"Rig EXPORT unavailable: {availability.reason}")
+        export_result = implementation.execute(context)
+        _require(export_result.success, f"Rig EXPORT failed: {export_result.message}")
+        exported = export_result.payload
+        _require(exported.rig is rig and exported.motion is None,
+                 "Rig EXPORT lost provenance or added Motion")
+        _require(not exported.animation_names,
+                 "Rig-only EXPORT included an ambient animation")
+        result = bpy.ops.import_scene.gltf(filepath=str(exported.path))
         _require("FINISHED" in result, "GLB import failed")
     imported = [obj for obj in bpy.data.objects if obj.as_pointer() not in before]
     imported_arms = [obj for obj in imported if obj.type == "ARMATURE"]
@@ -249,7 +258,7 @@ def _check_non_biped_warning(package_name: str, implementation):
     mesh.update()
     obj = bpy.data.objects.new("MeshvennRigSmokeWide", mesh)
     bpy.context.scene.collection.objects.link(obj)
-    context, _, _ = _context(package_name, obj)
+    context, _, pipeline = _context(package_name, obj)
     availability = implementation.availability(context)
     _require(availability.ready, "Wide mesh should produce diagnostics, not be rejected")
     _require("low_height_to_width" in availability.details["rig_quality"]["warnings"],
@@ -274,7 +283,7 @@ def _check_regional_fallback(package_name: str, implementation):
     obj.location = (1.0, -2.0, 0.3)
     bpy.context.view_layer.update()
     initial_world = obj.matrix_world.copy()
-    context, _, _ = _context(package_name, obj)
+    context, _, pipeline = _context(package_name, obj)
     try:
         binding._bind_with_bone_heat = _force_fallback
         result = implementation.execute(context)
@@ -319,7 +328,8 @@ def _check_regional_fallback(package_name: str, implementation):
     _require(left_motion < .001, "Regional fallback deformed the opposite arm")
     pose_bone.rotation_euler[1] = 0.0
     bpy.context.view_layer.update()
-    _check_glb_roundtrip(obj, rig.armature_object)
+    context.set_output(pipeline.PipelineStage.RIG, rig)
+    _check_glb_roundtrip(package_name, context, rig)
     print("Regional fallback preserves torso, sided limbs, pose, and GLB skin")
 
 

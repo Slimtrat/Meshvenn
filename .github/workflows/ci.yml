@@ -137,6 +137,7 @@ jobs:
             "core/rig_skinning.py"
             "core/rig_contracts.py"
             "core/motion_contracts.py"
+            "core/export_contracts.py"
 
             # INPUT / projection
             "core/image_mask.py"
@@ -268,6 +269,11 @@ jobs:
             "implementations/canonical_motion/mapping.py"
             "implementations/canonical_motion/retarget.py"
             "implementations/canonical_motion/source.py"
+            "implementations/glb_export/__init__.py"
+            "implementations/glb_export/blender_export.py"
+            "implementations/glb_export/implementation.py"
+            "implementations/glb_export/manifest.py"
+            "implementations/glb_export/planning.py"
 
 
             # -----------------------------------------------
@@ -400,6 +406,8 @@ jobs:
             "tests/test_canonical_rig.py"
             "tests/test_rig_quality.py"
             "tests/test_rig_skinning.py"
+            "tests/test_export_contracts.py"
+            "tests/test_glb_export_manifest.py"
 
             # SDF GEOMETRY
             "tests/sdf_surface_test_support.py"
@@ -440,6 +448,7 @@ jobs:
             "tests/blender_smoke_test.py"
             "tests/blender_uv_bake_smoke.py"
             "tests/blender_rig_smoke.py"
+            "tests/blender_glb_export_smoke.py"
 
 
             # -----------------------------------------------
@@ -963,6 +972,7 @@ jobs:
             implementations/canonical_rig_v2 \
             implementations/canonical_rig \
             implementations/canonical_motion \
+            implementations/glb_export \
             implementations/projection_images \
             "${PACKAGE_ROOT}/implementations/"
 
@@ -1140,6 +1150,7 @@ jobs:
             "core/rig_contracts.py"
 
             "core/motion_contracts.py"
+            "core/export_contracts.py"
 
             # -----------------------------------------------
             # INPUT / projection
@@ -1286,6 +1297,11 @@ jobs:
             "implementations/canonical_motion/mapping.py"
             "implementations/canonical_motion/retarget.py"
             "implementations/canonical_motion/source.py"
+            "implementations/glb_export/__init__.py"
+            "implementations/glb_export/blender_export.py"
+            "implementations/glb_export/implementation.py"
+            "implementations/glb_export/manifest.py"
+            "implementations/glb_export/planning.py"
 
 
             # -----------------------------------------------
@@ -1625,6 +1641,7 @@ jobs:
             "blender_projection_tool/core/rig_skinning.py"
             "blender_projection_tool/core/rig_contracts.py"
             "blender_projection_tool/core/motion_contracts.py"
+            "blender_projection_tool/core/export_contracts.py"
 
             "blender_projection_tool/core/projection_alignment.py"
             "blender_projection_tool/core/projection_math/__init__.py"
@@ -1731,6 +1748,11 @@ jobs:
             "blender_projection_tool/implementations/canonical_motion/mapping.py"
             "blender_projection_tool/implementations/canonical_motion/retarget.py"
             "blender_projection_tool/implementations/canonical_motion/source.py"
+            "blender_projection_tool/implementations/glb_export/__init__.py"
+            "blender_projection_tool/implementations/glb_export/blender_export.py"
+            "blender_projection_tool/implementations/glb_export/implementation.py"
+            "blender_projection_tool/implementations/glb_export/manifest.py"
+            "blender_projection_tool/implementations/glb_export/planning.py"
 
 
             # -----------------------------------------------
@@ -2084,6 +2106,24 @@ jobs:
           test -f \
             "${PACKAGE_ROOT}/implementations/uv_bake/execution.py"
 
+          test -f \
+            "${PACKAGE_ROOT}/core/export_contracts.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/glb_export/__init__.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/glb_export/implementation.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/glb_export/blender_export.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/glb_export/manifest.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/glb_export/planning.py"
+
           echo
           echo "Smoke package:"
 
@@ -2106,7 +2146,7 @@ jobs:
       #
       # register
       #
-      # 5 implementation registry
+      # 9 implementation registry
       #
       # SDF properties
       # SDF pipeline selection
@@ -2200,6 +2240,25 @@ jobs:
             --python tests/blender_rig_smoke.py \
             -- \
             --package-root "${PACKAGE_ROOT}"
+
+      # -----------------------------------------------------
+      # GLB Export V1: packaged static artifact and integrity
+      # -----------------------------------------------------
+      - name: Blender GLB Export V1 functional smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_ROOT="${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tests/blender_glb_export_smoke.py \
+            -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --output "${RUNNER_TEMP}/glb-export-smoke"
 
       # Artifacts are published only after Blender package
       # validation succeeds.
@@ -2345,8 +2404,11 @@ jobs:
 
             **Export**
 
-            - pipeline stage ready
-            - implementation pending
+            - GLB Export V1
+            - static geometry, canonical skin and Motion clip support
+            - validated glTF 2.0 binary manifest and SHA-256 digest
+            - temporary-file validation followed by atomic publication
+            - explicit overwrite policy and Motion-source protection
 
             ### Validation
 
@@ -2388,7 +2450,12 @@ jobs:
             - Blender 5.2.1 SDF registry/property smoke test
             - Blender 5.2.1 generic GEOMETRY → MATERIAL smoke test
             - Blender 5.2.1 UV Bake V2 functional smoke test
-            - Blender 5.2.1 Canonical Motion retarget and animated GLB smoke test
+            - Blender 5.2.1 Canonical Rig V1 functional smoke test
+            - Blender 5.2.1 GLB Export V1 static package smoke test
+
+            The separate GLB V2 benchmark workflow additionally exercises the
+            complete reconstruction → Rig → Motion → Export → reimport path on
+            the pinned RiggedFigure fixture.
 
             ### SDF V1 status
 

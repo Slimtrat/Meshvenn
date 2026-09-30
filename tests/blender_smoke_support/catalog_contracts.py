@@ -60,10 +60,10 @@ def _validate_builtin_catalog(
     _require(
         module
         .builtin_implementation_count()
-        == 8,
+        == 9,
         (
             "Built-in implementation "
-            "count must be 8."
+            "count must be 9."
         ),
     )
 
@@ -108,6 +108,11 @@ def _validate_builtin_catalog(
         == "canonical-motion-retarget-v1",
         "Incorrect MOTION default.",
     )
+    _require(
+        module.builtin_default_id(PipelineStage.EXPORT)
+        == "glb-export-v1",
+        "Incorrect EXPORT default.",
+    )
 
 
     print(
@@ -115,7 +120,7 @@ def _validate_builtin_catalog(
     )
 
     print(
-        "  8 implementations"
+        "  9 implementations"
     )
 
     print(

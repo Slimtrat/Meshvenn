@@ -10,6 +10,7 @@ from .canonical_motion import CanonicalMotionRetargetImplementation
 from .canonical_rig import CanonicalRigImplementation
 from .native_visual_hull import NativeVisualHullImplementation
 from .canonical_rig_v2 import CanonicalRigV2Implementation
+from .glb_export import GLBExportImplementation
 from .projected_color import ProjectedColorImplementation
 from .projection_images import ProjectionImagesImplementation
 from .registration import (
@@ -35,6 +36,7 @@ __all__ = (
     "CanonicalRigImplementation",
     "CanonicalRigV2Implementation",
     "CanonicalMotionRetargetImplementation",
+    "GLBExportImplementation",
     "register_builtin_implementations",
     "unregister_builtin_implementations",
     "register",

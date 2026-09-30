@@ -136,6 +136,14 @@ def _new_pipeline_context(
                     if settings.motion_source_path.strip()
                     else ""
                 ),
+                "export_output_path": (
+                    bpy.path.abspath(settings.export_output_path)
+                    if settings.export_output_path.strip()
+                    else ""
+                ),
+                "export_overwrite_existing": bool(
+                    settings.export_overwrite_existing
+                ),
             },
         )
     )

@@ -375,6 +375,23 @@ class BPT_PG_Settings(
     )
 
     # =====================================================
+    # EXPORT — GLB Export V1
+    # =====================================================
+
+    export_output_path: StringProperty(
+        name="Output GLB",
+        description="Destination for the generated glTF 2.0 binary asset",
+        default=DEFAULT_EXPORT_OUTPUT_PATH,
+        subtype="FILE_PATH",
+    )
+
+    export_overwrite_existing: BoolProperty(
+        name="Overwrite Existing",
+        description="Allow GLB Export V1 to replace an existing output file",
+        default=DEFAULT_EXPORT_OVERWRITE_EXISTING,
+    )
+
+    # =====================================================
     # Legacy selector
     #
     # Retained for compatibility with older .blend files and

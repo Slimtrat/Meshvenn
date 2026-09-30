@@ -85,7 +85,8 @@ def ensure_pipeline_defaults(
     )
 
     if pipeline.initialized:
-        if getattr(pipeline, "schema_version", 0) < CURRENT_PIPELINE_SETTINGS_SCHEMA_VERSION:
+        schema_version = getattr(pipeline, "schema_version", 0)
+        if schema_version < 1:
             implementation_id, enabled, expanded = PIPELINE_STAGE_DEFAULTS[
                 PipelineStage.MOTION
             ]
@@ -96,7 +97,21 @@ def ensure_pipeline_defaults(
             motion_settings.implementation_id = implementation_id
             motion_settings.enabled = enabled
             motion_settings.expanded = expanded
-            pipeline.schema_version = CURRENT_PIPELINE_SETTINGS_SCHEMA_VERSION
+            pipeline.schema_version = 1
+            schema_version = 1
+        if schema_version < 2:
+            implementation_id, enabled, expanded = PIPELINE_STAGE_DEFAULTS[
+                PipelineStage.EXPORT
+            ]
+            export_settings = pipeline_stage_settings(
+                settings,
+                PipelineStage.EXPORT,
+            )
+            if not export_settings.implementation_id.strip():
+                export_settings.implementation_id = implementation_id
+                export_settings.enabled = enabled
+                export_settings.expanded = expanded
+            pipeline.schema_version = 2
         return
 
     for (

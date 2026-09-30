@@ -147,6 +147,23 @@ def _rig_reconstruction(
         raise AssertionError(f"Character Motion failed: {motion_result.message}")
     motion = motion_result.payload
     clip = motion.clips[0]
+    context.set_output(pipeline.PipelineStage.MOTION, motion)
+    export_path = output / "character_animated.glb"
+    context.metadata["export_output_path"] = str(export_path)
+    context.metadata["export_overwrite_existing"] = True
+    export_module = importlib.import_module(
+        f"{package_name}.implementations.glb_export"
+    )
+    export_implementation = export_module.GLBExportImplementation()
+    export_availability = export_implementation.availability(context)
+    if not export_availability.ready:
+        raise AssertionError(
+            f"Reconstructed character rejected by EXPORT: {export_availability.reason}"
+        )
+    export_result = export_implementation.execute(context)
+    if not export_result.success:
+        raise AssertionError(f"Character EXPORT failed: {export_result.message}")
+    exported = export_result.payload
 
     candidate_heads = {
         bone.name: tuple(rig.armature_object.matrix_world @ bone.head_local)
@@ -154,10 +171,7 @@ def _rig_reconstruction(
     }
     candidate_vertices = _world_vertices(mesh)
     weights = skin_weight_summary(_skin_rows(mesh, rig.armature_object))
-    roundtrip = existing_action_glb_roundtrip(
-        mesh, rig.armature_object, clip.action,
-        output / "character_animated.glb",
-    )
+    roundtrip = existing_action_glb_roundtrip(exported.path)
     return {
         "rig_implementation": rig.implementation_id,
         "binding_method": rig.binding_method,
@@ -167,6 +181,14 @@ def _rig_reconstruction(
         "skin_weights": weights,
         "pose_response": pose,
         "glb_roundtrip": roundtrip,
+        "export": {
+            "implementation_id": exported.implementation_id,
+            "path": str(exported.path),
+            "size_bytes": exported.size_bytes,
+            "sha256": exported.sha256,
+            "object_names": exported.object_names,
+            "animation_names": exported.animation_names,
+        },
         "motion": {
             "implementation_id": motion.implementation_id,
             "source_profile": motion.metrics["source_profile"],
@@ -238,7 +260,7 @@ def main() -> None:
     }
     report = {
         "schema_version": 1,
-        "pipeline": "source GLB -> isolated rest mesh -> ten views -> native geometry -> canonical rig -> retargeted motion -> animated GLB",
+        "pipeline": "source GLB -> isolated rest mesh -> ten views -> native geometry -> canonical rig -> retargeted motion -> GLB Export V1 -> reimport",
         "source_asset": asset["id"],
         "source_sha256": asset["sha256"],
         "source_rig_isolation": {
