@@ -6,6 +6,7 @@ from ..core.pipeline_contracts import PipelineImplementation, PipelineStage
 from .canonical_motion import CanonicalMotionRetargetImplementation
 from .canonical_rig_v2 import CanonicalRigV2Implementation
 from .canonical_rig import CanonicalRigImplementation
+from .glb_export import GLBExportImplementation
 from .native_visual_hull import NativeVisualHullImplementation
 from .projected_color import ProjectedColorImplementation
 from .projection_images import ProjectionImagesImplementation
@@ -24,6 +25,7 @@ BUILTIN_IMPLEMENTATION_FACTORIES: tuple[ImplementationFactory, ...] = (
     CanonicalRigImplementation,
     CanonicalRigV2Implementation,
     CanonicalMotionRetargetImplementation,
+    GLBExportImplementation,
 )
 
 BUILTIN_DEFAULT_IMPLEMENTATION_IDS: dict[PipelineStage, str] = {
@@ -32,6 +34,7 @@ BUILTIN_DEFAULT_IMPLEMENTATION_IDS: dict[PipelineStage, str] = {
     PipelineStage.MATERIAL: "projected-color-v1.2",
     PipelineStage.RIG: "canonical-biped-v1",
     PipelineStage.MOTION: "canonical-motion-retarget-v1",
+    PipelineStage.EXPORT: "glb-export-v1",
 }
 
 
