@@ -60,10 +60,10 @@ def _validate_builtin_catalog(
     _require(
         module
         .builtin_implementation_count()
-        == 7,
+        == 8,
         (
             "Built-in implementation "
-            "count must be 7."
+            "count must be 8."
         ),
     )
 
@@ -103,13 +103,19 @@ def _validate_builtin_catalog(
         module.builtin_default_id(PipelineStage.RIG) == "canonical-biped-v1",
         "Incorrect RIG default.",
     )
+    _require(
+        module.builtin_default_id(PipelineStage.MOTION)
+        == "canonical-motion-retarget-v1",
+        "Incorrect MOTION default.",
+    )
+
 
     print(
         "Built-in catalog: OK"
     )
 
     print(
-        "  7 implementations"
+        "  8 implementations"
     )
 
     print(

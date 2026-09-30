@@ -82,6 +82,9 @@ def _validate_registry(
         PipelineStage.RIG:
             "canonical-biped-v1",
 
+        PipelineStage.MOTION:
+            "canonical-motion-retarget-v1",
+
         PipelineStage.EXPORT:
             None,
     }

@@ -135,12 +135,14 @@ class ProjectionPackageArchitectureTests(unittest.TestCase):
                 "UVBakeImplementation",
                 "CanonicalRigImplementation",
                 "CanonicalRigV2Implementation",
+                "CanonicalMotionRetargetImplementation",
             ],
         )
         source = ast.unparse(assignments["BUILTIN_DEFAULT_IMPLEMENTATION_IDS"])
         self.assertIn("'projection-images'", source)
         self.assertIn("'native-visual-hull'", source)
         self.assertIn("'projected-color-v1.2'", source)
+        self.assertIn("'canonical-motion-retarget-v1'", source)
 
 
 if __name__ == "__main__":

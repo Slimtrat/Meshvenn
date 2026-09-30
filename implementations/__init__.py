@@ -6,6 +6,7 @@ from .catalog import (
     ImplementationFactory,
     builtin_default_id,
 )
+from .canonical_motion import CanonicalMotionRetargetImplementation
 from .canonical_rig import CanonicalRigImplementation
 from .native_visual_hull import NativeVisualHullImplementation
 from .canonical_rig_v2 import CanonicalRigV2Implementation
@@ -33,6 +34,7 @@ __all__ = (
     "UVBakeImplementation",
     "CanonicalRigImplementation",
     "CanonicalRigV2Implementation",
+    "CanonicalMotionRetargetImplementation",
     "register_builtin_implementations",
     "unregister_builtin_implementations",
     "register",
