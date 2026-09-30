@@ -136,6 +136,7 @@ jobs:
             "core/rig_quality.py"
             "core/rig_skinning.py"
             "core/rig_contracts.py"
+            "core/motion_contracts.py"
 
             # INPUT / projection
             "core/image_mask.py"
@@ -262,6 +263,11 @@ jobs:
             "implementations/canonical_rig/implementation.py"
             "implementations/canonical_rig_v2/__init__.py"
             "implementations/canonical_rig_v2/implementation.py"
+            "implementations/canonical_motion/__init__.py"
+            "implementations/canonical_motion/implementation.py"
+            "implementations/canonical_motion/mapping.py"
+            "implementations/canonical_motion/retarget.py"
+            "implementations/canonical_motion/source.py"
 
 
             # -----------------------------------------------
@@ -956,6 +962,7 @@ jobs:
             implementations/uv_bake \
             implementations/canonical_rig_v2 \
             implementations/canonical_rig \
+            implementations/canonical_motion \
             implementations/projection_images \
             "${PACKAGE_ROOT}/implementations/"
 
@@ -1132,6 +1139,7 @@ jobs:
             "core/rig_skinning.py"
             "core/rig_contracts.py"
 
+            "core/motion_contracts.py"
 
             # -----------------------------------------------
             # INPUT / projection
@@ -1273,6 +1281,11 @@ jobs:
             "implementations/canonical_rig_v2/__init__.py"
             "implementations/canonical_rig_v2/implementation.py"
             "implementations/canonical_rig/implementation.py"
+            "implementations/canonical_motion/__init__.py"
+            "implementations/canonical_motion/implementation.py"
+            "implementations/canonical_motion/mapping.py"
+            "implementations/canonical_motion/retarget.py"
+            "implementations/canonical_motion/source.py"
 
 
             # -----------------------------------------------
@@ -1611,6 +1624,7 @@ jobs:
             "blender_projection_tool/core/rig_quality.py"
             "blender_projection_tool/core/rig_skinning.py"
             "blender_projection_tool/core/rig_contracts.py"
+            "blender_projection_tool/core/motion_contracts.py"
 
             "blender_projection_tool/core/projection_alignment.py"
             "blender_projection_tool/core/projection_math/__init__.py"
@@ -1712,6 +1726,11 @@ jobs:
             "blender_projection_tool/implementations/canonical_rig_v2/implementation.py"
             "blender_projection_tool/implementations/canonical_rig/binding.py"
             "blender_projection_tool/implementations/canonical_rig/implementation.py"
+            "blender_projection_tool/implementations/canonical_motion/__init__.py"
+            "blender_projection_tool/implementations/canonical_motion/implementation.py"
+            "blender_projection_tool/implementations/canonical_motion/mapping.py"
+            "blender_projection_tool/implementations/canonical_motion/retarget.py"
+            "blender_projection_tool/implementations/canonical_motion/source.py"
 
 
             # -----------------------------------------------
@@ -2265,6 +2284,7 @@ jobs:
             → Geometry
             → Material
             → Rig
+            → Motion
             → Export
 
             ### Current implementations
@@ -2309,10 +2329,19 @@ jobs:
 
             **Rig**
 
-            - Canonical Biped V1 (experimental)
-            - A-pose 18-bone hierarchy, semantic names
+            - Canonical Biped V1 (compatibility default)
+            - Canonical Biped V2 (opt-in quality profile)
+            - A-pose hierarchy with semantic names
             - automatic skinning with deterministic fallback
             - GLB skin/armature roundtrip validated
+
+            **Motion**
+
+            - Canonical Motion Retarget V1
+            - Khronos RiggedFigure source profile
+            - 17 semantic roles baked in quaternion/rest space
+            - transactional import and cleanup
+            - animated GLB roundtrip validated
 
             **Export**
 
@@ -2359,6 +2388,7 @@ jobs:
             - Blender 5.2.1 SDF registry/property smoke test
             - Blender 5.2.1 generic GEOMETRY → MATERIAL smoke test
             - Blender 5.2.1 UV Bake V2 functional smoke test
+            - Blender 5.2.1 Canonical Motion retarget and animated GLB smoke test
 
             ### SDF V1 status
 

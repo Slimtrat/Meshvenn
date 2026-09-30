@@ -104,7 +104,9 @@ Blender Mesh
       │
       ├──▶ Smoothing
       │
-      └──▶ Projected Material
+      ├──▶ Projected Material
+      │
+      └──▶ Canonical Rig ──▶ Motion Retarget ──▶ Animated Armature + Action
 ```
 
 The project combines a Blender/Python integration layer with a native reconstruction engine.
@@ -400,7 +402,7 @@ Increase resolution only after projection alignment is correct.
 17. Final texturing
 ```
 
-MeshVenn accelerates reconstruction, first-pass materials, and now first-pass rigging.
+MeshVenn accelerates reconstruction, first-pass materials, rigging, and motion transfer.
 The optional RIG stage provides two compatible 18-bone A-pose implementations.
 **Canonical Biped V1** is the stable default. **Canonical Biped V2** is registered
 alongside it and fits the arm span, arm height, torso and leg centres from the
@@ -417,10 +419,23 @@ armature are selected. The stage reports non-blocking rig-quality diagnostics
 coverage) in the stage metadata and on the mesh. Warnings flag risky input;
 they are not anatomical validation and do not prevent rig generation.
 
-This is an envelope fit, not anatomical inference or motion generation.
+This is an envelope fit, not anatomical inference.
 Asymmetric poses, non-bipeds, facial rigs, and production retopology still need
-purpose-built work. V2 is deliberately kept opt-in until its A/B evidence has run
-on every supported Blender version in CI.
+purpose-built work. V2 remains opt-in so existing scenes and default behavior do
+not switch silently.
+
+The optional **Canonical Motion Retarget V1** stage accepts an external animated
+GLB, detects a supported source skeleton from its bones, maps 17 semantic roles
+onto the generated canonical rig, and bakes a quaternion action in rest/global
+space. The canonical root remains fixed in IN_PLACE mode. Import, bake and
+cleanup are transactional: an unsupported or broken source leaves the target
+rig unchanged. The source GLB is selected directly in the Motion card.
+
+The first supported source profile is Khronos RiggedFigure. RiggedSimple is
+intentionally rejected because two generic bones cannot establish a complete
+biped mapping. This stage is not yet a universal retargeter: arbitrary skeleton
+auto-mapping, root-motion preservation, facial animation and motion synthesis
+are not supported yet.
 
 It does not try to replace Blender's full modeling pipeline.
 
