@@ -200,28 +200,10 @@ def _animation_response(
 
 
 def _animated_roundtrip(
-    mesh: bpy.types.Object,
-    armature: bpy.types.Object,
-    action: bpy.types.Action,
-    frame_start: int,
-    frame_end: int,
     path: Path,
 ) -> dict[str, object]:
-    armature.animation_data_create().action = action
-    for selected in tuple(bpy.context.selected_objects):
-        selected.select_set(False)
-    mesh.select_set(True)
-    armature.select_set(True)
-    bpy.context.view_layer.objects.active = mesh
-    result = bpy.ops.export_scene.gltf(
-        filepath=str(path.resolve()),
-        export_format="GLB",
-        use_selection=True,
-        export_animations=True,
-        export_animation_mode="ACTIVE_ACTIONS",
-    )
-    _require("FINISHED" in result and path.is_file() and path.stat().st_size > 0,
-             "Animated Motion GLB export failed")
+    _require(path.is_file() and path.stat().st_size > 0,
+             "Pipeline EXPORT did not publish an animated GLB")
 
     object_pointers = {obj.as_pointer() for obj in bpy.data.objects}
     actions_before = set(bpy.data.actions)
@@ -302,14 +284,56 @@ def _success_case(package_name: str, source_path: Path, output: Path) -> dict[st
     response = _animation_response(
         mesh, rig.armature_object, clip.action, clip.frame_start, clip.frame_end
     )
-    roundtrip = _animated_roundtrip(
-        mesh,
-        rig.armature_object,
-        clip.action,
-        clip.frame_start,
-        clip.frame_end,
-        output / "canonical_motion.glb",
+    second_action = clip.action.copy()
+    second_action.name = f"{clip.action.name}_ExportVariant"
+    second_action.use_fake_user = True
+    second_clip = motion_contracts.MotionClipOutput(
+        name=f"{clip.name}_ExportVariant",
+        action=second_action,
+        frame_start=clip.frame_start,
+        frame_end=clip.frame_end,
+        fps=clip.fps,
+        animated_roles=clip.animated_roles,
+        metadata={"purpose": "multi-clip-export-smoke"},
     )
+    export_motion = motion_contracts.MotionOutput(
+        rig=motion.rig,
+        armature_object=motion.armature_object,
+        implementation_id=motion.implementation_id,
+        clips=(clip, second_clip),
+        source_bone_map=motion.source_bone_map,
+        root_motion_mode=motion.root_motion_mode,
+        metrics=motion.metrics,
+        metadata=motion.metadata,
+    )
+    decoy_action = clip.action.copy()
+    decoy_action.name = "Meshvenn_Decoy_Action"
+    decoy_action.use_fake_user = True
+    context.set_output(pipeline.PipelineStage.MOTION, export_motion)
+    export_path = output / "canonical_motion.glb"
+    context.metadata["export_output_path"] = str(export_path)
+    context.metadata["export_overwrite_existing"] = True
+    export_module = importlib.import_module(f"{package_name}.implementations.glb_export")
+    export_contracts = importlib.import_module(f"{package_name}.core.export_contracts")
+    export_implementation = export_module.GLBExportImplementation()
+    export_availability = export_implementation.availability(context)
+    _require(export_availability.ready,
+             f"Pipeline EXPORT unavailable: {export_availability.reason}")
+    export_result = export_implementation.execute(context)
+    _require(export_result.success, f"Pipeline EXPORT failed: {export_result.message}")
+    exported = export_result.payload
+    _require(isinstance(exported, export_contracts.ExportOutput),
+             "Pipeline EXPORT did not return ExportOutput")
+    _require(exported.geometry is rig.geometry and exported.rig is rig
+             and exported.motion is export_motion,
+             "Pipeline EXPORT lost Geometry/Rig/Motion provenance")
+    _require(len(exported.sha256) == 64 and exported.size_bytes > 0,
+             "Pipeline EXPORT did not publish integrity metadata")
+    _require(len(exported.animation_names) == 2,
+             "Pipeline EXPORT did not preserve both Motion clips")
+    _require(all("Decoy" not in name for name in exported.animation_names),
+             "Pipeline EXPORT leaked an action outside MotionOutput")
+    roundtrip = _animated_roundtrip(exported.path)
     return {
         "implementation": motion.implementation_id,
         "clip_count": len(motion.clips),
@@ -320,6 +344,12 @@ def _success_case(package_name: str, source_path: Path, output: Path) -> dict[st
         "duration_seconds": duration,
         "animated_role_count": len(clip.animated_roles),
         "response": response,
+        "export": {
+            "implementation_id": exported.implementation_id,
+            "size_bytes": exported.size_bytes,
+            "sha256": exported.sha256,
+            "animation_names": exported.animation_names,
+        },
         "glb_roundtrip": roundtrip,
     }
 

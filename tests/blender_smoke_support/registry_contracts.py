@@ -86,7 +86,7 @@ def _validate_registry(
             "canonical-motion-retarget-v1",
 
         PipelineStage.EXPORT:
-            None,
+            "glb-export-v1",
     }
 
     for (
@@ -200,6 +200,20 @@ def _validate_registry(
             "UV Bake V2 should remain "
             "experimental."
         ),
+    )
+
+    # -----------------------------------------------------
+    # GLB Export
+    # -----------------------------------------------------
+
+    glb_export = registry.require(
+        "glb-export-v1",
+        stage=PipelineStage.EXPORT,
+    )
+
+    _require(
+        not glb_export.descriptor.experimental,
+        "GLB Export V1 must be production-ready.",
     )
 
     print(

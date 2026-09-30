@@ -73,24 +73,59 @@ def _validate_scene_properties(
     properties_module.ensure_scene_defaults(
         scene
     )
-    # Emulate a .blend saved before the Motion stage existed. New pointer
-    # properties use their RNA defaults (enabled and empty), even when the
-    # legacy pipeline was already initialized.
+    # Emulate a .blend saved before the Motion and Export stages existed.
+    # New pointer properties use their RNA defaults even when the legacy
+    # pipeline was already initialized.
     pipeline = settings.pipeline
     pipeline.initialized = True
     pipeline.schema_version = 0
     pipeline.motion_stage.implementation_id = ""
     pipeline.motion_stage.enabled = True
     pipeline.motion_stage.expanded = True
+    pipeline.export_stage.implementation_id = ""
+    pipeline.export_stage.enabled = True
+    pipeline.export_stage.expanded = True
     properties_module.ensure_pipeline_defaults(settings)
     _require(
-        pipeline.schema_version == 1
+        pipeline.schema_version == 2
         and pipeline.motion_stage.implementation_id
         == "canonical-motion-retarget-v1"
         and not pipeline.motion_stage.enabled
-        and not pipeline.motion_stage.expanded,
-        "Legacy .blend Motion migration is unsafe.",
+        and not pipeline.motion_stage.expanded
+        and pipeline.export_stage.implementation_id == "glb-export-v1"
+        and not pipeline.export_stage.enabled
+        and not pipeline.export_stage.expanded,
+        "Legacy .blend Motion/Export migration is unsafe.",
     )
+
+    # A schema-v1 file already owns its Motion selection. Export migration
+    # must preserve it and any nonempty third-party Export selection.
+    pipeline.schema_version = 1
+    pipeline.motion_stage.implementation_id = "third-party-motion"
+    pipeline.motion_stage.enabled = True
+    pipeline.motion_stage.expanded = True
+    pipeline.export_stage.implementation_id = "third-party-export"
+    pipeline.export_stage.enabled = True
+    pipeline.export_stage.expanded = True
+    properties_module.ensure_pipeline_defaults(settings)
+    _require(
+        pipeline.schema_version == 2
+        and pipeline.motion_stage.implementation_id == "third-party-motion"
+        and pipeline.motion_stage.enabled
+        and pipeline.motion_stage.expanded
+        and pipeline.export_stage.implementation_id == "third-party-export"
+        and pipeline.export_stage.enabled
+        and pipeline.export_stage.expanded,
+        "Schema-v1 Export migration did not preserve existing selections.",
+    )
+
+    # Restore production defaults for the remaining smoke assertions.
+    pipeline.motion_stage.implementation_id = "canonical-motion-retarget-v1"
+    pipeline.motion_stage.enabled = False
+    pipeline.motion_stage.expanded = False
+    pipeline.export_stage.implementation_id = "glb-export-v1"
+    pipeline.export_stage.enabled = False
+    pipeline.export_stage.expanded = False
 
 
 
@@ -145,6 +180,7 @@ def _validate_projection_defaults(
 # =========================================================
 
 def _validate_pipeline_defaults(
+    package_name: str,
     settings,
 ) -> None:
     _section(
@@ -195,6 +231,11 @@ def _validate_pipeline_defaults(
             "canonical-motion-retarget-v1",
             "MOTION",
         ),
+        (
+            pipeline.export_stage.implementation_id,
+            "glb-export-v1",
+            "EXPORT",
+        ),
     )
 
     for (
@@ -244,7 +285,7 @@ def _validate_pipeline_defaults(
 
 
     _require(
-        pipeline.schema_version == 1,
+        pipeline.schema_version == 2,
         "Pipeline settings schema was not migrated.",
     )
 
@@ -252,6 +293,38 @@ def _validate_pipeline_defaults(
         settings.motion_source_path == "",
         "Default Motion source path must be empty.",
     )
+
+    _require(
+        settings.export_output_path == "",
+        "Default Export output path must be empty.",
+    )
+
+    _require(
+        not settings.export_overwrite_existing,
+        "Export overwrite must default to disabled.",
+    )
+
+    runtime_module = importlib.import_module(
+        f"{package_name}.operators.runtime_execution"
+    )
+    default_context = runtime_module._new_pipeline_context(bpy.context)
+    _require(
+        default_context.metadata["export_output_path"] == ""
+        and default_context.metadata["export_overwrite_existing"] is False,
+        "Default Export runtime metadata is incorrect.",
+    )
+
+    settings.export_output_path = "exports/character.glb"
+    settings.export_overwrite_existing = True
+    configured_context = runtime_module._new_pipeline_context(bpy.context)
+    _require(
+        configured_context.metadata["export_output_path"]
+        == bpy.path.abspath(settings.export_output_path)
+        and configured_context.metadata["export_overwrite_existing"] is True,
+        "Configured Export runtime metadata was not normalized through bpy.path.abspath.",
+    )
+    settings.export_output_path = ""
+    settings.export_overwrite_existing = False
 
     for stage_settings in (
         pipeline.input_stage,
@@ -282,6 +355,23 @@ def _validate_pipeline_defaults(
         and not pipeline.motion_stage.enabled,
         "Disabling Rig did not disable its Motion dependent.",
     )
+    pipeline.input_stage.enabled = False
+    pipeline.geometry_stage.enabled = False
+    pipeline.export_stage.enabled = False
+    export_toggle_result = bpy.ops.bpt.set_pipeline_stage_enabled(
+        stage="export",
+        enabled=True,
+    )
+    _require(
+        "FINISHED" in export_toggle_result
+        and pipeline.input_stage.enabled
+        and pipeline.geometry_stage.enabled
+        and pipeline.export_stage.enabled
+        and not pipeline.rig_stage.enabled
+        and not pipeline.motion_stage.enabled,
+        "Enabling Export did not enable exactly its Geometry/Input dependencies.",
+    )
+    pipeline.export_stage.enabled = False
 
     print(
         "Pipeline defaults: OK"

@@ -78,6 +78,7 @@ REQUIRED_PACKAGE_FILES = (
     "core/rig_skinning.py",
     "core/rig_contracts.py",
     "core/motion_contracts.py",
+    "core/export_contracts.py",
 
     # Input / projection
     "core/image_mask.py",
@@ -201,6 +202,11 @@ REQUIRED_PACKAGE_FILES = (
     "implementations/canonical_motion/mapping.py",
     "implementations/canonical_motion/retarget.py",
     "implementations/canonical_motion/source.py",
+    "implementations/glb_export/__init__.py",
+    "implementations/glb_export/implementation.py",
+    "implementations/glb_export/planning.py",
+    "implementations/glb_export/blender_export.py",
+    "implementations/glb_export/manifest.py",
 
     # Native binaries
     "native/bin/libbpt_core.so",
@@ -217,6 +223,7 @@ EXPECTED_IMPLEMENTATIONS = (
     "canonical-biped-v1",
     "canonical-biped-v2",
     "canonical-motion-retarget-v1",
+    "glb-export-v1",
 )
 
 

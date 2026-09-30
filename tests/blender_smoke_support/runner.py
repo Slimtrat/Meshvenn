@@ -99,6 +99,7 @@ def main() -> None:
         _validate_projection_alignment(package_name, settings)
 
         _validate_pipeline_defaults(
+            package_name,
             settings
         )
 

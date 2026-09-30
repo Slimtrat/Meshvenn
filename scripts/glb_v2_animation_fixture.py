@@ -127,27 +127,11 @@ def animated_glb_roundtrip(
 
 
 def existing_action_glb_roundtrip(
-    mesh: bpy.types.Object,
-    armature: bpy.types.Object,
-    action: bpy.types.Action,
     path: Path,
 ) -> dict:
-    """Export an existing retargeted action and measure it after GLB reimport."""
-    armature.animation_data_create().action = action
-    for selected in tuple(bpy.context.selected_objects):
-        selected.select_set(False)
-    mesh.select_set(True)
-    armature.select_set(True)
-    bpy.context.view_layer.objects.active = mesh
-    result = bpy.ops.export_scene.gltf(
-        filepath=str(path.resolve()),
-        export_format="GLB",
-        use_selection=True,
-        export_animations=True,
-        export_animation_mode="ACTIVE_ACTIONS",
-    )
-    if "FINISHED" not in result or not path.is_file():
-        raise AssertionError("Retargeted character GLB export failed")
+    """Reimport and measure a retargeted GLB already published by EXPORT."""
+    if not path.is_file() or path.stat().st_size <= 0:
+        raise AssertionError("Pipeline EXPORT did not publish the character GLB")
 
     objects_before = {obj.as_pointer() for obj in bpy.data.objects}
     actions_before = set(bpy.data.actions)
@@ -195,7 +179,6 @@ def existing_action_glb_roundtrip(
         "glb_bytes": path.stat().st_size,
         "bone_count": len(arms[0].data.bones),
         "animation_count": len(new_actions),
-        "source_action_name": action.name,
         "imported_action_names": sorted(item.name for item in new_actions),
         "frame_start": frame_start,
         "frame_end": frame_end,
