@@ -64,3 +64,6 @@ def material_impl(identifier: str='material-a', **kwargs) -> FakeImplementation:
 
 def rig_impl(identifier: str='rig-a', **kwargs) -> FakeImplementation:
     return FakeImplementation(identifier=identifier, stage=PipelineStage.RIG, **kwargs)
+
+def motion_impl(identifier: str='motion-a', **kwargs) -> FakeImplementation:
+    return FakeImplementation(identifier=identifier, stage=PipelineStage.MOTION, **kwargs)

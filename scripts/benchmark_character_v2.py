@@ -8,6 +8,7 @@ receives only the native reconstruction produced from those pixels.
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import sys
 from pathlib import Path
@@ -29,7 +30,7 @@ from scripts.benchmark_rig_v2 import (
     _unrigged_world_mesh,
 )
 from scripts.glb_v2_animation_fixture import (
-    animated_glb_roundtrip,
+    existing_action_glb_roundtrip,
     inspect_isolated_reference,
 )
 from scripts.generate_example_native_support.extraction import extract_sheet
@@ -94,7 +95,8 @@ def _export_unrigged_reference(source_path: Path, output_path: Path) -> tuple[di
 
 
 def _rig_reconstruction(
-    generated_glb: Path, output: Path, resolution: int, implementation_id: str
+    generated_glb: Path, output: Path, resolution: int, implementation_id: str,
+    source_motion_glb: Path,
 ) -> dict:
     geometry_contracts, pipeline, rig_module = _package_modules(implementation_id)
     clear_scene()
@@ -127,14 +129,35 @@ def _rig_reconstruction(
     rig = result.payload
     if set(rig.armature_object.data.bones.keys()) != EXPECTED_BONES:
         raise AssertionError("Reconstructed biped produced the wrong canonical bone set")
+    pose = _pose_response(mesh, rig.armature_object)
+    context.set_output(pipeline.PipelineStage.RIG, rig)
+    context.metadata["motion_source_path"] = str(source_motion_glb.resolve())
+    package_name = REPO_ROOT.name
+    motion_module = importlib.import_module(
+        f"{package_name}.implementations.canonical_motion"
+    )
+    motion_implementation = motion_module.CanonicalMotionRetargetImplementation()
+    motion_availability = motion_implementation.availability(context)
+    if not motion_availability.ready:
+        raise AssertionError(
+            f"Reconstructed biped rejected by Motion: {motion_availability.reason}"
+        )
+    motion_result = motion_implementation.execute(context)
+    if not motion_result.success:
+        raise AssertionError(f"Character Motion failed: {motion_result.message}")
+    motion = motion_result.payload
+    clip = motion.clips[0]
+
     candidate_heads = {
         bone.name: tuple(rig.armature_object.matrix_world @ bone.head_local)
         for bone in rig.armature_object.data.bones
     }
     candidate_vertices = _world_vertices(mesh)
     weights = skin_weight_summary(_skin_rows(mesh, rig.armature_object))
-    pose = _pose_response(mesh, rig.armature_object)
-    roundtrip = animated_glb_roundtrip(mesh, rig.armature_object, output / "character_animated.glb")
+    roundtrip = existing_action_glb_roundtrip(
+        mesh, rig.armature_object, clip.action,
+        output / "character_animated.glb",
+    )
     return {
         "rig_implementation": rig.implementation_id,
         "binding_method": rig.binding_method,
@@ -144,6 +167,16 @@ def _rig_reconstruction(
         "skin_weights": weights,
         "pose_response": pose,
         "glb_roundtrip": roundtrip,
+        "motion": {
+            "implementation_id": motion.implementation_id,
+            "source_profile": motion.metrics["source_profile"],
+            "clip_name": clip.name,
+            "frame_start": clip.frame_start,
+            "frame_end": clip.frame_end,
+            "fps": clip.fps,
+            "animated_role_count": len(clip.animated_roles),
+            "mapped_role_count": len(motion.source_bone_map),
+        },
     }
 
 
@@ -183,7 +216,7 @@ def main() -> None:
     silhouette = score_silhouettes(reference_views, candidate_views)
     surface = compare_glb_surfaces(isolated_path, generated_glb)
     rig = _rig_reconstruction(
-        generated_glb, output, args.resolution, args.rig_implementation
+        generated_glb, output, args.resolution, args.rig_implementation, source_path
     )
     reference_normalized = normalized_landmarks(reference_heads, reference_vertices)
     candidate_normalized = normalized_landmarks(
@@ -201,10 +234,11 @@ def main() -> None:
         "maximum_weight_sum_error": 0.02,
         "minimum_left_pose_peak_displacement": 0.02,
         "maximum_right_pose_peak_displacement": 0.001,
+        "minimum_motion_peak_displacement": 0.01,
     }
     report = {
         "schema_version": 1,
-        "pipeline": "source GLB -> isolated rest mesh -> ten views -> native geometry -> canonical rig -> posed GLB",
+        "pipeline": "source GLB -> isolated rest mesh -> ten views -> native geometry -> canonical rig -> retargeted motion -> animated GLB",
         "source_asset": asset["id"],
         "source_sha256": asset["sha256"],
         "source_rig_isolation": {
@@ -256,10 +290,8 @@ def main() -> None:
         raise AssertionError("Character GLB roundtrip lost normalized skin weights")
     if roundtrip["animation_count"] < 1:
         raise AssertionError("Character GLB roundtrip lost its animation")
-    if roundtrip["left_max_displacement"] <= acceptance["minimum_left_pose_peak_displacement"]:
-        raise AssertionError("Imported character animation did not deform the requested arm")
-    if roundtrip["right_max_displacement"] > acceptance["maximum_right_pose_peak_displacement"]:
-        raise AssertionError("Imported character animation leaked into the opposite arm")
+    if roundtrip["max_vertex_displacement"] <= acceptance["minimum_motion_peak_displacement"]:
+        raise AssertionError("Imported retargeted Motion did not deform the character")
 
 
 if __name__ == "__main__":

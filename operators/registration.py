@@ -15,7 +15,11 @@ from .projections import (
     BPT_OT_RemoveProjection,
 )
 from .runtime import clear_pipeline_runtime_state
-from .selection import BPT_OT_ResetPipelineSettings, BPT_OT_SetPipelineImplementation
+from .selection import (
+    BPT_OT_ResetPipelineSettings,
+    BPT_OT_SetPipelineImplementation,
+    BPT_OT_SetPipelineStageEnabled,
+)
 
 CLASSES = (
     BPT_OT_LoadProjectionImage,
@@ -31,6 +35,8 @@ CLASSES = (
     BPT_OT_AddFrontSidePreset,
 
     BPT_OT_SetPipelineImplementation,
+    BPT_OT_SetPipelineStageEnabled,
+
 
     BPT_OT_ResetPipelineSettings,
 

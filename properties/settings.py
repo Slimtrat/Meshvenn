@@ -361,6 +361,20 @@ class BPT_PG_Settings(
     )
 
     # =====================================================
+    # MOTION — Canonical GLB retarget
+    # =====================================================
+
+    motion_source_path: StringProperty(
+        name="Source Motion GLB",
+        description=(
+            "External RiggedFigure-compatible GLB whose animation "
+            "will be retargeted onto the generated canonical rig"
+        ),
+        default=DEFAULT_MOTION_SOURCE_PATH,
+        subtype="FILE_PATH",
+    )
+
+    # =====================================================
     # Legacy selector
     #
     # Retained for compatibility with older .blend files and

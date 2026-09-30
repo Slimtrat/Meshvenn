@@ -46,7 +46,7 @@ jobs:
           python-version: "3.11"
 
       - name: Verify pinned V2 assets and metric semantics
-        run: python -m unittest tests.test_v2_assets tests.test_glb_v2_metrics tests.test_glb_v2_rig_metrics tests.test_glb_v2_character_support tests.test_canonical_rig_v2 -v
+        run: python -m unittest tests.test_v2_assets tests.test_glb_v2_metrics tests.test_glb_v2_rig_metrics tests.test_glb_v2_character_support tests.test_canonical_rig_v2 tests.test_motion_contracts tests.test_canonical_motion_mapping -v
 
       - name: Build native reconstruction engine
         shell: bash
@@ -102,6 +102,15 @@ jobs:
               --min-surface-fscore 0.60 --max-extent-error 0.25 \
               --output "${RUNNER_TEMP}/v2-benchmark/${asset}"
           done
+
+      - name: Retarget and roundtrip real RiggedFigure motion
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_motion_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --output "${RUNNER_TEMP}/v2-benchmark/motion"
 
       - name: Benchmark Canonical Rig V1 against RiggedFigure
         shell: bash

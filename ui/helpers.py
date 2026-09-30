@@ -34,6 +34,9 @@ STAGE_ICONS: dict[
     PipelineStage.RIG:
         "ARMATURE_DATA",
 
+    PipelineStage.MOTION:
+        "ACTION",
+
     PipelineStage.EXPORT:
         "EXPORT",
 }
@@ -51,6 +54,9 @@ STAGE_RUN_LABELS: dict[
 
     PipelineStage.RIG:
         "Generate Rig",
+
+    PipelineStage.MOTION:
+        "Retarget Motion",
 
     PipelineStage.EXPORT:
         "Export",

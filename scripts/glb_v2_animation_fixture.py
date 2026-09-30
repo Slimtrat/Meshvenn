@@ -124,3 +124,82 @@ def animated_glb_roundtrip(
         "right_max_displacement": max(right),
         **weights,
     }
+
+
+def existing_action_glb_roundtrip(
+    mesh: bpy.types.Object,
+    armature: bpy.types.Object,
+    action: bpy.types.Action,
+    path: Path,
+) -> dict:
+    """Export an existing retargeted action and measure it after GLB reimport."""
+    armature.animation_data_create().action = action
+    for selected in tuple(bpy.context.selected_objects):
+        selected.select_set(False)
+    mesh.select_set(True)
+    armature.select_set(True)
+    bpy.context.view_layer.objects.active = mesh
+    result = bpy.ops.export_scene.gltf(
+        filepath=str(path.resolve()),
+        export_format="GLB",
+        use_selection=True,
+        export_animations=True,
+        export_animation_mode="ACTIVE_ACTIONS",
+    )
+    if "FINISHED" not in result or not path.is_file():
+        raise AssertionError("Retargeted character GLB export failed")
+
+    objects_before = {obj.as_pointer() for obj in bpy.data.objects}
+    actions_before = set(bpy.data.actions)
+    bpy.ops.import_scene.gltf(filepath=str(path.resolve()))
+    imported = [obj for obj in bpy.data.objects if obj.as_pointer() not in objects_before]
+    new_actions = set(bpy.data.actions) - actions_before
+    arms = [obj for obj in imported if obj.type == "ARMATURE"]
+    meshes = [obj for obj in imported if obj.type == "MESH"]
+    if len(arms) != 1 or not meshes or set(arms[0].data.bones.keys()) != EXPECTED_BONES:
+        raise AssertionError("Retargeted GLB roundtrip lost canonical bones or mesh")
+    bound = [obj for obj in meshes if any(
+        modifier.type == "ARMATURE" and modifier.object is arms[0]
+        for modifier in obj.modifiers
+    )]
+    if len(bound) != 1:
+        raise AssertionError("Retargeted GLB roundtrip lost skin binding")
+    if not new_actions or arms[0].animation_data is None or arms[0].animation_data.action is None:
+        raise AssertionError("Retargeted GLB roundtrip lost its animation")
+
+    imported_action = arms[0].animation_data.action
+    frame_start = math.floor(float(imported_action.frame_range[0]))
+    frame_end = math.ceil(float(imported_action.frame_range[1]))
+    if frame_end <= frame_start:
+        raise AssertionError("Retargeted GLB animation has no duration")
+    sample_frames = tuple(sorted({
+        round(frame_start + (frame_end - frame_start) * index / 8)
+        for index in range(9)
+    }))
+    scene = bpy.context.scene
+    scene.frame_set(sample_frames[0])
+    baseline = _evaluated_positions(bound[0])
+    max_displacement = 0.0
+    for frame in sample_frames[1:]:
+        scene.frame_set(frame)
+        posed = _evaluated_positions(bound[0])
+        if len(posed) != len(baseline):
+            raise AssertionError("Imported retargeted animation changed mesh topology")
+        max_displacement = max(
+            max_displacement,
+            max(math.dist(before, after) for before, after in zip(baseline, posed)),
+        )
+    scene.frame_set(sample_frames[0])
+    weights = skin_weight_summary(_skin_rows(bound[0], arms[0]))
+    return {
+        "glb_bytes": path.stat().st_size,
+        "bone_count": len(arms[0].data.bones),
+        "animation_count": len(new_actions),
+        "source_action_name": action.name,
+        "imported_action_names": sorted(item.name for item in new_actions),
+        "frame_start": frame_start,
+        "frame_end": frame_end,
+        "sample_count": len(sample_frames),
+        "max_vertex_displacement": max_displacement,
+        **weights,
+    }

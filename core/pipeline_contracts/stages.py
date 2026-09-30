@@ -9,6 +9,7 @@ class PipelineStage(str, Enum):
     GEOMETRY = "geometry"
     MATERIAL = "material"
     RIG = "rig"
+    MOTION = "motion"
     EXPORT = "export"
 
 
@@ -26,6 +27,7 @@ PIPELINE_STAGE_SPECS: tuple[PipelineStageSpec, ...] = (
     PipelineStageSpec(PipelineStage.GEOMETRY, "Geometry", "Reconstruct the 3D surface from the source data.", (PipelineStage.INPUT,)),
     PipelineStageSpec(PipelineStage.MATERIAL, "Material", "Generate appearance information for the mesh.", (PipelineStage.GEOMETRY,), True),
     PipelineStageSpec(PipelineStage.RIG, "Rig", "Generate or attach a skeleton and skinning data.", (PipelineStage.GEOMETRY,), True),
+    PipelineStageSpec(PipelineStage.MOTION, "Motion", "Import, retarget and bake animation onto the generated rig.", (PipelineStage.RIG,), True),
     PipelineStageSpec(PipelineStage.EXPORT, "Export", "Prepare and export the generated asset.", (PipelineStage.GEOMETRY,), True),
 )
 PIPELINE_STAGE_ORDER = tuple(spec.stage for spec in PIPELINE_STAGE_SPECS)

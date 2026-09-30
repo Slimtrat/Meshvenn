@@ -22,6 +22,25 @@ class PipelineRunner:
             PipelineRunIssue(issue.stage, issue.message, issue.implementation_id)
             for issue in self.registry.validate_plan(plan, context, check_availability=False).issues
         ]
+        for selection in plan.enabled_selections:
+            for dependency in stage_spec(selection.stage).required_stages:
+                if context.has_output(dependency):
+                    continue
+                dependency_selection = plan.selection_for(dependency)
+                if dependency_selection is None or not dependency_selection.enabled:
+                    state = (
+                        "has no enabled implementation selected"
+                        if dependency_selection is None
+                        else "is disabled"
+                    )
+                    issues.append(PipelineRunIssue(
+                        selection.stage,
+                        (
+                            f'Required pipeline dependency "{dependency.value}" '
+                            f'{state} for stage "{selection.stage.value}".'
+                        ),
+                        selection.implementation_id,
+                    ))
         for spec in PIPELINE_STAGE_SPECS:
             if spec.optional or context.has_output(spec.stage):
                 continue

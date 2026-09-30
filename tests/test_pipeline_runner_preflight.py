@@ -57,3 +57,17 @@ class PreflightTests(unittest.TestCase):
         plan = PipelinePlan(selections=(selection(PipelineStage.INPUT, 'projection-images'), selection(PipelineStage.GEOMETRY, 'missing-geometry')))
         issues = PipelineRunner(registry).preflight(plan, PipelineContext())
         self.assertTrue(any((issue.implementation_id == 'missing-geometry' for issue in issues)))
+
+    def test_motion_without_enabled_rig_is_rejected_before_execution(self) -> None:
+        registry = PipelineRegistry()
+        registry.register(MotionImplementation())
+        context = PipelineContext()
+        context.set_output(PipelineStage.INPUT, 'input')
+        context.set_output(PipelineStage.GEOMETRY, 'geometry')
+        plan = PipelinePlan(selections=(
+            selection(PipelineStage.MOTION, 'canonical-motion'),
+        ))
+        issues = PipelineRunner(registry).preflight(plan, context)
+        self.assertTrue(any(
+            issue.stage == PipelineStage.MOTION and 'rig' in issue.message
+            for issue in issues))
