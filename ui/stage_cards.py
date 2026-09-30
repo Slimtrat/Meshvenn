@@ -123,7 +123,7 @@ class StageCardsMixin:
 
         description.label(
             text=(
-                "Images → Geometry → Material → Rig → Export"
+                "Images → Geometry → Material → Rig → Motion → Export"
             )
         )
 
@@ -199,11 +199,18 @@ class StageCardsMixin:
             descriptors
         )
 
-        enabled_column.prop(
-            stage_settings,
-            "enabled",
+        toggle = enabled_column.operator(
+            "bpt.set_pipeline_stage_enabled",
             text="",
+            icon=(
+                "CHECKBOX_HLT"
+                if stage_settings.enabled
+                else "CHECKBOX_DEHLT"
+            ),
+            emboss=False,
         )
+        toggle.stage = stage.value
+        toggle.enabled = not stage_settings.enabled
 
         header.label(
             text=(

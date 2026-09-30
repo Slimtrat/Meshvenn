@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping
 
 from .geometry_contracts import GeometrySurfaceOutput
-from .pipeline_contracts import validate_implementation_id
+from .pipeline_contracts import PipelineContext, PipelineStage, validate_implementation_id
 
 
 @dataclass(frozen=True)
@@ -39,3 +39,19 @@ class RigOutput:
         if self.schema_version != 1 or self.up_axis != "Z" or self.forward_axis != "-Y":
             raise ValueError("Canonical rig output requires schema 1, Z up, and -Y forward.")
         object.__setattr__(self, "metrics", dict(self.metrics))
+
+
+def validate_rig_output(output: Any) -> RigOutput:
+    if not isinstance(output, RigOutput):
+        raise TypeError(f"RIG output must be a RigOutput. Received {type(output).__name__}.")
+    return output
+
+
+def require_rig_output(context: PipelineContext) -> RigOutput:
+    output = context.require_output(PipelineStage.RIG)
+    try:
+        return validate_rig_output(output)
+    except (TypeError, ValueError) as exc:
+        raise TypeError(
+            f"Pipeline RIG output is not compatible with RigOutput. Received {type(output).__name__}."
+        ) from exc

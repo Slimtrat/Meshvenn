@@ -2,15 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from ..pipeline_contracts import PIPELINE_STAGE_ORDER, PipelineImplementation, PipelinePlan, PipelineStage, PipelineStageSelection
+from ..pipeline_contracts import PIPELINE_STAGE_ORDER, PipelineImplementation, PipelinePlan, PipelineStage, PipelineStageSelection, stage_spec
 from .registry import PipelineRegistry
 
 
 def build_default_plan(registry: PipelineRegistry, *, include_optional: bool = True) -> PipelinePlan:
-    optional = {PipelineStage.MATERIAL, PipelineStage.RIG, PipelineStage.EXPORT}
     selections = []
     for stage in PIPELINE_STAGE_ORDER:
-        if not include_optional and stage in optional:
+        if not include_optional and stage_spec(stage).optional:
             continue
         identifier = registry.default_id(stage)
         if identifier is not None:

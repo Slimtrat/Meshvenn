@@ -16,8 +16,12 @@ DEFAULT_MATERIAL_IMPLEMENTATION_ID = (
 
 DEFAULT_RIG_IMPLEMENTATION_ID = "canonical-biped-v1"
 
+DEFAULT_MOTION_IMPLEMENTATION_ID = "canonical-motion-retarget-v1"
+DEFAULT_MOTION_SOURCE_PATH = ""
+
 DEFAULT_EXPORT_IMPLEMENTATION_ID = ""
 
+CURRENT_PIPELINE_SETTINGS_SCHEMA_VERSION = 1
 
 # =========================================================
 # SDF Reconstruction V1 defaults

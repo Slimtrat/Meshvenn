@@ -77,6 +77,7 @@ REQUIRED_PACKAGE_FILES = (
     "core/rig_quality.py",
     "core/rig_skinning.py",
     "core/rig_contracts.py",
+    "core/motion_contracts.py",
 
     # Input / projection
     "core/image_mask.py",
@@ -195,6 +196,11 @@ REQUIRED_PACKAGE_FILES = (
     "implementations/canonical_rig/implementation.py",
     "implementations/canonical_rig_v2/__init__.py",
     "implementations/canonical_rig_v2/implementation.py",
+    "implementations/canonical_motion/__init__.py",
+    "implementations/canonical_motion/implementation.py",
+    "implementations/canonical_motion/mapping.py",
+    "implementations/canonical_motion/retarget.py",
+    "implementations/canonical_motion/source.py",
 
     # Native binaries
     "native/bin/libbpt_core.so",
@@ -210,6 +216,7 @@ EXPECTED_IMPLEMENTATIONS = (
     "uv-bake-v2",
     "canonical-biped-v1",
     "canonical-biped-v2",
+    "canonical-motion-retarget-v1",
 )
 
 
@@ -295,6 +302,7 @@ EXPECTED_OPERATOR_RNA_IDS = (
     "BPT_OT_add_front_side_preset",
 
     "BPT_OT_set_pipeline_implementation",
+    "BPT_OT_set_pipeline_stage_enabled",
     "BPT_OT_reset_pipeline_settings",
 
     "BPT_OT_run_pipeline",
@@ -313,6 +321,7 @@ EXPECTED_OPERATOR_IDNAMES = (
     "bpt.add_front_side_preset",
 
     "bpt.set_pipeline_implementation",
+    "bpt.set_pipeline_stage_enabled",
     "bpt.reset_pipeline_settings",
 
     "bpt.run_pipeline",

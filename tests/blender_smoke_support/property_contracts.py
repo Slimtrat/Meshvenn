@@ -73,6 +73,26 @@ def _validate_scene_properties(
     properties_module.ensure_scene_defaults(
         scene
     )
+    # Emulate a .blend saved before the Motion stage existed. New pointer
+    # properties use their RNA defaults (enabled and empty), even when the
+    # legacy pipeline was already initialized.
+    pipeline = settings.pipeline
+    pipeline.initialized = True
+    pipeline.schema_version = 0
+    pipeline.motion_stage.implementation_id = ""
+    pipeline.motion_stage.enabled = True
+    pipeline.motion_stage.expanded = True
+    properties_module.ensure_pipeline_defaults(settings)
+    _require(
+        pipeline.schema_version == 1
+        and pipeline.motion_stage.implementation_id
+        == "canonical-motion-retarget-v1"
+        and not pipeline.motion_stage.enabled
+        and not pipeline.motion_stage.expanded,
+        "Legacy .blend Motion migration is unsafe.",
+    )
+
+
 
     print(
         "Scene.bpt_settings: OK"
@@ -170,6 +190,11 @@ def _validate_pipeline_defaults(
             "canonical-biped-v1",
             "RIG",
         ),
+        (
+            pipeline.motion_stage.implementation_id,
+            "canonical-motion-retarget-v1",
+            "MOTION",
+        ),
     )
 
     for (
@@ -208,8 +233,54 @@ def _validate_pipeline_defaults(
     )
 
     _require(
+        not pipeline.motion_stage.enabled,
+        "MOTION must be disabled.",
+    )
+
+    _require(
         not pipeline.export_stage.enabled,
         "EXPORT must be disabled.",
+    )
+
+
+    _require(
+        pipeline.schema_version == 1,
+        "Pipeline settings schema was not migrated.",
+    )
+
+    _require(
+        settings.motion_source_path == "",
+        "Default Motion source path must be empty.",
+    )
+
+    for stage_settings in (
+        pipeline.input_stage,
+        pipeline.geometry_stage,
+        pipeline.rig_stage,
+        pipeline.motion_stage,
+    ):
+        stage_settings.enabled = False
+    toggle_result = bpy.ops.bpt.set_pipeline_stage_enabled(
+        stage="motion",
+        enabled=True,
+    )
+    _require(
+        "FINISHED" in toggle_result
+        and pipeline.input_stage.enabled
+        and pipeline.geometry_stage.enabled
+        and pipeline.rig_stage.enabled
+        and pipeline.motion_stage.enabled,
+        "Enabling Motion did not enable its complete dependency chain.",
+    )
+    disable_result = bpy.ops.bpt.set_pipeline_stage_enabled(
+        stage="rig",
+        enabled=False,
+    )
+    _require(
+        "FINISHED" in disable_result
+        and not pipeline.rig_stage.enabled
+        and not pipeline.motion_stage.enabled,
+        "Disabling Rig did not disable its Motion dependent.",
     )
 
     print(

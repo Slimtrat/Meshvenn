@@ -6,11 +6,12 @@ class OrderingTests(unittest.TestCase):
 
     def test_entries_are_grouped_in_pipeline_order(self) -> None:
         registry = PipelineRegistry()
+        registry.register(motion_impl('motion-a'))
         registry.register(rig_impl('rig-a'))
         registry.register(material_impl('material-a'))
         registry.register(geometry_impl('geometry-a'))
         stages = [entry.descriptor.stage for entry in registry.entries()]
-        self.assertEqual(stages, [PipelineStage.GEOMETRY, PipelineStage.MATERIAL, PipelineStage.RIG])
+        self.assertEqual(stages, [PipelineStage.GEOMETRY, PipelineStage.MATERIAL, PipelineStage.RIG, PipelineStage.MOTION])
 
     def test_registration_order_is_preserved_inside_stage(self) -> None:
         registry = PipelineRegistry()

@@ -182,6 +182,8 @@ class BPT_PG_PipelineSettings(
         ↓
     RIG
         ↓
+    MOTION
+        ↓
     EXPORT
     """
 
@@ -192,6 +194,15 @@ class BPT_PG_PipelineSettings(
             "HIDDEN",
         },
     )
+    schema_version: IntProperty(
+        name="Pipeline Settings Schema",
+        default=0,
+        min=0,
+        options={
+            "HIDDEN",
+        },
+    )
+
 
     input_stage: PointerProperty(
         name="Input",
@@ -220,6 +231,13 @@ class BPT_PG_PipelineSettings(
             BPT_PG_PipelineStageSettings
         ),
     )
+    motion_stage: PointerProperty(
+        name="Motion",
+        type=(
+            BPT_PG_PipelineStageSettings
+        ),
+    )
+
 
     export_stage: PointerProperty(
         name="Export",

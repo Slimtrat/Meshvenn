@@ -116,6 +116,17 @@ class RigImplementation(FakeImplementation):
             return ImplementationAvailability.unavailable('Geometry missing.')
         return ImplementationAvailability.ready_state()
 
+class MotionImplementation(FakeImplementation):
+
+    def __init__(self, *, payload: Any='motion-data') -> None:
+        super().__init__(identifier='canonical-motion', stage=PipelineStage.MOTION, payload=payload)
+
+    def availability(self, context: PipelineContext) -> ImplementationAvailability:
+        self.availability_calls += 1
+        if not context.has_output(PipelineStage.RIG):
+            return ImplementationAvailability.unavailable('Rig missing.')
+        return ImplementationAvailability.ready_state()
+
 class ExportImplementation(FakeImplementation):
 
     def __init__(self, *, payload: Any='export-data') -> None:

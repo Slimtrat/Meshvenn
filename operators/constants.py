@@ -77,6 +77,11 @@ PIPELINE_STAGE_ENUM_ITEMS = (
         "Rig generation stage",
     ),
     (
+        PipelineStage.MOTION.value,
+        "Motion",
+        "Motion retargeting stage",
+    ),
+    (
         PipelineStage.EXPORT.value,
         "Export",
         "Asset export stage",
@@ -107,6 +112,14 @@ RUNNABLE_STAGE_ENUM_ITEMS = (
         (
             "Run the pipeline through "
             "the Rig stage"
+        ),
+    ),
+    (
+        PipelineStage.MOTION.value,
+        "Motion",
+        (
+            "Run the pipeline through "
+            "the Motion stage"
         ),
     ),
     (
