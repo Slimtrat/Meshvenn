@@ -123,8 +123,16 @@ class StageCardsMixin:
 
         description.label(
             text=(
-                "Images → Geometry → Material → Rig → Motion → Export"
+                "Images or GLB → Geometry → Material / Rig → Motion → Export"
             )
+        )
+
+        preset = layout.row()
+        preset.scale_y = 1.15
+        preset.operator(
+            "bpt.use_glb_first_pipeline",
+            text="GLB-FIRST CHARACTER",
+            icon="FILE_3D",
         )
 
     # -----------------------------------------------------

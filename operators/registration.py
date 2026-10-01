@@ -7,7 +7,11 @@ from .pipeline import (
     BPT_OT_RunPipeline,
     BPT_OT_RunPipelineStage,
 )
-from .presets import BPT_OT_AddFrontSidePreset, BPT_OT_AddTurntablePreset
+from .presets import (
+    BPT_OT_AddFrontSidePreset,
+    BPT_OT_AddTurntablePreset,
+    BPT_OT_UseGLBFirstPipeline,
+)
 from .projections import (
     BPT_OT_AddProjection,
     BPT_OT_ImportTurntableImages,
@@ -33,6 +37,8 @@ CLASSES = (
     BPT_OT_AddTurntablePreset,
 
     BPT_OT_AddFrontSidePreset,
+
+    BPT_OT_UseGLBFirstPipeline,
 
     BPT_OT_SetPipelineImplementation,
     BPT_OT_SetPipelineStageEnabled,

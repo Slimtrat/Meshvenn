@@ -216,6 +216,16 @@ def _validate_registry(
         "GLB Export V1 must be production-ready.",
     )
 
+    glb_input = registry.require("glb-file-v1", stage=PipelineStage.INPUT)
+    glb_geometry = registry.require(
+        "glb-normalized-geometry-v1", stage=PipelineStage.GEOMETRY
+    )
+    _require(
+        not glb_input.descriptor.experimental
+        and not glb_geometry.descriptor.experimental,
+        "GLB-first INPUT and GEOMETRY must be production-ready.",
+    )
+
     print(
         "Registry: OK"
     )
