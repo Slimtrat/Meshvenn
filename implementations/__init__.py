@@ -13,6 +13,12 @@ from .canonical_rig_v2 import CanonicalRigV2Implementation
 from .glb_export import GLBExportImplementation
 from .glb_geometry import GLBNormalizedGeometryImplementation
 from .glb_input import GLBFileInputImplementation
+from .glb_preservation import (
+    GLBPreservedGeometryImplementation,
+    GLBSourceMotionImplementation,
+    GLBSourceRigImplementation,
+    PreservedGLBGeometryOutput,
+)
 from .projected_color import ProjectedColorImplementation
 from .projection_images import ProjectionImagesImplementation
 from .registration import (
@@ -41,6 +47,10 @@ __all__ = (
     "GLBExportImplementation",
     "GLBFileInputImplementation",
     "GLBNormalizedGeometryImplementation",
+    "GLBPreservedGeometryImplementation",
+    "GLBSourceRigImplementation",
+    "GLBSourceMotionImplementation",
+    "PreservedGLBGeometryOutput",
     "register_builtin_implementations",
     "unregister_builtin_implementations",
     "register",

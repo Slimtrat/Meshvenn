@@ -229,6 +229,7 @@ class CanonicalMotionRetargetImplementation:
                 "clip_count": len(clips),
                 "mapped_role_count": len(bone_map.entries),
                 "baked_pose_samples": total_samples,
+                "pose_samples": total_samples,
                 "root_motion_mode": ROOT_MOTION_MODE,
             }
             output = MotionOutput(

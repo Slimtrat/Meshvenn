@@ -55,7 +55,16 @@ class CanonicalMotionMappingTests(unittest.TestCase):
             },
         )
         self.assertEqual(mapping.KHRONOS_FOX_PROFILE.rig_archetype, "quadruped")
-        self.assertEqual(mapping.KHRONOS_FOX_PROFILE.compatible_target_rigs, ())
+        self.assertEqual(
+            mapping.KHRONOS_FOX_PROFILE.compatible_target_rigs,
+            ("source-rig-preservation-v1",),
+        )
+        self.assertTrue(
+            all(
+                "source-rig-preservation-v1" in profile.compatible_target_rigs
+                for profile in mapping.SOURCE_PROFILES
+            )
+        )
         self.assertTrue(
             all(
                 profile.rig_archetype == "humanoid"
@@ -122,6 +131,9 @@ class CanonicalMotionMappingTests(unittest.TestCase):
             mapping.detect_source_profile(partial)
 
     def test_resolves_all_seventeen_roles_and_keeps_root_out_of_mapping(self) -> None:
+        source = mapping.resolve_source_profile(self.source_bones)
+        self.assertEqual(source.profile.identifier, "rigged-figure-v1")
+        self.assertEqual(tuple(source.role_to_bone), mapping.CANONICAL_ANIMATED_ROLES)
         resolved = mapping.resolve_bone_map(
             self.source_bones,
             self.target_semantics,

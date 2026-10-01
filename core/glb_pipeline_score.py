@@ -133,7 +133,10 @@ def _motion_score(output: Any) -> tuple[float, str]:
         return 0.0, "missing MotionOutput"
     role_score = _ratio(len(output.source_bone_map), 17)
     clip_score = 1.0 if output.clips else 0.0
-    sample_score = 1.0 if _ratio(output.metrics.get("baked_pose_samples", 0), 1) > 0 else 0.0
+    sample_count = output.metrics.get(
+        "pose_samples", output.metrics.get("baked_pose_samples", 0)
+    )
+    sample_score = 1.0 if _ratio(sample_count, 1) > 0 else 0.0
     score = 0.6 * role_score + 0.2 * clip_score + 0.2 * sample_score
     return score, f"roles={len(output.source_bone_map)}, clips={len(output.clips)}"
 

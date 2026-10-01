@@ -60,10 +60,10 @@ def _validate_builtin_catalog(
     _require(
         module
         .builtin_implementation_count()
-        == 11,
+        == 14,
         (
             "Built-in implementation "
-            "count must be 11."
+            "count must be 14."
         ),
     )
 
@@ -120,7 +120,7 @@ def _validate_builtin_catalog(
     )
 
     print(
-        "  11 implementations"
+        "  14 implementations"
     )
 
     print(

@@ -393,14 +393,26 @@ def _validate_pipeline_defaults(
         "FINISHED" in preset_result
         and pipeline.input_stage.implementation_id == "glb-file-v1"
         and pipeline.geometry_stage.implementation_id
-        == "glb-normalized-geometry-v1"
+        == "glb-preserved-geometry-v1"
+        and pipeline.rig_stage.implementation_id == "glb-source-rig-v1"
+        and pipeline.motion_stage.implementation_id == "glb-source-motion-v1"
         and pipeline.input_stage.enabled
         and pipeline.geometry_stage.enabled
         and not pipeline.material_stage.enabled
         and pipeline.rig_stage.enabled
         and pipeline.motion_stage.enabled
         and pipeline.export_stage.enabled,
-        "GLB-first pipeline preset is incomplete.",
+        "GLB source-preservation pipeline preset is incomplete.",
+    )
+    canonical_result = bpy.ops.bpt.use_glb_canonical_pipeline()
+    _require(
+        "FINISHED" in canonical_result
+        and pipeline.geometry_stage.implementation_id
+        == "glb-normalized-geometry-v1"
+        and pipeline.rig_stage.implementation_id == "canonical-biped-v1"
+        and pipeline.motion_stage.implementation_id
+        == "canonical-motion-retarget-v1",
+        "GLB canonicalization pipeline preset is incomplete.",
     )
     properties_module = importlib.import_module(f"{package_name}.properties")
     properties_module.reset_pipeline_defaults(settings)

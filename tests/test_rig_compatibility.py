@@ -49,6 +49,17 @@ class RigCompatibilityTests(unittest.TestCase):
                 "khronos-fox-v1", "quadruped", (), "canonical-biped-v1"
             )
 
+    def test_routes_quadruped_to_source_preservation(self) -> None:
+        report = assess_rig_compatibility(
+            _structure(),
+            source_profile="khronos-fox-v1",
+            declared_archetype="quadruped",
+            compatible_targets=("source-rig-preservation-v1",),
+            target_rig="source-rig-preservation-v1",
+        )
+        self.assertTrue(report.routable)
+        self.assertEqual(report.semantic_score, 1.0)
+
     def test_classifies_unregistered_small_rig_as_insufficient(self) -> None:
         report = assess_rig_compatibility(
             _structure(bones=2),

@@ -282,6 +282,12 @@ jobs:
             "implementations/glb_geometry/__init__.py"
             "implementations/glb_geometry/implementation.py"
             "implementations/glb_geometry/normalization.py"
+            "implementations/glb_preservation/__init__.py"
+            "implementations/glb_preservation/contracts.py"
+            "implementations/glb_preservation/geometry.py"
+            "implementations/glb_preservation/importer.py"
+            "implementations/glb_preservation/motion.py"
+            "implementations/glb_preservation/rig.py"
 
 
             # -----------------------------------------------
@@ -461,6 +467,7 @@ jobs:
             "tests/blender_rig_smoke.py"
             "tests/blender_glb_export_smoke.py"
             "tests/blender_glb_first_pipeline_smoke.py"
+            "tests/blender_glb_preservation_smoke.py"
 
 
             # -----------------------------------------------
@@ -987,6 +994,7 @@ jobs:
             implementations/glb_export \
             implementations/glb_input \
             implementations/glb_geometry \
+            implementations/glb_preservation \
             implementations/projection_images \
             "${PACKAGE_ROOT}/implementations/"
 
@@ -1324,6 +1332,12 @@ jobs:
             "implementations/glb_geometry/__init__.py"
             "implementations/glb_geometry/implementation.py"
             "implementations/glb_geometry/normalization.py"
+            "implementations/glb_preservation/__init__.py"
+            "implementations/glb_preservation/contracts.py"
+            "implementations/glb_preservation/geometry.py"
+            "implementations/glb_preservation/importer.py"
+            "implementations/glb_preservation/motion.py"
+            "implementations/glb_preservation/rig.py"
 
 
             # -----------------------------------------------
@@ -1783,6 +1797,12 @@ jobs:
             "blender_projection_tool/implementations/glb_geometry/__init__.py"
             "blender_projection_tool/implementations/glb_geometry/implementation.py"
             "blender_projection_tool/implementations/glb_geometry/normalization.py"
+            "blender_projection_tool/implementations/glb_preservation/__init__.py"
+            "blender_projection_tool/implementations/glb_preservation/contracts.py"
+            "blender_projection_tool/implementations/glb_preservation/geometry.py"
+            "blender_projection_tool/implementations/glb_preservation/importer.py"
+            "blender_projection_tool/implementations/glb_preservation/motion.py"
+            "blender_projection_tool/implementations/glb_preservation/rig.py"
 
 
             # -----------------------------------------------
@@ -2169,6 +2189,9 @@ jobs:
           test -f \
             "${PACKAGE_ROOT}/implementations/glb_geometry/normalization.py"
 
+          test -f \
+            "${PACKAGE_ROOT}/implementations/glb_preservation/geometry.py"
+
           echo
           echo "Smoke package:"
 
@@ -2348,6 +2371,37 @@ jobs:
             --expected-archetype quadruped \
             --expect-incompatible \
             --output "${RUNNER_TEMP}/glb-first-fox-smoke"
+
+      - name: Preserve source GLB rigs and Motion across supported archetypes
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_ROOT="${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_preservation_smoke.py -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --input example/v2/assets/RiggedFigure.glb \
+            --expected-profile rigged-figure-v1 \
+            --expected-archetype humanoid --expected-animations 1 \
+            --unsupported-input example/v2/assets/RiggedSimple.glb \
+            --output "${RUNNER_TEMP}/glb-preserved-rigged-figure"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_preservation_smoke.py -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --input example/v2/assets/RobotExpressive.glb \
+            --expected-profile threejs-robot-expressive-v1 \
+            --expected-archetype humanoid --expected-animations 14 \
+            --output "${RUNNER_TEMP}/glb-preserved-robot"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_preservation_smoke.py -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --input example/v2/assets/Fox.glb \
+            --expected-profile khronos-fox-v1 \
+            --expected-archetype quadruped --expected-animations 3 \
+            --output "${RUNNER_TEMP}/glb-preserved-fox"
 
       # Artifacts are published only after Blender package
       # validation succeeds.

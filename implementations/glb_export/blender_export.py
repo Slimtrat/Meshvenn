@@ -175,7 +175,7 @@ def _validate_manifest(plan: GLBExportPlan, manifest: GLBManifest) -> None:
     if manifest.mesh_count < 1:
         raise ValueError("Exported GLB contains no mesh.")
     if plan.rig is not None and manifest.skin_count < 1:
-        raise ValueError("Exported GLB lost the canonical skin.")
+        raise ValueError("Exported GLB lost its rig skin.")
     if plan.motion is None and manifest.animation_names:
         raise ValueError("Static GLB export unexpectedly contains animations.")
     if plan.motion is not None and len(manifest.animation_names) != len(plan.actions):

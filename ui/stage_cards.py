@@ -127,12 +127,17 @@ class StageCardsMixin:
             )
         )
 
-        preset = layout.row()
-        preset.scale_y = 1.15
-        preset.operator(
+        presets = layout.row(align=True)
+        presets.scale_y = 1.15
+        presets.operator(
             "bpt.use_glb_first_pipeline",
-            text="GLB-FIRST CHARACTER",
+            text="GLB PRESERVE",
             icon="FILE_3D",
+        )
+        presets.operator(
+            "bpt.use_glb_canonical_pipeline",
+            text="GLB CANONICALIZE",
+            icon="ARMATURE_DATA",
         )
 
     # -----------------------------------------------------

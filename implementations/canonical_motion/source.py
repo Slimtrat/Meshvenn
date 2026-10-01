@@ -54,7 +54,9 @@ def _action_data_paths(action: Any) -> tuple[str, ...]:
         return ()
 
 
-def _motion_actions(armature: Any, new_actions: set[Any]) -> tuple[Any, ...]:
+def motion_actions_for_armature(
+    armature: Any, new_actions: set[Any]
+) -> tuple[Any, ...]:
     linked = []
     animation_data = armature.animation_data
     if animation_data is not None:
@@ -105,7 +107,7 @@ def import_external_motion(path: Path, snapshot: BlenderDataSnapshot) -> Importe
             f"found {len(armatures)}"
         )
     armature, profile = armatures[0]
-    actions = _motion_actions(armature, new_actions)
+    actions = motion_actions_for_armature(armature, new_actions)
     if not actions:
         raise ValueError("Motion GLB contains no animation action for its supported armature")
     return ImportedMotionSource(source_path, armature, profile, actions, imported_objects)
@@ -143,5 +145,6 @@ __all__ = (
     "ImportedMotionSource",
     "cleanup_imported_data",
     "import_external_motion",
+    "motion_actions_for_armature",
     "snapshot_blender_data",
 )

@@ -144,6 +144,35 @@ jobs:
             --expect-incompatible \
             --output "${RUNNER_TEMP}/v2-benchmark/glb_first_fox"
 
+      - name: Preserve source GLB rigs, skins and Motion
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_preservation_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/RiggedFigure.glb \
+            --expected-profile rigged-figure-v1 \
+            --expected-archetype humanoid --expected-animations 1 \
+            --unsupported-input example/v2/assets/RiggedSimple.glb \
+            --output "${RUNNER_TEMP}/v2-benchmark/preserved_rigged_figure"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_preservation_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/RobotExpressive.glb \
+            --expected-profile threejs-robot-expressive-v1 \
+            --expected-archetype humanoid --expected-animations 14 \
+            --output "${RUNNER_TEMP}/v2-benchmark/preserved_robot"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_preservation_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/Fox.glb \
+            --expected-profile khronos-fox-v1 \
+            --expected-archetype quadruped --expected-animations 3 \
+            --output "${RUNNER_TEMP}/v2-benchmark/preserved_fox"
+
       - name: Benchmark Canonical Rig V1 against RiggedFigure
         shell: bash
         run: |

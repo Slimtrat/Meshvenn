@@ -8,6 +8,7 @@ from typing import Any, Iterable
 
 
 CANONICAL_BIPED_TARGET = "canonical-biped-v1"
+SOURCE_RIG_PRESERVATION_TARGET = "source-rig-preservation-v1"
 RIG_ARCHETYPES = frozenset({"humanoid", "quadruped", "insufficient", "unknown"})
 
 
@@ -210,6 +211,7 @@ def require_target_compatibility(
 
 __all__ = (
     "CANONICAL_BIPED_TARGET",
+    "SOURCE_RIG_PRESERVATION_TARGET",
     "RIG_ARCHETYPES",
     "RigCompatibilityReport",
     "RigStructureEvidence",

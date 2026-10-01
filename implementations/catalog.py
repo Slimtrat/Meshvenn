@@ -9,6 +9,11 @@ from .canonical_rig import CanonicalRigImplementation
 from .glb_export import GLBExportImplementation
 from .glb_geometry import GLBNormalizedGeometryImplementation
 from .glb_input import GLBFileInputImplementation
+from .glb_preservation import (
+    GLBPreservedGeometryImplementation,
+    GLBSourceMotionImplementation,
+    GLBSourceRigImplementation,
+)
 from .native_visual_hull import NativeVisualHullImplementation
 from .projected_color import ProjectedColorImplementation
 from .projection_images import ProjectionImagesImplementation
@@ -24,11 +29,14 @@ BUILTIN_IMPLEMENTATION_FACTORIES: tuple[ImplementationFactory, ...] = (
     NativeVisualHullImplementation,
     SDFReconstructionImplementation,
     GLBNormalizedGeometryImplementation,
+    GLBPreservedGeometryImplementation,
     ProjectedColorImplementation,
     UVBakeImplementation,
     CanonicalRigImplementation,
     CanonicalRigV2Implementation,
+    GLBSourceRigImplementation,
     CanonicalMotionRetargetImplementation,
+    GLBSourceMotionImplementation,
     GLBExportImplementation,
 )
 
