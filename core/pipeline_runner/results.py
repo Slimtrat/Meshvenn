@@ -21,7 +21,15 @@ def failed_result(selection: PipelineStageSelection, message: str, *, metadata: 
     )
 
 
-def skipped_result(selection: PipelineStageSelection, message: str) -> StageExecutionResult:
+def skipped_result(
+    selection: PipelineStageSelection,
+    message: str,
+    *,
+    metadata: dict[str, Any] | None = None,
+) -> StageExecutionResult:
     return StageExecutionResult.skipped_result(
-        stage=selection.stage, implementation_id=selection.implementation_id, message=message,
+        stage=selection.stage,
+        implementation_id=selection.implementation_id,
+        message=message,
+        metadata=metadata or {},
     )

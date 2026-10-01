@@ -140,6 +140,7 @@ jobs:
             "core/export_contracts.py"
             "core/glb_input_contracts.py"
             "core/glb_pipeline_score.py"
+            "core/glb_route.py"
             "core/rig_compatibility.py"
 
             # INPUT / projection
@@ -282,6 +283,11 @@ jobs:
             "implementations/glb_geometry/__init__.py"
             "implementations/glb_geometry/implementation.py"
             "implementations/glb_geometry/normalization.py"
+            "implementations/glb_auto_route/__init__.py"
+            "implementations/glb_auto_route/geometry.py"
+            "implementations/glb_auto_route/motion.py"
+            "implementations/glb_auto_route/results.py"
+            "implementations/glb_auto_route/rig.py"
             "implementations/glb_preservation/__init__.py"
             "implementations/glb_preservation/contracts.py"
             "implementations/glb_preservation/geometry.py"
@@ -424,7 +430,9 @@ jobs:
             "tests/test_glb_export_manifest.py"
             "tests/test_glb_input_contracts.py"
             "tests/test_glb_pipeline_score.py"
+            "tests/test_glb_auto_route_decision.py"
             "tests/test_rig_compatibility.py"
+            "tests/test_pipeline_runner_runtime_skip.py"
 
             # SDF GEOMETRY
             "tests/sdf_surface_test_support.py"
@@ -468,6 +476,7 @@ jobs:
             "tests/blender_glb_export_smoke.py"
             "tests/blender_glb_first_pipeline_smoke.py"
             "tests/blender_glb_preservation_smoke.py"
+            "tests/blender_glb_auto_route_smoke.py"
 
 
             # -----------------------------------------------
@@ -994,6 +1003,7 @@ jobs:
             implementations/glb_export \
             implementations/glb_input \
             implementations/glb_geometry \
+            implementations/glb_auto_route \
             implementations/glb_preservation \
             implementations/projection_images \
             "${PACKAGE_ROOT}/implementations/"
@@ -1175,6 +1185,7 @@ jobs:
             "core/export_contracts.py"
             "core/glb_input_contracts.py"
             "core/glb_pipeline_score.py"
+            "core/glb_route.py"
             "core/rig_compatibility.py"
 
             # -----------------------------------------------
@@ -1332,6 +1343,11 @@ jobs:
             "implementations/glb_geometry/__init__.py"
             "implementations/glb_geometry/implementation.py"
             "implementations/glb_geometry/normalization.py"
+            "implementations/glb_auto_route/__init__.py"
+            "implementations/glb_auto_route/geometry.py"
+            "implementations/glb_auto_route/motion.py"
+            "implementations/glb_auto_route/results.py"
+            "implementations/glb_auto_route/rig.py"
             "implementations/glb_preservation/__init__.py"
             "implementations/glb_preservation/contracts.py"
             "implementations/glb_preservation/geometry.py"
@@ -1680,6 +1696,7 @@ jobs:
             "blender_projection_tool/core/export_contracts.py"
             "blender_projection_tool/core/glb_input_contracts.py"
             "blender_projection_tool/core/glb_pipeline_score.py"
+            "blender_projection_tool/core/glb_route.py"
             "blender_projection_tool/core/rig_compatibility.py"
 
             "blender_projection_tool/core/projection_alignment.py"
@@ -1797,6 +1814,11 @@ jobs:
             "blender_projection_tool/implementations/glb_geometry/__init__.py"
             "blender_projection_tool/implementations/glb_geometry/implementation.py"
             "blender_projection_tool/implementations/glb_geometry/normalization.py"
+            "blender_projection_tool/implementations/glb_auto_route/__init__.py"
+            "blender_projection_tool/implementations/glb_auto_route/geometry.py"
+            "blender_projection_tool/implementations/glb_auto_route/motion.py"
+            "blender_projection_tool/implementations/glb_auto_route/results.py"
+            "blender_projection_tool/implementations/glb_auto_route/rig.py"
             "blender_projection_tool/implementations/glb_preservation/__init__.py"
             "blender_projection_tool/implementations/glb_preservation/contracts.py"
             "blender_projection_tool/implementations/glb_preservation/geometry.py"
@@ -2184,6 +2206,9 @@ jobs:
             "${PACKAGE_ROOT}/core/rig_compatibility.py"
 
           test -f \
+            "${PACKAGE_ROOT}/core/glb_route.py"
+
+          test -f \
             "${PACKAGE_ROOT}/implementations/glb_input/implementation.py"
 
           test -f \
@@ -2191,6 +2216,9 @@ jobs:
 
           test -f \
             "${PACKAGE_ROOT}/implementations/glb_preservation/geometry.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/glb_auto_route/geometry.py"
 
           echo
           echo "Smoke package:"
@@ -2402,6 +2430,51 @@ jobs:
             --expected-profile khronos-fox-v1 \
             --expected-archetype quadruped --expected-animations 3 \
             --output "${RUNNER_TEMP}/glb-preserved-fox"
+
+      - name: Route GLB characters automatically without semantic guesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_ROOT="${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --input example/v2/assets/RiggedFigure.glb \
+            --expected-route canonicalize --expected-profile rigged-figure-v1 \
+            --expected-animations 1 \
+            --output "${RUNNER_TEMP}/glb-auto-rigged-figure"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --input example/v2/assets/RobotExpressive.glb \
+            --expected-route canonicalize \
+            --expected-profile threejs-robot-expressive-v1 \
+            --expected-animations 14 \
+            --output "${RUNNER_TEMP}/glb-auto-robot"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --input example/v2/assets/Fox.glb \
+            --expected-route preserve-source --expected-profile khronos-fox-v1 \
+            --expected-animations 3 \
+            --output "${RUNNER_TEMP}/glb-auto-fox"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --input example/v2/assets/RiggedSimple.glb \
+            --expected-route geometry-only --expected-animations 0 \
+            --output "${RUNNER_TEMP}/glb-auto-rigged-simple"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --input example/v2/assets/ToyCar.glb \
+            --expected-route geometry-only --expected-animations 0 \
+            --output "${RUNNER_TEMP}/glb-auto-toy-car"
 
       # Artifacts are published only after Blender package
       # validation succeeds.

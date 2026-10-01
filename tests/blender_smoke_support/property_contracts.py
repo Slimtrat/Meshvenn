@@ -388,6 +388,21 @@ def _validate_pipeline_defaults(
     )
     pipeline.export_stage.enabled = False
 
+    auto_result = bpy.ops.bpt.use_glb_auto_pipeline()
+    _require(
+        "FINISHED" in auto_result
+        and pipeline.input_stage.implementation_id == "glb-file-v1"
+        and pipeline.geometry_stage.implementation_id == "glb-auto-geometry-v1"
+        and pipeline.rig_stage.implementation_id == "glb-auto-rig-v1"
+        and pipeline.motion_stage.implementation_id == "glb-auto-motion-v1"
+        and pipeline.input_stage.enabled
+        and pipeline.geometry_stage.enabled
+        and not pipeline.material_stage.enabled
+        and pipeline.rig_stage.enabled
+        and pipeline.motion_stage.enabled
+        and pipeline.export_stage.enabled,
+        "GLB automatic-routing pipeline preset is incomplete.",
+    )
     preset_result = bpy.ops.bpt.use_glb_first_pipeline()
     _require(
         "FINISHED" in preset_result

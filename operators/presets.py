@@ -197,28 +197,35 @@ class BPT_OT_AddFrontSidePreset(
         }
 
 
-def _apply_glb_pipeline(context: bpy.types.Context, *, preserve_source: bool) -> None:
+def _apply_glb_pipeline(context: bpy.types.Context, *, route: str) -> None:
+    route_implementations = {
+        "auto": (
+            "glb-auto-geometry-v1",
+            "glb-auto-rig-v1",
+            "glb-auto-motion-v1",
+        ),
+        "preserve": (
+            "glb-preserved-geometry-v1",
+            "glb-source-rig-v1",
+            "glb-source-motion-v1",
+        ),
+        "canonicalize": (
+            "glb-normalized-geometry-v1",
+            "canonical-biped-v1",
+            "canonical-motion-retarget-v1",
+        ),
+    }
+    try:
+        geometry_id, rig_id, motion_id = route_implementations[route]
+    except KeyError as exc:
+        raise ValueError(f"Unknown GLB pipeline route: {route}") from exc
     settings = context.scene.bpt_settings
     selections = {
         PipelineStage.INPUT: ("glb-file-v1", True, True),
-        PipelineStage.GEOMETRY: (
-            "glb-preserved-geometry-v1"
-            if preserve_source else "glb-normalized-geometry-v1",
-            True,
-            True,
-        ),
+        PipelineStage.GEOMETRY: (geometry_id, True, True),
         PipelineStage.MATERIAL: ("projected-color-v1.2", False, False),
-        PipelineStage.RIG: (
-            "glb-source-rig-v1" if preserve_source else "canonical-biped-v1",
-            True,
-            True,
-        ),
-        PipelineStage.MOTION: (
-            "glb-source-motion-v1"
-            if preserve_source else "canonical-motion-retarget-v1",
-            True,
-            True,
-        ),
+        PipelineStage.RIG: (rig_id, True, True),
+        PipelineStage.MOTION: (motion_id, True, True),
         PipelineStage.EXPORT: ("glb-export-v1", True, True),
     }
     for stage, (implementation_id, enabled, expanded) in selections.items():
@@ -237,7 +244,19 @@ class BPT_OT_UseGLBFirstPipeline(Operator):
     )
 
     def execute(self, context: bpy.types.Context) -> set[str]:
-        _apply_glb_pipeline(context, preserve_source=True)
+        _apply_glb_pipeline(context, route="preserve")
+        return {"FINISHED"}
+
+
+class BPT_OT_UseGLBAutoPipeline(Operator):
+    bl_idname = "bpt.use_glb_auto_pipeline"
+    bl_label = "Use GLB Automatic Pipeline"
+    bl_description = (
+        "Select Canonical, source-preservation or geometry-only routing from the GLB rig"
+    )
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        _apply_glb_pipeline(context, route="auto")
         return {"FINISHED"}
 
 
@@ -249,7 +268,7 @@ class BPT_OT_UseGLBCanonicalPipeline(Operator):
     )
 
     def execute(self, context: bpy.types.Context) -> set[str]:
-        _apply_glb_pipeline(context, preserve_source=False)
+        _apply_glb_pipeline(context, route="canonicalize")
         return {"FINISHED"}
 
 

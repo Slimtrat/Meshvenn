@@ -6,6 +6,11 @@ from ..core.pipeline_contracts import PipelineImplementation, PipelineStage
 from .canonical_motion import CanonicalMotionRetargetImplementation
 from .canonical_rig_v2 import CanonicalRigV2Implementation
 from .canonical_rig import CanonicalRigImplementation
+from .glb_auto_route import (
+    GLBAutoGeometryImplementation,
+    GLBAutoMotionImplementation,
+    GLBAutoRigImplementation,
+)
 from .glb_export import GLBExportImplementation
 from .glb_geometry import GLBNormalizedGeometryImplementation
 from .glb_input import GLBFileInputImplementation
@@ -28,13 +33,16 @@ BUILTIN_IMPLEMENTATION_FACTORIES: tuple[ImplementationFactory, ...] = (
     GLBFileInputImplementation,
     NativeVisualHullImplementation,
     SDFReconstructionImplementation,
+    GLBAutoGeometryImplementation,
     GLBNormalizedGeometryImplementation,
     GLBPreservedGeometryImplementation,
     ProjectedColorImplementation,
     UVBakeImplementation,
+    GLBAutoRigImplementation,
     CanonicalRigImplementation,
     CanonicalRigV2Implementation,
     GLBSourceRigImplementation,
+    GLBAutoMotionImplementation,
     CanonicalMotionRetargetImplementation,
     GLBSourceMotionImplementation,
     GLBExportImplementation,

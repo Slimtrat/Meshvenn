@@ -127,8 +127,14 @@ class StageCardsMixin:
             )
         )
 
+        automatic = layout.row(align=True)
+        automatic.scale_y = 1.3
+        automatic.operator(
+            "bpt.use_glb_auto_pipeline",
+            text="GLB AUTO ROUTE",
+            icon="SORTBYEXT",
+        )
         presets = layout.row(align=True)
-        presets.scale_y = 1.15
         presets.operator(
             "bpt.use_glb_first_pipeline",
             text="GLB PRESERVE",

@@ -240,6 +240,19 @@ def _validate_registry(
         and not preserved_motion.descriptor.experimental,
         "GLB source-preservation route must be production-ready.",
     )
+    auto_geometry = registry.require(
+        "glb-auto-geometry-v1", stage=PipelineStage.GEOMETRY
+    )
+    auto_rig = registry.require("glb-auto-rig-v1", stage=PipelineStage.RIG)
+    auto_motion = registry.require(
+        "glb-auto-motion-v1", stage=PipelineStage.MOTION
+    )
+    _require(
+        not auto_geometry.descriptor.experimental
+        and not auto_rig.descriptor.experimental
+        and not auto_motion.descriptor.experimental,
+        "GLB automatic route must be production-ready.",
+    )
     motion = registry.require(
         "canonical-motion-retarget-v1", stage=PipelineStage.MOTION
     )
