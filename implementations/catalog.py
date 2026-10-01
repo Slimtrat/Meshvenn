@@ -7,6 +7,8 @@ from .canonical_motion import CanonicalMotionRetargetImplementation
 from .canonical_rig_v2 import CanonicalRigV2Implementation
 from .canonical_rig import CanonicalRigImplementation
 from .glb_export import GLBExportImplementation
+from .glb_geometry import GLBNormalizedGeometryImplementation
+from .glb_input import GLBFileInputImplementation
 from .native_visual_hull import NativeVisualHullImplementation
 from .projected_color import ProjectedColorImplementation
 from .projection_images import ProjectionImagesImplementation
@@ -18,8 +20,10 @@ ImplementationFactory = Callable[[], PipelineImplementation]
 # Registration order is product/UI order. Defaults remain explicit below.
 BUILTIN_IMPLEMENTATION_FACTORIES: tuple[ImplementationFactory, ...] = (
     ProjectionImagesImplementation,
+    GLBFileInputImplementation,
     NativeVisualHullImplementation,
     SDFReconstructionImplementation,
+    GLBNormalizedGeometryImplementation,
     ProjectedColorImplementation,
     UVBakeImplementation,
     CanonicalRigImplementation,

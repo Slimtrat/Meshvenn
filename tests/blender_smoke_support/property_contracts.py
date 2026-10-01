@@ -87,7 +87,7 @@ def _validate_scene_properties(
     pipeline.export_stage.expanded = True
     properties_module.ensure_pipeline_defaults(settings)
     _require(
-        pipeline.schema_version == 2
+        pipeline.schema_version == 3
         and pipeline.motion_stage.implementation_id
         == "canonical-motion-retarget-v1"
         and not pipeline.motion_stage.enabled
@@ -109,7 +109,7 @@ def _validate_scene_properties(
     pipeline.export_stage.expanded = True
     properties_module.ensure_pipeline_defaults(settings)
     _require(
-        pipeline.schema_version == 2
+        pipeline.schema_version == 3
         and pipeline.motion_stage.implementation_id == "third-party-motion"
         and pipeline.motion_stage.enabled
         and pipeline.motion_stage.expanded
@@ -285,13 +285,19 @@ def _validate_pipeline_defaults(
 
 
     _require(
-        pipeline.schema_version == 2,
+        pipeline.schema_version == 3,
         "Pipeline settings schema was not migrated.",
     )
 
     _require(
         settings.motion_source_path == "",
         "Default Motion source path must be empty.",
+    )
+
+    _require(
+        settings.glb_input_path == ""
+        and settings.glb_normalized_extent == 2.0,
+        "Default GLB-first settings are incorrect.",
     )
 
     _require(
@@ -309,20 +315,29 @@ def _validate_pipeline_defaults(
     )
     default_context = runtime_module._new_pipeline_context(bpy.context)
     _require(
-        default_context.metadata["export_output_path"] == ""
+        default_context.metadata["glb_input_path"] == ""
+        and default_context.metadata["glb_normalized_extent"] == 2.0
+        and default_context.metadata["export_output_path"] == ""
         and default_context.metadata["export_overwrite_existing"] is False,
         "Default Export runtime metadata is incorrect.",
     )
 
+    settings.glb_input_path = "assets/source.glb"
+    settings.glb_normalized_extent = 3.5
     settings.export_output_path = "exports/character.glb"
     settings.export_overwrite_existing = True
     configured_context = runtime_module._new_pipeline_context(bpy.context)
     _require(
-        configured_context.metadata["export_output_path"]
+        configured_context.metadata["glb_input_path"]
+        == bpy.path.abspath(settings.glb_input_path)
+        and configured_context.metadata["glb_normalized_extent"] == 3.5
+        and configured_context.metadata["export_output_path"]
         == bpy.path.abspath(settings.export_output_path)
         and configured_context.metadata["export_overwrite_existing"] is True,
         "Configured Export runtime metadata was not normalized through bpy.path.abspath.",
     )
+    settings.glb_input_path = ""
+    settings.glb_normalized_extent = 2.0
     settings.export_output_path = ""
     settings.export_overwrite_existing = False
 
@@ -372,6 +387,23 @@ def _validate_pipeline_defaults(
         "Enabling Export did not enable exactly its Geometry/Input dependencies.",
     )
     pipeline.export_stage.enabled = False
+
+    preset_result = bpy.ops.bpt.use_glb_first_pipeline()
+    _require(
+        "FINISHED" in preset_result
+        and pipeline.input_stage.implementation_id == "glb-file-v1"
+        and pipeline.geometry_stage.implementation_id
+        == "glb-normalized-geometry-v1"
+        and pipeline.input_stage.enabled
+        and pipeline.geometry_stage.enabled
+        and not pipeline.material_stage.enabled
+        and pipeline.rig_stage.enabled
+        and pipeline.motion_stage.enabled
+        and pipeline.export_stage.enabled,
+        "GLB-first pipeline preset is incomplete.",
+    )
+    properties_module = importlib.import_module(f"{package_name}.properties")
+    properties_module.reset_pipeline_defaults(settings)
 
     print(
         "Pipeline defaults: OK"

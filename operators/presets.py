@@ -13,6 +13,7 @@ from bpy.props import (
     StringProperty,
 )
 from bpy.types import Operator
+
 from bpy_extras.io_utils import ImportHelper
 
 from ..core.pipeline_contracts import (
@@ -194,6 +195,33 @@ class BPT_OT_AddFrontSidePreset(
         return {
             "FINISHED"
         }
+
+
+class BPT_OT_UseGLBFirstPipeline(Operator):
+    bl_idname = "bpt.use_glb_first_pipeline"
+    bl_label = "Use GLB-First Character Pipeline"
+    bl_description = (
+        "Configure GLB input, neutral normalized geometry, canonical rig, "
+        "automatic Motion retarget and validated GLB export"
+    )
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        settings = context.scene.bpt_settings
+        selections = {
+            PipelineStage.INPUT: ("glb-file-v1", True, True),
+            PipelineStage.GEOMETRY: ("glb-normalized-geometry-v1", True, True),
+            PipelineStage.MATERIAL: ("projected-color-v1.2", False, False),
+            PipelineStage.RIG: ("canonical-biped-v1", True, True),
+            PipelineStage.MOTION: ("canonical-motion-retarget-v1", True, True),
+            PipelineStage.EXPORT: ("glb-export-v1", True, True),
+        }
+        for stage, (implementation_id, enabled, expanded) in selections.items():
+            stage_settings = pipeline_stage_settings(settings, stage)
+            stage_settings.implementation_id = implementation_id
+            stage_settings.enabled = enabled
+            stage_settings.expanded = expanded
+        clear_pipeline_runtime_state(context.scene)
+        return {"FINISHED"}
 
 
 # ---------------------------------------------------------

@@ -66,6 +66,23 @@ class BPT_PG_Settings(
         subtype="FACTOR",
     )
 
+    glb_input_path: StringProperty(
+        name="Source GLB",
+        description="glTF 2.0 binary asset used by the GLB-first pipeline",
+        default=DEFAULT_GLB_INPUT_PATH,
+        subtype="FILE_PATH",
+    )
+
+    glb_normalized_extent: FloatProperty(
+        name="Normalized Size",
+        description="Longest dimension of normalized GLB geometry in Blender units",
+        default=DEFAULT_GLB_NORMALIZED_EXTENT,
+        min=0.01,
+        max=1000.0,
+        soft_min=0.1,
+        soft_max=10.0,
+    )
+
     # =====================================================
     # GEOMETRY — Native Visual Hull
     #

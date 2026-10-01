@@ -138,6 +138,8 @@ jobs:
             "core/rig_contracts.py"
             "core/motion_contracts.py"
             "core/export_contracts.py"
+            "core/glb_input_contracts.py"
+            "core/glb_pipeline_score.py"
 
             # INPUT / projection
             "core/image_mask.py"
@@ -274,6 +276,11 @@ jobs:
             "implementations/glb_export/implementation.py"
             "implementations/glb_export/manifest.py"
             "implementations/glb_export/planning.py"
+            "implementations/glb_input/__init__.py"
+            "implementations/glb_input/implementation.py"
+            "implementations/glb_geometry/__init__.py"
+            "implementations/glb_geometry/implementation.py"
+            "implementations/glb_geometry/normalization.py"
 
 
             # -----------------------------------------------
@@ -408,6 +415,8 @@ jobs:
             "tests/test_rig_skinning.py"
             "tests/test_export_contracts.py"
             "tests/test_glb_export_manifest.py"
+            "tests/test_glb_input_contracts.py"
+            "tests/test_glb_pipeline_score.py"
 
             # SDF GEOMETRY
             "tests/sdf_surface_test_support.py"
@@ -449,6 +458,7 @@ jobs:
             "tests/blender_uv_bake_smoke.py"
             "tests/blender_rig_smoke.py"
             "tests/blender_glb_export_smoke.py"
+            "tests/blender_glb_first_pipeline_smoke.py"
 
 
             # -----------------------------------------------
@@ -973,6 +983,8 @@ jobs:
             implementations/canonical_rig \
             implementations/canonical_motion \
             implementations/glb_export \
+            implementations/glb_input \
+            implementations/glb_geometry \
             implementations/projection_images \
             "${PACKAGE_ROOT}/implementations/"
 
@@ -1151,6 +1163,8 @@ jobs:
 
             "core/motion_contracts.py"
             "core/export_contracts.py"
+            "core/glb_input_contracts.py"
+            "core/glb_pipeline_score.py"
 
             # -----------------------------------------------
             # INPUT / projection
@@ -1302,6 +1316,11 @@ jobs:
             "implementations/glb_export/implementation.py"
             "implementations/glb_export/manifest.py"
             "implementations/glb_export/planning.py"
+            "implementations/glb_input/__init__.py"
+            "implementations/glb_input/implementation.py"
+            "implementations/glb_geometry/__init__.py"
+            "implementations/glb_geometry/implementation.py"
+            "implementations/glb_geometry/normalization.py"
 
 
             # -----------------------------------------------
@@ -1642,6 +1661,8 @@ jobs:
             "blender_projection_tool/core/rig_contracts.py"
             "blender_projection_tool/core/motion_contracts.py"
             "blender_projection_tool/core/export_contracts.py"
+            "blender_projection_tool/core/glb_input_contracts.py"
+            "blender_projection_tool/core/glb_pipeline_score.py"
 
             "blender_projection_tool/core/projection_alignment.py"
             "blender_projection_tool/core/projection_math/__init__.py"
@@ -1753,6 +1774,11 @@ jobs:
             "blender_projection_tool/implementations/glb_export/implementation.py"
             "blender_projection_tool/implementations/glb_export/manifest.py"
             "blender_projection_tool/implementations/glb_export/planning.py"
+            "blender_projection_tool/implementations/glb_input/__init__.py"
+            "blender_projection_tool/implementations/glb_input/implementation.py"
+            "blender_projection_tool/implementations/glb_geometry/__init__.py"
+            "blender_projection_tool/implementations/glb_geometry/implementation.py"
+            "blender_projection_tool/implementations/glb_geometry/normalization.py"
 
 
             # -----------------------------------------------
@@ -2124,6 +2150,18 @@ jobs:
           test -f \
             "${PACKAGE_ROOT}/implementations/glb_export/planning.py"
 
+          test -f \
+            "${PACKAGE_ROOT}/core/glb_input_contracts.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/glb_pipeline_score.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/glb_input/implementation.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/glb_geometry/normalization.py"
+
           echo
           echo "Smoke package:"
 
@@ -2146,7 +2184,7 @@ jobs:
       #
       # register
       #
-      # 9 implementation registry
+      # 11 implementation registry
       #
       # SDF properties
       # SDF pipeline selection
@@ -2259,6 +2297,25 @@ jobs:
             -- \
             --package-root "${PACKAGE_ROOT}" \
             --output "${RUNNER_TEMP}/glb-export-smoke"
+
+      - name: Blender GLB-first character pipeline smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PACKAGE_ROOT="${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tests/blender_glb_first_pipeline_smoke.py \
+            -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --input example/v2/assets/RiggedFigure.glb \
+            --static-input example/v2/assets/ToyCar.glb \
+            --unsupported-input example/v2/assets/RiggedSimple.glb \
+            --output "${RUNNER_TEMP}/glb-first-smoke"
 
       # Artifacts are published only after Blender package
       # validation succeeds.
@@ -2410,6 +2467,13 @@ jobs:
             - temporary-file validation followed by atomic publication
             - explicit overwrite policy and Motion-source protection
 
+            **GLB-first**
+
+            - validated GLB File V1 input with SHA-256 provenance
+            - transactional multi-mesh normalization with material preservation
+            - compatible source-rig detection and automatic Motion-source reuse
+            - weighted E2E score with explicit image-evidence coverage
+
             ### Validation
 
             The release package has passed:
@@ -2452,6 +2516,7 @@ jobs:
             - Blender 5.2.1 UV Bake V2 functional smoke test
             - Blender 5.2.1 Canonical Rig V1 functional smoke test
             - Blender 5.2.1 GLB Export V1 static package smoke test
+            - Blender 5.2.1 packaged GLB-first Rig/Motion/Export score smoke test
 
             The separate GLB V2 benchmark workflow additionally exercises the
             complete reconstruction → Rig → Motion → Export → reimport path on

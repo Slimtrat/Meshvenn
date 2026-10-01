@@ -17,7 +17,11 @@ from .projections import (
     BPT_OT_LoadProjectionImage,
     BPT_OT_RemoveProjection,
 )
-from .presets import BPT_OT_AddFrontSidePreset, BPT_OT_AddTurntablePreset
+from .presets import (
+    BPT_OT_AddFrontSidePreset,
+    BPT_OT_AddTurntablePreset,
+    BPT_OT_UseGLBFirstPipeline,
+)
 from .selection import BPT_OT_ResetPipelineSettings, BPT_OT_SetPipelineImplementation
 from .pipeline import BPT_OT_GenerateCharacter, BPT_OT_RunPipeline, BPT_OT_RunPipelineStage
 from .registration import CLASSES, register, unregister

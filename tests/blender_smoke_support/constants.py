@@ -79,6 +79,8 @@ REQUIRED_PACKAGE_FILES = (
     "core/rig_contracts.py",
     "core/motion_contracts.py",
     "core/export_contracts.py",
+    "core/glb_input_contracts.py",
+    "core/glb_pipeline_score.py",
 
     # Input / projection
     "core/image_mask.py",
@@ -155,6 +157,8 @@ REQUIRED_PACKAGE_FILES = (
     "implementations/projection_images/implementation.py",
     "implementations/projection_images/models.py",
     "implementations/projection_images/preparation.py",
+    "implementations/glb_input/__init__.py",
+    "implementations/glb_input/implementation.py",
     "implementations/native_visual_hull/__init__.py",
     "implementations/native_visual_hull/availability.py",
     "implementations/native_visual_hull/blender_output.py",
@@ -174,6 +178,9 @@ REQUIRED_PACKAGE_FILES = (
     "implementations/sdf_reconstruction/output.py",
     "implementations/sdf_reconstruction/resolution.py",
     "implementations/sdf_reconstruction/ui_settings.py",
+    "implementations/glb_geometry/__init__.py",
+    "implementations/glb_geometry/implementation.py",
+    "implementations/glb_geometry/normalization.py",
     "implementations/projected_color/__init__.py",
     "implementations/projected_color/configuration.py",
     "implementations/projected_color/geometry.py",
@@ -216,8 +223,10 @@ REQUIRED_PACKAGE_FILES = (
 
 EXPECTED_IMPLEMENTATIONS = (
     "projection-images",
+    "glb-file-v1",
     "native-visual-hull",
     "sdf-reconstruction-v1",
+    "glb-normalized-geometry-v1",
     "projected-color-v1.2",
     "uv-bake-v2",
     "canonical-biped-v1",
@@ -307,6 +316,7 @@ EXPECTED_OPERATOR_RNA_IDS = (
     "BPT_OT_remove_projection",
     "BPT_OT_add_turntable_preset",
     "BPT_OT_add_front_side_preset",
+    "BPT_OT_use_glb_first_pipeline",
 
     "BPT_OT_set_pipeline_implementation",
     "BPT_OT_set_pipeline_stage_enabled",
@@ -326,6 +336,7 @@ EXPECTED_OPERATOR_IDNAMES = (
     "bpt.remove_projection",
     "bpt.add_turntable_preset",
     "bpt.add_front_side_preset",
+    "bpt.use_glb_first_pipeline",
 
     "bpt.set_pipeline_implementation",
     "bpt.set_pipeline_stage_enabled",

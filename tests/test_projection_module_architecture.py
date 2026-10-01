@@ -129,8 +129,10 @@ class ProjectionPackageArchitectureTests(unittest.TestCase):
             [element.id for element in factories.elts],
             [
                 "ProjectionImagesImplementation",
+                "GLBFileInputImplementation",
                 "NativeVisualHullImplementation",
                 "SDFReconstructionImplementation",
+                "GLBNormalizedGeometryImplementation",
                 "ProjectedColorImplementation",
                 "UVBakeImplementation",
                 "CanonicalRigImplementation",

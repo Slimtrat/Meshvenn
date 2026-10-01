@@ -11,6 +11,8 @@ from .canonical_rig import CanonicalRigImplementation
 from .native_visual_hull import NativeVisualHullImplementation
 from .canonical_rig_v2 import CanonicalRigV2Implementation
 from .glb_export import GLBExportImplementation
+from .glb_geometry import GLBNormalizedGeometryImplementation
+from .glb_input import GLBFileInputImplementation
 from .projected_color import ProjectedColorImplementation
 from .projection_images import ProjectionImagesImplementation
 from .registration import (
@@ -37,6 +39,8 @@ __all__ = (
     "CanonicalRigV2Implementation",
     "CanonicalMotionRetargetImplementation",
     "GLBExportImplementation",
+    "GLBFileInputImplementation",
+    "GLBNormalizedGeometryImplementation",
     "register_builtin_implementations",
     "unregister_builtin_implementations",
     "register",

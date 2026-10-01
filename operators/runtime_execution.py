@@ -131,6 +131,14 @@ def _new_pipeline_context(
             settings=settings,
             metadata={
                 "source": "blender-ui",
+                "glb_input_path": (
+                    bpy.path.abspath(settings.glb_input_path)
+                    if settings.glb_input_path.strip()
+                    else ""
+                ),
+                "glb_normalized_extent": float(
+                    settings.glb_normalized_extent
+                ),
                 "motion_source_path": (
                     bpy.path.abspath(settings.motion_source_path)
                     if settings.motion_source_path.strip()
