@@ -427,17 +427,23 @@ purpose-built work. V2 remains opt-in so existing scenes and default behavior do
 not switch silently.
 
 The optional **Canonical Motion Retarget V1** stage accepts an external animated
-GLB, detects a supported source skeleton from its bones, maps 17 semantic roles
-onto the generated canonical rig, and bakes a quaternion action in rest/global
-space. The canonical root remains fixed in IN_PLACE mode. Import, bake and
-cleanup are transactional: an unsupported or broken source leaves the target
-rig unchanged. The source GLB is selected directly in the Motion card.
+GLB, detects its source-skeleton adapter, maps 17 semantic roles onto the
+generated canonical rig, and bakes quaternion actions in rest/global space. Bone
+matching tolerates case, common separators and FBX/glTF namespaces, but rejects
+ambiguous normalized names. The canonical root remains fixed in IN_PLACE mode.
+Import, bake and cleanup are transactional: an unsupported or broken source
+leaves the target rig unchanged. The source GLB is selected directly in the
+Motion card.
 
-The first supported source profile is Khronos RiggedFigure. RiggedSimple is
-intentionally rejected because two generic bones cannot establish a complete
-biped mapping. This stage is not yet a universal retargeter: arbitrary skeleton
-auto-mapping, root-motion preservation, facial animation and motion synthesis
-are not supported yet.
+Six deterministic adapters are registered: Khronos RiggedFigure, Khronos Fox,
+three.js RobotExpressive, Mixamo humanoid, Unreal Mannequin and Meshvenn
+Canonical. RiggedFigure, Fox and RobotExpressive are E2E-certified fixtures:
+their complete GLB-first paths retarget respectively 1, 3 and 14 non-constant
+clips and round-trip them through the packaged exporter. The remaining adapters
+are contract-tested name mappings until pinned redistributable fixtures are
+added. RiggedSimple is intentionally rejected because two generic bones cannot
+establish a complete mapping. Facial animation, retained root motion and
+heuristic mapping of unknown skeletons are not supported.
 
 The optional **GLB Export V1** stage publishes the current geometry as a glTF
 2.0 binary. When compatible Rig and Motion outputs are enabled, the same export
@@ -592,7 +598,7 @@ Python / Blender validation
 
 The CI also creates installable Blender extension artifacts.
 
-The [GLB reference examples V2](example/v2/README.md) provide seven pinned,
+The [GLB reference examples V2](example/v2/README.md) provide eight pinned,
 individually licensed models. A dedicated CI workflow benchmarks reconstruction
 from ten rendered views and publishes silhouette, 3D surface and rig-quality scores.
 It also gates the complete product path through fresh rigging, Motion, GLB Export

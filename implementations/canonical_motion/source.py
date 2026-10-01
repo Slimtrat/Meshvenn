@@ -101,7 +101,7 @@ def import_external_motion(path: Path, snapshot: BlenderDataSnapshot) -> Importe
         armatures.append((obj, profile))
     if len(armatures) != 1:
         raise ValueError(
-            "Motion GLB must contain exactly one supported RiggedFigure armature; "
+            "Motion GLB must contain exactly one supported source-profile armature; "
             f"found {len(armatures)}"
         )
     armature, profile = armatures[0]

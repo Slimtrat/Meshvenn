@@ -95,11 +95,13 @@ class GLBNormalizedGeometryImplementation:
                 "source_armature_count": evidence.armature_count,
                 "source_action_count": evidence.action_count,
                 "source_motion_compatible": evidence.motion_compatible,
+                "source_profile_certification": evidence.profile_certification,
             }
             metadata = {
                 "source_path": str(source.path),
                 "source_sha256": source.sha256,
                 "source_rig_profile": evidence.supported_profile,
+                "source_profile_certification": evidence.profile_certification,
                 "source_motion_compatible": evidence.motion_compatible,
                 "original_dimensions": normalized.original_dimensions,
                 "normalized_dimensions": normalized.normalized_dimensions,
@@ -115,6 +117,9 @@ class GLBNormalizedGeometryImplementation:
             normalized.mesh_object["meshvenn_geometry_implementation"] = IMPLEMENTATION_ID
             normalized.mesh_object["meshvenn_glb_source_sha256"] = source.sha256
             context.metadata["glb_source_rig_profile"] = evidence.supported_profile
+            context.metadata["glb_source_profile_certification"] = (
+                evidence.profile_certification
+            )
             context.metadata["glb_source_motion_compatible"] = evidence.motion_compatible
             if evidence.motion_compatible and not str(
                 context.metadata.get("motion_source_path", "")

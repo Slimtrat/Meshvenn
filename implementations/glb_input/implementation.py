@@ -33,7 +33,8 @@ def _inspect_context(context: PipelineContext) -> GLBManifest:
         raise ValueError("GLB-first input must use the .glb extension.")
     if not path.is_file():
         raise FileNotFoundError(f"GLB input does not exist: {path}")
-    manifest = inspect_glb(path)
+    # glTF names are labels, not identifiers; valid source assets may repeat them.
+    manifest = inspect_glb(path, require_unique_animation_names=False)
     if manifest.scene_count < 1 or manifest.mesh_count < 1:
         raise ValueError("GLB input must contain at least one scene and one mesh.")
     return manifest

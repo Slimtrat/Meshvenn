@@ -2317,6 +2317,30 @@ jobs:
             --unsupported-input example/v2/assets/RiggedSimple.glb \
             --output "${RUNNER_TEMP}/glb-first-smoke"
 
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tests/blender_glb_first_pipeline_smoke.py \
+            -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --input example/v2/assets/RobotExpressive.glb \
+            --expected-profile threejs-robot-expressive-v1 \
+            --expected-animations 14 \
+            --output "${RUNNER_TEMP}/glb-first-robot-smoke"
+
+          "${BLENDER_ROOT}/blender" \
+            --background \
+            --factory-startup \
+            --python-exit-code 1 \
+            --python tests/blender_glb_first_pipeline_smoke.py \
+            -- \
+            --package-root "${PACKAGE_ROOT}" \
+            --input example/v2/assets/Fox.glb \
+            --expected-profile khronos-fox-v1 \
+            --expected-animations 3 \
+            --output "${RUNNER_TEMP}/glb-first-fox-smoke"
+
       # Artifacts are published only after Blender package
       # validation succeeds.
       # -----------------------------------------------------

@@ -17,7 +17,7 @@ from ...core.pipeline_contracts import (
     StageExecutionResult,
 )
 from ...core.rig_contracts import RigOutput
-from .mapping import RIGGED_FIGURE_PROFILE, resolve_bone_map
+from .mapping import SOURCE_PROFILES, resolve_bone_map, validate_target_rig
 from .retarget import (
     ROOT_MOTION_MODE,
     bake_retargeted_action,
@@ -89,8 +89,7 @@ def _require_target(context: PipelineContext) -> tuple[RigOutput, Any, Path]:
         raise ValueError("Canonical motion source must be an external .glb file")
     if not source_path.is_file():
         raise FileNotFoundError(f"Motion source GLB does not exist: {source_path}")
-    resolve_bone_map(
-        RIGGED_FIGURE_PROFILE.required_bones,
+    validate_target_rig(
         rig.semantic_bones,
         armature.data.bones.keys(),
     )
@@ -102,13 +101,14 @@ class CanonicalMotionRetargetImplementation:
         identifier=IMPLEMENTATION_ID,
         stage=PipelineStage.MOTION,
         label="Canonical Motion Retarget V1",
-        description="Import and bake RiggedFigure GLB animation onto a Canonical Biped rig.",
+        description="Detect and bake supported GLB skeleton animation onto a Canonical Biped rig.",
         version="1",
-        experimental=True,
+        experimental=False,
         supports_headless=True,
         capabilities=(
             "external-glb-motion",
-            "rigged-figure-profile",
+            "multi-skeleton-profiles",
+            "namespace-tolerant-bone-mapping",
             "rest-space-retarget",
             "baked-quaternion-action",
             "in-place-root",
@@ -145,7 +145,7 @@ class CanonicalMotionRetargetImplementation:
             warning = box.row()
             warning.alert = True
             warning.label(text="Choose an animated GLB source", icon="INFO")
-        box.label(text="Profile: RiggedFigure-compatible biped")
+        box.label(text=f"Profiles: {len(SOURCE_PROFILES)} deterministic adapters")
         box.label(text="17 semantic roles; root remains in place")
 
 
@@ -210,6 +210,7 @@ class CanonicalMotionRetargetImplementation:
             total_samples = sum(item.pose_samples for item in baked)
             metrics = {
                 "source_profile": bone_map.profile_id,
+                "source_profile_certification": imported.profile.certification,
                 "clip_count": len(clips),
                 "mapped_role_count": len(bone_map.entries),
                 "baked_pose_samples": total_samples,
@@ -226,6 +227,9 @@ class CanonicalMotionRetargetImplementation:
             )
             target_armature.animation_data_create().action = generated_actions[0]
             context.metadata["motion_source_profile"] = bone_map.profile_id
+            context.metadata["motion_source_profile_certification"] = (
+                imported.profile.certification
+            )
             context.metadata["motion_clip_names"] = tuple(clip.name for clip in clips)
             context.metadata["motion_root_mode"] = ROOT_MOTION_MODE
             succeeded = True
@@ -241,6 +245,7 @@ class CanonicalMotionRetargetImplementation:
                 metadata={
                     "source_path": str(source_path),
                     "source_profile": bone_map.profile_id,
+                    "source_profile_certification": imported.profile.certification,
                     "target_armature": target_armature.name,
                     "actions": tuple(action.name for action in generated_actions),
                 },

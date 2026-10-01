@@ -19,6 +19,8 @@ def _arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--package-root", type=Path, default=REPO_ROOT)
     parser.add_argument("--input", type=Path, required=True)
+    parser.add_argument("--expected-profile", default="rigged-figure-v1")
+    parser.add_argument("--expected-animations", type=int, default=1)
     parser.add_argument("--static-input", type=Path)
     parser.add_argument("--unsupported-input", type=Path)
     parser.add_argument("--output", type=Path, required=True)
@@ -57,6 +59,45 @@ def _clear_scene() -> None:
         for block in tuple(collection):
             if block.users == 0:
                 collection.remove(block)
+
+
+def _clip_pose_span(armature: bpy.types.Object, clip) -> float:
+    """Measure baked pose change through Blender's evaluated animation API."""
+    animation = armature.animation_data_create()
+    previous_action = animation.action
+    previous_use_nla = animation.use_nla
+    previous_frame = bpy.context.scene.frame_current
+    start = int(clip.frame_start)
+    end = int(clip.frame_end)
+    frames = sorted({round(start + (end - start) * index / 4) for index in range(5)})
+    try:
+        animation.use_nla = False
+        animation.action = clip.action
+        bpy.context.scene.frame_set(frames[0])
+        bpy.context.view_layer.update()
+        baseline = {
+            bone.name: tuple(float(value) for row in bone.matrix for value in row)
+            for bone in armature.pose.bones
+            if bone.name != "root"
+        }
+        largest = 0.0
+        for frame in frames[1:]:
+            bpy.context.scene.frame_set(frame)
+            bpy.context.view_layer.update()
+            for bone in armature.pose.bones:
+                if bone.name == "root":
+                    continue
+                current = tuple(float(value) for row in bone.matrix for value in row)
+                largest = max(
+                    largest,
+                    max(abs(left - right) for left, right in zip(baseline[bone.name], current)),
+                )
+        return largest
+    finally:
+        animation.action = previous_action
+        animation.use_nla = previous_use_nla
+        bpy.context.scene.frame_set(previous_frame)
+        bpy.context.view_layer.update()
 
 
 def main() -> None:
@@ -131,7 +172,16 @@ def main() -> None:
     )
     _require(
         context.metadata.get("glb_source_motion_compatible") is True,
-        "RiggedFigure source was not classified as Motion-compatible",
+        "Source GLB was not classified as Motion-compatible",
+    )
+    _require(
+        context.metadata.get("glb_source_rig_profile") == args.expected_profile,
+        "Source GLB profile mismatch: "
+        f"{context.metadata.get('glb_source_rig_profile')!r}",
+    )
+    _require(
+        context.metadata.get("glb_source_profile_certification") == "e2e",
+        "Smoke fixture is not attached to an E2E-certified source profile",
     )
     _require(
         context.metadata.get("motion_source_path") == str(source_path),
@@ -146,9 +196,21 @@ def main() -> None:
         raise AssertionError("GLB-first completion failed: " + " | ".join(details))
 
     exported = context.require_output(pipeline.PipelineStage.EXPORT)
+    motion = context.require_output(pipeline.PipelineStage.MOTION)
+    clip_pose_spans = {
+        clip.name: _clip_pose_span(motion.armature_object, clip) for clip in motion.clips
+    }
+    _require(
+        clip_pose_spans and all(span > 1e-4 for span in clip_pose_spans.values()),
+        f"Retargeted profile produced a constant clip: {clip_pose_spans}",
+    )
     manifest = export_manifest.inspect_glb(exported.path)
     _require(manifest.skin_count >= 1, "GLB-first export lost its skin")
-    _require(len(manifest.animation_names) == 1, "GLB-first export lost its Motion clip")
+    _require(
+        len(manifest.animation_names) == args.expected_animations,
+        "GLB-first export animation count mismatch: "
+        f"expected {args.expected_animations}, got {len(manifest.animation_names)}",
+    )
 
     score_without_images = score_module.score_glb_first_pipeline(context)
     score_with_blank_image = score_module.score_glb_first_pipeline(
@@ -262,12 +324,15 @@ def main() -> None:
         }
 
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "pipeline": "GLB INPUT -> normalized GEOMETRY -> canonical RIG -> MOTION -> GLB EXPORT",
         "source": {
             "path": str(source_path),
             "sha256": context.metadata["glb_input_sha256"],
             "rig_profile": context.metadata["glb_source_rig_profile"],
+            "profile_certification": context.metadata[
+                "glb_source_profile_certification"
+            ],
             "motion_compatible": context.metadata["glb_source_motion_compatible"],
         },
         "geometry": character_geometry_evidence,
@@ -277,6 +342,13 @@ def main() -> None:
             "sha256": exported.sha256,
             "skin_count": manifest.skin_count,
             "animation_names": manifest.animation_names,
+        },
+        "motion": {
+            "source_profile": context.metadata["motion_source_profile"],
+            "profile_certification": context.metadata[
+                "motion_source_profile_certification"
+            ],
+            "clip_pose_spans": clip_pose_spans,
         },
         "score_without_images": score_without_images.as_dict(),
         "score_with_blank_image": score_with_blank_image.as_dict(),
@@ -289,6 +361,7 @@ def main() -> None:
     )
     print(
         "GLB-first pipeline smoke: PASS; "
+        f"profile={context.metadata['glb_source_rig_profile']}; "
         f"score(no images)={score_without_images.score:.2f}; "
         f"score(blank image)={score_with_blank_image.score:.2f}; "
         f"skin={manifest.skin_count}; animations={len(manifest.animation_names)}"
