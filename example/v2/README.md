@@ -12,6 +12,8 @@ The Motion smoke builds a fresh Canonical Biped V2 target, retargets RiggedFigur
 
 The character end-to-end case closes the gap between those separate benchmarks: it exports a structurally verified unrigged rest mesh, renders ten views, reconstructs the mesh from pixels, generates a fresh canonical rig, retargets the real source action through the Motion stage, publishes it through GLB Export V1, and verifies the skin plus animation after reimport. Its shared geometry gates are IoU 0.65, surface F-score 0.85 and maximum normalized extent error 0.25. The V1 joint gates remain 0.10 mean / 0.16 worst; the V2 A/B gates are 0.08 / 0.14. The intermediate GLB must contain exactly zero armatures, animations and vertex groups.
 
+The direct GLB-first gate is independent from that image-reconstruction benchmark. It validates RiggedFigure, normalizes a neutral material-preserving mesh, detects its supported source rig, builds a fresh canonical rig, automatically reuses the same GLB for Motion, exports the result and computes one weighted score. Missing image evidence is excluded with 90% reported coverage; an explicitly blank image scores zero while the validated GLB stages still contribute, producing 90/100 for the current complete fixture.
+
 These surface and joint metrics measure real 3D output, but do not certify hidden interiors, watertight volume or animation retargeting quality.
 
 ## Licensing and attribution
@@ -38,6 +40,7 @@ blender --background --factory-startup --python-exit-code 1 --python scripts/ben
 blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- --implementation canonical-biped-v2 --output output/v2-rig-canonical-v2
 blender --background --factory-startup --python-exit-code 1 --python tests/blender_glb_export_smoke.py -- --package-root . --output output/v2-export
 blender --background --factory-startup --python-exit-code 1 --python tests/blender_motion_smoke.py -- --output output/v2-motion
+blender --background --factory-startup --python-exit-code 1 --python tests/blender_glb_first_pipeline_smoke.py -- --package-root . --input example/v2/assets/RiggedFigure.glb --static-input example/v2/assets/ToyCar.glb --unsupported-input example/v2/assets/RiggedSimple.glb --output output/v2-glb-first
 blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_character_v2.py -- --output output/v2-character
 blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_character_v2.py -- --rig-implementation canonical-biped-v2 --output output/v2-character-canonical-v2
 ```

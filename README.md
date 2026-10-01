@@ -77,28 +77,13 @@ The name refers to that intersection-based approach.
 
 # Pipeline
 
-MeshVenn currently follows a visual-hull reconstruction pipeline:
+MeshVenn exposes two production entry paths that converge on the same generic
+Geometry contract:
 
 ```text
-Reference images
-      │
-      ▼
-Alpha silhouettes
-      │
-      ▼
-Projection calibration
-      │
-      ▼
-Visual Hull
-      │
-      ▼
-Voxel Volume
-      │
-      ▼
-Surface extraction
-      │
-      ▼
-Blender Mesh
+Reference images ──▶ silhouettes ──▶ Visual Hull / SDF ──┐
+                                                         ├──▶ Blender Mesh
+GLB file ──▶ validation ──▶ neutral normalization ───────┘
       │
       ├──▶ Voxel Remesh
       │
@@ -403,6 +388,23 @@ Increase resolution only after projection alignment is correct.
 ```
 
 MeshVenn accelerates reconstruction, first-pass materials, rigging, and motion transfer.
+The **GLB-FIRST PIPELINE** preset provides a second production entry path that
+does not depend on projection images. **GLB File V1** validates the source
+container, glTF version and SHA-256 without mutating the Blender scene. **GLB
+Normalized Geometry V1** then imports transactionally, merges multi-mesh assets,
+bakes object transforms, preserves materials, removes source skinning, centres
+the mesh on X/Y, places its base at Z=0 and scales its longest dimension. It
+also detects whether the source skeleton is compatible with the current Motion
+profile; a compatible animated source is reused automatically by the Motion
+stage.
+
+The GLB-first product score combines input integrity, geometry preservation,
+canonical rig evidence, Motion evidence and exported-artifact integrity. Image
+evidence is optional and reported through coverage: no images still yields a
+score, while an explicitly blank image contributes zero and lowers the result.
+This makes the CI signal useful independently of 2D capture quality without
+hiding whether image evidence was available.
+
 The optional RIG stage provides two compatible 18-bone A-pose implementations.
 **Canonical Biped V1** is the stable default. **Canonical Biped V2** is registered
 alongside it and fits the arm span, arm height, torso and leg centres from the
