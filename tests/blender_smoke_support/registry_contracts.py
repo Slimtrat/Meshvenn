@@ -225,6 +225,14 @@ def _validate_registry(
         and not glb_geometry.descriptor.experimental,
         "GLB-first INPUT and GEOMETRY must be production-ready.",
     )
+    motion = registry.require(
+        "canonical-motion-retarget-v1", stage=PipelineStage.MOTION
+    )
+    _require(
+        not motion.descriptor.experimental
+        and "multi-skeleton-profiles" in motion.descriptor.capabilities,
+        "Canonical Motion multi-profile retargeting must be production-ready.",
+    )
 
     print(
         "Registry: OK"

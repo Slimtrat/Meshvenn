@@ -18,8 +18,6 @@ def _names(values: tuple[str, ...], *, label: str) -> tuple[str, ...]:
     normalized = tuple(str(value).strip() for value in values)
     if any(not value for value in normalized):
         raise ValueError(f"{label} cannot contain an empty name.")
-    if len(normalized) != len(set(normalized)):
-        raise ValueError(f"{label} must be unique.")
     return normalized
 
 

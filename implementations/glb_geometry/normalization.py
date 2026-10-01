@@ -18,6 +18,7 @@ class SourceRigEvidence:
     armature_count: int
     action_count: int
     supported_profile: str | None
+    profile_certification: str | None
 
     @property
     def motion_compatible(self) -> bool:
@@ -123,12 +124,13 @@ def _rig_evidence(imported_objects: tuple[Any, ...], snapshot: BlenderDataSnapsh
             profile = detect_source_profile(bone.name for bone in armature.data.bones)
         except ValueError:
             continue
-        supported.append(profile.identifier)
-    profile_id = supported[0] if len(armatures) == 1 and len(supported) == 1 else None
+        supported.append(profile)
+    profile = supported[0] if len(armatures) == 1 and len(supported) == 1 else None
     return SourceRigEvidence(
         armature_count=len(armatures),
         action_count=len(set(bpy.data.actions) - set(snapshot.actions)),
-        supported_profile=profile_id,
+        supported_profile=profile.identifier if profile is not None else None,
+        profile_certification=profile.certification if profile is not None else None,
     )
 
 

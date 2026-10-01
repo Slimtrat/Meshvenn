@@ -47,15 +47,20 @@ class V2AssetTests(unittest.TestCase):
         cls.manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
 
     def test_corpus_is_pinned_and_complete(self) -> None:
-        self.assertEqual(self.manifest["schema_version"], 2)
-        self.assertRegex(self.manifest["source"]["revision"], r"^[0-9a-f]{40}$")
+        self.assertEqual(self.manifest["schema_version"], 3)
+        sources = self.manifest["sources"]
+        self.assertEqual(set(sources), {"khronos", "threejs"})
+        for source in sources.values():
+            self.assertRegex(source["revision"], r"^[0-9a-f]{40}$")
+            self.assertRegex(source["repository"], r"^https://github\.com/")
         assets = self.manifest["assets"]
-        self.assertEqual(len(assets), 7)
+        self.assertEqual(len(assets), 8)
         self.assertEqual(len({asset["id"] for asset in assets}), len(assets))
+        self.assertEqual({asset["source"] for asset in assets}, set(sources))
         listed = {asset["file"] for asset in assets}
         actual = {path.relative_to(EXAMPLE_ROOT).as_posix() for path in (EXAMPLE_ROOT / "assets").glob("*.glb")}
         self.assertEqual(listed, actual)
-        self.assertEqual(sum(asset["skins"] > 0 for asset in assets), 3)
+        self.assertEqual(sum(asset["skins"] > 0 for asset in assets), 4)
 
     def test_bytes_hashes_licenses_and_gltf_structure(self) -> None:
         for asset in self.manifest["assets"]:

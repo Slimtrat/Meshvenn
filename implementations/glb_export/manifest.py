@@ -56,7 +56,11 @@ def _array_count(document: dict[str, Any], key: str) -> int:
     return len(value)
 
 
-def inspect_glb(path: str | Path) -> GLBManifest:
+def inspect_glb(
+    path: str | Path,
+    *,
+    require_unique_animation_names: bool = True,
+) -> GLBManifest:
     artifact_path = Path(path).expanduser().resolve(strict=True)
     size_bytes = artifact_path.stat().st_size
     if size_bytes < 20:
@@ -105,7 +109,11 @@ def inspect_glb(path: str | Path) -> GLBManifest:
         sha256=hashlib.sha256(payload).hexdigest(),
         version=version,
         node_names=_named_entries(document, "nodes"),
-        animation_names=_named_entries(document, "animations", require_unique=True),
+        animation_names=_named_entries(
+            document,
+            "animations",
+            require_unique=require_unique_animation_names,
+        ),
         scene_count=_array_count(document, "scenes"),
         mesh_count=_array_count(document, "meshes"),
         skin_count=_array_count(document, "skins"),

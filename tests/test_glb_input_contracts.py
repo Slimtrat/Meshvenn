@@ -44,7 +44,15 @@ class GLBInputContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             _output(mesh_count=0)
         with self.assertRaises(ValueError):
-            _output(animation_names=("Walk", "Walk"))
+            _output(animation_names=("Walk", ""))
+
+    def test_accepts_duplicate_source_labels_allowed_by_gltf(self) -> None:
+        output = _output(
+            node_names=("Bone", "Bone"),
+            animation_names=("Walk", "Walk"),
+        )
+        self.assertEqual(output.node_names, ("Bone", "Bone"))
+        self.assertEqual(output.animation_names, ("Walk", "Walk"))
 
     def test_context_accessor_requires_typed_input(self) -> None:
         context = PipelineContext()

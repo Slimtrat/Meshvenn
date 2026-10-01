@@ -112,7 +112,7 @@ jobs:
             --package-root "${GITHUB_WORKSPACE}" \
             --output "${RUNNER_TEMP}/v2-benchmark/motion"
 
-      - name: Run GLB-first pipeline and score without images
+      - name: Run GLB-first pipelines across certified rig profiles
         shell: bash
         run: |
           set -euo pipefail
@@ -124,6 +124,24 @@ jobs:
             --static-input example/v2/assets/ToyCar.glb \
             --unsupported-input example/v2/assets/RiggedSimple.glb \
             --output "${RUNNER_TEMP}/v2-benchmark/glb_first"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 \
+            --python tests/blender_glb_first_pipeline_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/RobotExpressive.glb \
+            --expected-profile threejs-robot-expressive-v1 \
+            --expected-animations 14 \
+            --output "${RUNNER_TEMP}/v2-benchmark/glb_first_robot"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 \
+            --python tests/blender_glb_first_pipeline_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/Fox.glb \
+            --expected-profile khronos-fox-v1 \
+            --expected-animations 3 \
+            --output "${RUNNER_TEMP}/v2-benchmark/glb_first_fox"
 
       - name: Benchmark Canonical Rig V1 against RiggedFigure
         shell: bash

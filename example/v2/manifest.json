@@ -1,12 +1,19 @@
 {
-  "schema_version": 2,
-  "source": {
-    "repository": "https://github.com/KhronosGroup/glTF-Sample-Assets",
-    "revision": "c6a6bd13ab2b3c685c7903d03561b8a9392f38b8"
+  "schema_version": 3,
+  "sources": {
+    "khronos": {
+      "repository": "https://github.com/KhronosGroup/glTF-Sample-Assets",
+      "revision": "c6a6bd13ab2b3c685c7903d03561b8a9392f38b8"
+    },
+    "threejs": {
+      "repository": "https://github.com/mrdoob/three.js",
+      "revision": "b924f0cad4058dc4dde71445c796980c3cd5b5ed"
+    }
   },
   "assets": [
     {
       "id": "avocado",
+      "source": "khronos",
       "file": "assets/Avocado.glb",
       "license": "CC0-1.0",
       "credit": "Microsoft",
@@ -19,6 +26,7 @@
     },
     {
       "id": "barramundi_fish",
+      "source": "khronos",
       "file": "assets/BarramundiFish.glb",
       "license": "CC0-1.0",
       "credit": "Microsoft",
@@ -31,6 +39,7 @@
     },
     {
       "id": "boom_box",
+      "source": "khronos",
       "file": "assets/BoomBox.glb",
       "license": "CC0-1.0",
       "credit": "Microsoft",
@@ -43,6 +52,7 @@
     },
     {
       "id": "toy_car",
+      "source": "khronos",
       "file": "assets/ToyCar.glb",
       "license": "CC0-1.0",
       "credit": "Guido Odendahl (model); Eric Chadwick (extensions and scene)",
@@ -55,6 +65,7 @@
     },
     {
       "id": "rigged_simple",
+      "source": "khronos",
       "file": "assets/RiggedSimple.glb",
       "license": "CC-BY-4.0",
       "credit": "Cesium",
@@ -67,6 +78,7 @@
     },
     {
       "id": "rigged_figure",
+      "source": "khronos",
       "file": "assets/RiggedFigure.glb",
       "license": "CC-BY-4.0",
       "credit": "Cesium",
@@ -79,6 +91,7 @@
     },
     {
       "id": "fox",
+      "source": "khronos",
       "file": "assets/Fox.glb",
       "license": "CC0-1.0 AND CC-BY-4.0",
       "credit": "PixelMannen (model); tomkranis (rig and animation); AsoboStudio and scurest (glTF conversion)",
@@ -88,6 +101,19 @@
       "animations": 3,
       "bytes": 162852,
       "sha256": "d97044e701822bac5a62696459b27d7b375aada5de8574ed4362edbba94771f7"
+    },
+    {
+      "id": "robot_expressive",
+      "source": "threejs",
+      "file": "assets/RobotExpressive.glb",
+      "license": "CC0-1.0",
+      "credit": "Tomás Laulhé (model); Don McCurdy (glTF conversion and modifications)",
+      "purpose": "humanoid source-profile rig with fourteen animation clips",
+      "meshes": 14,
+      "skins": 2,
+      "animations": 14,
+      "bytes": 463988,
+      "sha256": "047f5e5fb3bb6d378bd1df16ca6137f2a596c99b3a1b5690b4020c05aaf6f319"
     }
   ]
 }
