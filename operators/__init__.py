@@ -20,6 +20,7 @@ from .projections import (
 from .presets import (
     BPT_OT_AddFrontSidePreset,
     BPT_OT_AddTurntablePreset,
+    BPT_OT_UseGLBAutoPipeline,
     BPT_OT_UseGLBCanonicalPipeline,
     BPT_OT_UseGLBFirstPipeline,
 )

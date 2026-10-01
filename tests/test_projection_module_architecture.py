@@ -74,6 +74,7 @@ class ProjectionPackageArchitectureTests(unittest.TestCase):
             ROOT / "core" / "projection_math",
             ROOT / "implementations" / "projection_images",
             ROOT / "implementations" / "glb_preservation",
+            ROOT / "implementations" / "glb_auto_route",
         )
         modules = [path for root in roots for path in root.glob("*.py")]
         modules.extend(
@@ -133,13 +134,16 @@ class ProjectionPackageArchitectureTests(unittest.TestCase):
                 "GLBFileInputImplementation",
                 "NativeVisualHullImplementation",
                 "SDFReconstructionImplementation",
+                "GLBAutoGeometryImplementation",
                 "GLBNormalizedGeometryImplementation",
                 "GLBPreservedGeometryImplementation",
                 "ProjectedColorImplementation",
                 "UVBakeImplementation",
+                "GLBAutoRigImplementation",
                 "CanonicalRigImplementation",
                 "CanonicalRigV2Implementation",
                 "GLBSourceRigImplementation",
+                "GLBAutoMotionImplementation",
                 "CanonicalMotionRetargetImplementation",
                 "GLBSourceMotionImplementation",
                 "GLBExportImplementation",

@@ -173,6 +173,49 @@ jobs:
             --expected-archetype quadruped --expected-animations 3 \
             --output "${RUNNER_TEMP}/v2-benchmark/preserved_fox"
 
+      - name: Route GLB characters automatically
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/RiggedFigure.glb \
+            --expected-route canonicalize --expected-profile rigged-figure-v1 \
+            --expected-animations 1 \
+            --output "${RUNNER_TEMP}/v2-benchmark/auto_rigged_figure"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/RobotExpressive.glb \
+            --expected-route canonicalize \
+            --expected-profile threejs-robot-expressive-v1 \
+            --expected-animations 14 \
+            --output "${RUNNER_TEMP}/v2-benchmark/auto_robot"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/Fox.glb \
+            --expected-route preserve-source --expected-profile khronos-fox-v1 \
+            --expected-animations 3 \
+            --output "${RUNNER_TEMP}/v2-benchmark/auto_fox"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/RiggedSimple.glb \
+            --expected-route geometry-only --expected-animations 0 \
+            --output "${RUNNER_TEMP}/v2-benchmark/auto_rigged_simple"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/ToyCar.glb \
+            --expected-route geometry-only --expected-animations 0 \
+            --output "${RUNNER_TEMP}/v2-benchmark/auto_toy_car"
+
       - name: Benchmark Canonical Rig V1 against RiggedFigure
         shell: bash
         run: |

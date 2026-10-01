@@ -61,6 +61,11 @@ class PipelineRunner:
             return failed_result(selection, f'Implementation returned result for pipeline stage "{result.stage.value}" instead of "{selection.stage.value}".')
         if result.implementation_id != selection.implementation_id:
             return failed_result(selection, f'Implementation returned result with id "{result.implementation_id}" instead of "{selection.implementation_id}".')
+        if result.skipped and not stage_spec(selection.stage).optional:
+            return failed_result(
+                selection,
+                f'Required pipeline stage "{selection.stage.value}" cannot be skipped.',
+            )
         return result
 
     def _record(self, selection: PipelineStageSelection, started: float, result: StageExecutionResult, availability: ImplementationAvailability | None = None) -> StageRunRecord:
@@ -117,12 +122,41 @@ class PipelineRunner:
             return PipelineExecutionReport(plan, context, (), tuple(issues), time.perf_counter() - started, True)
         records: list[StageRunRecord] = []
         aborted = False
+        runtime_skipped_stages: set[PipelineStage] = set()
         for stage in PIPELINE_STAGE_ORDER:
             selection = plan.selection_for(stage)
             if selection is None:
                 continue
-            record = self._run_selection(selection, context, options)
+            propagated_dependencies = tuple(
+                dependency
+                for dependency in stage_spec(stage).required_stages
+                if dependency in runtime_skipped_stages
+                and not context.has_output(dependency)
+            )
+            if selection.enabled and propagated_dependencies:
+                names = ", ".join(
+                    dependency.value for dependency in propagated_dependencies
+                )
+                started_stage = time.perf_counter()
+                record = self._record(
+                    selection,
+                    started_stage,
+                    skipped_result(
+                        selection,
+                        f'Stage skipped because optional dependency was skipped: {names}.',
+                        metadata={
+                            "skipped_dependencies": tuple(
+                                dependency.value
+                                for dependency in propagated_dependencies
+                            )
+                        },
+                    ),
+                )
+            else:
+                record = self._run_selection(selection, context, options)
             records.append(record)
+            if record.result.skipped:
+                runtime_skipped_stages.add(stage)
             if record.failed and options.stop_on_failure:
                 aborted = True
                 break

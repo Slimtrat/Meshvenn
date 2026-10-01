@@ -8,6 +8,16 @@ from .catalog import (
 )
 from .canonical_motion import CanonicalMotionRetargetImplementation
 from .canonical_rig import CanonicalRigImplementation
+from .glb_auto_route import (
+    CANONICALIZE_ROUTE,
+    GEOMETRY_ONLY_ROUTE,
+    GLBAutoGeometryImplementation,
+    GLBAutoMotionImplementation,
+    GLBAutoRigImplementation,
+    GLBRouteDecision,
+    PRESERVE_SOURCE_ROUTE,
+    decide_glb_character_route,
+)
 from .native_visual_hull import NativeVisualHullImplementation
 from .canonical_rig_v2 import CanonicalRigV2Implementation
 from .glb_export import GLBExportImplementation
@@ -44,6 +54,14 @@ __all__ = (
     "CanonicalRigImplementation",
     "CanonicalRigV2Implementation",
     "CanonicalMotionRetargetImplementation",
+    "GLBAutoGeometryImplementation",
+    "GLBAutoRigImplementation",
+    "GLBAutoMotionImplementation",
+    "GLBRouteDecision",
+    "PRESERVE_SOURCE_ROUTE",
+    "CANONICALIZE_ROUTE",
+    "GEOMETRY_ONLY_ROUTE",
+    "decide_glb_character_route",
     "GLBExportImplementation",
     "GLBFileInputImplementation",
     "GLBNormalizedGeometryImplementation",

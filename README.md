@@ -388,9 +388,18 @@ Increase resolution only after projection alignment is correct.
 ```
 
 MeshVenn accelerates reconstruction, first-pass materials, rigging, and motion transfer.
-The two **GLB-FIRST** presets provide production entry paths that do not depend
+The three **GLB-FIRST** presets provide production entry paths that do not depend
 on projection images. **GLB File V1** validates the source container, glTF
 version and SHA-256 without mutating the Blender scene.
+
+**GLB AUTO ROUTE** is the recommended product path. It resolves the registered
+source skeleton profile from the GLB manifest before changing the Blender scene.
+Supported humanoids are normalized onto Canonical Biped and their clips are
+retargeted; certified non-biped archetypes such as Khronos Fox retain their
+source rig, skin, clips and root motion. Static assets and unknown or
+insufficient skeletons continue as geometry-only exports: optional Rig and
+Motion stages are explicitly skipped and no semantic skeleton is guessed. Each
+run publishes the selected route and a human-readable reason in its report.
 
 **GLB PRESERVE** is the default fidelity route. **GLB Preserved Character
 Geometry V1** imports transactionally, keeps every source mesh, material,
@@ -456,7 +465,9 @@ but now completes through its semantically correct quadruped source rig. The
 remaining adapters are contract-tested until redistributable fixtures are
 added. RiggedSimple is classified as insufficient because two generic bones
 cannot establish a complete mapping. Heuristic mapping of unknown skeletons is
-not supported.
+not supported. The automatic Blender/CI matrix verifies RiggedFigure and
+RobotExpressive through canonicalization, Fox through source preservation, and
+RiggedSimple plus ToyCar through the geometry-only safety route.
 
 The optional **GLB Export V1** stage publishes single- or multi-mesh geometry as
 a glTF 2.0 binary. When compatible Rig and Motion outputs are enabled, the same
