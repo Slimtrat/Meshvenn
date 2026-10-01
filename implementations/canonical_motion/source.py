@@ -20,6 +20,8 @@ class BlenderDataSnapshot:
     materials: frozenset[Any]
     images: frozenset[Any]
     collections: frozenset[Any]
+    cameras: frozenset[Any]
+    lights: frozenset[Any]
 
 
 @dataclass(frozen=True)
@@ -40,6 +42,8 @@ def snapshot_blender_data() -> BlenderDataSnapshot:
         materials=frozenset(bpy.data.materials),
         images=frozenset(bpy.data.images),
         collections=frozenset(bpy.data.collections),
+        cameras=frozenset(bpy.data.cameras),
+        lights=frozenset(bpy.data.lights),
     )
 
 
@@ -126,6 +130,8 @@ def cleanup_imported_data(
         (bpy.data.materials, snapshot.materials),
         (bpy.data.images, snapshot.images),
         (bpy.data.collections, snapshot.collections),
+        (bpy.data.cameras, snapshot.cameras),
+        (bpy.data.lights, snapshot.lights),
     ):
         for block in tuple(collection):
             if block not in original and block.users == 0:

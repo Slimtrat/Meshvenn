@@ -112,6 +112,12 @@ def ensure_pipeline_defaults(
                 export_settings.enabled = enabled
                 export_settings.expanded = expanded
             pipeline.schema_version = 2
+            schema_version = 2
+        if schema_version < 3:
+            # Schema 3 adds GLB-first source/normalization properties. Blender
+            # supplies their RNA defaults, so existing implementation choices
+            # and enabled states must remain untouched.
+            pipeline.schema_version = 3
         return
 
     for (
