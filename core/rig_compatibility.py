@@ -46,7 +46,7 @@ class RigStructureEvidence:
     def structural_score(self) -> float:
         if self.armature_count != 1:
             return 0.0
-        return (
+        score = (
             0.20
             + 0.20 * min(self.bone_count / 17.0, 1.0)
             + 0.15 * min(self.root_bone_count, 1)
@@ -54,6 +54,7 @@ class RigStructureEvidence:
             + 0.20 * min(self.skinned_mesh_count, 1)
             + 0.10 * (max(self.rest_dimensions) > 1.0e-8)
         )
+        return min(max(float(score), 0.0), 1.0)
 
     @property
     def rest_proportions(self) -> tuple[float, float, float]:

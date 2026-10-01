@@ -32,6 +32,7 @@ class RigCompatibilityTests(unittest.TestCase):
         self.assertTrue(report.routable)
         self.assertEqual(report.semantic_score, 1.0)
         self.assertEqual(report.classification_confidence, 1.0)
+        self.assertEqual(report.structure.structural_score, 1.0)
 
     def test_rejects_recognized_quadruped_for_canonical_biped(self) -> None:
         report = assess_rig_compatibility(
