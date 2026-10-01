@@ -85,6 +85,12 @@ class GLBNormalizedGeometryImplementation:
                 str(source.path), target_extent=extent
             )
             evidence = normalized.source_rig
+            compatibility = evidence.compatibility
+            routing = (
+                "not applicable"
+                if compatibility.target_compatible is None
+                else "yes" if compatibility.target_compatible else "no"
+            )
             metrics = {
                 "source_mesh_count": normalized.source_mesh_count,
                 "source_vertex_count": normalized.source_vertex_count,
@@ -94,15 +100,25 @@ class GLBNormalizedGeometryImplementation:
                 "normalization_scale": normalized.normalization_scale,
                 "source_armature_count": evidence.armature_count,
                 "source_action_count": evidence.action_count,
+                "source_motion_profile_recognized": evidence.motion_profile_recognized,
                 "source_motion_compatible": evidence.motion_compatible,
                 "source_profile_certification": evidence.profile_certification,
+                "source_rig_archetype": compatibility.source_archetype,
+                "source_rig_classification_confidence": (
+                    compatibility.classification_confidence
+                ),
+                "source_rig_structural_score": compatibility.structure.structural_score,
+                "source_rig_semantic_score": compatibility.semantic_score,
+                "target_rig_compatible": compatibility.target_compatible,
             }
             metadata = {
                 "source_path": str(source.path),
                 "source_sha256": source.sha256,
                 "source_rig_profile": evidence.supported_profile,
                 "source_profile_certification": evidence.profile_certification,
+                "source_motion_profile_recognized": evidence.motion_profile_recognized,
                 "source_motion_compatible": evidence.motion_compatible,
+                "source_rig_compatibility": compatibility.as_dict(),
                 "original_dimensions": normalized.original_dimensions,
                 "normalized_dimensions": normalized.normalized_dimensions,
             }
@@ -120,7 +136,25 @@ class GLBNormalizedGeometryImplementation:
             context.metadata["glb_source_profile_certification"] = (
                 evidence.profile_certification
             )
+            context.metadata["glb_source_motion_profile_recognized"] = (
+                evidence.motion_profile_recognized
+            )
             context.metadata["glb_source_motion_compatible"] = evidence.motion_compatible
+            context.metadata["glb_source_rig_archetype"] = (
+                compatibility.source_archetype
+            )
+            context.metadata["glb_source_rig_classification_confidence"] = (
+                compatibility.classification_confidence
+            )
+            context.metadata["glb_target_rig"] = compatibility.target_rig
+            context.metadata["glb_target_rig_compatible"] = (
+                compatibility.target_compatible
+            )
+            context.metadata["glb_rig_structural_score"] = (
+                compatibility.structure.structural_score
+            )
+            context.metadata["glb_rig_semantic_score"] = compatibility.semantic_score
+            context.metadata["glb_rig_compatibility_reasons"] = compatibility.reasons
             if evidence.motion_compatible and not str(
                 context.metadata.get("motion_source_path", "")
             ).strip():
@@ -138,8 +172,9 @@ class GLBNormalizedGeometryImplementation:
             payload=output,
             message=(
                 f"Normalized {normalized.source_mesh_count} GLB mesh(es) into "
-                f"{metrics['vertex_count']} vertices; source Motion compatibility: "
-                f"{'yes' if evidence.motion_compatible else 'no'}."
+                f"{metrics['vertex_count']} vertices; source rig: "
+                f"{compatibility.source_archetype}; Canonical Biped routing: "
+                f"{routing}."
             ),
             metrics=metrics,
             metadata=metadata,

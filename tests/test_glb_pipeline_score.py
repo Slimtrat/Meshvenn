@@ -89,7 +89,12 @@ def _complete_context(export_path: Path) -> PipelineContext:
         object_names=(mesh.name, armature.name),
         animation_names=("Walk",),
     )
-    context = PipelineContext()
+    context = PipelineContext(metadata={
+        "glb_source_rig_archetype": "humanoid",
+        "glb_target_rig_compatible": True,
+        "glb_rig_structural_score": 1.0,
+        "glb_rig_semantic_score": 1.0,
+    })
     for stage, output in (
         (PipelineStage.INPUT, source),
         (PipelineStage.GEOMETRY, geometry),
@@ -141,6 +146,39 @@ class GLBPipelineScoreTests(unittest.TestCase):
         score = score_glb_first_pipeline(context)
         self.assertGreater(score.score, 0.0)
         self.assertLess(score.score, 100.0)
+
+    def test_incompatible_rig_is_scored_semantically_not_as_a_biped(self) -> None:
+        source = _input()
+        mesh = _Object("Fox")
+        geometry = GeometrySurfaceOutput(
+            blender_object=mesh,
+            source=source,
+            projection_space=GeometryProjectionSpace(1, 1, 1),
+            implementation_id="glb-normalized-geometry-v1",
+            metrics={
+                "source_vertex_count": 100,
+                "source_polygon_count": 50,
+                "vertex_count": 100,
+                "polygon_count": 50,
+            },
+        )
+        context = PipelineContext(
+            outputs={
+                PipelineStage.INPUT: source,
+                PipelineStage.GEOMETRY: geometry,
+            },
+            metadata={
+                "glb_source_rig_archetype": "quadruped",
+                "glb_target_rig_compatible": False,
+                "glb_rig_structural_score": 1.0,
+                "glb_rig_semantic_score": 0.0,
+            },
+        )
+        score = score_glb_first_pipeline(context)
+        components = {component.name: component for component in score.components}
+        self.assertEqual(components["rig_structure"].score, 1.0)
+        self.assertEqual(components["rig_compatibility"].score, 0.0)
+        self.assertLess(score.score, 50.0)
 
 
 if __name__ == "__main__":

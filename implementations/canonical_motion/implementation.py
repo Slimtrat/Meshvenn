@@ -17,6 +17,7 @@ from ...core.pipeline_contracts import (
     StageExecutionResult,
 )
 from ...core.rig_contracts import RigOutput
+from ...core.rig_compatibility import require_target_compatibility
 from .mapping import SOURCE_PROFILES, resolve_bone_map, validate_target_rig
 from .retarget import (
     ROOT_MOTION_MODE,
@@ -89,6 +90,12 @@ def _require_target(context: PipelineContext) -> tuple[RigOutput, Any, Path]:
         raise ValueError("Canonical motion source must be an external .glb file")
     if not source_path.is_file():
         raise FileNotFoundError(f"Motion source GLB does not exist: {source_path}")
+    if context.metadata.get("glb_target_rig_compatible") is False:
+        archetype = context.metadata.get("glb_source_rig_archetype", "unknown")
+        raise ValueError(
+            f'GLB source rig archetype "{archetype}" is not compatible with '
+            f'target rig "{rig.implementation_id}".'
+        )
     validate_target_rig(
         rig.semantic_bones,
         armature.data.bones.keys(),
@@ -169,6 +176,12 @@ class CanonicalMotionRetargetImplementation:
             if bpy.context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
             imported = import_external_motion(source_path, data_snapshot)
+            require_target_compatibility(
+                imported.profile.identifier,
+                imported.profile.rig_archetype,
+                imported.profile.compatible_target_rigs,
+                rig.implementation_id,
+            )
             bone_map = resolve_bone_map(
                 (bone.name for bone in imported.armature.data.bones),
                 rig.semantic_bones,
@@ -211,6 +224,8 @@ class CanonicalMotionRetargetImplementation:
             metrics = {
                 "source_profile": bone_map.profile_id,
                 "source_profile_certification": imported.profile.certification,
+                "source_rig_archetype": imported.profile.rig_archetype,
+                "target_rig_compatible": True,
                 "clip_count": len(clips),
                 "mapped_role_count": len(bone_map.entries),
                 "baked_pose_samples": total_samples,
@@ -229,6 +244,9 @@ class CanonicalMotionRetargetImplementation:
             context.metadata["motion_source_profile"] = bone_map.profile_id
             context.metadata["motion_source_profile_certification"] = (
                 imported.profile.certification
+            )
+            context.metadata["motion_source_rig_archetype"] = (
+                imported.profile.rig_archetype
             )
             context.metadata["motion_clip_names"] = tuple(clip.name for clip in clips)
             context.metadata["motion_root_mode"] = ROOT_MOTION_MODE

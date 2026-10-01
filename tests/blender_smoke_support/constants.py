@@ -81,6 +81,7 @@ REQUIRED_PACKAGE_FILES = (
     "core/export_contracts.py",
     "core/glb_input_contracts.py",
     "core/glb_pipeline_score.py",
+    "core/rig_compatibility.py",
 
     # Input / projection
     "core/image_mask.py",

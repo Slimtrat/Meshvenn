@@ -9,6 +9,12 @@ from typing import Any
 import bpy
 
 from ...core.geometry_contracts import GeometryProjectionSpace
+from ...core.rig_compatibility import (
+    CANONICAL_BIPED_TARGET,
+    RigCompatibilityReport,
+    RigStructureEvidence,
+    assess_rig_compatibility,
+)
 from ..canonical_motion.mapping import detect_source_profile
 from ..canonical_motion.source import BlenderDataSnapshot, snapshot_blender_data
 
@@ -19,10 +25,15 @@ class SourceRigEvidence:
     action_count: int
     supported_profile: str | None
     profile_certification: str | None
+    compatibility: RigCompatibilityReport
+
+    @property
+    def motion_profile_recognized(self) -> bool:
+        return self.supported_profile is not None
 
     @property
     def motion_compatible(self) -> bool:
-        return self.supported_profile is not None and self.action_count > 0
+        return self.compatibility.routable and self.action_count > 0
 
 
 @dataclass(frozen=True)
@@ -116,7 +127,59 @@ def _cleanup_new_data(
                 collection.remove(block)
 
 
-def _rig_evidence(imported_objects: tuple[Any, ...], snapshot: BlenderDataSnapshot) -> SourceRigEvidence:
+def _hierarchy_depth(bone: Any) -> int:
+    depth = 1
+    parent = bone.parent
+    while parent is not None:
+        depth += 1
+        parent = parent.parent
+    return depth
+
+
+def _rest_dimensions(armatures: tuple[Any, ...]) -> tuple[float, float, float]:
+    coordinates = []
+    for armature in armatures:
+        for bone in armature.data.bones:
+            coordinates.extend((bone.head_local, bone.tail_local))
+    if not coordinates:
+        return (0.0, 0.0, 0.0)
+    return tuple(
+        max(point[index] for point in coordinates)
+        - min(point[index] for point in coordinates)
+        for index in range(3)
+    )
+
+
+def _structure_evidence(
+    imported_objects: tuple[Any, ...], armatures: tuple[Any, ...]
+) -> RigStructureEvidence:
+    armature_set = set(armatures)
+    bones = tuple(bone for armature in armatures for bone in armature.data.bones)
+    skinned_meshes = tuple(
+        obj
+        for obj in imported_objects
+        if obj.type == "MESH"
+        and (
+            obj.parent in armature_set
+            or any(
+                modifier.type == "ARMATURE" and modifier.object in armature_set
+                for modifier in obj.modifiers
+            )
+        )
+    )
+    return RigStructureEvidence(
+        armature_count=len(armatures),
+        bone_count=len(bones),
+        root_bone_count=sum(bone.parent is None for bone in bones),
+        max_hierarchy_depth=max((_hierarchy_depth(bone) for bone in bones), default=0),
+        skinned_mesh_count=len(skinned_meshes),
+        rest_dimensions=_rest_dimensions(armatures),
+    )
+
+
+def _rig_evidence(
+    imported_objects: tuple[Any, ...], snapshot: BlenderDataSnapshot
+) -> SourceRigEvidence:
     armatures = tuple(obj for obj in imported_objects if obj.type == "ARMATURE")
     supported = []
     for armature in armatures:
@@ -126,11 +189,22 @@ def _rig_evidence(imported_objects: tuple[Any, ...], snapshot: BlenderDataSnapsh
             continue
         supported.append(profile)
     profile = supported[0] if len(armatures) == 1 and len(supported) == 1 else None
+    structure = _structure_evidence(imported_objects, armatures)
+    compatibility = assess_rig_compatibility(
+        structure,
+        source_profile=profile.identifier if profile is not None else None,
+        declared_archetype=profile.rig_archetype if profile is not None else None,
+        compatible_targets=(
+            profile.compatible_target_rigs if profile is not None else ()
+        ),
+        target_rig=CANONICAL_BIPED_TARGET,
+    )
     return SourceRigEvidence(
         armature_count=len(armatures),
         action_count=len(set(bpy.data.actions) - set(snapshot.actions)),
         supported_profile=profile.identifier if profile is not None else None,
         profile_certification=profile.certification if profile is not None else None,
+        compatibility=compatibility,
     )
 
 

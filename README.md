@@ -394,16 +394,20 @@ container, glTF version and SHA-256 without mutating the Blender scene. **GLB
 Normalized Geometry V1** then imports transactionally, merges multi-mesh assets,
 bakes object transforms, preserves materials, removes source skinning, centres
 the mesh on X/Y, places its base at Z=0 and scales its longest dimension. It
-also detects whether the source skeleton is compatible with the current Motion
-profile; a compatible animated source is reused automatically by the Motion
-stage.
+also records source hierarchy depth, bone/root counts, rest-pose dimensions and
+skin links before the source rig is removed. **Rig Compatibility & Routing V1**
+classifies registered rigs as humanoid or quadruped and makes an explicit target
+decision. Only a compatible animated source is reused automatically by Motion;
+an incompatible or insufficient rig stops before Canonical Biped is generated.
 
 The GLB-first product score combines input integrity, geometry preservation,
-canonical rig evidence, Motion evidence and exported-artifact integrity. Image
-evidence is optional and reported through coverage: no images still yields a
-score, while an explicitly blank image contributes zero and lowers the result.
-This makes the CI signal useful independently of 2D capture quality without
-hiding whether image evidence was available.
+source-rig structure, semantic target compatibility, canonical rig evidence,
+Motion evidence and exported-artifact integrity. A structurally healthy
+quadruped therefore keeps its structural credit but receives no biped semantic
+credit. Image evidence is optional and reported through coverage: no images
+still yields a score, while an explicitly blank image contributes zero and
+lowers the result. This keeps CI useful independently of 2D capture quality
+without hiding missing evidence or a semantically invalid route.
 
 The optional RIG stage provides two compatible 18-bone A-pose implementations.
 **Canonical Biped V1** is the stable default. **Canonical Biped V2** is registered
@@ -437,13 +441,15 @@ Motion card.
 
 Six deterministic adapters are registered: Khronos RiggedFigure, Khronos Fox,
 three.js RobotExpressive, Mixamo humanoid, Unreal Mannequin and Meshvenn
-Canonical. RiggedFigure, Fox and RobotExpressive are E2E-certified fixtures:
-their complete GLB-first paths retarget respectively 1, 3 and 14 non-constant
-clips and round-trip them through the packaged exporter. The remaining adapters
-are contract-tested name mappings until pinned redistributable fixtures are
-added. RiggedSimple is intentionally rejected because two generic bones cannot
-establish a complete mapping. Facial animation, retained root motion and
-heuristic mapping of unknown skeletons are not supported.
+Canonical. RiggedFigure and RobotExpressive are E2E-certified through their full
+humanoid routes with respectively 1 and 14 non-constant clips. Fox is an
+E2E-certified quadruped classification fixture: its three source clips are
+recognized, but routing to Canonical Biped is deliberately rejected until a
+quadruped target exists. The remaining adapters are contract-tested name
+mappings until pinned redistributable fixtures are added. RiggedSimple is
+classified as insufficient because two generic bones cannot establish a
+complete mapping. Facial animation, retained root motion and heuristic mapping
+of unknown skeletons are not supported.
 
 The optional **GLB Export V1** stage publishes the current geometry as a glTF
 2.0 binary. When compatible Rig and Motion outputs are enabled, the same export

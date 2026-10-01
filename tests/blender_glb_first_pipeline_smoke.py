@@ -20,7 +20,9 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--package-root", type=Path, default=REPO_ROOT)
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--expected-profile", default="rigged-figure-v1")
+    parser.add_argument("--expected-archetype", default="humanoid")
     parser.add_argument("--expected-animations", type=int, default=1)
+    parser.add_argument("--expect-incompatible", action="store_true")
     parser.add_argument("--static-input", type=Path)
     parser.add_argument("--unsupported-input", type=Path)
     parser.add_argument("--output", type=Path, required=True)
@@ -171,8 +173,8 @@ def main() -> None:
         "Normalized GLB geometry kept a source armature modifier",
     )
     _require(
-        context.metadata.get("glb_source_motion_compatible") is True,
-        "Source GLB was not classified as Motion-compatible",
+        context.metadata.get("glb_source_motion_profile_recognized") is True,
+        "Source GLB motion profile was not recognized",
     )
     _require(
         context.metadata.get("glb_source_rig_profile") == args.expected_profile,
@@ -184,8 +186,73 @@ def main() -> None:
         "Smoke fixture is not attached to an E2E-certified source profile",
     )
     _require(
+        context.metadata.get("glb_source_rig_archetype") == args.expected_archetype,
+        "Source GLB archetype mismatch: "
+        f"{context.metadata.get('glb_source_rig_archetype')!r}",
+    )
+    expected_compatible = not args.expect_incompatible
+    _require(
+        context.metadata.get("glb_target_rig_compatible") is expected_compatible,
+        "Source GLB target compatibility mismatch",
+    )
+    _require(
+        context.metadata.get("glb_source_motion_compatible") is expected_compatible,
+        "Source GLB Motion routing mismatch",
+    )
+
+    if args.expect_incompatible:
+        _require(
+            context.metadata.get("motion_source_path") == "",
+            "Incompatible GLB input was selected automatically as Motion source",
+        )
+        availability = implementations[2].availability(context)
+        _require(
+            not availability.available and "incompatible" in availability.reason,
+            f"Canonical Biped did not reject incompatible source: {availability.reason}",
+        )
+        score = score_module.score_glb_first_pipeline(context)
+        score_components = {
+            component.name: component for component in score.components
+        }
+        _require(
+            score_components["rig_structure"].score > 0.0,
+            "Incompatible source lost its structural rig evidence",
+        )
+        _require(
+            score_components["rig_compatibility"].score == 0.0,
+            "Incompatible source received semantic compatibility credit",
+        )
+        _require(score.score < 50.0, "Incompatible source score is misleadingly high")
+        payload = {
+            "schema_version": 3,
+            "pipeline": "GLB INPUT -> normalized GEOMETRY -> compatibility stop",
+            "source": {
+                "path": str(source_path),
+                "profile": context.metadata["glb_source_rig_profile"],
+                "archetype": context.metadata["glb_source_rig_archetype"],
+            },
+            "routing": {
+                "target_rig": context.metadata["glb_target_rig"],
+                "compatible": context.metadata["glb_target_rig_compatible"],
+                "reasons": context.metadata["glb_rig_compatibility_reasons"],
+            },
+            "score": score.as_dict(),
+        }
+        (output_root / "glb_first_report.json").write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        print(
+            "GLB-first compatibility smoke: PASS; "
+            f"profile={context.metadata['glb_source_rig_profile']}; "
+            f"archetype={context.metadata['glb_source_rig_archetype']}; "
+            f"target={context.metadata['glb_target_rig']}; score={score.score:.2f}"
+        )
+        return
+
+    _require(
         context.metadata.get("motion_source_path") == str(source_path),
-        "GLB input was not reused automatically as Motion source",
+        "Compatible GLB input was not reused automatically as Motion source",
     )
 
     completion_plan = pipeline.PipelinePlan(selections=selections[2:])
@@ -313,18 +380,31 @@ def main() -> None:
             unsupported_context.metadata["motion_source_path"] == "",
             "Unsupported source rig was automatically selected for Motion",
         )
+        _require(
+            unsupported_context.metadata["glb_source_rig_archetype"]
+            == "insufficient",
+            "Unsupported source rig was not classified as insufficient",
+        )
+        _require(
+            unsupported_context.metadata["glb_target_rig_compatible"] is False,
+            "Unsupported source rig was routed to Canonical Biped",
+        )
         unsupported_geometry = unsupported_context.require_output(
             pipeline.PipelineStage.GEOMETRY
         )
         unsupported_evidence = {
             "source_path": str(unsupported_source),
             "rig_profile": unsupported_context.metadata["glb_source_rig_profile"],
+            "rig_archetype": unsupported_context.metadata["glb_source_rig_archetype"],
+            "target_rig_compatible": unsupported_context.metadata[
+                "glb_target_rig_compatible"
+            ],
             "motion_compatible": False,
             "vertex_count": unsupported_geometry.metrics["vertex_count"],
         }
 
     payload = {
-        "schema_version": 2,
+        "schema_version": 3,
         "pipeline": "GLB INPUT -> normalized GEOMETRY -> canonical RIG -> MOTION -> GLB EXPORT",
         "source": {
             "path": str(source_path),
@@ -332,6 +412,10 @@ def main() -> None:
             "rig_profile": context.metadata["glb_source_rig_profile"],
             "profile_certification": context.metadata[
                 "glb_source_profile_certification"
+            ],
+            "rig_archetype": context.metadata["glb_source_rig_archetype"],
+            "target_rig_compatible": context.metadata[
+                "glb_target_rig_compatible"
             ],
             "motion_compatible": context.metadata["glb_source_motion_compatible"],
         },

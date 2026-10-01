@@ -31,6 +31,11 @@ CANONICAL_ANIMATED_ROLES = (
 class MotionSourceProfile:
     identifier: str
     role_to_source_bone: tuple[tuple[str, str], ...]
+    rig_archetype: str = "humanoid"
+    compatible_target_rigs: tuple[str, ...] = (
+        "canonical-biped-v1",
+        "canonical-biped-v2",
+    )
     certification: str = "contract"
     fixture: str | None = None
 
@@ -43,6 +48,16 @@ class MotionSourceProfile:
         names = tuple(str(name).strip() for _, name in self.role_to_source_bone)
         if any(not name for name in names) or len(names) != len(set(names)):
             raise ValueError("Source profiles require unique nonempty bone names")
+        if self.rig_archetype not in {"humanoid", "quadruped"}:
+            raise ValueError(f"Unknown source rig archetype: {self.rig_archetype}")
+        targets = tuple(
+            dict.fromkeys(
+                str(target).strip()
+                for target in self.compatible_target_rigs
+                if str(target).strip()
+            )
+        )
+        object.__setattr__(self, "compatible_target_rigs", targets)
         if self.certification not in {"contract", "e2e"}:
             raise ValueError(f"Unknown source-profile certification: {self.certification}")
         if self.certification == "e2e" and not self.fixture:
@@ -121,6 +136,8 @@ KHRONOS_FOX_PROFILE = MotionSourceProfile(
         ("shin.R", "b_RightLeg02_020"),
         ("foot.R", "b_RightFoot01_021"),
     ),
+    rig_archetype="quadruped",
+    compatible_target_rigs=(),
     certification="e2e",
     fixture="Fox.glb",
 )
