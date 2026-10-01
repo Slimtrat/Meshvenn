@@ -61,6 +61,29 @@ class GeometrySurfaceOutputTests(unittest.TestCase):
             implementation_id="sdf-reconstruction-v1",
         )
         self.assertEqual(output.object_name, "SDFSurface")
+        self.assertEqual(output.blender_objects, (obj,))
+
+    def test_multi_object_geometry_keeps_primary_first_and_deduplicates(self) -> None:
+        primary = FakeBlenderObject(name="Body")
+        accessory = FakeBlenderObject(name="Accessory")
+        output = GeometrySurfaceOutput(
+            blender_object=primary,
+            source=object(),
+            projection_space=projection_space(),
+            implementation_id="glb-preserved-geometry-v1",
+            blender_objects=(accessory, primary, accessory),
+        )
+        self.assertEqual(output.blender_objects, (primary, accessory))
+
+    def test_multi_object_geometry_requires_primary_member(self) -> None:
+        with self.assertRaisesRegex(ValueError, "include blender_object"):
+            GeometrySurfaceOutput(
+                blender_object=FakeBlenderObject(name="Body"),
+                source=object(),
+                projection_space=projection_space(),
+                implementation_id="glb-preserved-geometry-v1",
+                blender_objects=(FakeBlenderObject(name="Accessory"),),
+            )
 
     def test_object_name_falls_back_to_type(self) -> None:
 

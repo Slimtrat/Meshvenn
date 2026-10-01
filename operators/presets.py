@@ -197,30 +197,59 @@ class BPT_OT_AddFrontSidePreset(
         }
 
 
+def _apply_glb_pipeline(context: bpy.types.Context, *, preserve_source: bool) -> None:
+    settings = context.scene.bpt_settings
+    selections = {
+        PipelineStage.INPUT: ("glb-file-v1", True, True),
+        PipelineStage.GEOMETRY: (
+            "glb-preserved-geometry-v1"
+            if preserve_source else "glb-normalized-geometry-v1",
+            True,
+            True,
+        ),
+        PipelineStage.MATERIAL: ("projected-color-v1.2", False, False),
+        PipelineStage.RIG: (
+            "glb-source-rig-v1" if preserve_source else "canonical-biped-v1",
+            True,
+            True,
+        ),
+        PipelineStage.MOTION: (
+            "glb-source-motion-v1"
+            if preserve_source else "canonical-motion-retarget-v1",
+            True,
+            True,
+        ),
+        PipelineStage.EXPORT: ("glb-export-v1", True, True),
+    }
+    for stage, (implementation_id, enabled, expanded) in selections.items():
+        stage_settings = pipeline_stage_settings(settings, stage)
+        stage_settings.implementation_id = implementation_id
+        stage_settings.enabled = enabled
+        stage_settings.expanded = expanded
+    clear_pipeline_runtime_state(context.scene)
+
+
 class BPT_OT_UseGLBFirstPipeline(Operator):
     bl_idname = "bpt.use_glb_first_pipeline"
-    bl_label = "Use GLB-First Character Pipeline"
+    bl_label = "Use GLB Source-Preservation Pipeline"
     bl_description = (
-        "Configure GLB input, neutral normalized geometry, canonical rig, "
-        "automatic Motion retarget and validated GLB export"
+        "Keep the GLB source meshes, rig, skin and Motion through validated export"
     )
 
     def execute(self, context: bpy.types.Context) -> set[str]:
-        settings = context.scene.bpt_settings
-        selections = {
-            PipelineStage.INPUT: ("glb-file-v1", True, True),
-            PipelineStage.GEOMETRY: ("glb-normalized-geometry-v1", True, True),
-            PipelineStage.MATERIAL: ("projected-color-v1.2", False, False),
-            PipelineStage.RIG: ("canonical-biped-v1", True, True),
-            PipelineStage.MOTION: ("canonical-motion-retarget-v1", True, True),
-            PipelineStage.EXPORT: ("glb-export-v1", True, True),
-        }
-        for stage, (implementation_id, enabled, expanded) in selections.items():
-            stage_settings = pipeline_stage_settings(settings, stage)
-            stage_settings.implementation_id = implementation_id
-            stage_settings.enabled = enabled
-            stage_settings.expanded = expanded
-        clear_pipeline_runtime_state(context.scene)
+        _apply_glb_pipeline(context, preserve_source=True)
+        return {"FINISHED"}
+
+
+class BPT_OT_UseGLBCanonicalPipeline(Operator):
+    bl_idname = "bpt.use_glb_canonical_pipeline"
+    bl_label = "Use GLB Canonicalization Pipeline"
+    bl_description = (
+        "Normalize GLB geometry, rebuild a Canonical Biped and retarget Motion"
+    )
+
+    def execute(self, context: bpy.types.Context) -> set[str]:
+        _apply_glb_pipeline(context, preserve_source=False)
         return {"FINISHED"}
 
 

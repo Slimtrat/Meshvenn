@@ -10,6 +10,7 @@ from .pipeline import (
 from .presets import (
     BPT_OT_AddFrontSidePreset,
     BPT_OT_AddTurntablePreset,
+    BPT_OT_UseGLBCanonicalPipeline,
     BPT_OT_UseGLBFirstPipeline,
 )
 from .projections import (
@@ -39,6 +40,7 @@ CLASSES = (
     BPT_OT_AddFrontSidePreset,
 
     BPT_OT_UseGLBFirstPipeline,
+    BPT_OT_UseGLBCanonicalPipeline,
 
     BPT_OT_SetPipelineImplementation,
     BPT_OT_SetPipelineStageEnabled,

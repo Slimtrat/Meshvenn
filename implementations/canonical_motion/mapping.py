@@ -35,6 +35,7 @@ class MotionSourceProfile:
     compatible_target_rigs: tuple[str, ...] = (
         "canonical-biped-v1",
         "canonical-biped-v2",
+        "source-rig-preservation-v1",
     )
     certification: str = "contract"
     fixture: str | None = None
@@ -90,6 +91,18 @@ class ResolvedBoneMap:
         return tuple(entry.role for entry in self.entries)
 
 
+@dataclass(frozen=True)
+class ResolvedSourceProfile:
+    profile: MotionSourceProfile
+    role_to_bone: Mapping[str, str]
+
+    def __post_init__(self) -> None:
+        mapping = dict(self.role_to_bone)
+        if tuple(mapping) != CANONICAL_ANIMATED_ROLES:
+            raise ValueError("Resolved source profiles require all canonical roles in order")
+        object.__setattr__(self, "role_to_bone", mapping)
+
+
 RIGGED_FIGURE_PROFILE = MotionSourceProfile(
     identifier="rigged-figure-v1",
     role_to_source_bone=(
@@ -137,7 +150,7 @@ KHRONOS_FOX_PROFILE = MotionSourceProfile(
         ("foot.R", "b_RightFoot01_021"),
     ),
     rig_archetype="quadruped",
-    compatible_target_rigs=(),
+    compatible_target_rigs=("source-rig-preservation-v1",),
     certification="e2e",
     fixture="Fox.glb",
 )
@@ -309,25 +322,33 @@ def validate_target_rig(
     return semantics
 
 
+def resolve_source_profile(bone_names: Iterable[str]) -> ResolvedSourceProfile:
+    """Resolve a registered source profile to the source's exact bone names."""
+    source_names = tuple(str(name) for name in bone_names)
+    available = _available_bones(source_names)
+    profile = detect_source_profile(source_names)
+    source_by_role = _profile_source_map(profile, available)
+    if source_by_role is None:  # pragma: no cover - guarded by detection
+        raise RuntimeError(f'Profile "{profile.identifier}" could not be resolved')
+    return ResolvedSourceProfile(profile, source_by_role)
+
+
 def resolve_bone_map(
     source_bone_names: Iterable[str],
     target_semantic_bones: Mapping[str, str],
     target_bone_names: Iterable[str],
 ) -> ResolvedBoneMap:
     """Resolve all 17 animated roles; the canonical root is intentionally fixed."""
-    source_names = tuple(str(name) for name in source_bone_names)
-    available = _available_bones(source_names)
-    profile = detect_source_profile(source_names)
-    source_by_role = _profile_source_map(profile, available)
-    if source_by_role is None:  # pragma: no cover - guarded by detection
-        raise RuntimeError(f'Profile "{profile.identifier}" could not be resolved')
+    resolved_source = resolve_source_profile(source_bone_names)
     semantics = validate_target_rig(target_semantic_bones, target_bone_names)
 
     entries = []
     for role in CANONICAL_ANIMATED_ROLES:
         target_name = semantics.get(role)
-        entries.append(BoneMapEntry(role, source_by_role[role], target_name))
-    return ResolvedBoneMap(profile.identifier, tuple(entries))
+        entries.append(
+            BoneMapEntry(role, resolved_source.role_to_bone[role], target_name)
+        )
+    return ResolvedBoneMap(resolved_source.profile.identifier, tuple(entries))
 
 
 __all__ = (
@@ -342,7 +363,9 @@ __all__ = (
     "BoneMapEntry",
     "MotionSourceProfile",
     "ResolvedBoneMap",
+    "ResolvedSourceProfile",
     "detect_source_profile",
     "resolve_bone_map",
+    "resolve_source_profile",
     "validate_target_rig",
 )

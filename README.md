@@ -388,17 +388,24 @@ Increase resolution only after projection alignment is correct.
 ```
 
 MeshVenn accelerates reconstruction, first-pass materials, rigging, and motion transfer.
-The **GLB-FIRST PIPELINE** preset provides a second production entry path that
-does not depend on projection images. **GLB File V1** validates the source
-container, glTF version and SHA-256 without mutating the Blender scene. **GLB
-Normalized Geometry V1** then imports transactionally, merges multi-mesh assets,
-bakes object transforms, preserves materials, removes source skinning, centres
-the mesh on X/Y, places its base at Z=0 and scales its longest dimension. It
-also records source hierarchy depth, bone/root counts, rest-pose dimensions and
-skin links before the source rig is removed. **Rig Compatibility & Routing V1**
-classifies registered rigs as humanoid or quadruped and makes an explicit target
-decision. Only a compatible animated source is reused automatically by Motion;
-an incompatible or insufficient rig stops before Canonical Biped is generated.
+The two **GLB-FIRST** presets provide production entry paths that do not depend
+on projection images. **GLB File V1** validates the source container, glTF
+version and SHA-256 without mutating the Blender scene.
+
+**GLB PRESERVE** is the default fidelity route. **GLB Preserved Character
+Geometry V1** imports transactionally, keeps every source mesh, material,
+armature, skin and supported action, then normalizes the character as one
+hierarchy without baking or rebuilding its topology. **GLB Source Rig
+Preservation V1** and **GLB Source Motion Preservation V1** expose the original
+binding and clips with root motion preserved. The multi-mesh exporter publishes
+that same character data.
+
+**GLB CANONICALIZE** remains the conversion route. **GLB Normalized Geometry
+V1** merges multi-mesh assets into a neutral surface, removes source skinning,
+centres and scales it, then Canonical Biped and Canonical Motion rebuild the
+character. Before neutralization it records hierarchy depth, bone/root counts,
+rest-pose proportions and skin links. **Rig Compatibility & Routing V1** blocks
+incompatible or insufficient rigs before a semantically wrong target is built.
 
 The GLB-first product score combines input integrity, geometry preservation,
 source-rig structure, semantic target compatibility, canonical rig evidence,
@@ -441,20 +448,20 @@ Motion card.
 
 Six deterministic adapters are registered: Khronos RiggedFigure, Khronos Fox,
 three.js RobotExpressive, Mixamo humanoid, Unreal Mannequin and Meshvenn
-Canonical. RiggedFigure and RobotExpressive are E2E-certified through their full
-humanoid routes with respectively 1 and 14 non-constant clips. Fox is an
-E2E-certified quadruped classification fixture: its three source clips are
-recognized, but routing to Canonical Biped is deliberately rejected until a
-quadruped target exists. The remaining adapters are contract-tested name
-mappings until pinned redistributable fixtures are added. RiggedSimple is
-classified as insufficient because two generic bones cannot establish a
-complete mapping. Facial animation, retained root motion and heuristic mapping
-of unknown skeletons are not supported.
+Canonical. RiggedFigure, RobotExpressive and Fox are E2E-certified through the
+source-preservation route with respectively 1, 14 and 3 non-constant clips and
+a score of 100. RiggedFigure and RobotExpressive are also certified through the
+canonical humanoid route. Fox remains deliberately rejected by Canonical Biped,
+but now completes through its semantically correct quadruped source rig. The
+remaining adapters are contract-tested until redistributable fixtures are
+added. RiggedSimple is classified as insufficient because two generic bones
+cannot establish a complete mapping. Heuristic mapping of unknown skeletons is
+not supported.
 
-The optional **GLB Export V1** stage publishes the current geometry as a glTF
-2.0 binary. When compatible Rig and Motion outputs are enabled, the same export
-also carries the canonical skin and the explicitly produced motion clips. The
-stage writes to a temporary sibling file, validates the GLB container and
+The optional **GLB Export V1** stage publishes single- or multi-mesh geometry as
+a glTF 2.0 binary. When compatible Rig and Motion outputs are enabled, the same
+export carries either the canonical or preserved source skin and the explicitly
+produced motion clips. The stage writes to a temporary sibling file, validates the GLB container and
 manifest, records its size and SHA-256 digest, then atomically publishes it to
 the chosen path. Existing files are replaced only when the overwrite option is
 enabled, and the Motion source GLB cannot be used as the destination.

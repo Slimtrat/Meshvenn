@@ -182,6 +182,12 @@ REQUIRED_PACKAGE_FILES = (
     "implementations/glb_geometry/__init__.py",
     "implementations/glb_geometry/implementation.py",
     "implementations/glb_geometry/normalization.py",
+    "implementations/glb_preservation/__init__.py",
+    "implementations/glb_preservation/contracts.py",
+    "implementations/glb_preservation/geometry.py",
+    "implementations/glb_preservation/importer.py",
+    "implementations/glb_preservation/motion.py",
+    "implementations/glb_preservation/rig.py",
     "implementations/projected_color/__init__.py",
     "implementations/projected_color/configuration.py",
     "implementations/projected_color/geometry.py",
@@ -228,11 +234,14 @@ EXPECTED_IMPLEMENTATIONS = (
     "native-visual-hull",
     "sdf-reconstruction-v1",
     "glb-normalized-geometry-v1",
+    "glb-preserved-geometry-v1",
     "projected-color-v1.2",
     "uv-bake-v2",
     "canonical-biped-v1",
     "canonical-biped-v2",
+    "glb-source-rig-v1",
     "canonical-motion-retarget-v1",
+    "glb-source-motion-v1",
     "glb-export-v1",
 )
 
@@ -318,6 +327,7 @@ EXPECTED_OPERATOR_RNA_IDS = (
     "BPT_OT_add_turntable_preset",
     "BPT_OT_add_front_side_preset",
     "BPT_OT_use_glb_first_pipeline",
+    "BPT_OT_use_glb_canonical_pipeline",
 
     "BPT_OT_set_pipeline_implementation",
     "BPT_OT_set_pipeline_stage_enabled",
@@ -338,6 +348,7 @@ EXPECTED_OPERATOR_IDNAMES = (
     "bpt.add_turntable_preset",
     "bpt.add_front_side_preset",
     "bpt.use_glb_first_pipeline",
+    "bpt.use_glb_canonical_pipeline",
 
     "bpt.set_pipeline_implementation",
     "bpt.set_pipeline_stage_enabled",

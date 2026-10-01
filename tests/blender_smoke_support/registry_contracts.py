@@ -225,6 +225,21 @@ def _validate_registry(
         and not glb_geometry.descriptor.experimental,
         "GLB-first INPUT and GEOMETRY must be production-ready.",
     )
+    preserved_geometry = registry.require(
+        "glb-preserved-geometry-v1", stage=PipelineStage.GEOMETRY
+    )
+    preserved_rig = registry.require(
+        "glb-source-rig-v1", stage=PipelineStage.RIG
+    )
+    preserved_motion = registry.require(
+        "glb-source-motion-v1", stage=PipelineStage.MOTION
+    )
+    _require(
+        not preserved_geometry.descriptor.experimental
+        and not preserved_rig.descriptor.experimental
+        and not preserved_motion.descriptor.experimental,
+        "GLB source-preservation route must be production-ready.",
+    )
     motion = registry.require(
         "canonical-motion-retarget-v1", stage=PipelineStage.MOTION
     )

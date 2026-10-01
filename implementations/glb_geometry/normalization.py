@@ -150,7 +150,7 @@ def _rest_dimensions(armatures: tuple[Any, ...]) -> tuple[float, float, float]:
     )
 
 
-def _structure_evidence(
+def inspect_rig_structure(
     imported_objects: tuple[Any, ...], armatures: tuple[Any, ...]
 ) -> RigStructureEvidence:
     armature_set = set(armatures)
@@ -189,7 +189,7 @@ def _rig_evidence(
             continue
         supported.append(profile)
     profile = supported[0] if len(armatures) == 1 and len(supported) == 1 else None
-    structure = _structure_evidence(imported_objects, armatures)
+    structure = inspect_rig_structure(imported_objects, armatures)
     compatibility = assess_rig_compatibility(
         structure,
         source_profile=profile.identifier if profile is not None else None,
@@ -341,5 +341,6 @@ def import_and_normalize_glb(path: str, *, target_extent: float) -> NormalizedGL
 __all__ = (
     "NormalizedGLBGeometry",
     "SourceRigEvidence",
+    "inspect_rig_structure",
     "import_and_normalize_glb",
 )

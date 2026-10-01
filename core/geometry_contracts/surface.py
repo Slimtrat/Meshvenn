@@ -130,6 +130,7 @@ class GeometrySurfaceOutput:
     implementation_id: str
     metrics: Mapping[str, Any] = field(default_factory=dict)
     metadata: Mapping[str, Any] = field(default_factory=dict)
+    blender_objects: tuple[Any, ...] = ()
 
     def __post_init__(self) -> None:
         if self.blender_object is None:
@@ -146,6 +147,16 @@ class GeometrySurfaceOutput:
         object.__setattr__(
             self, "metadata", _normalize_mapping(self.metadata, name="metadata")
         )
+        objects = tuple(self.blender_objects) or (self.blender_object,)
+        if any(item is None for item in objects):
+            raise ValueError("Geometry surface objects cannot contain None.")
+        if not any(item is self.blender_object for item in objects):
+            raise ValueError("Geometry surface objects must include blender_object.")
+        unique: list[Any] = [self.blender_object]
+        for item in objects:
+            if not any(item is existing for existing in unique):
+                unique.append(item)
+        object.__setattr__(self, "blender_objects", tuple(unique))
 
     @property
     def width(self) -> int:

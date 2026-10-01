@@ -26,6 +26,7 @@ class GLBExportPlan:
     overwrite_existing: bool
     geometry: GeometrySurfaceOutput
     mesh_object: Any
+    mesh_objects: tuple[Any, ...]
     rig: RigOutput | None
     armature_object: Any | None
     motion: MotionOutput | None
@@ -34,8 +35,8 @@ class GLBExportPlan:
     @property
     def objects(self) -> tuple[Any, ...]:
         if self.armature_object is None:
-            return (self.mesh_object,)
-        return (self.mesh_object, self.armature_object)
+            return self.mesh_objects
+        return (*self.mesh_objects, self.armature_object)
 
 
 def _require_scene_object(value: Any, *, object_type: str, label: str) -> Any:
@@ -89,12 +90,34 @@ def _resolve_path(context: PipelineContext) -> tuple[Path, bool]:
     return path, overwrite
 
 
+def _is_bound_to_armature(mesh: Any, armature: Any) -> bool:
+    if any(
+        modifier.type == "ARMATURE" and modifier.object is armature
+        for modifier in mesh.modifiers
+    ):
+        return True
+    parent = mesh.parent
+    while parent is not None:
+        if parent is armature:
+            return True
+        parent = parent.parent
+    return False
+
+
 def build_export_plan(context: PipelineContext) -> GLBExportPlan:
     geometry = require_geometry_surface_output(context)
     mesh = _require_scene_object(
         geometry.blender_object,
         object_type="MESH",
         label="EXPORT geometry",
+    )
+    mesh_objects = tuple(
+        _require_scene_object(
+            item,
+            object_type="MESH",
+            label="EXPORT geometry member",
+        )
+        for item in geometry.blender_objects
     )
 
     rig: RigOutput | None = None
@@ -108,11 +131,8 @@ def build_export_plan(context: PipelineContext) -> GLBExportPlan:
             object_type="ARMATURE",
             label="EXPORT rig",
         )
-        if not any(
-            modifier.type == "ARMATURE" and modifier.object is armature
-            for modifier in mesh.modifiers
-        ):
-            raise ValueError("EXPORT rig is not bound to the geometry mesh.")
+        if not any(_is_bound_to_armature(item, armature) for item in mesh_objects):
+            raise ValueError("EXPORT rig is not bound to any geometry mesh.")
 
     motion: MotionOutput | None = None
     actions: tuple[Any, ...] = ()
@@ -133,6 +153,7 @@ def build_export_plan(context: PipelineContext) -> GLBExportPlan:
         overwrite_existing=overwrite_existing,
         geometry=geometry,
         mesh_object=mesh,
+        mesh_objects=mesh_objects,
         rig=rig,
         armature_object=armature,
         motion=motion,
