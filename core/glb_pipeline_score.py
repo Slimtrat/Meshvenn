@@ -77,6 +77,41 @@ def _geometry_score(output: Any) -> tuple[float, str]:
     return score, f"vertex={vertex_ratio:.3f}, polygon={polygon_ratio:.3f}"
 
 
+def _optional_unit_score(value: Any) -> float | None:
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    return score if math.isfinite(score) and 0.0 <= score <= 1.0 else None
+
+
+def _compatibility_scores(
+    context: PipelineContext,
+    geometry: Any,
+) -> tuple[float | None, float | None, str]:
+    structural = _optional_unit_score(
+        context.metadata.get("glb_rig_structural_score")
+    )
+    semantic = _optional_unit_score(context.metadata.get("glb_rig_semantic_score"))
+    archetype = context.metadata.get("glb_source_rig_archetype")
+    compatible = context.metadata.get("glb_target_rig_compatible")
+    if isinstance(geometry, GeometrySurfaceOutput):
+        report = geometry.metadata.get("source_rig_compatibility", {})
+        if isinstance(report, dict):
+            if structural is None:
+                structural = _optional_unit_score(report.get("structural_score"))
+            if semantic is None:
+                semantic = _optional_unit_score(report.get("semantic_score"))
+            archetype = archetype or report.get("source_archetype")
+            if compatible is None:
+                compatible = report.get("target_compatible")
+    return structural, semantic, (
+        f"archetype={archetype or 'unknown'}, target_compatible={compatible}"
+    )
+
+
 def _rig_score(output: Any) -> tuple[float, str]:
     if not isinstance(output, RigOutput):
         return 0.0, "missing RigOutput"
@@ -131,8 +166,10 @@ def score_glb_first_pipeline(
 ) -> GLBPipelineScore:
     input_output = context.get_output(PipelineStage.INPUT)
     input_score = 1.0 if isinstance(input_output, GLBFileInputOutput) else 0.0
-    geometry_score, geometry_evidence = _geometry_score(
-        context.get_output(PipelineStage.GEOMETRY)
+    geometry_output = context.get_output(PipelineStage.GEOMETRY)
+    geometry_score, geometry_evidence = _geometry_score(geometry_output)
+    structure_score, compatibility_score, compatibility_evidence = (
+        _compatibility_scores(context, geometry_output)
     )
     rig_score, rig_evidence = _rig_score(context.get_output(PipelineStage.RIG))
     motion_score, motion_evidence = _motion_score(context.get_output(PipelineStage.MOTION))
@@ -151,9 +188,23 @@ def score_glb_first_pipeline(
 
     components = (
         GLBScoreComponent("input_integrity", input_score, 0.10, evidence="validated GLB contract"),
-        GLBScoreComponent("geometry_preservation", geometry_score, 0.25, evidence=geometry_evidence),
-        GLBScoreComponent("rig", rig_score, 0.20, evidence=rig_evidence),
-        GLBScoreComponent("motion", motion_score, 0.20, evidence=motion_evidence),
+        GLBScoreComponent("geometry_preservation", geometry_score, 0.20, evidence=geometry_evidence),
+        GLBScoreComponent(
+            "rig_structure",
+            structure_score or 0.0,
+            0.05,
+            available=structure_score is not None,
+            evidence=compatibility_evidence,
+        ),
+        GLBScoreComponent(
+            "rig_compatibility",
+            compatibility_score or 0.0,
+            0.10,
+            available=compatibility_score is not None,
+            evidence=compatibility_evidence,
+        ),
+        GLBScoreComponent("rig", rig_score, 0.15, evidence=rig_evidence),
+        GLBScoreComponent("motion", motion_score, 0.15, evidence=motion_evidence),
         GLBScoreComponent("export", export_score, 0.15, evidence=export_evidence),
         GLBScoreComponent(
             "image", normalized_image_score, 0.10,

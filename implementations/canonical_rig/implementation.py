@@ -22,7 +22,21 @@ from .binding import _remove_new_binding, bind_mesh, create_armature
 IMPLEMENTATION_ID = "canonical-biped-v1"
 
 
+def _require_source_rig_compatibility(context: PipelineContext) -> None:
+    compatible = context.metadata.get("glb_target_rig_compatible")
+    target = context.metadata.get("glb_target_rig")
+    if compatible is False and target == IMPLEMENTATION_ID:
+        archetype = context.metadata.get("glb_source_rig_archetype", "unknown")
+        reasons = context.metadata.get("glb_rig_compatibility_reasons", ())
+        detail = " ".join(str(reason) for reason in reasons)
+        raise ValueError(
+            f'GLB source rig archetype "{archetype}" is incompatible with '
+            f'Canonical Biped V1. {detail}'.strip()
+        )
+
+
 def _require_mesh(context: PipelineContext):
+    _require_source_rig_compatibility(context)
     geometry = require_geometry_surface_output(context)
     mesh = geometry.blender_object
     if not isinstance(mesh, bpy.types.Object) or mesh.type != "MESH":
@@ -62,7 +76,13 @@ class CanonicalRigImplementation:
         version="1",
         experimental=True,
         supports_headless=True,
-        capabilities=("canonical-biped", "semantic-bones", "automatic-skinning", "glb-ready"),
+        capabilities=(
+            "canonical-biped",
+            "semantic-bones",
+            "semantic-source-routing",
+            "automatic-skinning",
+            "glb-ready",
+        ),
     )
 
     @property

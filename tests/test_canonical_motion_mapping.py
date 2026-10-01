@@ -54,6 +54,16 @@ class CanonicalMotionMappingTests(unittest.TestCase):
                 "threejs-robot-expressive-v1": "RobotExpressive.glb",
             },
         )
+        self.assertEqual(mapping.KHRONOS_FOX_PROFILE.rig_archetype, "quadruped")
+        self.assertEqual(mapping.KHRONOS_FOX_PROFILE.compatible_target_rigs, ())
+        self.assertTrue(
+            all(
+                profile.rig_archetype == "humanoid"
+                and "canonical-biped-v1" in profile.compatible_target_rigs
+                for profile in mapping.SOURCE_PROFILES
+                if profile is not mapping.KHRONOS_FOX_PROFILE
+            )
+        )
 
     def test_detects_every_registered_profile(self) -> None:
         for profile in mapping.SOURCE_PROFILES:

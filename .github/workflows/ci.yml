@@ -140,6 +140,7 @@ jobs:
             "core/export_contracts.py"
             "core/glb_input_contracts.py"
             "core/glb_pipeline_score.py"
+            "core/rig_compatibility.py"
 
             # INPUT / projection
             "core/image_mask.py"
@@ -417,6 +418,7 @@ jobs:
             "tests/test_glb_export_manifest.py"
             "tests/test_glb_input_contracts.py"
             "tests/test_glb_pipeline_score.py"
+            "tests/test_rig_compatibility.py"
 
             # SDF GEOMETRY
             "tests/sdf_surface_test_support.py"
@@ -1165,6 +1167,7 @@ jobs:
             "core/export_contracts.py"
             "core/glb_input_contracts.py"
             "core/glb_pipeline_score.py"
+            "core/rig_compatibility.py"
 
             # -----------------------------------------------
             # INPUT / projection
@@ -1663,6 +1666,7 @@ jobs:
             "blender_projection_tool/core/export_contracts.py"
             "blender_projection_tool/core/glb_input_contracts.py"
             "blender_projection_tool/core/glb_pipeline_score.py"
+            "blender_projection_tool/core/rig_compatibility.py"
 
             "blender_projection_tool/core/projection_alignment.py"
             "blender_projection_tool/core/projection_math/__init__.py"
@@ -2157,6 +2161,9 @@ jobs:
             "${PACKAGE_ROOT}/core/glb_pipeline_score.py"
 
           test -f \
+            "${PACKAGE_ROOT}/core/rig_compatibility.py"
+
+          test -f \
             "${PACKAGE_ROOT}/implementations/glb_input/implementation.py"
 
           test -f \
@@ -2338,7 +2345,8 @@ jobs:
             --package-root "${PACKAGE_ROOT}" \
             --input example/v2/assets/Fox.glb \
             --expected-profile khronos-fox-v1 \
-            --expected-animations 3 \
+            --expected-archetype quadruped \
+            --expect-incompatible \
             --output "${RUNNER_TEMP}/glb-first-fox-smoke"
 
       # Artifacts are published only after Blender package

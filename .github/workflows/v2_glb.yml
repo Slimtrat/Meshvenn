@@ -46,7 +46,7 @@ jobs:
           python-version: "3.11"
 
       - name: Verify pinned V2 assets and metric semantics
-        run: python -m unittest tests.test_v2_assets tests.test_glb_v2_metrics tests.test_glb_v2_rig_metrics tests.test_glb_v2_character_support tests.test_canonical_rig_v2 tests.test_motion_contracts tests.test_canonical_motion_mapping tests.test_export_contracts tests.test_glb_export_manifest tests.test_glb_input_contracts tests.test_glb_pipeline_score -v
+        run: python -m unittest tests.test_v2_assets tests.test_glb_v2_metrics tests.test_glb_v2_rig_metrics tests.test_glb_v2_character_support tests.test_canonical_rig_v2 tests.test_motion_contracts tests.test_canonical_motion_mapping tests.test_rig_compatibility tests.test_export_contracts tests.test_glb_export_manifest tests.test_glb_input_contracts tests.test_glb_pipeline_score -v
 
       - name: Build native reconstruction engine
         shell: bash
@@ -140,7 +140,8 @@ jobs:
             --package-root "${GITHUB_WORKSPACE}" \
             --input example/v2/assets/Fox.glb \
             --expected-profile khronos-fox-v1 \
-            --expected-animations 3 \
+            --expected-archetype quadruped \
+            --expect-incompatible \
             --output "${RUNNER_TEMP}/v2-benchmark/glb_first_fox"
 
       - name: Benchmark Canonical Rig V1 against RiggedFigure
