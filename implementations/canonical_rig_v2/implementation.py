@@ -134,11 +134,11 @@ class CanonicalRigV2Implementation:
             mesh["meshvenn_rig_semantics"] = json.dumps(semantic_bones, sort_keys=True)
             mesh["meshvenn_rig_quality"] = json.dumps(quality.as_dict(), sort_keys=True)
             mesh["meshvenn_rig_fit"] = json.dumps(fit.as_dict(), sort_keys=True)
-            mesh["meshvenn_rig_skinning_algorithm"] = "regional-fitted-v2-hinge-blend"
+            mesh["meshvenn_rig_skinning_algorithm"] = "regional-fitted-v2-leg-root-transfer"
             armature["meshvenn_rig_implementation"] = IMPLEMENTATION_ID
             context.metadata["rig_object_name"] = armature.name
             context.metadata["rig_binding_method"] = binding_method
-            context.metadata["rig_skinning_algorithm"] = "regional-fitted-v2-hinge-blend"
+            context.metadata["rig_skinning_algorithm"] = "regional-fitted-v2-leg-root-transfer"
             context.metadata["rig_quality"] = quality.as_dict()
             context.metadata["rig_fit"] = fit.as_dict()
             return StageExecutionResult.succeeded(
@@ -155,7 +155,7 @@ class CanonicalRigV2Implementation:
                     "mesh_name": mesh.name,
                     "geometry_implementation": geometry.implementation_id,
                     "binding_method": binding_method,
-                    "skinning_algorithm": "regional-fitted-v2-hinge-blend",
+                    "skinning_algorithm": "regional-fitted-v2-leg-root-transfer",
                     "rig_quality": quality.as_dict(),
                     "rig_fit": fit.as_dict(),
                 },

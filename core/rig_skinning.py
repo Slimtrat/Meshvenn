@@ -128,6 +128,43 @@ def _hinge_neighbourhood(point, bones, bounds, gates):
     return strongest
 
 
+def _leg_root_gate(name, point, bones, height):
+    """Keep knee rotations from pulling vertices at the hip.
+
+    All descendants follow their parent in an isolated root rotation, hiding
+    these distant weights until a child bends too. Cap the fade by link length
+    so short stylized limbs still keep their hinge influences.
+    """
+    if name in _AXIAL:
+        return 1.0
+    part, side = name.rsplit(".", 1)
+    if part not in ("shin", "foot"):
+        return 1.0
+    root = bones[f"thigh.{side}"]
+    link = math.dist(root.head, root.tail)/height
+    distance = math.dist(point, root.head)/height
+    return _smoothstep(min(.04, .20*link), min(.12, .70*link), distance)
+
+
+def _redistribute_root_scores(scores, point, bones, height):
+    """Move distant descendant mass to its root, preserving each chain total.
+
+    Dropping that mass would increase torso influence after normalization.
+    Redistribution keeps the region balance and leaves arm scores unchanged.
+    """
+    values = {name: score for score, name in scores}
+    for name in sorted(values):
+        part, _, side = name.partition(".")
+        if part not in ("shin", "foot"):
+            continue
+        fade = _leg_root_gate(name, point, bones, height)
+        root = f"thigh.{side}"
+        transferred = values[name]*(1.0-fade)
+        values[name] -= transferred
+        values[root] = values.get(root,0.0)+transferred
+    return [(score,name) for name,score in values.items() if score > 0]
+
+
 def regional_fallback_weights(
     point: Sequence[float],
     bones: Sequence[BoneSpec],
@@ -184,6 +221,8 @@ def regional_fallback_weights(
         if not math.isfinite(score) or score <= 0.0:
             raise ValueError("Cannot calculate finite skin weights for this mesh.")
         scores.append((score, name))
+    if bone_guided:
+        scores = _redistribute_root_scores(scores,coordinates,deform,bounds.height)
     # Axial gating guarantees at least one candidate, including at extreme
     # stylized silhouettes where neither canonical limb prior is plausible.
     scores.sort(key=lambda item: (-item[0], item[1]))
