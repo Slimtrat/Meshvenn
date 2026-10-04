@@ -46,6 +46,7 @@ def _import_package(package_root: Path):
     for relative in (
         "__init__.py", "core/canonical_rig.py", "core/rig_quality.py", "core/rig_skinning.py", "core/rig_contracts.py",
         "core/canonical_rig_v2.py",
+        "core/rig_lower_body.py",
         "implementations/canonical_rig/__init__.py",
         "implementations/canonical_rig/implementation.py",
         "implementations/canonical_rig_v2/__init__.py",

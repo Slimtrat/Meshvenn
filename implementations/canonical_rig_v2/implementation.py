@@ -34,7 +34,9 @@ def _prepare(context: PipelineContext):
     quality = assess_biped_geometry(vertices, bounds)
     if "low_height_to_width" in quality.warnings:
         raise ValueError("Canonical Biped V2 requires an upright biped silhouette.")
-    bones, fit = fit_canonical_biped_v2(vertices)
+    mesh.data.calc_loop_triangles()
+    triangles = tuple(tuple(triangle.vertices) for triangle in mesh.data.loop_triangles)
+    bones, fit = fit_canonical_biped_v2(vertices, triangles=triangles)
     if fit.confidence < 0.25:
         raise ValueError("Canonical Biped V2 could not observe both arm envelopes.")
     if max(fit.left_arm_thickness_in_heights, fit.right_arm_thickness_in_heights) > 0.18:
@@ -62,7 +64,7 @@ class CanonicalRigV2Implementation:
         supports_headless=True,
         capabilities=(
             "canonical-biped", "semantic-bones", "envelope-guided-fit",
-            "deterministic-skinning", "glb-ready",
+            "topology-guided-lower-body", "deterministic-skinning", "glb-ready",
         ),
     )
 
@@ -182,5 +184,6 @@ class CanonicalRigV2Implementation:
         box = layout.box()
         box.label(text="Canonical Biped V2", icon="ARMATURE_DATA")
         box.label(text="Envelope-guided A/T-pose fit")
+        box.label(text="Closed-section leg cues with safe fallbacks")
         box.label(text="Fitted-joint regional skinning")
         box.label(text="Best for upright biped characters", icon="INFO")

@@ -74,6 +74,7 @@ REQUIRED_PACKAGE_FILES = (
     "core/geometry_contracts/validation.py",
     "core/canonical_rig.py",
     "core/canonical_rig_v2.py",
+    "core/rig_lower_body.py",
     "core/rig_quality.py",
     "core/rig_skinning.py",
     "core/rig_contracts.py",

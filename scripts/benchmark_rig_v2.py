@@ -22,7 +22,7 @@ if str(REPO_ROOT) not in sys.path:
 import bpy
 from mathutils.kdtree import KDTree
 
-from scripts.glb_v2_rig_metrics import landmark_summary, skin_weight_summary
+from scripts.glb_v2_rig_metrics import landmark_summary, landmark_group_summary, skin_weight_summary
 from scripts.glb_v2_character_support import assert_unrigged_mesh
 
 
@@ -32,6 +32,7 @@ EXPECTED_BONES = {
         "upper_arm", "forearm", "hand", "thigh", "shin", "foot"
     )),
 }
+LEG_JOINTS = tuple(f"{part}.{side}" for side in ("L", "R") for part in ("thigh", "shin", "foot"))
 
 
 def arguments() -> argparse.Namespace:
@@ -47,8 +48,18 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--max-mean-joint-error", type=float, default=0.15)
     parser.add_argument("--max-joint-error", type=float, default=0.20)
     parser.add_argument("--max-arm-unrelated-weight", type=float, default=1.0)
+    parser.add_argument("--max-mean-leg-joint-error", type=float, default=1.0)
+    parser.add_argument("--max-leg-joint-error", type=float, default=1.0)
+    parser.add_argument("--max-leg-unrelated-weight", type=float, default=1.0)
+    parser.add_argument("--require-observed-leg-cues", action="store_true")
+    parser.add_argument("--check-leg-deformation", action="store_true")
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    for name in ("max_mean_joint_error", "max_joint_error", "max_arm_unrelated_weight",
+                 "max_mean_leg_joint_error", "max_leg_joint_error", "max_leg_unrelated_weight"):
+        if not math.isfinite(getattr(args,name)) or getattr(args,name) < 0:
+            parser.error(f"{name.replace('_','-')} must be finite and nonnegative")
+    return args
 
 
 def _package_modules(implementation_id: str = "canonical-biped-v1"):
@@ -104,27 +115,32 @@ def _skin_rows(mesh: bpy.types.Object, armature: bpy.types.Object) -> list[list[
     ]
 
 
-def _pose_response(mesh: bpy.types.Object, armature: bpy.types.Object, region_indices=None) -> dict:
+def _pose_response(mesh: bpy.types.Object, armature: bpy.types.Object, region_indices=None,
+                   *, posed_bone="upper_arm.L", rotation_axis=1) -> dict:
     rest = _evaluated_positions(mesh)
-    bone = armature.pose.bones["upper_arm.L"]
+    bone = armature.pose.bones[posed_bone]
+    original_rotation = bone.rotation_euler.copy()
+    original_mode = bone.rotation_mode
     bone.rotation_mode = "XYZ"
-    bone.rotation_euler[1] = math.radians(35)
+    bone.rotation_euler[rotation_axis] = math.radians(35)
     bpy.context.view_layer.update()
     posed = _evaluated_positions(mesh)
-    bone.rotation_euler[1] = 0.0
+    bone.rotation_euler = original_rotation
+    bone.rotation_mode = original_mode
     bpy.context.view_layer.update()
     if len(rest) != len(posed):
         raise AssertionError("Pose changed mesh topology")
     if region_indices:
-        left = [math.dist(rest[index], posed[index]) for index in region_indices["arm.L"]]
-        right = [math.dist(rest[index], posed[index]) for index in region_indices["arm.R"]]
+        family = "arm" if posed_bone.startswith("upper_arm") else "leg"
+        left = [math.dist(rest[index], posed[index]) for index in region_indices[f"{family}.L"]]
+        right = [math.dist(rest[index], posed[index]) for index in region_indices[f"{family}.R"]]
     else:
         left = [math.dist(before, after) for before, after in zip(rest, posed) if before[0] > 0.10]
         right = [math.dist(before, after) for before, after in zip(rest, posed) if before[0] < -0.10]
     if not left or not right:
         raise AssertionError("Reference figure lacks bilateral pose samples")
     return {
-        "posed_bone": "upper_arm.L",
+        "posed_bone": posed_bone,
         "angle_degrees": 35,
         "left_mean_displacement": sum(left) / len(left),
         "right_mean_displacement": sum(right) / len(right),
@@ -159,15 +175,18 @@ def _roundtrip(mesh: bpy.types.Object, armature: bpy.types.Object, path: Path, c
     if len(bound) != 1:
         raise AssertionError("GLB roundtrip lost skin binding")
     weights = skin_weight_summary(_skin_rows(bound[0], arms[0]))
-    regions, leakage = _arm_region_quality(bound[0], reference_regions)
+    regions, leakage = _limb_region_quality(bound[0], reference_regions)
     return {"glb_bytes": path.stat().st_size, "bone_count": len(arms[0].data.bones),
             "fidelity": context.metadata["glb_export_roundtrip"],
             "pose_response": _pose_response(bound[0], arms[0], regions),
-            "arm_region_leakage": leakage, **weights}
+            "leg_pose_response": _pose_response(bound[0], arms[0], regions, posed_bone="thigh.L", rotation_axis=0),
+            "arm_region_leakage": {label: value for label,value in leakage.items() if label.startswith("arm")},
+            "leg_region_leakage": {label: value for label,value in leakage.items() if label.startswith("leg")}, **weights}
 
 
-def _source_arm_regions(mesh, armature, correspondence):
-    ancestors = {correspondence[f"upper_arm.{side}"]: f"arm.{side}" for side in ("L", "R")}
+def _source_limb_regions(mesh, armature, correspondence):
+    ancestors = {correspondence[f"{root}.{side}"]: f"{label}.{side}"
+                 for root,label in (("upper_arm","arm"),("thigh","leg")) for side in ("L","R")}
     labels = {}
     for bone in armature.data.bones:
         ancestor = bone
@@ -179,18 +198,18 @@ def _source_arm_regions(mesh, armature, correspondence):
     result = []
     for vertex in mesh.data.vertices:
         mass = {label: sum(item.weight for item in vertex.groups if groups.get(item.group) == label)
-                for label in ("arm.L", "arm.R")}
+                for label in ("arm.L", "arm.R", "leg.L", "leg.R")}
         label = max(mass, key=mass.get)
         result.append((tuple(mesh.matrix_world @ vertex.co), label if mass[label] >= .7 else None))
     return result
 
 
-def _arm_region_quality(mesh, reference_regions):
+def _limb_region_quality(mesh, reference_regions):
     tree = KDTree(len(reference_regions))
     for index, (point, _) in enumerate(reference_regions):
         tree.insert(point, index)
     tree.balance()
-    regions = {"arm.L": [], "arm.R": []}
+    regions = {"arm.L": [], "arm.R": [], "leg.L": [], "leg.R": []}
     leakage = {label: [] for label in regions}
     for vertex in mesh.data.vertices:
         _, index, distance = tree.find(mesh.matrix_world @ vertex.co)
@@ -200,11 +219,12 @@ def _arm_region_quality(mesh, reference_regions):
         if label is None:
             continue
         regions[label].append(vertex.index)
-        allowed = {f"{part}.{label[-1]}" for part in ("upper_arm", "forearm", "hand")}
+        parts = ("upper_arm", "forearm", "hand") if label.startswith("arm") else ("thigh", "shin", "foot")
+        allowed = {f"{part}.{label[-1]}" for part in parts}
         leakage[label].append(sum(item.weight for item in vertex.groups
                                   if mesh.vertex_groups[item.group].name not in allowed))
     if not all(regions.values()):
-        raise AssertionError("Source fixture has no confidently weighted arm vertices")
+        raise AssertionError("Source fixture has no confidently weighted limb vertices")
     return regions, {label: {"vertex_count": len(values), "mean_unrelated_weight": sum(values) / len(values),
                             "max_unrelated_weight": max(values)} for label, values in leakage.items()}
 
@@ -289,7 +309,7 @@ def main() -> None:
         bone.name: tuple(source_armature.matrix_world @ bone.head_local)
         for bone in source_armature.data.bones
     }
-    source_regions = _source_arm_regions(source_mesh, source_armature, correspondence)
+    source_regions = _source_limb_regions(source_mesh, source_armature, correspondence)
     context, unrigged, reference_heads, reference_regions, unrigged_manifest = _prepare_unrigged_input(
         source_mesh, reference_heads, source_regions, output, pipeline
     )
@@ -314,13 +334,15 @@ def main() -> None:
     }
     landmarks = landmark_summary(reference_heads, candidate_heads, height,
                                  correspondence=correspondence)
+    leg_landmarks = landmark_group_summary(landmarks, LEG_JOINTS)
     weights = skin_weight_summary(_skin_rows(unrigged, rig.armature_object))
-    regions, leakage = _arm_region_quality(unrigged, reference_regions)
+    regions, leakage = _limb_region_quality(unrigged, reference_regions)
     pose = _pose_response(unrigged, rig.armature_object, regions)
+    leg_pose = _pose_response(unrigged, rig.armature_object, regions, posed_bone="thigh.L", rotation_axis=0)
     context.set_output(pipeline.PipelineStage.RIG, rig)
     roundtrip = _roundtrip(unrigged, rig.armature_object, output / "canonical_rig.glb", context, reference_regions)
     report = {
-        "schema_version": 2,
+        "schema_version": 3,
         "reference_asset": args.asset,
         "input": {"path": str(unrigged_manifest.path), "sha256": unrigged_manifest.sha256,
                   "skin_count": unrigged_manifest.skin_count,
@@ -338,11 +360,21 @@ def main() -> None:
             "min_left_pose_displacement": 0.005,
             "max_right_pose_displacement": 0.001,
             "max_mean_arm_unrelated_weight": args.max_arm_unrelated_weight,
+            "max_mean_leg_landmark_error_in_heights": args.max_mean_leg_joint_error,
+            "max_leg_landmark_error_in_heights": args.max_leg_joint_error,
+            "max_mean_leg_unrelated_weight": args.max_leg_unrelated_weight,
+            "require_observed_leg_cues": args.require_observed_leg_cues,
+            "check_leg_deformation": args.check_leg_deformation,
+            "min_left_leg_displacement": .005,
+            "max_right_leg_displacement": .001,
         },
         "landmarks": landmarks,
+        "lower_body_landmarks": leg_landmarks,
         "skin_weights": weights,
-        "arm_region_leakage": leakage,
+        "arm_region_leakage": {label: value for label,value in leakage.items() if label.startswith("arm")},
+        "leg_region_leakage": {label: value for label,value in leakage.items() if label.startswith("leg")},
         "pose_response": pose,
+        "leg_pose_response": leg_pose,
         "glb_roundtrip": roundtrip,
     }
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
@@ -362,10 +394,20 @@ def main() -> None:
     imported_pose = roundtrip["pose_response"]
     if imported_pose["left_mean_displacement"] <= report["acceptance"]["min_left_pose_displacement"] or imported_pose["right_mean_displacement"] > report["acceptance"]["max_right_pose_displacement"]:
         raise AssertionError("Canonical rig reimport lost localized pose deformation")
-    for observations in (leakage, roundtrip["arm_region_leakage"]):
-        if any(region["mean_unrelated_weight"] > args.max_arm_unrelated_weight
-               for region in observations.values()):
-            raise AssertionError("Canonical rig arm weights leaked into unrelated regions")
+    for category, limit in (("arm",args.max_arm_unrelated_weight),("leg",args.max_leg_unrelated_weight)):
+        for observations in (report[f"{category}_region_leakage"], roundtrip[f"{category}_region_leakage"]):
+            if any(region["mean_unrelated_weight"] > limit for region in observations.values()):
+                raise AssertionError(f"Canonical rig {category} weights leaked into unrelated regions")
+    if args.check_leg_deformation:
+        for response in (leg_pose,roundtrip["leg_pose_response"]):
+            if response["left_mean_displacement"] <= .005 or response["right_mean_displacement"] > .001:
+                raise AssertionError("Canonical rig lost localized leg deformation")
+    if leg_landmarks["mean_error_in_heights"] > args.max_mean_leg_joint_error or leg_landmarks["max_error_in_heights"] > args.max_leg_joint_error:
+        raise AssertionError("Canonical rig leg placement diverged from reference joints")
+    if args.require_observed_leg_cues:
+        evidence = (report["fit"] or {}).get("lower_body",{}).get("legs",{})
+        if any(evidence.get(side,{}).get("hip_method") != "observed-knee-ankle-length-prior" for side in ("L","R")):
+            raise AssertionError("Canonical rig did not observe bilateral knee/ankle cues")
     if landmarks["mean_error_in_heights"] > report["acceptance"]["max_mean_landmark_error_in_heights"] or landmarks["max_error_in_heights"] > report["acceptance"]["max_landmark_error_in_heights"]:
         raise AssertionError("Canonical rig bone placement diverged from reference joints")
 
