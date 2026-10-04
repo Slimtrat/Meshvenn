@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,14 @@ from .source import cleanup_imported_data, import_external_motion, snapshot_blen
 
 IMPLEMENTATION_ID = "canonical-motion-retarget-v1"
 SOURCE_PATH_METADATA_KEY = "motion_source_path"
+PELVIS_HEIGHT_METADATA_KEY = "motion_preserve_pelvis_height"
+
+
+def _mesh_height(meshes):
+    heights = [float((mesh.matrix_world @ vertex.co).z) for mesh in meshes for vertex in mesh.data.vertices]
+    if not heights or not all(math.isfinite(value) for value in heights) or max(heights) <= min(heights):
+        raise ValueError("Pelvis height transfer requires finite, nonzero rest-mesh height")
+    return max(heights) - min(heights)
 
 
 @dataclass(frozen=True)
@@ -78,6 +87,8 @@ def _restore_blender_state(scene: Any, state: _BlenderState) -> None:
 
 
 def _require_target(context: PipelineContext) -> tuple[RigOutput, Any, Path]:
+    if type(context.metadata.get(PELVIS_HEIGHT_METADATA_KEY, False)) is not bool:
+        raise ValueError("motion_preserve_pelvis_height must be a boolean")
     rig = context.require_output(PipelineStage.RIG)
     if not isinstance(rig, RigOutput):
         raise TypeError("Canonical motion requires a RigOutput from the RIG stage")
@@ -121,6 +132,7 @@ class CanonicalMotionRetargetImplementation:
             "rest-space-retarget",
             "baked-quaternion-action",
             "in-place-root",
+            "optional-scaled-pelvis-height",
         ),
     )
 
@@ -138,6 +150,7 @@ class CanonicalMotionRetargetImplementation:
             "target_armature": armature.name,
             "source_path": str(source_path),
             "root_motion_mode": ROOT_MOTION_MODE,
+            "preserve_pelvis_height": context.metadata.get(PELVIS_HEIGHT_METADATA_KEY, False),
         })
 
     def draw_settings(self, layout, context) -> None:
@@ -150,6 +163,7 @@ class CanonicalMotionRetargetImplementation:
             warning.label(text="Meshvenn settings unavailable", icon="ERROR")
             return
         box.prop(settings, "motion_source_path", text="Source GLB")
+        box.prop(settings, "motion_preserve_pelvis_height")
         if not settings.motion_source_path.strip():
             warning = box.row()
             warning.alert = True
@@ -189,6 +203,11 @@ class CanonicalMotionRetargetImplementation:
                 rig.semantic_bones,
                 target_armature.data.bones.keys(),
             )
+            pelvis_scale = None
+            if context.metadata.get(PELVIS_HEIGHT_METADATA_KEY, False):
+                source_meshes = [obj for obj in imported.imported_objects if obj.type == "MESH" and any(
+                    modifier.type == "ARMATURE" and modifier.object is imported.armature for modifier in obj.modifiers)]
+                pelvis_scale = _mesh_height((rig.blender_object,)) / _mesh_height(source_meshes)
             root_bone = rig.semantic_bones["root"]
             target_snapshot = snapshot_target_animation(
                 target_armature,
@@ -205,6 +224,7 @@ class CanonicalMotionRetargetImplementation:
                     root_bone=root_bone,
                     fps=fps,
                     action_name=f"Meshvenn_{source_action.name}",
+                    pelvis_height_scale=pelvis_scale,
                 )
                 generated_actions.append(result.action)
                 baked.append(result)
@@ -233,6 +253,8 @@ class CanonicalMotionRetargetImplementation:
                 "baked_pose_samples": total_samples,
                 "pose_samples": total_samples,
                 "root_motion_mode": ROOT_MOTION_MODE,
+                "preserve_pelvis_height": pelvis_scale is not None,
+                "pelvis_height_scale": pelvis_scale,
             }
             output = MotionOutput(
                 rig=rig,

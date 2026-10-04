@@ -144,6 +144,7 @@ def _new_pipeline_context(
                     if settings.motion_source_path.strip()
                     else ""
                 ),
+                "motion_preserve_pelvis_height": bool(settings.motion_preserve_pelvis_height),
                 "export_output_path": (
                     bpy.path.abspath(settings.export_output_path)
                     if settings.export_output_path.strip()
