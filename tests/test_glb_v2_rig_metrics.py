@@ -20,6 +20,14 @@ class GLBV2RigMetricTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             landmark_summary({}, {}, 2.0)
 
+    def test_explicit_profile_correspondence_does_not_guess_or_skip_roles(self) -> None:
+        result = landmark_summary({"LeftArm": (0,0,0)}, {"upper_arm.L": (0,0,.1)}, 2,
+                                  correspondence={"upper_arm.L": "LeftArm"})
+        self.assertEqual(result["landmark_count"], 1)
+        self.assertAlmostEqual(result["mean_error_in_heights"], .05)
+        with self.assertRaises(ValueError):
+            landmark_summary({}, {}, 2, correspondence={})
+
     def test_skin_coverage_and_normalization_are_independent(self) -> None:
         report = skin_weight_summary([[0.5, 0.5], [1.0], []])
         self.assertEqual(report["weighted_fraction"], 2 / 3)

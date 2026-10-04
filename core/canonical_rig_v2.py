@@ -22,10 +22,13 @@ Point3 = tuple[float, float, float]
 @dataclass(frozen=True)
 class CanonicalFitV2Report:
     vertex_count: int
+    unique_position_count: int
     left_arm_samples: int
     right_arm_samples: int
     left_arm_extent_in_heights: float
     right_arm_extent_in_heights: float
+    left_arm_thickness_in_heights: float
+    right_arm_thickness_in_heights: float
     arm_envelope_height: float
     arm_pose: str
     left_leg_center_in_heights: float
@@ -35,12 +38,17 @@ class CanonicalFitV2Report:
     def as_dict(self) -> dict[str, object]:
         return {
             "schema_version": 1,
-            "algorithm": "height-relative-envelope-v2",
+            "algorithm": "height-relative-local-envelope-v2",
             "vertex_count": self.vertex_count,
+            "unique_position_count": self.unique_position_count,
             "left_arm_samples": self.left_arm_samples,
             "right_arm_samples": self.right_arm_samples,
             "left_arm_extent_in_heights": self.left_arm_extent_in_heights,
             "right_arm_extent_in_heights": self.right_arm_extent_in_heights,
+            "left_arm_thickness_in_heights": self.left_arm_thickness_in_heights,
+            "right_arm_thickness_in_heights": self.right_arm_thickness_in_heights,
+            "depth_policy": "trimmed-local-surface-envelope",
+            "body_height_policy": "canonical-axial-and-hip-priors; not inferred anatomy",
             "arm_envelope_height": self.arm_envelope_height,
             "arm_pose": self.arm_pose,
             "left_leg_center_in_heights": self.left_leg_center_in_heights,
@@ -72,6 +80,40 @@ def _median_or(values: Sequence[float], fallback: float) -> float:
     return float(statistics.median(values)) if values else fallback
 
 
+def _envelope_center(values: Sequence[float], fallback: float) -> float:
+    # Surface vertex density is not volume density: the median can sit on the
+    # front/back skin. Trim isolated extrema and center the observed envelope.
+    if len(values) < 4:
+        return fallback
+    return (_percentile(values, 0.05) + _percentile(values, 0.95)) * 0.5
+
+
+def _arm_height_line(samples: Sequence[Point3], center: float, floor: float,
+                     height: float, side: int, extent: float, fallback: float):
+    centers = []
+    thickness = []
+    lower = 0.22
+    for index in range(5):
+        low = lower + (extent - lower) * index / 5
+        high = lower + (extent - lower) * (index + 1) / 5
+        band = [(side * (x - center) / height, (z - floor) / height)
+                for x, _, z in samples if low <= side * (x - center) / height < high]
+        if len(band) >= 4:
+            thickness.append(_percentile([z for _, z in band], 0.95)
+                             - _percentile([z for _, z in band], 0.05))
+            centers.append((statistics.median([x for x, _ in band]),
+                            _envelope_center([z for _, z in band], fallback)))
+    if len(centers) < 2:
+        return (lambda _: fallback), max(thickness, default=0.0)
+    origin_x = statistics.mean(x for x, _ in centers)
+    origin_z = statistics.mean(z for _, z in centers)
+    denominator = sum((x - origin_x) ** 2 for x, _ in centers)
+    slope = (sum((x - origin_x) * (z - origin_z) for x, z in centers) / denominator
+             if denominator > 1.0e-12 else 0.0)
+    slope = max(-1.0, min(0.25, slope))
+    return (lambda x: max(0.40, min(0.86, origin_z + slope * (x - origin_x)))), max(thickness, default=0.0)
+
+
 def _side_leg_center(
     points: Sequence[Point3], bounds: MeshBounds, side: int, z_low: float, z_high: float
 ) -> float:
@@ -90,17 +132,27 @@ def fit_canonical_biped_v2(
     vertices: Iterable[Sequence[float]],
 ) -> tuple[tuple[BoneSpec, ...], CanonicalFitV2Report]:
     """Fit the stable 18-bone hierarchy from deterministic mesh envelopes."""
-    points = _finite_points(vertices)
+    raw_points = _finite_points(vertices)
+    # UV/material seams can duplicate positions when glTF is exported. They
+    # must not change the fitted anatomy or inflate observation confidence.
+    points = tuple(sorted(set(raw_points)))
     bounds = bounds_from_vertices(points)
     height = bounds.height
     floor = bounds.minimum[2]
     center_x = bounds.center_x
-    torso_y = _median_or([
+    torso_y = _envelope_center([
         point[1]
         for point in points
         if 0.35 <= (point[2] - floor) / height <= 0.80
         and abs(point[0] - center_x) <= 0.12 * height
     ], bounds.center_y)
+
+    def depth_at(x_fraction: float, z_fraction: float, fallback: float = torso_y) -> float:
+        return _envelope_center([
+            y for x, y, z in points
+            if abs((x - center_x) / height - x_fraction) <= 0.045
+            and abs((z - floor) / height - z_fraction) <= 0.055
+        ], fallback)
 
     side_extents: dict[int, float] = {}
     side_samples: dict[int, list[Point3]] = {}
@@ -120,18 +172,18 @@ def fit_canonical_biped_v2(
         for samples in side_samples.values() for point in samples
     ]
     arm_envelope_height = _median_or(arm_z_samples, 0.59)
-    wrist_z = max(0.54, min(0.76, arm_envelope_height + 0.02))
     shoulder_z = 0.741
-    elbow_z = shoulder_z + 0.52 * (wrist_z - shoulder_z)
-    arm_pose = "t-pose" if wrist_z >= 0.70 else "a-pose"
+    arm_pose = "t-pose" if arm_envelope_height >= 0.68 else "a-pose"
 
     leg_centers = {
         side: _side_leg_center(points, bounds, side, 0.08, 0.44)
         for side in (1, -1)
     }
 
-    def point(x_heights: float, z_fraction: float, y: float = torso_y) -> Point3:
-        return (center_x + x_heights * height, y, floor + z_fraction * height)
+    def point(x_heights: float, z_fraction: float, y: float | None = None) -> Point3:
+        return (center_x + x_heights * height,
+                depth_at(x_heights, z_fraction) if y is None else y,
+                floor + z_fraction * height)
 
     root = point(0.0, 0.02)
     pelvis = point(0.0, 0.473)
@@ -147,22 +199,33 @@ def fit_canonical_biped_v2(
         BoneSpec("neck", "chest", neck, head_base),
         BoneSpec("head", "neck", head_base, point(0.0, 0.97)),
     ]
+    arm_thickness = {}
     for side_name, side in (("L", 1), ("R", -1)):
         extent = side_extents[side]
-        shoulder_x = side * min(0.065, 0.15 * extent)
-        elbow_x = side * min(0.225, 0.52 * extent)
-        wrist_x = side * min(0.325, 0.76 * extent)
-        finger_x = side * min(0.40, 0.94 * extent)
+        arm_line, arm_thickness[side] = _arm_height_line(
+            side_samples[side], center_x, floor, height, side, extent, arm_envelope_height
+        )
+        # Long T-pose arms must not be capped at proportions of the first A-pose
+        # fixture. The measured span and local trajectory define each chain.
+        side_pose = "t-pose" if arm_line(0.78 * extent) >= 0.70 else "a-pose"
+        shoulder_x = side * (0.20 if side_pose == "t-pose" else 0.15) * extent
+        elbow_x = side * 0.52 * extent
+        wrist_x = side * 0.78 * extent
+        finger_x = side * 0.94 * extent
         hip_x = side * min(0.075, leg_centers[side] * 0.92)
         knee_x = side * min(0.080, leg_centers[side])
         ankle_x = side * min(0.080, leg_centers[side] * 1.02)
-        shoulder = point(shoulder_x, shoulder_z)
-        elbow = point(elbow_x, elbow_z)
-        wrist = point(wrist_x, wrist_z)
-        finger = point(finger_x, max(0.45, wrist_z - 0.045))
+        side_shoulder_z = arm_line(abs(shoulder_x)) if side_pose == "t-pose" else shoulder_z
+        side_wrist_z = arm_line(abs(wrist_x))
+        side_elbow_z = (arm_line(abs(elbow_x)) if side_pose == "t-pose" else
+                        side_shoulder_z + (0.52 - 0.15) / (0.78 - 0.15) * (side_wrist_z - side_shoulder_z))
+        shoulder = point(shoulder_x, side_shoulder_z)
+        elbow = point(elbow_x, side_elbow_z)
+        wrist = point(wrist_x, arm_line(abs(wrist_x)))
+        finger = point(finger_x, arm_line(abs(finger_x)))
         hip = point(hip_x, 0.424)
         knee = point(knee_x, 0.244)
-        ankle = point(ankle_x, 0.059)
+        ankle = point(ankle_x, 0.059, depth_at(ankle_x, 0.13))
         toe = point(ankle_x, 0.015, bounds.minimum[1])
         specs.extend((
             BoneSpec(f"upper_arm.{side_name}", "chest", shoulder, elbow),
@@ -177,11 +240,14 @@ def fit_canonical_biped_v2(
     balance = min(side_extents.values()) / max(side_extents.values())
     confidence = max(0.0, min(1.0, sample_confidence * balance))
     report = CanonicalFitV2Report(
-        vertex_count=len(points),
+        vertex_count=len(raw_points),
+        unique_position_count=len(points),
         left_arm_samples=len(side_samples[1]),
         right_arm_samples=len(side_samples[-1]),
         left_arm_extent_in_heights=side_extents[1],
         right_arm_extent_in_heights=side_extents[-1],
+        left_arm_thickness_in_heights=arm_thickness[1],
+        right_arm_thickness_in_heights=arm_thickness[-1],
         arm_envelope_height=arm_envelope_height,
         arm_pose=arm_pose,
         left_leg_center_in_heights=leg_centers[1],
