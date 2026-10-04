@@ -6,10 +6,14 @@ from dataclasses import replace
 from unittest.mock import patch
 
 from core.canonical_rig import MeshBounds, fit_canonical_biped
-from core.rig_skinning import regional_fallback_weights
+from core.rig_skinning import regional_fallback_weights, _leg_root_gate, _redistribute_root_scores
 from core.canonical_rig import bounds_from_vertices
 from core.canonical_rig_v2 import fit_canonical_biped_v2
 from tests.test_canonical_rig_v2 import biped_points
+
+
+def _redistribute_as_dict(scores,point,bones,height):
+    return {name:score for score,name in _redistribute_root_scores(scores,point,bones,height)}
 
 
 class RegionalFallbackSkinningTests(unittest.TestCase):
@@ -230,6 +234,59 @@ class RegionalFallbackSkinningTests(unittest.TestCase):
     def test_legacy_solver_does_not_consult_the_hinge_prior(self):
         with patch("core.rig_skinning._hinge_neighbourhood",side_effect=AssertionError("V1 touched V2 prior")):
             self.assertEqual(self.weights((.45,0,1.2)),self.weights((.45,0,1.2)))
+
+    def test_leg_root_transfer_preserves_chain_mass_and_unrelated_scores(self):
+        bones = {b.name:b for b in self.bones}
+        scores = [(2,"shin.L"),(3,"foot.L"),(4,"thigh.L"),(5,"pelvis"),
+                  (6,"forearm.L"),(7,"hand.R"),(8,"shin.R")]
+        before = {name:score for score,name in scores}
+        after = {name:score for score,name in _redistribute_root_scores(
+            scores,bones["thigh.L"].head,bones,self.bounds.height)}
+        self.assertEqual(after["thigh.L"],9)
+        self.assertNotIn("shin.L",after)
+        self.assertNotIn("foot.L",after)
+        self.assertAlmostEqual(sum(after.values()),sum(before.values()))
+        for side in ("L","R"):
+            names = {f"{part}.{side}" for part in ("thigh","shin","foot")}
+            self.assertAlmostEqual(sum(before.get(n,0) for n in names),sum(after.get(n,0) for n in names))
+        for name in ("pelvis","forearm.L","hand.R"):
+            self.assertEqual(after[name],before[name])
+        self.assertEqual(after,_redistribute_as_dict(scores[::-1],bones["thigh.L"].head,bones,self.bounds.height))
+
+    def test_leg_root_transfer_creates_a_root_only_when_mass_is_transferred(self):
+        bones = {b.name:b for b in self.bones}
+        point = bones["thigh.L"].head
+        self.assertEqual(_redistribute_as_dict([(2,"shin.L")],point,bones,self.bounds.height),{"thigh.L":2})
+        distal = bones["shin.L"].head
+        self.assertEqual(_redistribute_as_dict([(2,"shin.L")],distal,bones,self.bounds.height),{"shin.L":2})
+
+    def test_leg_root_gate_preserves_short_limb_hinges_and_is_scale_invariant(self):
+        for length in (.01,.1,.5):
+            bones = {b.name:b for b in self.bones}
+            root = bones["thigh.L"]
+            bones["thigh.L"] = replace(root,tail=(root.head[0],root.head[1],root.head[2]-length))
+            self.assertEqual(_leg_root_gate("shin.L",root.head,bones,self.bounds.height),0)
+            self.assertEqual(_leg_root_gate("shin.L",bones["thigh.L"].tail,bones,self.bounds.height),1)
+            point = (root.head[0],root.head[1],root.head[2]-.35*length)
+            baseline = _leg_root_gate("shin.L",point,bones,self.bounds.height)
+            move = lambda p: tuple(1000*v+o for v,o in zip(p,(3,-4,7)))
+            scaled = {name:replace(b,head=move(b.head),tail=move(b.tail)) for name,b in bones.items()}
+            self.assertAlmostEqual(baseline,_leg_root_gate("shin.L",move(point),scaled,1000*self.bounds.height))
+
+    def test_fitted_hip_vertices_do_not_receive_shin_or_foot_weights(self):
+        points = biped_points(wrist_z=.74)
+        bones,_ = fit_canonical_biped_v2(points)
+        bounds = bounds_from_vertices(points)
+        for side in ("L","R"):
+            hip = next(b.head for b in bones if b.name == f"thigh.{side}")
+            weights = regional_fallback_weights(hip,bones,bounds,bone_guided=True)
+            self.assertNotIn(f"shin.{side}",weights)
+            self.assertNotIn(f"foot.{side}",weights)
+            self.assertIn(f"thigh.{side}",weights)
+
+    def test_legacy_solver_never_uses_leg_root_transfer(self):
+        with patch("core.rig_skinning._redistribute_root_scores",side_effect=AssertionError("V1 touched V2 transfer")):
+            self.weights((.255,0,.98))
 
     def test_overlapping_hinges_never_choose_an_excluded_region_or_drop_all_weights(self):
         points = biped_points(wrist_z=.74)
