@@ -27,6 +27,8 @@ class GLBManifest:
     mesh_count: int
     skin_count: int
     material_count: int
+    skin_joint_names: tuple[str, ...] = ()
+    morph_target_count: int = 0
 
 
 def _named_entries(
@@ -54,6 +56,32 @@ def _array_count(document: dict[str, Any], key: str) -> int:
     if not isinstance(value, list):
         raise ValueError(f'GLB JSON member "{key}" must be an array.')
     return len(value)
+
+
+def _skin_joint_names(document: dict[str, Any]) -> tuple[str, ...]:
+    names = _named_entries(document, "nodes")
+    joints: set[int] = set()
+    for skin in document.get("skins", []):
+        if not isinstance(skin, dict) or not isinstance(skin.get("joints", []), list):
+            raise ValueError("GLB skin joints must be an array.")
+        for index in skin.get("joints", []):
+            if isinstance(index, bool) or not isinstance(index, int) or not 0 <= index < len(names):
+                raise ValueError("GLB skin joint references an invalid node.")
+            joints.add(index)
+    return tuple(names[index] for index in sorted(joints))
+
+
+def _morph_target_count(document: dict[str, Any]) -> int:
+    count = 0
+    for mesh in document.get("meshes", []):
+        if not isinstance(mesh, dict):
+            raise ValueError("GLB mesh must be an object.")
+        for primitive in mesh.get("primitives", []):
+            targets = primitive.get("targets", [])
+            if not isinstance(targets, list):
+                raise ValueError("GLB morph targets must be an array.")
+            count += len(targets)
+    return count
 
 
 def inspect_glb(
@@ -118,6 +146,8 @@ def inspect_glb(
         mesh_count=_array_count(document, "meshes"),
         skin_count=_array_count(document, "skins"),
         material_count=_array_count(document, "materials"),
+        skin_joint_names=_skin_joint_names(document),
+        morph_target_count=_morph_target_count(document),
     )
 
 

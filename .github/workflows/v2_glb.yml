@@ -46,7 +46,7 @@ jobs:
           python-version: "3.11"
 
       - name: Verify pinned V2 assets and metric semantics
-        run: python -m unittest tests.test_v2_assets tests.test_glb_v2_metrics tests.test_glb_v2_rig_metrics tests.test_glb_v2_character_support tests.test_canonical_rig_v2 tests.test_motion_contracts tests.test_canonical_motion_mapping tests.test_rig_compatibility tests.test_export_contracts tests.test_glb_export_manifest tests.test_glb_input_contracts tests.test_glb_pipeline_score -v
+        run: python -m unittest tests.test_v2_assets tests.test_glb_v2_metrics tests.test_glb_v2_rig_metrics tests.test_glb_v2_character_support tests.test_canonical_rig_v2 tests.test_motion_contracts tests.test_canonical_motion_mapping tests.test_rig_compatibility tests.test_export_contracts tests.test_export_paths tests.test_glb_export_manifest tests.test_glb_input_contracts tests.test_glb_pipeline_score tests.test_glb_auto_route_decision -v
 
       - name: Build native reconstruction engine
         shell: bash
@@ -181,7 +181,7 @@ jobs:
             --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
             --package-root "${GITHUB_WORKSPACE}" \
             --input example/v2/assets/RiggedFigure.glb \
-            --expected-route canonicalize --expected-profile rigged-figure-v1 \
+            --expected-route preserve-source --expected-profile rigged-figure-v1 \
             --expected-animations 1 \
             --output "${RUNNER_TEMP}/v2-benchmark/auto_rigged_figure"
 
@@ -189,7 +189,7 @@ jobs:
             --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
             --package-root "${GITHUB_WORKSPACE}" \
             --input example/v2/assets/RobotExpressive.glb \
-            --expected-route canonicalize \
+            --expected-route preserve-source \
             --expected-profile threejs-robot-expressive-v1 \
             --expected-animations 14 \
             --output "${RUNNER_TEMP}/v2-benchmark/auto_robot"

@@ -134,6 +134,7 @@ class GLBPreservedGeometryImplementation:
                 source_profile_certification=preserved.source_profile_certification,
                 source_rig_archetype=preserved.source_rig_archetype,
                 semantic_bones=preserved.semantic_bones,
+                auxiliary_objects=preserved.auxiliary_objects,
             )
             for mesh in preserved.mesh_objects:
                 mesh["meshvenn_geometry_implementation"] = IMPLEMENTATION_ID

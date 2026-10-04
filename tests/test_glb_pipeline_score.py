@@ -115,6 +115,47 @@ class GLBPipelineScoreTests(unittest.TestCase):
         self.assertAlmostEqual(score.score, 100.0)
         self.assertAlmostEqual(score.coverage, 0.9)
         self.assertFalse(score.components[-1].available)
+        self.assertIsNone(score.export_fidelity_score)
+        self.assertEqual(score.as_dict()["score_kind"], "pipeline-completeness")
+
+    def test_export_fidelity_is_separate_and_bound_to_the_artifact_hash(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "character.glb"
+            path.write_bytes(b"artifact")
+            context = _complete_context(path)
+            digest = context.require_output(PipelineStage.EXPORT).sha256
+            context.metadata["glb_export_roundtrip"] = {
+                "passed": True, "sample_count": 5, "sha256": digest,
+            }
+            self.assertEqual(score_glb_first_pipeline(context).export_fidelity_score, 100.0)
+            context.metadata["glb_export_roundtrip"]["passed"] = False
+            self.assertEqual(score_glb_first_pipeline(context).export_fidelity_score, 0.0)
+            context.metadata["glb_export_roundtrip"]["sha256"] = "0" * 64
+            self.assertIsNone(score_glb_first_pipeline(context).export_fidelity_score)
+
+    def test_static_route_does_not_penalize_inapplicable_rig_and_motion(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "static.glb"
+            path.write_bytes(b"artifact")
+            context = _complete_context(path)
+            geometry = context.require_output(PipelineStage.GEOMETRY)
+            context.outputs.pop(PipelineStage.RIG)
+            context.outputs.pop(PipelineStage.MOTION)
+            context.set_output(PipelineStage.EXPORT, ExportOutput(
+                geometry=geometry, implementation_id="glb-export-v1", path=path,
+                format="GLB", size_bytes=8, sha256=hashlib.sha256(b"artifact").hexdigest(),
+                object_names=("Mesh",),
+            ))
+            context.metadata["glb_character_route"] = "geometry-only"
+            score = score_glb_first_pipeline(context)
+            self.assertAlmostEqual(score.score, 100.0)
+            components = {component.name: component for component in score.components}
+            self.assertFalse(components["rig"].applicable)
+            self.assertFalse(components["motion"].applicable)
+            context.metadata["glb_route_losses"] = ("source rig and skin",)
+            degraded = score_glb_first_pipeline(context)
+            self.assertTrue(degraded.degraded)
+            self.assertEqual(degraded.losses, ("source rig and skin",))
 
     def test_blank_image_penalizes_but_does_not_erase_pipeline_score(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

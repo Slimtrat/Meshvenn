@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Any, Iterable
 
-from .rig_compatibility import CANONICAL_BIPED_TARGET, SOURCE_RIG_PRESERVATION_TARGET
+from .rig_compatibility import SOURCE_RIG_PRESERVATION_TARGET
 
 
 PRESERVE_SOURCE_ROUTE = "preserve-source"
@@ -25,20 +25,23 @@ class GLBRouteDecision:
     source_profile: str | None
     source_archetype: str
     source_certification: str | None
+    losses: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.route not in GLB_CHARACTER_ROUTES:
             raise ValueError(f"Unknown GLB character route: {self.route}")
         if not self.reason.strip():
             raise ValueError("GLB route decisions require an explicit reason.")
+        object.__setattr__(self, "losses", tuple(self.losses))
 
-    def as_dict(self) -> dict[str, str | None]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "route": self.route,
             "reason": self.reason,
             "source_profile": self.source_profile,
             "source_archetype": self.source_archetype,
             "source_certification": self.source_certification,
+            "losses": self.losses,
         }
 
 
@@ -49,16 +52,25 @@ def decide_glb_character_route(
     source_archetype: str = "unknown",
     source_certification: str | None = None,
     compatible_targets: Iterable[str] = (),
+    source_animation_count: int = 0,
+    source_morph_target_count: int = 0,
 ) -> GLBRouteDecision:
     """Choose fidelity, standardization, or safe geometry-only export."""
-    if source_skin_count < 0:
-        raise ValueError("GLB skin count cannot be negative.")
+    for value, label in ((source_skin_count, "skin"), (source_animation_count, "animation"),
+                         (source_morph_target_count, "morph target")):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError(f"GLB {label} count must be a non-negative integer.")
     profile = str(source_profile).strip() if source_profile else None
     archetype = str(source_archetype).strip() or "unknown"
     certification = (
         str(source_certification).strip() if source_certification else None
     )
     targets = frozenset(str(target).strip() for target in compatible_targets)
+    losses = tuple(label for count, label in (
+        (source_skin_count, "source rig and skin"),
+        (source_animation_count, "source animation clips"),
+        (source_morph_target_count, "morph targets"),
+    ) if count)
 
     if source_skin_count == 0:
         return GLBRouteDecision(
@@ -67,29 +79,23 @@ def decide_glb_character_route(
             profile,
             archetype,
             certification,
+            losses,
         )
-    if archetype == "humanoid" and CANONICAL_BIPED_TARGET in targets:
-        return GLBRouteDecision(
-            CANONICALIZE_ROUTE,
-            "A supported humanoid is standardized on Canonical Biped V1.",
-            profile,
-            archetype,
-            certification,
-        )
-    if SOURCE_RIG_PRESERVATION_TARGET in targets:
+    if profile and certification == "e2e" and SOURCE_RIG_PRESERVATION_TARGET in targets:
         return GLBRouteDecision(
             PRESERVE_SOURCE_ROUTE,
-            "The source rig has a certified preservation adapter for its archetype.",
+            "The source rig has an E2E-tested preservation adapter; canonicalization is opt-in.",
             profile,
             archetype,
             certification,
         )
     return GLBRouteDecision(
         GEOMETRY_ONLY_ROUTE,
-        "No semantically safe automatic rig target is registered for this GLB.",
+        "No E2E-tested preservation adapter is registered; geometry-only export is degraded.",
         profile,
         archetype,
         certification,
+        losses,
     )
 
 

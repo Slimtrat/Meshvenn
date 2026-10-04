@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -10,6 +9,8 @@ from typing import Any
 import bpy
 
 from ...core.geometry_contracts import GeometrySurfaceOutput, require_geometry_surface_output
+from ...core.export_paths import resolve_export_path
+from ...core.glb_input_contracts import GLBFileInputOutput
 from ...core.motion_contracts import MotionOutput, validate_motion_output
 from ...core.pipeline_contracts import PipelineContext, PipelineStage
 from ...core.rig_contracts import RigOutput, validate_rig_output
@@ -31,12 +32,15 @@ class GLBExportPlan:
     armature_object: Any | None
     motion: MotionOutput | None
     actions: tuple[Any, ...]
+    source_paths: tuple[Path, ...] = ()
+    validate_roundtrip: bool = False
+    auxiliary_objects: tuple[Any, ...] = ()
 
     @property
     def objects(self) -> tuple[Any, ...]:
         if self.armature_object is None:
-            return self.mesh_objects
-        return (*self.mesh_objects, self.armature_object)
+            return (*self.mesh_objects, *self.auxiliary_objects)
+        return (*self.mesh_objects, self.armature_object, *self.auxiliary_objects)
 
 
 def _require_scene_object(value: Any, *, object_type: str, label: str) -> Any:
@@ -49,44 +53,24 @@ def _require_scene_object(value: Any, *, object_type: str, label: str) -> Any:
     return value
 
 
-def _resolve_path(context: PipelineContext) -> tuple[Path, bool]:
-    value = context.metadata.get(OUTPUT_PATH_METADATA_KEY)
-    try:
-        raw_path = os.fspath(value)
-    except TypeError as exc:
-        raise TypeError(
-            f'Pipeline metadata must define "{OUTPUT_PATH_METADATA_KEY}" as a path.'
-        ) from exc
-    if not str(raw_path).strip():
-        raise ValueError(f'Pipeline metadata must define "{OUTPUT_PATH_METADATA_KEY}".')
-    # Keep the lexical destination instead of resolving it. Resolving here would
-    # dereference a final symlink before the guard below and could turn an
-    # overwrite into a write to the symlink target.
-    path = Path(os.path.abspath(os.fspath(Path(raw_path).expanduser())))
-    if path.suffix.lower() != ".glb":
-        raise ValueError("GLB export output must use the .glb extension.")
-    overwrite = context.metadata.get(OVERWRITE_METADATA_KEY, False)
-    if not isinstance(overwrite, bool):
-        raise TypeError(f'Pipeline metadata "{OVERWRITE_METADATA_KEY}" must be boolean.')
-    if path.is_symlink():
-        raise ValueError("GLB export output cannot be a symbolic link.")
-    if path.exists() and not path.is_file():
-        raise ValueError(f"GLB export output is not a regular file: {path}")
-    if path.exists() and not overwrite:
-        raise FileExistsError(
-            f"GLB export output already exists; enable overwrite to replace it: {path}"
-        )
-    if path.parent.exists() and not path.parent.is_dir():
-        raise ValueError(f"GLB export parent is not a directory: {path.parent}")
+def _source_paths(context: PipelineContext) -> tuple[Path, ...]:
+    values = [context.metadata.get(key) for key in ("glb_input_path", MOTION_SOURCE_PATH_METADATA_KEY)]
+    source = context.get_output(PipelineStage.INPUT)
+    if isinstance(source, GLBFileInputOutput):
+        values.append(source.path)
+    geometry = context.get_output(PipelineStage.GEOMETRY)
+    source = getattr(geometry, "source", None)
+    if isinstance(source, GLBFileInputOutput):
+        values.append(source.path)
+    return tuple(dict.fromkeys(Path(value).expanduser().resolve(strict=False) for value in values if value))
 
-    source_value = context.metadata.get(MOTION_SOURCE_PATH_METADATA_KEY)
-    if source_value:
-        source_path = Path(os.fspath(source_value)).expanduser().resolve(strict=False)
-        resolved_output_path = path.resolve(strict=False)
-        if os.path.normcase(str(source_path)) == os.path.normcase(
-            str(resolved_output_path)
-        ):
-            raise ValueError("GLB export output cannot overwrite its Motion source file.")
+
+def _resolve_path(context: PipelineContext) -> tuple[Path, bool]:
+    overwrite = context.metadata.get(OVERWRITE_METADATA_KEY, False)
+    path = resolve_export_path(
+        context.metadata.get(OUTPUT_PATH_METADATA_KEY), overwrite,
+        sources=_source_paths(context),
+    )
     return path, overwrite
 
 
@@ -148,6 +132,13 @@ def build_export_plan(context: PipelineContext) -> GLBExportPlan:
                 raise ValueError(f'EXPORT motion action "{action.name}" is no longer available.')
 
     path, overwrite_existing = _resolve_path(context)
+    validate_roundtrip = context.metadata.get("export_validate_roundtrip", False)
+    if not isinstance(validate_roundtrip, bool):
+        raise TypeError('Pipeline metadata "export_validate_roundtrip" must be boolean.')
+    auxiliary_objects = tuple(
+        _require_scene_object(obj, object_type="EMPTY", label="EXPORT hierarchy parent")
+        for obj in getattr(geometry, "auxiliary_objects", ())
+    )
     return GLBExportPlan(
         path=path,
         overwrite_existing=overwrite_existing,
@@ -158,6 +149,9 @@ def build_export_plan(context: PipelineContext) -> GLBExportPlan:
         armature_object=armature,
         motion=motion,
         actions=actions,
+        source_paths=_source_paths(context),
+        validate_roundtrip=validate_roundtrip,
+        auxiliary_objects=auxiliary_objects,
     )
 
 

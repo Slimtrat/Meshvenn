@@ -308,7 +308,10 @@ def import_and_normalize_glb(path: str, *, target_extent: float) -> NormalizedGL
         if "FINISHED" not in result:
             raise RuntimeError(f"Blender GLB import failed: {result}")
         imported_objects = tuple(obj for obj in bpy.data.objects if obj not in snapshot.objects)
-        source_meshes = tuple(obj for obj in imported_objects if obj.type == "MESH")
+        custom_shapes = {bone.custom_shape for obj in imported_objects if obj.type == "ARMATURE"
+                         for bone in obj.pose.bones if bone.custom_shape is not None}
+        source_meshes = tuple(obj for obj in imported_objects
+                              if obj.type == "MESH" and obj not in custom_shapes)
         if not source_meshes:
             raise ValueError("Imported GLB contains no Blender mesh object.")
         evidence = _rig_evidence(imported_objects, snapshot)

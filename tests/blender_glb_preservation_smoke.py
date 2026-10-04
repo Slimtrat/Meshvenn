@@ -163,6 +163,7 @@ def main() -> None:
             "glb_normalized_extent": 2.0,
             "export_output_path": str(export_path),
             "export_overwrite_existing": False,
+            "export_validate_roundtrip": True,
         },
     )
     runner = runner_module.PipelineRunner(registry)
@@ -197,7 +198,10 @@ def main() -> None:
         == geometry.metrics["source_polygon_count"],
         "Preservation route changed source topology",
     )
+    frame = bpy.context.scene.frame_current
+    bpy.context.scene.frame_set(0)
     dimensions = _world_dimensions(geometry.blender_objects)
+    bpy.context.scene.frame_set(frame)
     _require(abs(max(dimensions) - 2.0) < 1.0e-4, f"Normalization failed: {dimensions}")
 
     completion_report = runner.run(
@@ -241,12 +245,70 @@ def main() -> None:
         "Preserved export lost source actions",
     )
     score = score_module.score_glb_first_pipeline(context)
+    _require(score.export_fidelity_score == 100.0, "Preserved export fidelity was not verified")
     _require(score.score >= 95.0, f"Preserved route score is too low: {score.score}")
     preserved_profile = geometry.source_profile_id
     preserved_archetype = geometry.source_rig_archetype
     preserved_mesh_count = len(geometry.blender_objects)
     preserved_bone_count = len(rig.armature_object.data.bones)
     preserved_action_count = len(motion.clips)
+
+    root_motion_regression = None
+    if args.expected_profile == "rigged-figure-v1":
+        # Build a source with motion on an ancestor Empty, not only on bones.
+        # It must survive the next preservation/normalization/export cycle.
+        root = geometry.auxiliary_objects[-1]
+        clip = motion.clips[0]
+        animation = root.animation_data_create()
+        animation.action = clip.action
+        slot = clip.action.slots.new("OBJECT", root.name)
+        animation.action_slot = slot
+        start_x = root.location.x
+        root.keyframe_insert(data_path="location", frame=clip.frame_start)
+        root.location.x = start_x + 1.0
+        root.keyframe_insert(data_path="location", frame=clip.frame_end)
+        track = animation.nla_tracks.new()
+        track.name = clip.name
+        strip = track.strips.new(clip.action.name, 1, clip.action)
+        strip.action_slot = slot
+        strip.action_frame_start = clip.frame_start
+        strip.action_frame_end = clip.frame_end
+        track.mute = True
+        root_source = output_root / "animated-parent-source.glb"
+        root_source.unlink(missing_ok=True)
+        context.metadata["export_output_path"] = str(root_source)
+        source_export = glb_export.GLBExportImplementation().execute(context)
+        _require(source_export.success, f"Cannot create parent-motion fixture: {source_export.message}")
+
+        _clear_scene()
+        bpy.context.scene.frame_set(37)
+        root_context = pipeline.PipelineContext(scene=bpy.context.scene, metadata={
+            "glb_input_path": str(root_source), "glb_normalized_extent": 2.0,
+            "export_output_path": str(output_root / "animated-parent-preserved.glb"),
+            "export_overwrite_existing": True, "export_validate_roundtrip": True,
+        })
+        root_report = runner.run(pipeline.PipelinePlan(selections=selections), root_context)
+        _require(root_report.success, "Parent-motion preservation failed: "
+                 + " | ".join(record.result.message for record in root_report.records))
+        _require(bpy.context.scene.frame_current == 37, "Parent-motion pipeline changed the user frame")
+        root_geometry = root_context.require_output(pipeline.PipelineStage.GEOMETRY)
+        root_rig = root_context.require_output(pipeline.PipelineStage.RIG)
+        root_motion = root_context.require_output(pipeline.PipelineStage.MOTION)
+        samples_module = importlib.import_module(f"{package_name}.implementations.glb_export.fidelity_samples")
+        observations = samples_module.observe(
+            root_geometry.blender_objects, root_rig.armature_object,
+            tuple((item.name, item.frame_start, item.frame_end) for item in root_motion.clips),
+            auxiliary_objects=root_geometry.auxiliary_objects,
+        )
+        first = observations["samples"][(root_motion.clips[0].name, 0)]
+        last = observations["samples"][(root_motion.clips[0].name, 4)]
+        displacement = abs(sum(point[0] for point in last) / len(last)
+                           - sum(point[0] for point in first) / len(first))
+        _require(displacement > 0.1, f"Animated parent root motion was lost: {displacement}")
+        root_motion_regression = {
+            "centroid_x_displacement": displacement,
+            "roundtrip": root_context.metadata["glb_export_roundtrip"],
+        }
 
     unsupported = None
     if args.unsupported_input is not None:
@@ -297,7 +359,9 @@ def main() -> None:
             "animation_names": manifest.animation_names,
         },
         "score": score.as_dict(),
+        "roundtrip": context.metadata["glb_export_roundtrip"],
         "unsupported": unsupported,
+        "animated_parent_regression": root_motion_regression,
     }
     (output_root / "glb_preservation_report.json").write_text(
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n",

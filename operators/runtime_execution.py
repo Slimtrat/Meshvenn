@@ -152,6 +152,7 @@ def _new_pipeline_context(
                 "export_overwrite_existing": bool(
                     settings.export_overwrite_existing
                 ),
+                "export_validate_roundtrip": bool(settings.export_validate_roundtrip),
             },
         )
     )
@@ -240,6 +241,10 @@ def _execute_pipeline_plan(
         return {
             "CANCELLED"
         }
+
+    losses = pipeline_context.metadata.get("glb_route_losses", ())
+    if losses:
+        operator.report({"WARNING"}, "Degraded GLB export loses " + ", ".join(losses))
 
     operator.report(
         {"INFO"},

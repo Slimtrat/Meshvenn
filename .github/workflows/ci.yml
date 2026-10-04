@@ -138,6 +138,7 @@ jobs:
             "core/rig_contracts.py"
             "core/motion_contracts.py"
             "core/export_contracts.py"
+            "core/export_paths.py"
             "core/glb_input_contracts.py"
             "core/glb_pipeline_score.py"
             "core/glb_route.py"
@@ -278,6 +279,8 @@ jobs:
             "implementations/glb_export/implementation.py"
             "implementations/glb_export/manifest.py"
             "implementations/glb_export/planning.py"
+            "implementations/glb_export/fidelity.py"
+            "implementations/glb_export/fidelity_samples.py"
             "implementations/glb_input/__init__.py"
             "implementations/glb_input/implementation.py"
             "implementations/glb_geometry/__init__.py"
@@ -427,6 +430,7 @@ jobs:
             "tests/test_rig_quality.py"
             "tests/test_rig_skinning.py"
             "tests/test_export_contracts.py"
+            "tests/test_export_paths.py"
             "tests/test_glb_export_manifest.py"
             "tests/test_glb_input_contracts.py"
             "tests/test_glb_pipeline_score.py"
@@ -1183,6 +1187,7 @@ jobs:
 
             "core/motion_contracts.py"
             "core/export_contracts.py"
+            "core/export_paths.py"
             "core/glb_input_contracts.py"
             "core/glb_pipeline_score.py"
             "core/glb_route.py"
@@ -1339,6 +1344,8 @@ jobs:
             "implementations/glb_export/manifest.py"
             "implementations/glb_export/planning.py"
             "implementations/glb_input/__init__.py"
+            "implementations/glb_export/fidelity.py"
+            "implementations/glb_export/fidelity_samples.py"
             "implementations/glb_input/implementation.py"
             "implementations/glb_geometry/__init__.py"
             "implementations/glb_geometry/implementation.py"
@@ -1694,6 +1701,7 @@ jobs:
             "blender_projection_tool/core/rig_contracts.py"
             "blender_projection_tool/core/motion_contracts.py"
             "blender_projection_tool/core/export_contracts.py"
+            "blender_projection_tool/core/export_paths.py"
             "blender_projection_tool/core/glb_input_contracts.py"
             "blender_projection_tool/core/glb_pipeline_score.py"
             "blender_projection_tool/core/glb_route.py"
@@ -1809,6 +1817,8 @@ jobs:
             "blender_projection_tool/implementations/glb_export/implementation.py"
             "blender_projection_tool/implementations/glb_export/manifest.py"
             "blender_projection_tool/implementations/glb_export/planning.py"
+            "blender_projection_tool/implementations/glb_export/fidelity.py"
+            "blender_projection_tool/implementations/glb_export/fidelity_samples.py"
             "blender_projection_tool/implementations/glb_input/__init__.py"
             "blender_projection_tool/implementations/glb_input/implementation.py"
             "blender_projection_tool/implementations/glb_geometry/__init__.py"
@@ -2182,6 +2192,9 @@ jobs:
             "${PACKAGE_ROOT}/core/export_contracts.py"
 
           test -f \
+            "${PACKAGE_ROOT}/core/export_paths.py"
+
+          test -f \
             "${PACKAGE_ROOT}/implementations/glb_export/__init__.py"
 
           test -f \
@@ -2195,6 +2208,12 @@ jobs:
 
           test -f \
             "${PACKAGE_ROOT}/implementations/glb_export/planning.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/glb_export/fidelity.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/implementations/glb_export/fidelity_samples.py"
 
           test -f \
             "${PACKAGE_ROOT}/core/glb_input_contracts.py"
@@ -2441,7 +2460,7 @@ jobs:
             --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
             --package-root "${PACKAGE_ROOT}" \
             --input example/v2/assets/RiggedFigure.glb \
-            --expected-route canonicalize --expected-profile rigged-figure-v1 \
+            --expected-route preserve-source --expected-profile rigged-figure-v1 \
             --expected-animations 1 \
             --output "${RUNNER_TEMP}/glb-auto-rigged-figure"
 
@@ -2449,7 +2468,7 @@ jobs:
             --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
             --package-root "${PACKAGE_ROOT}" \
             --input example/v2/assets/RobotExpressive.glb \
-            --expected-route canonicalize \
+            --expected-route preserve-source \
             --expected-profile threejs-robot-expressive-v1 \
             --expected-animations 14 \
             --output "${RUNNER_TEMP}/glb-auto-robot"

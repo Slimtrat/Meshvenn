@@ -41,6 +41,8 @@ class GLBExportImplementation:
             "source-skin-preservation",
             "motion-clips",
             "artifact-integrity",
+            "source-file-protection",
+            "export-roundtrip-verification",
         ),
     )
 
@@ -73,6 +75,7 @@ class GLBExportImplementation:
             return
         box.prop(settings, "export_output_path", text="Output GLB")
         box.prop(settings, "export_overwrite_existing", text="Overwrite Existing")
+        box.prop(settings, "export_validate_roundtrip", text="Verify Export by Reimport")
         raw_path = settings.export_output_path.strip()
         if not raw_path:
             warning = box.row()
@@ -86,6 +89,7 @@ class GLBExportImplementation:
         box.label(text="Validated temporary file, then atomic publish")
 
     def execute(self, context: PipelineContext) -> StageExecutionResult:
+        context.metadata["glb_export_roundtrip"] = None
         try:
             plan = build_export_plan(context)
         except Exception as exc:
@@ -96,7 +100,8 @@ class GLBExportImplementation:
             )
 
         try:
-            manifest = export_glb(plan)
+            fidelity_report = {}
+            manifest = export_glb(plan, fidelity_report=fidelity_report)
             object_names = tuple(obj.name for obj in plan.objects)
             metrics = {
                 "size_bytes": manifest.size_bytes,
@@ -119,6 +124,7 @@ class GLBExportImplementation:
                 "motion_implementation": (
                     plan.motion.implementation_id if plan.motion is not None else None
                 ),
+                "roundtrip": fidelity_report or None,
             }
             output = ExportOutput(
                 geometry=plan.geometry,
@@ -137,6 +143,8 @@ class GLBExportImplementation:
             context.metadata["exported_glb_path"] = str(output.path)
             context.metadata["exported_glb_sha256"] = output.sha256
             context.metadata["exported_animation_names"] = output.animation_names
+            # Clear evidence from a preceding run when verification is disabled.
+            context.metadata["glb_export_roundtrip"] = fidelity_report or None
             return StageExecutionResult.succeeded(
                 stage=PipelineStage.EXPORT,
                 implementation_id=IMPLEMENTATION_ID,

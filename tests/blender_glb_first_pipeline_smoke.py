@@ -154,6 +154,7 @@ def main() -> None:
             "motion_source_path": "",
             "export_output_path": str(export_path),
             "export_overwrite_existing": False,
+            "export_validate_roundtrip": True,
         },
     )
     runner = runner_module.PipelineRunner(registry)

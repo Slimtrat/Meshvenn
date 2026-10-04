@@ -32,6 +32,20 @@ def _glb(document: dict) -> bytes:
 
 
 class GLBManifestTests(unittest.TestCase):
+    def test_joint_evidence_excludes_unrelated_node_names(self) -> None:
+        document = {"asset": {"version": "2.0"}, "scenes": [{}], "meshes": [{}],
+                    "nodes": [{"name": "fake-pelvis"}, {"name": "actual-joint"}],
+                    "skins": [{"joints": [1]}]}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.glb"
+            path.write_bytes(_glb(document))
+            self.assertEqual(inspect_glb(path).skin_joint_names, ("actual-joint",))
+            for joint in (-1, 2, True, "1"):
+                document["skins"][0]["joints"] = [joint]
+                path.write_bytes(_glb(document))
+                with self.subTest(joint=joint), self.assertRaisesRegex(ValueError, "invalid node"):
+                    inspect_glb(path)
+
     def test_inspects_valid_glb_manifest_and_hash(self) -> None:
         document = {
             "asset": {"version": "2.0"},

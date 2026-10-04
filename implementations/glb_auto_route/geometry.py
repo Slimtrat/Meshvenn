@@ -31,11 +31,14 @@ IMPLEMENTATION_ID = "glb-auto-geometry-v1"
 def resolve_glb_route(context: PipelineContext) -> GLBRouteDecision:
     source = require_glb_file_input(context)
     try:
-        resolved = resolve_source_profile(source.node_names)
+        # Node labels outside the skin are not skeleton evidence.
+        resolved = resolve_source_profile(source.metadata.get("skin_joint_names", ()))
     except ValueError:
         return decide_glb_character_route(
             source_skin_count=source.skin_count,
             source_profile=None,
+            source_animation_count=len(source.animation_names),
+            source_morph_target_count=source.metadata.get("morph_target_count", 0),
         )
     profile = resolved.profile
     return decide_glb_character_route(
@@ -44,6 +47,8 @@ def resolve_glb_route(context: PipelineContext) -> GLBRouteDecision:
         source_archetype=profile.rig_archetype,
         source_certification=profile.certification,
         compatible_targets=profile.compatible_target_rigs,
+        source_animation_count=len(source.animation_names),
+        source_morph_target_count=source.metadata.get("morph_target_count", 0),
     )
 
 
@@ -53,8 +58,8 @@ class GLBAutoGeometryImplementation:
         stage=PipelineStage.GEOMETRY,
         label="GLB Automatic Character Route V1",
         description=(
-            "Route supported humanoids to Canonical Biped, preserve other certified "
-            "rig archetypes, and keep unknown assets geometry-only."
+            "Preserve E2E-tested source rigs; report data losses for geometry-only "
+            "fallbacks. Canonicalization remains an explicit conversion."
         ),
         version="1",
         experimental=False,
@@ -80,13 +85,19 @@ class GLBAutoGeometryImplementation:
                 raise RuntimeError("No active Blender scene.")
         except Exception as exc:
             return ImplementationAvailability.unavailable(str(exc))
-        return ImplementationAvailability.ready_state(details={
+        details = {
             "path": str(source.path),
             "selected_route": decision.route,
             "route_reason": decision.reason,
             "source_profile": decision.source_profile,
             "source_archetype": decision.source_archetype,
-        })
+            "losses": decision.losses,
+        }
+        if decision.losses:
+            return ImplementationAvailability.degraded(
+                "Geometry-only export loses " + ", ".join(decision.losses), details=details,
+            )
+        return ImplementationAvailability.ready_state(details=details)
 
     def draw_settings(self, layout, context) -> None:
         box = layout.box()
@@ -96,8 +107,8 @@ class GLBAutoGeometryImplementation:
             box.label(text="Meshvenn settings unavailable", icon="ERROR")
             return
         box.prop(settings, "glb_normalized_extent", text="Normalized Size")
-        box.label(text="Humanoid → Canonical; other certified rigs → Preserve")
-        box.label(text="Unknown or static assets → Geometry only")
+        box.label(text="Supported rigs → Preserve; conversion is opt-in")
+        box.label(text="Unknown rigs → Geometry only (rig/clip loss)", icon="ERROR")
 
     def execute(self, context: PipelineContext) -> StageExecutionResult:
         try:

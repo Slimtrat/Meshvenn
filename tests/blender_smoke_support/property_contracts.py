@@ -306,7 +306,7 @@ def _validate_pipeline_defaults(
     )
 
     _require(
-        not settings.export_overwrite_existing,
+        not settings.export_overwrite_existing and settings.export_validate_roundtrip,
         "Export overwrite must default to disabled.",
     )
 
@@ -318,7 +318,8 @@ def _validate_pipeline_defaults(
         default_context.metadata["glb_input_path"] == ""
         and default_context.metadata["glb_normalized_extent"] == 2.0
         and default_context.metadata["export_output_path"] == ""
-        and default_context.metadata["export_overwrite_existing"] is False,
+        and default_context.metadata["export_overwrite_existing"] is False
+        and default_context.metadata["export_validate_roundtrip"] is True,
         "Default Export runtime metadata is incorrect.",
     )
 
@@ -326,6 +327,7 @@ def _validate_pipeline_defaults(
     settings.glb_normalized_extent = 3.5
     settings.export_output_path = "exports/character.glb"
     settings.export_overwrite_existing = True
+    settings.export_validate_roundtrip = False
     configured_context = runtime_module._new_pipeline_context(bpy.context)
     _require(
         configured_context.metadata["glb_input_path"]
@@ -333,13 +335,15 @@ def _validate_pipeline_defaults(
         and configured_context.metadata["glb_normalized_extent"] == 3.5
         and configured_context.metadata["export_output_path"]
         == bpy.path.abspath(settings.export_output_path)
-        and configured_context.metadata["export_overwrite_existing"] is True,
+        and configured_context.metadata["export_overwrite_existing"] is True
+        and configured_context.metadata["export_validate_roundtrip"] is False,
         "Configured Export runtime metadata was not normalized through bpy.path.abspath.",
     )
     settings.glb_input_path = ""
     settings.glb_normalized_extent = 2.0
     settings.export_output_path = ""
     settings.export_overwrite_existing = False
+    settings.export_validate_roundtrip = True
 
     for stage_settings in (
         pipeline.input_stage,
