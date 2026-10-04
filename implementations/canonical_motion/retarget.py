@@ -19,8 +19,8 @@ class TargetAnimationSnapshot:
     had_animation_data: bool
     action: Any
     use_nla: bool
-    action_slot: Any
     bone_states: tuple[tuple[str, str, Any], ...]
+    action_slot: Any = None
 
 
 @dataclass(frozen=True)
