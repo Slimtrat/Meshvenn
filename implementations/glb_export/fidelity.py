@@ -91,7 +91,18 @@ def validate_roundtrip(plan, path, *, sha256, expected):
                 duration_error = max(duration_error, error)
                 if error > 1.0 / fps + 1.0e-5:
                     raise ValueError(f"GLB round-trip changed clip duration: {clip.name!r}.")
-                imported_clips.append((track.name, start, end))
+                # Float32 GLB times can reimport just below an integer frame.
+                # Compare the same original instants, not floor(imported_end)
+                # which shifts probes by a whole frame. Duration is checked above.
+                offset = 0.0
+                if plan.motion.implementation_id == "glb-source-motion-v1":
+                    # NLA exports use the strip clock (e.g. 1..31), while the
+                    # source Action uses 0..30. Align origins, keeping the
+                    # original sample spacing instead of rounding a new end.
+                    offset = start - clip.frame_start
+                    if abs(offset-round(offset)) <= 1e-4:
+                        offset = round(offset)
+                imported_clips.append((track.name, clip.frame_start+offset, clip.frame_end+offset))
                 clip_labels[track.name] = clip.name
         actual = observe(meshes, armature, tuple(imported_clips),
                          auxiliary_objects=tuple(obj for obj in imported if obj.type == "EMPTY"))

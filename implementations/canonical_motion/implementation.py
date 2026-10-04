@@ -35,6 +35,7 @@ SOURCE_PATH_METADATA_KEY = "motion_source_path"
 @dataclass(frozen=True)
 class _BlenderState:
     frame_current: int
+    frame_subframe: float
     frame_start: int
     frame_end: int
     active_object: Any
@@ -46,6 +47,7 @@ def _capture_blender_state(scene: Any) -> _BlenderState:
     active = bpy.context.view_layer.objects.active
     return _BlenderState(
         frame_current=scene.frame_current,
+        frame_subframe=scene.frame_subframe,
         frame_start=scene.frame_start,
         frame_end=scene.frame_end,
         active_object=active,
@@ -57,7 +59,7 @@ def _capture_blender_state(scene: Any) -> _BlenderState:
 def _restore_blender_state(scene: Any, state: _BlenderState) -> None:
     scene.frame_start = state.frame_start
     scene.frame_end = state.frame_end
-    scene.frame_set(state.frame_current)
+    scene.frame_set(state.frame_current, subframe=state.frame_subframe)
     for obj in tuple(bpy.context.selected_objects):
         obj.select_set(False)
     for obj in state.selected_objects:
