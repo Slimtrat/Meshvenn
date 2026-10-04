@@ -14,6 +14,16 @@ The rig benchmark exports a rest-geometry GLB with zero skins/actions/groups, de
 | QuaterniusHuman | 0.035 / 0.07 | 0.015 | 0.018 / 0.03 | 0.025 |
 | UAL1_Standard | 0.04 / 0.09 | 0.02 | 0.025 / 0.04 | 0.10 |
 
+The `--check-pose-quality` gate runs 16 isolated bilateral world-axis probes: shoulders ±60° around Y/Z, hips ±60° around X and ±35° around Y. Within a radius of 12% of model height around each fitted joint, it measures unique surface-edge length ratios. The nearest-rank p95 of `abs(log(posed_length / rest_length))` treats compression and stretch equally; the worst single edge is also gated. Coincident UV seams do not inflate samples, degenerate rest edges are excluded, and collapsed posed edges are retained. Budgets below are regression limits for these pinned fixtures, not universal suitability thresholds:
+
+| Fixture | Worst-pose p95 / worst absolute log ratio | Maximum collapsed fraction (ratio < 0.25) | Maximum stretched fraction (ratio > 2) |
+| --- | --- | --- | --- |
+| RiggedFigure | 0.43 / 0.65 | 0 | 0 |
+| QuaterniusHuman | 1.18 / 1.65 | 0.018 | 0.022 |
+| UAL1_Standard | 0.40 / 1.95 | 0.002 | 0.002 |
+
+Every probe also requires mean motion of its source-labelled limb of at least 0.01 model heights and mean opposite-limb motion at most 0.0005. Both generated and reimported rigs must pass. Matching world-axis probes must retain displacement within 0.0001 heights, edge counts exactly, and individual edge-summary measurements within 0.005; this avoids dependence on importer-specific bone rolls. Pose basis/modes are restored even on diagnostic failure. The score does not measure volume loss, triangle intersections, collisions, anatomical correctness or motions outside the tested poses. Wider V2 shoulder/hip transitions reduce abrupt weight changes; this does not eliminate all compression. V1 remains an ungated pose-quality baseline, and default routing is unchanged.
+
 Each V2 case also requires 100% skin coverage, at most four normalized influences, localized arm and leg deformation before/after reimport and fail-before-publish export fidelity. Limb-region labels come only from confident source weights (at least 70% on that limb's descendants); mean and worst leakage are reported, and only the mean is gated. V2 measures independent arm trajectories and local depth, ignores duplicate UV-seam positions and binds regions using fitted joints. Dense non-humanoid blocks are rejected cleanly, and an injected post-binding failure verifies rollback of user data. Fox remains a quadruped preservation fixture, never a successful canonical biped fit.
 
 Lower-body fitting uses closed triangle/plane sections, not vertex density. Foot-to-leg narrowing and a calf/thigh narrowing or supported centreline bend provide ankle/knee cues. A 0.95 femur/tibia length prior estimates hip height from those cues, with a surface-consistency check and bilateral agreement; this is not anatomical inference. Missing topology, open sections, featureless legs and conflicting hips explicitly fall back. Observations within 1% of height retain stable anchors; the report separates observed cues from applied anchors, and arm confidence from leg evidence. The pelvis retains its canonical height unless bilateral hip estimates require raising it; other axial heights remain priors. These three V2 fixtures must expose bilateral cues, so silently reverting to fixed heights cannot satisfy CI. V1's new leg measurements are diagnostic unless the explicit leg-gate flags are supplied; it keeps its existing acceptance behavior.
@@ -48,6 +58,8 @@ Each model has its own license; the repository's code license does not replace i
 ## Reproduce the benchmark
 
 With Blender and the native library available:
+
+Append `--check-pose-quality` to each V2 rig command below to enforce the fixture-specific 16-pose budgets as CI does. Rig-only tests do not require the native reconstruction library.
 
 ```sh
 blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_glb_v2.py -- --asset avocado --output output/v2-benchmark
