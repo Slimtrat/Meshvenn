@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Iterable, Sequence
 
 from .canonical_rig import BoneSpec, MeshBounds, bounds_from_vertices
+from .rig_lower_body import fit_lower_body
 
 Point3 = tuple[float, float, float]
 
@@ -34,10 +35,11 @@ class CanonicalFitV2Report:
     left_leg_center_in_heights: float
     right_leg_center_in_heights: float
     confidence: float
+    lower_body: dict[str, object]
 
     def as_dict(self) -> dict[str, object]:
         return {
-            "schema_version": 1,
+            "schema_version": 2,
             "algorithm": "height-relative-local-envelope-v2",
             "vertex_count": self.vertex_count,
             "unique_position_count": self.unique_position_count,
@@ -48,12 +50,14 @@ class CanonicalFitV2Report:
             "left_arm_thickness_in_heights": self.left_arm_thickness_in_heights,
             "right_arm_thickness_in_heights": self.right_arm_thickness_in_heights,
             "depth_policy": "trimmed-local-surface-envelope",
-            "body_height_policy": "canonical-axial-and-hip-priors; not inferred anatomy",
+            "body_height_policy": "observed-leg-cues with explicit hip/axial priors; not inferred anatomy",
+            "lower_body": self.lower_body,
             "arm_envelope_height": self.arm_envelope_height,
             "arm_pose": self.arm_pose,
             "left_leg_center_in_heights": self.left_leg_center_in_heights,
             "right_leg_center_in_heights": self.right_leg_center_in_heights,
             "confidence": self.confidence,
+            "confidence_scope": "arm-envelope-coverage; lower_body reports separate leg evidence",
         }
 
 
@@ -130,6 +134,7 @@ def _side_leg_center(
 
 def fit_canonical_biped_v2(
     vertices: Iterable[Sequence[float]],
+    *, triangles: Iterable[Sequence[int]] | None = None,
 ) -> tuple[tuple[BoneSpec, ...], CanonicalFitV2Report]:
     """Fit the stable 18-bone hierarchy from deterministic mesh envelopes."""
     raw_points = _finite_points(vertices)
@@ -179,6 +184,11 @@ def fit_canonical_biped_v2(
         side: _side_leg_center(points, bounds, side, 0.08, 0.44)
         for side in (1, -1)
     }
+    lower_body = fit_lower_body(raw_points, triangles, bounds)
+    measured_hips = [leg.hip[2] for leg in (lower_body.left, lower_body.right) if leg.hip is not None]
+    pelvis_z = max(0.473, (sum(measured_hips) / len(measured_hips) - floor) / height) if measured_hips else 0.473
+    lower_body.evidence["pelvis_height_in_heights"] = pelvis_z
+    lower_body.evidence["pelvis_policy"] = "canonical anchor, raised only to bilateral observed-link hip prior"
 
     def point(x_heights: float, z_fraction: float, y: float | None = None) -> Point3:
         return (center_x + x_heights * height,
@@ -186,7 +196,7 @@ def fit_canonical_biped_v2(
                 floor + z_fraction * height)
 
     root = point(0.0, 0.02)
-    pelvis = point(0.0, 0.473)
+    pelvis = point(0.0, pelvis_z)
     spine = point(0.0, 0.591)
     chest = point(0.0, shoulder_z)
     neck = point(0.0, 0.777)
@@ -227,6 +237,27 @@ def fit_canonical_biped_v2(
         knee = point(knee_x, 0.244)
         ankle = point(ankle_x, 0.059, depth_at(ankle_x, 0.13))
         toe = point(ankle_x, 0.015, bounds.minimum[1])
+        observed = lower_body.left if side == 1 else lower_body.right
+        applied = {}
+
+        def regularized(name, measurement, prior):
+            # Surface cues are not exact joint centers. Below one percent of
+            # height, retain the stable prior instead of chasing slice noise.
+            if measurement is None:
+                applied[name] = "canonical-fallback"
+                return prior
+            if math.dist(measurement, prior) <= .01 * height:
+                applied[name] = "canonical-within-observation-resolution"
+                return prior
+            applied[name] = "surface-cue" if name != "hip" else "observed-link-length-prior"
+            return measurement
+
+        hip = regularized("hip", observed.hip, hip)
+        knee = regularized("knee", observed.knee, knee)
+        ankle = regularized("ankle", observed.ankle, ankle)
+        lower_body.evidence.setdefault("applied_anchors", {})[side_name] = applied
+        if observed.toe_y is not None:
+            toe = (ankle[0], observed.toe_y, floor + min(.015 * height, .35 * (ankle[2] - floor)))
         specs.extend((
             BoneSpec(f"upper_arm.{side_name}", "chest", shoulder, elbow),
             BoneSpec(f"forearm.{side_name}", f"upper_arm.{side_name}", elbow, wrist),
@@ -253,5 +284,6 @@ def fit_canonical_biped_v2(
         left_leg_center_in_heights=leg_centers[1],
         right_leg_center_in_heights=leg_centers[-1],
         confidence=confidence,
+        lower_body=lower_body.evidence,
     )
     return tuple(specs), report

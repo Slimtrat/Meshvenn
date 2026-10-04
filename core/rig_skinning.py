@@ -84,7 +84,8 @@ def _fitted_region_gates(point, bones, bounds):
         gates[f"arm.{side}"] = arm
         gates[f"leg.{side}"] = ((1.0 - _smoothstep(hip_z + 0.02, hip_z + 0.10, z))
                                  * _smoothstep(-0.015, 0.025, outward))
-    gates["axial"] = max(0.02, 1.0 - max(gates["arm.L"], gates["arm.R"]))
+    leg_region = max(gates["leg.L"], gates["leg.R"]) * _smoothstep(.02, .05, abs(lateral))
+    gates["axial"] = max(0.02, 1.0 - max(gates["arm.L"], gates["arm.R"], leg_region))
     return gates
 
 

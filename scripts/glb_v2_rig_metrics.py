@@ -50,6 +50,20 @@ def landmark_summary(reference: dict, generated: dict, model_height: float,
     }
 
 
+def landmark_group_summary(summary: dict, names: tuple[str, ...]) -> dict:
+    if not names or len(set(names)) != len(names):
+        raise ValueError("Landmark group requires distinct named joints")
+    errors = summary["per_landmark_error_in_heights"]
+    if any(name not in errors for name in names):
+        raise ValueError("Missing corresponding group landmark")
+    values = [float(errors[name]) for name in names]
+    if any(not math.isfinite(value) or value < 0 for value in values):
+        raise ValueError("Invalid group landmark error")
+    return {"landmark_count": len(values), "mean_error_in_heights": sum(values) / len(values),
+            "max_error_in_heights": max(values),
+            "per_landmark_error_in_heights": {name: errors[name] for name in names}}
+
+
 def skin_weight_summary(weight_rows: list[list[float]]) -> dict:
     if not weight_rows:
         raise ValueError("No mesh vertices to assess")

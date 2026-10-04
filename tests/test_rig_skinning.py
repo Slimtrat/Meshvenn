@@ -145,6 +145,15 @@ class RegionalFallbackSkinningTests(unittest.TestCase):
         self.assertTrue(all(name in {"pelvis", "spine", "chest", "neck", "head"}
                             for name in weights))
 
+    def test_fitted_leg_region_suppresses_torso_weights_without_excluding_the_midline(self):
+        points = biped_points(wrist_z=.74)
+        bones,_ = fit_canonical_biped_v2(points)
+        bounds = bounds_from_vertices(points)
+        leg = regional_fallback_weights((.06,0,.40),bones,bounds,bone_guided=True)
+        pelvis = regional_fallback_weights((0,0,.473),bones,bounds,bone_guided=True)
+        self.assertGreater(sum(w for name,w in leg.items() if name in {"thigh.L","shin.L","foot.L"}),.95)
+        self.assertGreater(sum(w for name,w in pelvis.items() if name in {"pelvis","spine","chest","neck","head"}),.95)
+
 
 if __name__ == "__main__":
     unittest.main()

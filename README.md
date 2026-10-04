@@ -460,7 +460,17 @@ Quaternius humanoids. Source bones/weights only provide scoring references and
 are unavailable to the fitter. It gates 17 joint errors, normalized four-weight
 skinning, mean unrelated arm weights, localized pose response before/after
 reimport and fail-before-publish export fidelity. The axial/hip height anchors
-remain canonical priors and are identified as such in the fit report.
+are not anatomical certification. When triangle topology is available, closed
+horizontal sections measure each leg's centreline and foot-to-ankle narrowing.
+A calf/thigh narrowing or supported centreline bend supplies a knee cue. Hip
+height then uses an explicit 0.95 femur/tibia length prior anchored to those
+observations; the pelvis anchor is raised only when both hips are supported.
+Open/featureless sections, missing cues or disagreeing hip estimates retain
+canonical anchors with specific fallback reasons. Changes below 1% of model
+height keep stable anchors within observation resolution. Axial heights remain
+priors; arm coverage confidence and lower-body evidence are reported separately.
+CI independently gates six leg-joint errors, leg-weight leakage and unilateral
+leg deformation before/after GLB reimport. V1 and default routing stay unchanged.
 
 This is an envelope fit, not anatomical inference.
 Extreme/unsupported poses, non-bipeds, facial rigs, and production retopology still need

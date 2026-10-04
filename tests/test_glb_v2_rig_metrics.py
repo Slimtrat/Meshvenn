@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import unittest
 
-from scripts.glb_v2_rig_metrics import RIGGED_FIGURE_LANDMARKS, landmark_summary, skin_weight_summary
+from scripts.glb_v2_rig_metrics import RIGGED_FIGURE_LANDMARKS, landmark_summary, landmark_group_summary, skin_weight_summary
 
 
 class GLBV2RigMetricTests(unittest.TestCase):
@@ -35,6 +35,16 @@ class GLBV2RigMetricTests(unittest.TestCase):
         self.assertEqual(report["max_influences_per_vertex"], 2)
         self.assertEqual(report["max_weight_sum_error"], 0.0)
         self.assertAlmostEqual(skin_weight_summary([[0.4, 0.4]])["max_weight_sum_error"], 0.2)
+
+    def test_limb_group_cannot_hide_missing_joints_or_average_unrelated_joints(self):
+        summary = {"per_landmark_error_in_heights": {"shin.L":.02,"foot.L":.04,"head":.50}}
+        group = landmark_group_summary(summary,("shin.L","foot.L"))
+        self.assertEqual(group["landmark_count"],2)
+        self.assertAlmostEqual(group["mean_error_in_heights"],.03)
+        self.assertEqual(group["max_error_in_heights"],.04)
+        for names in ((),("thigh.L",),("shin.L","shin.L")):
+            with self.assertRaises(ValueError):
+                landmark_group_summary(summary,names)
 
     def test_invalid_weights_fail(self) -> None:
         with self.assertRaises(ValueError):
