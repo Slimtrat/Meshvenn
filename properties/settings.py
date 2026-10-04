@@ -408,6 +408,12 @@ class BPT_PG_Settings(
         default=DEFAULT_EXPORT_OVERWRITE_EXISTING,
     )
 
+    export_validate_roundtrip: BoolProperty(
+        name="Verify Export by Reimport",
+        description="Check sampled deformations, skin, clips, morphs and materials before publishing",
+        default=True,
+    )
+
     # =====================================================
     # Legacy selector
     #

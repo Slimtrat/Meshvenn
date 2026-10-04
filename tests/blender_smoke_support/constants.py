@@ -79,6 +79,7 @@ REQUIRED_PACKAGE_FILES = (
     "core/rig_contracts.py",
     "core/motion_contracts.py",
     "core/export_contracts.py",
+    "core/export_paths.py",
     "core/glb_input_contracts.py",
     "core/glb_pipeline_score.py",
     "core/glb_route.py",
@@ -225,6 +226,8 @@ REQUIRED_PACKAGE_FILES = (
     "implementations/glb_export/__init__.py",
     "implementations/glb_export/implementation.py",
     "implementations/glb_export/planning.py",
+    "implementations/glb_export/fidelity.py",
+    "implementations/glb_export/fidelity_samples.py",
     "implementations/glb_export/blender_export.py",
     "implementations/glb_export/manifest.py",
 

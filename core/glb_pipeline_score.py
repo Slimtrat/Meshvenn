@@ -22,6 +22,7 @@ class GLBScoreComponent:
     weight: float
     available: bool = True
     evidence: str = ""
+    applicable: bool = True
 
     def __post_init__(self) -> None:
         score = float(self.score)
@@ -39,17 +40,25 @@ class GLBPipelineScore:
     score: float
     coverage: float
     components: tuple[GLBScoreComponent, ...]
+    export_fidelity_score: float | None = None
+    degraded: bool = False
+    losses: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "score": self.score,
             "coverage": self.coverage,
+            "score_kind": "pipeline-completeness",
+            "export_fidelity_score": self.export_fidelity_score,
+            "degraded": self.degraded,
+            "losses": self.losses,
             "components": {
                 component.name: {
                     "score": component.score,
                     "weight": component.weight,
                     "available": component.available,
                     "evidence": component.evidence,
+                    "applicable": component.applicable,
                 }
                 for component in self.components
             },
@@ -177,6 +186,12 @@ def score_glb_first_pipeline(
     rig_score, rig_evidence = _rig_score(context.get_output(PipelineStage.RIG))
     motion_score, motion_evidence = _motion_score(context.get_output(PipelineStage.MOTION))
     export_score, export_evidence = _export_score(context.get_output(PipelineStage.EXPORT))
+    route = context.metadata.get("glb_character_route")
+    rig_applicable = route != "geometry-only"
+    motion_applicable = rig_applicable and (
+        not isinstance(input_output, GLBFileInputOutput) or input_output.animated
+        or context.has_output(PipelineStage.MOTION)
+    )
 
     if image_score is None:
         normalized_image_score = 0.0
@@ -196,18 +211,22 @@ def score_glb_first_pipeline(
             "rig_structure",
             structure_score or 0.0,
             0.05,
-            available=structure_score is not None,
+            available=rig_applicable and structure_score is not None,
             evidence=compatibility_evidence,
+            applicable=rig_applicable,
         ),
         GLBScoreComponent(
             "rig_compatibility",
             compatibility_score or 0.0,
             0.10,
-            available=compatibility_score is not None,
+            available=rig_applicable and compatibility_score is not None,
             evidence=compatibility_evidence,
+            applicable=rig_applicable,
         ),
-        GLBScoreComponent("rig", rig_score, 0.15, evidence=rig_evidence),
-        GLBScoreComponent("motion", motion_score, 0.15, evidence=motion_evidence),
+        GLBScoreComponent("rig", rig_score, 0.15, available=rig_applicable,
+                          evidence=rig_evidence, applicable=rig_applicable),
+        GLBScoreComponent("motion", motion_score, 0.15, available=motion_applicable,
+                          evidence=motion_evidence, applicable=motion_applicable),
         GLBScoreComponent("export", export_score, 0.15, evidence=export_evidence),
         GLBScoreComponent(
             "image", normalized_image_score, 0.10,
@@ -220,11 +239,25 @@ def score_glb_first_pipeline(
         for component in components
         if component.available
     )
-    total_weight = sum(component.weight for component in components)
+    total_weight = sum(component.weight for component in components if component.applicable)
+    fidelity = context.metadata.get("glb_export_roundtrip")
+    exported = context.get_output(PipelineStage.EXPORT)
+    fidelity_score = None
+    if (isinstance(fidelity, dict) and isinstance(exported, ExportOutput)
+            and fidelity.get("sha256") == exported.sha256
+            and isinstance(fidelity.get("passed"), bool)
+            and isinstance(fidelity.get("sample_count"), int)
+            and not isinstance(fidelity.get("sample_count"), bool)
+            and fidelity["sample_count"] > 0 and export_score == 1.0):
+        fidelity_score = 100.0 if fidelity["passed"] else 0.0
+    losses = tuple(context.metadata.get("glb_route_losses", ()))
     return GLBPipelineScore(
         score=100.0 * weighted / available_weight,
         coverage=available_weight / total_weight,
         components=components,
+        export_fidelity_score=fidelity_score,
+        degraded=bool(losses),
+        losses=losses,
     )
 
 

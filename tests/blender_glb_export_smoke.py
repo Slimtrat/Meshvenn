@@ -198,6 +198,7 @@ def main() -> None:
     context.set_output(pipeline.PipelineStage.GEOMETRY, geometry)
     context.metadata["export_output_path"] = str(target)
     context.metadata["export_overwrite_existing"] = False
+    context.metadata["export_validate_roundtrip"] = True
     implementation = exporter_module.GLBExportImplementation()
 
     availability = implementation.availability(context)
@@ -214,6 +215,27 @@ def main() -> None:
     _require(not _temporary_glbs(target.parent), "Initial export leaked a temporary GLB")
 
     first_hash = hashlib.sha256(first_bytes).hexdigest()
+    # Preserve, static and canonical routes all protect their GLB input,
+    # independently from the optional Motion source path.
+    context.metadata["export_overwrite_existing"] = True
+    context.metadata["glb_input_path"] = str(target)
+    source_refused = implementation.execute(context)
+    _require(source_refused.failed and "source file" in source_refused.message,
+             "EXPORT accepted the source GLB as its destination")
+    _require(target.read_bytes() == first_bytes, "Source overwrite guard changed input bytes")
+    context.metadata.pop("glb_input_path")
+    input_contracts = importlib.import_module(f"{package_name}.core.glb_input_contracts")
+    typed_source = input_contracts.GLBFileInputOutput(
+        path=target, implementation_id="glb-file-v1", size_bytes=first_output.size_bytes,
+        sha256=first_hash, node_names=(mesh_object.name,), animation_names=(),
+        scene_count=1, mesh_count=1, skin_count=0, material_count=0,
+    )
+    context.set_output(pipeline.PipelineStage.INPUT, typed_source)
+    typed_refused = implementation.execute(context)
+    _require(typed_refused.failed and "source file" in typed_refused.message,
+             "EXPORT ignored typed input provenance when source metadata was absent")
+    context.outputs.pop(pipeline.PipelineStage.INPUT)
+    context.metadata["export_overwrite_existing"] = False
     refused_availability = implementation.availability(context)
     _require(
         not refused_availability.available,
@@ -289,6 +311,38 @@ def main() -> None:
              "Motion source overwrite refusal leaked a temporary GLB")
     context.metadata.pop("motion_source_path")
 
+    # A failed round-trip must never replace an existing valid destination,
+    # even when the user explicitly enabled overwrite.
+    fidelity_module = importlib.import_module(f"{package_name}.implementations.glb_export.fidelity")
+    original_observe = fidelity_module.observe
+    def corrupted_observation(*args, **kwargs):
+        observed = original_observe(*args, **kwargs)
+        observed["rest"] = tuple((x + 10.0, y, z) for x, y, z in observed["rest"])
+        return observed
+    # capture_expectation must stay honest; alter only the observations of the
+    # imported temporary file by replacing the validator's observer after it.
+    original_validate = fidelity_module.validate_roundtrip
+    def corrupted_validation(*args, **kwargs):
+        fidelity_module.observe = corrupted_observation
+        try:
+            return original_validate(*args, **kwargs)
+        finally:
+            fidelity_module.observe = original_observe
+    fidelity_module.validate_roundtrip = corrupted_validation
+    before_objects = set(bpy.data.objects)
+    before_actions = set(bpy.data.actions)
+    try:
+        refused_fidelity = implementation.execute(context)
+    finally:
+        fidelity_module.validate_roundtrip = original_validate
+    _require(refused_fidelity.failed and "round-trip" in refused_fidelity.message,
+             "Invalid round-trip was published")
+    _require(target.read_bytes() == first_bytes, "Failed round-trip replaced the existing output")
+    _require(set(bpy.data.objects) == before_objects and set(bpy.data.actions) == before_actions,
+             "Failed round-trip leaked imported Blender data")
+    _assert_ui_state(expected_ui_state, label="failed round-trip")
+    _require(not _temporary_glbs(target.parent), "Failed round-trip leaked a temporary GLB")
+
     mesh_object.data.vertices[3].co.z += 0.375
     mesh_object.data.update()
     bpy.context.view_layer.update()
@@ -330,6 +384,10 @@ def main() -> None:
         "concurrent_publication_refused": True,
         "symlink_destination_tested": symlink_tested,
         "motion_source_overwrite_refused": True,
+        "glb_input_overwrite_refused": True,
+        "typed_input_overwrite_refused": True,
+        "failed_roundtrip_not_published": True,
+        "roundtrip": context.metadata["glb_export_roundtrip"],
         "temporary_files_remaining": 0,
     }
     (output_root / "glb_export_report.json").write_text(

@@ -11,6 +11,7 @@ from uuid import uuid4
 
 import bpy
 
+from ...core.export_paths import protect_source_paths
 from .manifest import GLBManifest, inspect_glb
 from .planning import GLBExportPlan
 
@@ -213,15 +214,22 @@ def _publish_validated_glb(
         ) from exc
 
 
-def export_glb(plan: GLBExportPlan) -> GLBManifest:
+def export_glb(plan: GLBExportPlan, *, fidelity_report: dict | None = None) -> GLBManifest:
     plan.path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = plan.path.with_name(
         f".{plan.path.stem}.{uuid4().hex}.tmp.glb"
     )
     try:
+        if plan.validate_roundtrip:
+            from .fidelity import capture_expectation, validate_roundtrip
+            expected = capture_expectation(plan)
         with _isolated_selection(plan), _only_export_actions(plan.actions):
             options: dict[str, Any] = {
-                "filepath": str(temporary_path),
+                # Blender's exporter appends a '/' to its directory, which is
+                # invalid for Windows extended-length '\\?\' paths.
+                "filepath": str(temporary_path).removeprefix("\\\\?\\")
+                if os.name == "nt" and not str(temporary_path).startswith("\\\\?\\UNC\\")
+                else str(temporary_path),
                 "export_format": "GLB",
                 "use_selection": True,
                 "export_apply": False,
@@ -230,13 +238,21 @@ def export_glb(plan: GLBExportPlan) -> GLBManifest:
                 "export_animations": plan.motion is not None,
             }
             if plan.motion is not None:
-                options["export_animation_mode"] = "ACTIONS"
+                options["export_animation_mode"] = (
+                    "NLA_TRACKS" if plan.motion.implementation_id == "glb-source-motion-v1" else "ACTIONS"
+                )
             result = bpy.ops.export_scene.gltf(**options)
             if "FINISHED" not in result:
                 raise RuntimeError(f"Blender GLB export failed: {result}")
 
         manifest = inspect_glb(temporary_path)
         _validate_manifest(plan, manifest)
+        if plan.validate_roundtrip:
+            with _isolated_selection(plan):
+                report = validate_roundtrip(plan, temporary_path, sha256=manifest.sha256, expected=expected)
+            if fidelity_report is not None:
+                fidelity_report.update(report)
+        protect_source_paths(plan.path, plan.source_paths)
         _publish_validated_glb(
             temporary_path,
             plan.path,

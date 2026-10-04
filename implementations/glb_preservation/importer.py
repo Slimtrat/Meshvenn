@@ -42,6 +42,7 @@ class ImportedPreservedCharacter:
     normalized_dimensions: tuple[float, float, float]
     normalization_scale: float
     projection_space: GeometryProjectionSpace
+    auxiliary_objects: tuple[Any, ...]
 
 
 @dataclass(frozen=True)
@@ -121,44 +122,6 @@ def _cleanup_new_data(
                 collection.remove(block)
 
 
-def _has_ancestor(obj: Any, ancestor: Any) -> bool:
-    parent = obj.parent
-    while parent is not None:
-        if parent is ancestor:
-            return True
-        parent = parent.parent
-    return False
-
-
-def _armature_parent_anchor(obj: Any, armature: Any) -> Any | None:
-    current = obj
-    while current.parent is not None:
-        if current.parent is armature:
-            return current
-        current = current.parent
-    return None
-
-
-def _detach_preserved_roots(meshes: tuple[Any, ...], armature: Any) -> None:
-    armature_world = armature.matrix_world.copy()
-    armature.parent = None
-    armature.matrix_world = armature_world
-    for mesh in meshes:
-        if mesh.parent is armature:
-            continue
-        world = mesh.matrix_world.copy()
-        anchor = _armature_parent_anchor(mesh, armature)
-        if anchor is None:
-            mesh.parent = None
-        else:
-            parent_type = anchor.parent_type
-            parent_bone = anchor.parent_bone
-            mesh.parent = armature
-            mesh.parent_type = parent_type
-            mesh.parent_bone = parent_bone
-        mesh.matrix_world = world
-
-
 def _world_bounds(meshes: tuple[Any, ...]) -> tuple[Vector, Vector]:
     points = tuple(
         mesh.matrix_world @ Vector(corner)
@@ -173,12 +136,13 @@ def _world_bounds(meshes: tuple[Any, ...]) -> tuple[Vector, Vector]:
 
 
 def _normalize_character(
-    meshes: tuple[Any, ...], armature: Any, target_extent: float
+    meshes: tuple[Any, ...], armature: Any, target_extent: float, source_roots: tuple[Any, ...]
 ) -> tuple[
     tuple[float, float, float],
     tuple[float, float, float],
     float,
     GeometryProjectionSpace,
+    Any,
 ]:
     minimum, maximum = _world_bounds(meshes)
     original = tuple(float(maximum[index] - minimum[index]) for index in range(3))
@@ -192,9 +156,16 @@ def _normalize_character(
         -minimum.z,
     ))
     transform = Matrix.Scale(scale, 4) @ Matrix.Translation(offset)
-    roots = (armature, *(mesh for mesh in meshes if not _has_ancestor(mesh, armature)))
-    for root in roots:
-        root.matrix_world = transform @ root.matrix_world
+    # Never put normalization into an animated object's transform: its action
+    # would overwrite the scale/offset on the next frame evaluation.
+    normalization_root = bpy.data.objects.new("Meshvenn_Normalization", None)
+    bpy.context.scene.collection.objects.link(normalization_root)
+    normalization_root.matrix_world = transform
+    for root in source_roots:
+        local = root.matrix_world.copy()
+        root.parent = normalization_root
+        root.matrix_parent_inverse = Matrix.Identity(4)
+        root.matrix_basis = local
     bpy.context.view_layer.update()
     normalized = tuple(value * scale for value in original)
     voxel_size = target_extent / 256.0
@@ -205,7 +176,7 @@ def _normalize_character(
         height=dimensions[2],
         voxel_size=voxel_size,
         center_xy=True,
-    )
+    ), normalization_root
 
 
 def _root_bone_name(armature: Any, pelvis_name: str) -> str:
@@ -231,12 +202,16 @@ def import_preserved_glb(
     try:
         if bpy.context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
-        result = bpy.ops.import_scene.gltf(filepath=str(source_path))
+        # The normalization reference must not depend on the user's timeline.
+        bpy.context.scene.frame_set(0)
+        result = bpy.ops.import_scene.gltf(filepath=str(source_path), bone_heuristic="TEMPERANCE")
         if "FINISHED" not in result:
             raise RuntimeError(f"Blender GLB import failed: {result}")
         imported = tuple(obj for obj in bpy.data.objects if obj not in snapshot.objects)
-        meshes = tuple(obj for obj in imported if obj.type == "MESH")
         armatures = tuple(obj for obj in imported if obj.type == "ARMATURE")
+        custom_shapes = {bone.custom_shape for rig in armatures for bone in rig.pose.bones
+                         if bone.custom_shape is not None}
+        meshes = tuple(obj for obj in imported if obj.type == "MESH" and obj not in custom_shapes)
         if not meshes:
             raise ValueError("Source-preservation GLB contains no mesh.")
         if len(armatures) != 1:
@@ -265,12 +240,27 @@ def import_preserved_glb(
         }
         source_vertex_count = sum(len(mesh.data.vertices) for mesh in meshes)
         source_polygon_count = sum(len(mesh.data.polygons) for mesh in meshes)
-        _detach_preserved_roots(meshes, armature)
-        original, normalized, scale, projection_space = _normalize_character(
-            meshes, armature, target_extent
+        ancestors = set()
+        for obj in (*meshes, armature):
+            parent = obj.parent
+            while parent is not None:
+                if parent not in imported or parent.type != "EMPTY":
+                    if parent is armature:
+                        parent = parent.parent
+                        continue
+                    raise ValueError("Preservation requires supported source hierarchy parents.")
+                ancestors.add(parent)
+                parent = parent.parent
+        preserved = (*meshes, armature, *sorted(ancestors, key=lambda obj: obj.name))
+        roots = tuple(obj for obj in preserved if obj.parent is None)
+        unexpected_actions = set(bpy.data.actions) - set(snapshot.actions) - set(actions)
+        if unexpected_actions:
+            raise ValueError("Source contains clips without a supported armature action; preservation refused.")
+        original, normalized, scale, projection_space, normalization_root = _normalize_character(
+            meshes, armature, target_extent, roots
         )
         primary = max(meshes, key=lambda mesh: len(mesh.data.vertices))
-        preserved_objects = (*meshes, armature)
+        preserved_objects = (*preserved, normalization_root)
         preserved_actions = actions
         _cleanup_new_data(
             snapshot,
@@ -294,6 +284,7 @@ def import_preserved_glb(
             normalized_dimensions=normalized,
             normalization_scale=scale,
             projection_space=projection_space,
+            auxiliary_objects=(*sorted(ancestors, key=lambda obj: obj.name), normalization_root),
         )
     finally:
         if not succeeded:

@@ -127,6 +127,7 @@ def main() -> None:
     )
 
     _clear_scene()
+    bpy.context.scene.frame_set(37)
     implementations = (
         glb_input.GLBFileInputImplementation(),
         auto_route.GLBAutoGeometryImplementation(),
@@ -153,6 +154,7 @@ def main() -> None:
             "motion_source_path": "",
             "export_output_path": str(export_path),
             "export_overwrite_existing": False,
+            "export_validate_roundtrip": True,
         },
     )
     report = runner_module.PipelineRunner(registry).run(
@@ -162,6 +164,7 @@ def main() -> None:
         details = [record.result.message for record in report.records]
         details.extend(issue.message for issue in report.issues)
         raise AssertionError("Automatic GLB pipeline failed: " + " | ".join(details))
+    _require(bpy.context.scene.frame_current == 37, "Pipeline changed the user's timeline frame.")
 
     _require(
         context.metadata.get("glb_character_route") == args.expected_route,
@@ -184,9 +187,14 @@ def main() -> None:
     )
     exported = context.require_output(pipeline.PipelineStage.EXPORT)
     manifest = manifest_module.inspect_glb(exported.path)
+    roundtrip = context.metadata.get("glb_export_roundtrip")
+    _require(roundtrip and roundtrip["passed"], "Missing export-reimport fidelity evidence.")
+    if args.expected_route == "geometry-only" and context.require_output(pipeline.PipelineStage.INPUT).skinned:
+        _require(context.metadata.get("glb_route_degraded"), "Rig loss was not reported as degraded.")
 
     pose_spans = {}
-    score = None
+    score = score_module.score_glb_first_pipeline(context)
+    _require(score.export_fidelity_score == 100.0, "Export fidelity was not verified.")
     if args.expected_route == "geometry-only":
         _require(
             records[pipeline.PipelineStage.RIG].result.skipped,
@@ -245,6 +253,7 @@ def main() -> None:
             "animation_names": manifest.animation_names,
         },
         "score": score.as_dict() if score is not None else None,
+        "roundtrip": roundtrip,
     }
     (output_root / "glb_auto_route_report.json").write_text(
         json.dumps(payload, indent=2, ensure_ascii=False) + "\n",

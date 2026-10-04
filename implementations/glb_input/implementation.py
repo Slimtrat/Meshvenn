@@ -103,7 +103,11 @@ class GLBFileInputImplementation:
                 mesh_count=manifest.mesh_count,
                 skin_count=manifest.skin_count,
                 material_count=manifest.material_count,
-                metadata={"source": "glb-first"},
+                metadata={
+                    "source": "glb-first",
+                    "skin_joint_names": manifest.skin_joint_names,
+                    "morph_target_count": manifest.morph_target_count,
+                },
             )
         except Exception as exc:
             return StageExecutionResult.failed_result(

@@ -16,6 +16,7 @@ class PreservedGLBGeometryOutput(GeometrySurfaceOutput):
     source_profile_certification: str = ""
     source_rig_archetype: str = ""
     semantic_bones: Mapping[str, str] = field(default_factory=dict)
+    auxiliary_objects: tuple[Any, ...] = ()
 
     def __post_init__(self) -> None:
         super().__post_init__()

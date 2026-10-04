@@ -393,18 +393,24 @@ on projection images. **GLB File V1** validates the source container, glTF
 version and SHA-256 without mutating the Blender scene.
 
 **GLB AUTO ROUTE** is the recommended product path. It resolves the registered
-source skeleton profile from the GLB manifest before changing the Blender scene.
-Supported humanoids are normalized onto Canonical Biped and their clips are
-retargeted; certified non-biped archetypes such as Khronos Fox retain their
-source rig, skin, clips and root motion. Static assets and unknown or
+source skeleton profile from actual skin-joint nodes before changing the Blender scene.
+E2E-tested humanoid and non-biped adapters retain their source rig, skin, clips,
+morph targets and root motion. Canonicalization is an explicit conversion, not
+an automatic default. Contract-only adapters do not claim automatic certification.
+Static assets and unknown or
 insufficient skeletons continue as geometry-only exports: optional Rig and
 Motion stages are explicitly skipped and no semantic skeleton is guessed. Each
-run publishes the selected route and a human-readable reason in its report.
+run publishes the selected route, a reason and any losses. Geometry-only fallback
+on a skinned, animated or morph-equipped asset is marked **degraded**, with a UI
+warning naming the data it removes; success is not a fidelity guarantee.
 
 **GLB PRESERVE** is the default fidelity route. **GLB Preserved Character
 Geometry V1** imports transactionally, keeps every source mesh, material,
 armature, skin and supported action, then normalizes the character as one
-hierarchy without baking or rebuilding its topology. **GLB Source Rig
+hierarchy without rebuilding its topology. Normalization uses a separate,
+non-animated parent so source transform channels cannot overwrite it. Source
+ancestor empties are retained, including animated hierarchy parents. Auxiliary
+bone-display geometry is excluded. **GLB Source Rig
 Preservation V1** and **GLB Source Motion Preservation V1** expose the original
 binding and clips with root motion preserved. The multi-mesh exporter publishes
 that same character data.
@@ -416,14 +422,18 @@ character. Before neutralization it records hierarchy depth, bone/root counts,
 rest-pose proportions and skin links. **Rig Compatibility & Routing V1** blocks
 incompatible or insufficient rigs before a semantically wrong target is built.
 
-The GLB-first product score combines input integrity, geometry preservation,
+The GLB-first **pipeline-completeness** score combines input integrity, geometry counts,
 source-rig structure, semantic target compatibility, canonical rig evidence,
 Motion evidence and exported-artifact integrity. A structurally healthy
 quadruped therefore keeps its structural credit but receives no biped semantic
 credit. Image evidence is optional and reported through coverage: no images
 still yields a score, while an explicitly blank image contributes zero and
 lowers the result. This keeps CI useful independently of 2D capture quality
-without hiding missing evidence or a semantically invalid route.
+without hiding missing evidence or a semantically invalid route. Rig and Motion
+are excluded when intentionally inapplicable to a geometry-only route; a degraded
+route still reports its losses even at 100% completeness. A separate
+`export_fidelity_score` is `null` until export-reimport checks have passed for the
+exact artifact hash. It is a sampled round-trip gate, not an anatomical quality score.
 
 The optional RIG stage provides two compatible 18-bone A-pose implementations.
 **Canonical Biped V1** is the stable default. **Canonical Biped V2** is registered
@@ -466,7 +476,7 @@ remaining adapters are contract-tested until redistributable fixtures are
 added. RiggedSimple is classified as insufficient because two generic bones
 cannot establish a complete mapping. Heuristic mapping of unknown skeletons is
 not supported. The automatic Blender/CI matrix verifies RiggedFigure and
-RobotExpressive through canonicalization, Fox through source preservation, and
+RobotExpressive and Fox through source preservation, and
 RiggedSimple plus ToyCar through the geometry-only safety route.
 
 The optional **GLB Export V1** stage publishes single- or multi-mesh geometry as
@@ -475,10 +485,25 @@ export carries either the canonical or preserved source skin and the explicitly
 produced motion clips. The stage writes to a temporary sibling file, validates the GLB container and
 manifest, records its size and SHA-256 digest, then atomically publishes it to
 the chosen path. Existing files are replaced only when the overwrite option is
-enabled, and the Motion source GLB cannot be used as the destination.
+enabled. Neither the GLB input nor the Motion source can be a destination, even
+with overwrite enabled, including hard-link aliases and resolved parent paths.
+Source protection is rechecked before publication.
+
+**Verify Export by Reimport** defaults to enabled in the UI. API callers enable it
+with `export_validate_roundtrip=True` in pipeline metadata. Before publication,
+the temporary GLB is reimported transactionally and compared with observations
+captured **before** export: rest geometry, five matching integer-frame samples
+per clip, normalized skin influences, bone hierarchy, clip duration, morph count,
+and sampled PBR material/texture observations. Preserved multi-slot clips use
+NLA-track export; canonical clips use Action export. Positions must agree within
+0.02% of rest extent and skin weights within 0.0001. Duration quantization up to
+one scene frame is allowed. A failed check leaves an existing destination intact
+and cleans up imported data and the temporary file. This adds import/sampling
+time and memory; the report states the checked scope and measured errors.
 
 This first exporter intentionally targets `.glb` only. Its checks establish
-artifact integrity and pipeline provenance; they do not guarantee identical
+artifact integrity, pipeline provenance and optional sampled export fidelity;
+they do not guarantee identical
 rendering in every external engine or DCC application.
 
 It does not try to replace Blender's full modeling pipeline.
