@@ -22,6 +22,16 @@ The `--check-pose-quality` gate runs 16 isolated bilateral world-axis probes: sh
 | QuaterniusHuman | 1.18 / 1.65 | 0.018 | 0.022 |
 | UAL1_Standard | 0.40 / 1.95 | 0.002 | 0.002 |
 
+The independent `--check-hinge-quality` gate adds 24 bilateral elbow/knee stress poses: forearms ±45°/±90° around world Y/Z, shins ±45°/±90° around world X. Its local edge measurements retain edges with at least one endpoint within 12% of height from the fitted joint, including transitions between vertex rings in coarse meshes. Edges with both endpoints outside are excluded. The original shoulder/hip edge selection and budgets remain unchanged.
+
+| Fixture | Hinge worst-pose p95 / worst absolute log ratio | Maximum collapsed / stretched fractions |
+| --- | --- | --- |
+| RiggedFigure | 0.35 / 0.36 | 0 / 0 |
+| QuaterniusHuman | 0.39 / 0.58 | 0 / 0 |
+| UAL1_Standard | 0.395 / 0.63 | 0 / 0 |
+
+All 24 poses must pass on both generated and reimported rigs, with the same localized-movement and matching-probe tolerances as the shoulder/hip suite. V2 smoothly suppresses nonadjacent influences near elbows/knees and broadens the adjacent-bone distance kernel there; only an available region can supply a hinge prior, overlapping priors select one neighbourhood, and the ambiguous midline keeps its fallback. Linear GLB skinning still compresses deep bends: zero edges below a length ratio of 0.25 does not mean zero compression or preserved volume. The ± stress directions are not anatomical range-of-motion certification.
+
 Every probe also requires mean motion of its source-labelled limb of at least 0.01 model heights and mean opposite-limb motion at most 0.0005. Both generated and reimported rigs must pass. Matching world-axis probes must retain displacement within 0.0001 heights, edge counts exactly, and individual edge-summary measurements within 0.005; this avoids dependence on importer-specific bone rolls. Pose basis/modes are restored even on diagnostic failure. The score does not measure volume loss, triangle intersections, collisions, anatomical correctness or motions outside the tested poses. Wider V2 shoulder/hip transitions reduce abrupt weight changes; this does not eliminate all compression. V1 remains an ungated pose-quality baseline, and default routing is unchanged.
 
 Each V2 case also requires 100% skin coverage, at most four normalized influences, localized arm and leg deformation before/after reimport and fail-before-publish export fidelity. Limb-region labels come only from confident source weights (at least 70% on that limb's descendants); mean and worst leakage are reported, and only the mean is gated. V2 measures independent arm trajectories and local depth, ignores duplicate UV-seam positions and binds regions using fitted joints. Dense non-humanoid blocks are rejected cleanly, and an injected post-binding failure verifies rollback of user data. Fox remains a quadruped preservation fixture, never a successful canonical biped fit.
@@ -59,7 +69,7 @@ Each model has its own license; the repository's code license does not replace i
 
 With Blender and the native library available:
 
-Append `--check-pose-quality` to each V2 rig command below to enforce the fixture-specific 16-pose budgets as CI does. Rig-only tests do not require the native reconstruction library.
+Append `--check-pose-quality --check-hinge-quality` to each V2 rig command below to enforce the fixture-specific 16+24 pose budgets as CI does. Rig-only tests do not require the native reconstruction library.
 
 ```sh
 blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_glb_v2.py -- --asset avocado --output output/v2-benchmark

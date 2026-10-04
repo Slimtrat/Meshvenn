@@ -41,6 +41,43 @@ class PoseMetricTests(unittest.TestCase):
         self.assertEqual(result["collapsed_fraction"],1)
         self.assertTrue(math.isfinite(result["max_abs_log_length_ratio"]))
 
+    def test_touching_edges_include_coarse_joint_transitions_but_not_distant_edges(self):
+        rest = (*self.points,(.4,0,0),(.4,.05,0))
+        triangles = ((0,1,2),(1,3,4))
+        both = joint_edge_summary(rest,rest,triangles,(0,0,0),1)
+        touching = joint_edge_summary(rest,rest,triangles,(0,0,0),1,touching=True)
+        self.assertEqual(both["edge_count"],3)
+        self.assertEqual(touching["edge_count"],5)
+        self.assertEqual(touching["max_abs_log_length_ratio"],0)
+
+    def test_hinge_budgets_require_all_24_samples_and_enforce_every_measurement(self):
+        for asset in ("rigged_figure","quaternius_human","quaternius_ual1"):
+            acceptance = pose_acceptance(asset,hinges=True)
+            good = dict(acceptance,pose_count=24)
+            check_pose_quality(good,acceptance,expected_count=24)
+            for name,value in acceptance.items():
+                bad = dict(good)
+                bad[name] = 0 if name.startswith("min_") else value+.01
+                with self.assertRaises(AssertionError,msg=(asset,name)):
+                    check_pose_quality(bad,acceptance,expected_count=24)
+            for count in (16,23,25):
+                with self.assertRaises(AssertionError):
+                    check_pose_quality(dict(good,pose_count=count),acceptance,expected_count=24)
+
+    def test_hinge_roundtrip_rejects_missing_or_changed_probes(self):
+        before = {"poses":[{"id":str(i),"joint_edges":self.score(self.points),
+                            "posed_mean_displacement_in_heights":.1,
+                            "opposite_mean_displacement_in_heights":0} for i in range(24)]}
+        check_pose_roundtrip(before,copy.deepcopy(before),expected_count=24)
+        after = copy.deepcopy(before)
+        after["poses"][20]["joint_edges"]["min_length_ratio"] = .7
+        with self.assertRaises(AssertionError):
+            check_pose_roundtrip(before,after,expected_count=24)
+        after = copy.deepcopy(before)
+        after["poses"].pop()
+        with self.assertRaises(AssertionError):
+            check_pose_roundtrip(before,after,expected_count=24)
+
     def test_uniform_scale_translation_and_triangle_order_do_not_change_score(self):
         posed = [tuple(v*1.5 for v in p) for p in self.points]
         baseline = self.score(posed)

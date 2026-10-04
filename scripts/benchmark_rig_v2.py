@@ -57,6 +57,8 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--check-leg-deformation", action="store_true")
     parser.add_argument("--check-pose-quality", action="store_true",
                         help="Enforce the fixture's 16-pose local edge-distortion budgets")
+    parser.add_argument("--check-hinge-quality", action="store_true",
+                        help="Enforce the fixture's 24-pose elbow/knee distortion budgets")
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     args = parser.parse_args(argv)
     for name in ("max_mean_joint_error", "max_joint_error", "max_arm_unrelated_weight",
@@ -168,6 +170,7 @@ def _roundtrip(mesh: bpy.types.Object, armature: bpy.types.Object, path: Path, c
             "pose_response": _pose_response(bound[0], arms[0], regions),
             "leg_pose_response": _pose_response(bound[0], arms[0], regions, posed_bone="thigh.L", rotation_axis=0),
             "pose_quality": pose_quality(bound[0], arms[0], regions),
+            "hinge_pose_quality": pose_quality(bound[0], arms[0], regions, hinges=True),
             "arm_region_leakage": {label: value for label,value in leakage.items() if label.startswith("arm")},
             "leg_region_leakage": {label: value for label,value in leakage.items() if label.startswith("leg")}, **weights}
 
@@ -328,10 +331,11 @@ def main() -> None:
     pose = _pose_response(unrigged, rig.armature_object, regions)
     leg_pose = _pose_response(unrigged, rig.armature_object, regions, posed_bone="thigh.L", rotation_axis=0)
     poses = pose_quality(unrigged, rig.armature_object, regions)
+    hinges = pose_quality(unrigged, rig.armature_object, regions, hinges=True)
     context.set_output(pipeline.PipelineStage.RIG, rig)
     roundtrip = _roundtrip(unrigged, rig.armature_object, output / "canonical_rig.glb", context, reference_regions)
     report = {
-        "schema_version": 4,
+        "schema_version": 5,
         "reference_asset": args.asset,
         "input": {"path": str(unrigged_manifest.path), "sha256": unrigged_manifest.sha256,
                   "skin_count": unrigged_manifest.skin_count,
@@ -355,6 +359,7 @@ def main() -> None:
             "require_observed_leg_cues": args.require_observed_leg_cues,
             "check_leg_deformation": args.check_leg_deformation,
             "pose_quality": pose_acceptance(args.asset) if args.check_pose_quality else None,
+            "hinge_pose_quality": pose_acceptance(args.asset, hinges=True) if args.check_hinge_quality else None,
             "min_left_leg_displacement": .005,
             "max_right_leg_displacement": .001,
         },
@@ -366,6 +371,7 @@ def main() -> None:
         "pose_response": pose,
         "leg_pose_response": leg_pose,
         "pose_quality": poses,
+        "hinge_pose_quality": hinges,
         "glb_roundtrip": roundtrip,
     }
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
@@ -376,6 +382,10 @@ def main() -> None:
         for observations in (poses, roundtrip["pose_quality"]):
             check_pose_quality(observations, report["acceptance"]["pose_quality"])
         check_pose_roundtrip(poses, roundtrip["pose_quality"])
+    if args.check_hinge_quality:
+        for observations in (hinges, roundtrip["hinge_pose_quality"]):
+            check_pose_quality(observations, report["acceptance"]["hinge_pose_quality"], expected_count=24)
+        check_pose_roundtrip(hinges, roundtrip["hinge_pose_quality"], expected_count=24)
     if weights["weighted_fraction"] < 1.0 or weights["max_influences_per_vertex"] > 4:
         raise AssertionError("Canonical rig skin coverage or influence count regressed")
     if weights["max_weight_sum_error"] > 0.02 or roundtrip["max_weight_sum_error"] > 0.02:

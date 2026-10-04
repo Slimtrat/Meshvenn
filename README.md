@@ -483,6 +483,16 @@ export independently of imported bone rolls. Diagnostic rotations restore full
 pose state even on failure. This is a local distortion gate, not a certificate
 for anatomical motion, volume preservation, intersections or arbitrary poses.
 
+Elbows/knees are covered by 24 additional bilateral stress poses at ±45° and
+±90°: forearms around world Y/Z, shins around world X. V2 fades distant chains
+out near the fitted hinge and broadens its parent/child weight transition, while
+retaining the ambiguous midline fallback and normalized four-influence limit.
+The hinge edge gate includes edges with at least one endpoint near the joint so
+coarse meshes cannot hide transitions between widely spaced vertex rings. It
+has separate fixture budgets and the same export/reimport comparison. These
+stress axes include non-anatomical directions; the GLB still uses linear skinning
+and can lose volume at deep bends. V1 and AUTO routing remain unchanged.
+
 This is an envelope fit, not anatomical inference.
 Extreme/unsupported poses, non-bipeds, facial rigs, and production retopology still need
 purpose-built work. V2 remains opt-in so existing scenes and default behavior do
