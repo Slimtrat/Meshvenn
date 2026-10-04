@@ -19,6 +19,7 @@ class TargetAnimationSnapshot:
     had_animation_data: bool
     action: Any
     use_nla: bool
+    action_slot: Any
     bone_states: tuple[tuple[str, str, Any], ...]
 
 
@@ -43,6 +44,7 @@ def snapshot_target_animation(armature: Any, bone_names: tuple[str, ...]) -> Tar
         had_animation_data=animation_data is not None,
         action=animation_data.action if animation_data is not None else None,
         use_nla=animation_data.use_nla if animation_data is not None else True,
+        action_slot=getattr(animation_data, "action_slot", None),
         bone_states=states,
     )
 
@@ -56,6 +58,8 @@ def restore_target_animation(armature: Any, snapshot: TargetAnimationSnapshot) -
     if snapshot.had_animation_data:
         animation_data = armature.animation_data_create()
         animation_data.action = snapshot.action
+        if snapshot.action_slot is not None:
+            animation_data.action_slot = snapshot.action_slot
         animation_data.use_nla = snapshot.use_nla
     elif armature.animation_data is not None:
         armature.animation_data_clear()
@@ -112,7 +116,11 @@ def _set_linear_interpolation(action: Any) -> None:
     try:
         curves = tuple(action.fcurves)
     except (AttributeError, RuntimeError, TypeError):
-        return
+        curves = tuple(curve for layer in getattr(action, "layers", ())
+                       for strip in layer.strips
+                       for bag in getattr(strip, "channelbags", ()) for curve in bag.fcurves)
+    if not curves:
+        raise RuntimeError("Baked Motion action has no quaternion curves")
     for curve in curves:
         for point in curve.keyframe_points:
             point.interpolation = "LINEAR"
@@ -139,6 +147,9 @@ def bake_retargeted_action(
 
     source_animation = source_armature.animation_data_create()
     source_animation.use_nla = False
+    source_animation.action = None
+    for bone in source_armature.pose.bones:
+        bone.matrix_basis.identity()
     source_animation.action = source_action
     target_animation = target_armature.animation_data_create()
     target_animation.use_nla = False
@@ -172,6 +183,9 @@ def bake_retargeted_action(
             )
             previous_quaternions[entry.target_bone] = rotation.copy()
             pose_samples += 1
+            # Child bases must include the rotation just assigned to their
+            # parent; Blender defers pose-matrix evaluation until an update.
+            bpy.context.view_layer.update()
         bpy.context.view_layer.update()
     _set_linear_interpolation(target_action)
     return BakedAction(

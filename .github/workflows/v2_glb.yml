@@ -46,7 +46,7 @@ jobs:
           python-version: "3.11"
 
       - name: Verify pinned V2 assets and metric semantics
-        run: python -m unittest tests.test_v2_assets tests.test_glb_v2_metrics tests.test_glb_v2_rig_metrics tests.test_glb_v2_pose_metrics tests.test_glb_v2_combined_metrics tests.test_glb_v2_character_support tests.test_canonical_rig_v2 tests.test_rig_lower_body tests.test_rig_skinning tests.test_motion_contracts tests.test_canonical_motion_mapping tests.test_rig_compatibility tests.test_export_contracts tests.test_export_paths tests.test_glb_export_manifest tests.test_glb_input_contracts tests.test_glb_pipeline_score tests.test_glb_auto_route_decision -v
+        run: python -m unittest tests.test_v2_assets tests.test_glb_v2_metrics tests.test_glb_v2_rig_metrics tests.test_glb_v2_pose_metrics tests.test_glb_v2_combined_metrics tests.test_glb_v2_motion_metrics tests.test_glb_v2_character_support tests.test_canonical_rig_v2 tests.test_rig_lower_body tests.test_rig_skinning tests.test_motion_contracts tests.test_canonical_motion_mapping tests.test_rig_compatibility tests.test_export_contracts tests.test_export_paths tests.test_glb_export_manifest tests.test_glb_input_contracts tests.test_glb_pipeline_score tests.test_glb_auto_route_decision -v
 
       - name: Build native reconstruction engine
         shell: bash
@@ -111,6 +111,19 @@ jobs:
             --python-exit-code 1 --python tests/blender_motion_smoke.py -- \
             --package-root "${GITHUB_WORKSPACE}" \
             --output "${RUNNER_TEMP}/v2-benchmark/motion"
+
+      - name: Gate all 51 authored humanoid clips and Motion rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_motion_probe_smoke.py
+          for asset in rigged_figure quaternius_human quaternius_ual1; do
+            "${BLENDER_ROOT}/blender" --background --factory-startup \
+              --python-exit-code 1 --python scripts/benchmark_motion_v2.py -- \
+              --asset "${asset}" --fps 60 \
+              --output "${RUNNER_TEMP}/v2-benchmark/motion_${asset}"
+          done
 
       - name: Run GLB-first pipelines across certified rig profiles
         shell: bash
