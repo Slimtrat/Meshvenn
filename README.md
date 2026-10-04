@@ -515,6 +515,20 @@ but different leg proportions and skinning can still cause floor penetration
 or sliding. Headless callers set `motion_preserve_pelvis_height=True` in pipeline
 metadata. Source-preservation routes and default AUTO routing are unchanged.
 
+**Contact IK** is a separate opt-in setting (also off by default), requiring
+Preserve Pelvis Height. It bakes thigh/shin corrections from inferred source
+sole contacts, with evaluated-skin feedback and a flat rest-floor clearance of
+0.002 model heights. Foot orientation, pelvis height, upper-body motion and the
+fixed root are preserved; transitions fade over 0.08 seconds. The source's
+relative sole trajectory is retained, including treadmill travel and any
+source sliding: this is not world-space foot locking or physics. Unreachable
+targets are not stretched and residual/limited samples are explicitly reported
+in Motion metrics. It rejects unsupported target transforms, constraints,
+drivers, bone inheritance, missing sole patches and topology-changing modifiers;
+any failure rolls back the target animation and temporary imports. Headless
+callers additionally set `motion_contact_ik=True`. The unchanged FK fidelity
+gate and the new independent IK/contact gates run separately in V2 CI.
+
 Six deterministic adapters are registered: Khronos RiggedFigure, Khronos Fox,
 three.js RobotExpressive, Mixamo humanoid, Unreal Mannequin and Meshvenn
 Canonical. RiggedFigure, RobotExpressive, Fox, QuaterniusHuman (Mixamo-compatible)

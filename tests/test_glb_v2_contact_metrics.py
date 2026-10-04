@@ -5,18 +5,19 @@ import unittest
 
 from scripts.glb_v2_contact_metrics import (
     SIDES, dense_frames, compare_contacts, check_contact_budgets,
-    compare_contact_roundtrip, check_contact_roundtrip, contact_acceptance, LOCOMOTION_CLIPS,
+    compare_contact_roundtrip, check_contact_roundtrip, contact_acceptance, LOCOMOTION_CLIPS, validate_observations,
 )
 
 
-def observations(*, speed=.2, z=.01, fps=60, end=12):
+def observations(*, speed=.2, z=.01, fps=60, end=12, step=1):
     return {"probes": {side: [[sign * .05, y, 0] for y in (-.05, 0, .05)]
                        for side, sign in (("L", 1), ("R", -1))},
+            "sample_step":step,
             "clips": [{"name": "Walk", "frame_start": 0, "frame_end": end, "fps": fps,
                        "samples": [{"frame": frame, "feet": {
                            side: {"centroid": [sign * .05, speed * frame / fps, z], "min_z": z}
                            for side, sign in (("L", 1), ("R", -1))}}
-                                   for frame in dense_frames(0, end)]}]}
+                                   for frame in dense_frames(0, end, step=step)]}]}
 
 
 def budgets():
@@ -24,6 +25,26 @@ def budgets():
 
 
 class ContactMetricsTests(unittest.TestCase):
+    def test_half_frame_clock_and_seconds_are_consistent(self):
+        self.assertEqual(dense_frames(0,2,step=.5),(0,.5,1,1.5,2))
+        source = observations(speed=-.4,step=.5)
+        report = compare_contacts(source,source)
+        self.assertEqual(report["sole_sample_count"],50)
+        self.assertLess(report["clips"][0]["source"]["drift"],1e-12)
+        self.assertAlmostEqual(report["clips"][0]["windows"][0]["source_velocity_in_heights_per_second"][1],-.4)
+        target = observations(speed=-.8,step=.5)
+        self.assertAlmostEqual(compare_contacts(source,target)["clips"][0]["target"]["drift"],.08)
+        short = observations(end=4,step=.5)
+        self.assertEqual(compare_contacts(short,short)["window_count"],0)
+
+    def test_invalid_or_missing_half_clock_fails(self):
+        for step in (True,.25,0,math.nan,math.inf,"0.5"):
+            with self.assertRaises(ValueError): dense_frames(0,2,step=step)
+        source = observations(step=.5)
+        source["clips"][0]["samples"].pop(1)
+        with self.assertRaises(ValueError): validate_observations(source)
+        with self.assertRaises(AssertionError): check_contact_roundtrip(observations(),observations(step=.5))
+
     def test_dense_sampling_includes_all_endpoints(self):
         self.assertEqual(dense_frames(1., 4.), (1, 2, 3, 4))
         for bounds in ((1, 1), (3, 1), (0, .5), (True, 3), (math.nan, 4), (0, math.inf)):

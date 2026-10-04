@@ -75,7 +75,7 @@ def _evaluated_patch(mesh, indices, vertex_count):
         evaluated.to_mesh_clear()
 
 
-def observe_surfaces(mesh, armature, clips, probes, bind_action):
+def observe_surfaces(mesh, armature, clips, probes, bind_action, *, step=1):
     rest, origin, height = _rest_geometry(mesh)
     matches = _match_probes(rest, probes)
     indices = {index for patch in matches.values() for group in patch for index in group}
@@ -83,8 +83,8 @@ def observe_surfaces(mesh, armature, clips, probes, bind_action):
     for clip in clips:
         bind_action(armature, clip["action"])
         samples = []
-        for frame in dense_frames(clip["frame_start"], clip["frame_end"]):
-            bpy.context.scene.frame_set(frame)
+        for frame in dense_frames(clip["frame_start"], clip["frame_end"],step=step):
+            bpy.context.scene.frame_set(math.floor(frame),subframe=frame-math.floor(frame))
             bpy.context.view_layer.update()
             points = _evaluated_patch(mesh, indices, len(rest))
             feet = {}
@@ -98,4 +98,4 @@ def observe_surfaces(mesh, armature, clips, probes, bind_action):
             samples.append({"frame": frame, "feet": feet})
         observed.append({k: clip[k] for k in ("name", "frame_start", "frame_end", "fps")}
                         | {"samples": samples})
-    return {"probes": probes, "clips": observed}
+    return {"probes": probes, "clips": observed,"sample_step":step}

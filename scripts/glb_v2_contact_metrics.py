@@ -7,11 +7,8 @@ velocity fitted to the candidate (which could conceal added sliding).
 from __future__ import annotations
 
 import math
+from core.motion_contacts import SIDES, CONTACT_BAND, MAX_VERTICAL_SPEED, MIN_WINDOW_SECONDS, contact_windows
 
-SIDES = ("L", "R")
-CONTACT_BAND = (-.015, .01)  # Heights above the fixed rest-mesh floor.
-MAX_VERTICAL_SPEED = .15  # Heights/second; exclude near-floor swing samples.
-MIN_WINDOW_SECONDS = .08
 LOCOMOTION_CLIPS = {  # Explicit fixture labels, not a name-based classifier.
     "rigged_figure": (),
     "quaternius_human": ("Run", "Walk"),
@@ -52,9 +49,12 @@ def _finite(value):
     return type(value) in (int, float) and math.isfinite(value)
 
 
-def dense_frames(start, end):
+def dense_frames(start, end, *, step=1):
     if any(not _finite(v) or not float(v).is_integer() for v in (start, end)) or end <= start:
         raise ValueError("Contact observations need an increasing integer frame range")
+    if not _finite(step) or step not in (.5,1):
+        raise ValueError("Contact sample step must be 0.5 or 1 frame")
+    if step == .5: return tuple(int(start)+i/2 for i in range(2*(int(end)-int(start))+1))
     return tuple(range(int(start), int(end) + 1))
 
 
@@ -77,9 +77,9 @@ def validate_observations(report):
     for clip in clips:
         if not _finite(clip["fps"]) or clip["fps"] <= 0:
             raise ValueError("Contact FPS must be finite and positive")
-        frames = dense_frames(clip["frame_start"], clip["frame_end"])
+        frames = dense_frames(clip["frame_start"], clip["frame_end"], step=report.get("sample_step",1))
         if any(not _finite(s["frame"]) for s in clip["samples"]) or tuple(s["frame"] for s in clip["samples"]) != frames:
-            raise ValueError("Contact observations require every integer frame in order")
+            raise ValueError("Contact observations require every sample on the declared clock in order")
         for sample in clip["samples"]:
             if set(sample["feet"]) != set(SIDES):
                 raise ValueError("Missing or extra sole patch")
@@ -94,7 +94,8 @@ def validate_observations(report):
 
 def _matching(reference, candidate):
     originals, targets = validate_observations(reference), validate_observations(candidate)
-    if reference["probes"] != candidate["probes"] or originals.keys() != targets.keys():
+    if (reference["probes"] != candidate["probes"] or originals.keys() != targets.keys()
+            or reference.get("sample_step",1) != candidate.get("sample_step",1)):
         raise AssertionError("Contact clips or frozen sole references changed")
     for name, original in originals.items():
         if any(original[k] != targets[name][k] for k in ("frame_start", "frame_end", "fps")):
@@ -102,24 +103,8 @@ def _matching(reference, candidate):
     return originals, targets
 
 
-def contact_windows(clip, side):
-    """Infer contiguous near-ground intervals only from source observations."""
-    runs, current = [], []
-    for index, sample in enumerate(clip["samples"]):
-        first, last = max(0, index - 1), min(len(clip["samples"]) - 1, index + 1)
-        speed = abs(clip["samples"][last]["feet"][side]["centroid"][2] -
-                    clip["samples"][first]["feet"][side]["centroid"][2]) * clip["fps"] / (last - first)
-        if CONTACT_BAND[0] <= sample["feet"][side]["min_z"] <= CONTACT_BAND[1] and speed <= MAX_VERTICAL_SPEED:
-            current.append(index)
-        else:
-            if current: runs.append(current)
-            current = []
-    if current: runs.append(current)
-    return tuple(run for run in runs if (len(run) - 1) / clip["fps"] >= MIN_WINDOW_SECONDS)
-
-
-def _velocity(points, fps):
-    times = [i / fps for i in range(len(points))]
+def _velocity(points, fps, *, step=1):
+    times = [i * step / fps for i in range(len(points))]
     center = sum(times) / len(times)
     denominator = sum((t - center) ** 2 for t in times)
     return tuple(sum((t - center) * p[axis] for t, p in zip(times, points)) / denominator
@@ -129,8 +114,9 @@ def _velocity(points, fps):
 def _window_score(samples, side, run, fps, velocity):
     feet = [samples[i]["feet"][side] for i in run]
     origin = feet[0]["centroid"]
-    drift = [math.hypot(*(foot["centroid"][axis] - origin[axis] - velocity[axis] * i / fps
-                          for axis in (0, 1))) for i, foot in enumerate(feet)]
+    start = samples[run[0]]["frame"]
+    drift = [math.hypot(*(foot["centroid"][axis] - origin[axis] - velocity[axis] * (samples[index]["frame"]-start) / fps
+                          for axis in (0, 1))) for index, foot in zip(run,feet)]
     return {"penetration": max(0., -min(f["min_z"] for f in feet)),
             "hover": max(0., max(f["min_z"] for f in feet)),
             "drift": max(drift)}
@@ -144,7 +130,7 @@ def compare_contacts(reference, candidate):
         for side in SIDES:
             for run in contact_windows(original, side):
                 points = [original["samples"][i]["feet"][side]["centroid"] for i in run]
-                velocity = _velocity(points, original["fps"])
+                velocity = _velocity(points, original["fps"], step=reference.get("sample_step",1))
                 windows.append({"side": side,
                                 "frame_start": original["samples"][run[0]]["frame"],
                                 "frame_end": original["samples"][run[-1]]["frame"],
