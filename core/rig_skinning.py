@@ -78,15 +78,34 @@ def _fitted_region_gates(point, bones, bounds):
         shoulder = abs(bones[f"upper_arm.{side}"].head[0] - bounds.center_x) / height
         shoulder_z = (bones[f"upper_arm.{side}"].head[2] - bounds.minimum[2]) / height
         hip_z = (bones[f"thigh.{side}"].head[2] - bounds.minimum[2]) / height
-        arm = (_smoothstep(0.85 * shoulder, max(1.6 * shoulder, 0.12), outward)
+        # A narrow gate compounds the inverse-distance kernel into a sharp
+        # change across shoulder/hip surface edges. Blend over a wider joint
+        # neighbourhood, retaining the same side and distal-limb exclusions.
+        arm = (_smoothstep(0.50 * shoulder, max(1.8 * shoulder, 0.15), outward)
                * _smoothstep(hip_z - 0.04, hip_z + 0.10, z)
                * (1.0 - _smoothstep(shoulder_z + 0.12, shoulder_z + 0.22, z)))
         gates[f"arm.{side}"] = arm
-        gates[f"leg.{side}"] = ((1.0 - _smoothstep(hip_z + 0.02, hip_z + 0.10, z))
+        gates[f"leg.{side}"] = ((1.0 - _smoothstep(hip_z - 0.02, hip_z + 0.14, z))
                                  * _smoothstep(-0.015, 0.025, outward))
     leg_region = max(gates["leg.L"], gates["leg.R"]) * _smoothstep(.02, .05, abs(lateral))
     gates["axial"] = max(0.02, 1.0 - max(gates["arm.L"], gates["arm.R"], leg_region))
     return gates
+
+
+def _attachment_axial_gate(name, point, bones, height):
+    """Near a limb root, blend its adjacent torso chain, not head/neck/hips.
+
+    This also prevents four-influence pruning from swapping large, unrelated
+    axial weights across adjacent shoulder surface vertices.
+    """
+    gate = 1.0
+    for root,parents in (("upper_arm",("spine","chest")),("thigh",("pelvis","spine"))):
+        if name in parents:
+            continue
+        for side in ("L","R"):
+            distance = math.dist(point,bones[f"{root}.{side}"].head)/height
+            gate = min(gate,_smoothstep(.08,.16,distance))
+    return gate
 
 
 def regional_fallback_weights(
@@ -129,6 +148,8 @@ def regional_fallback_weights(
     scores: list[tuple[float, str]] = []
     for name in sorted(_REQUIRED):
         gate = _bone_gate(name, gates)
+        if bone_guided and name in _AXIAL:
+            gate *= _attachment_axial_gate(name,coordinates,deform,bounds.height)
         if gate <= 0.0:
             continue
         distance = _segment_distance(coordinates, deform[name], scale)

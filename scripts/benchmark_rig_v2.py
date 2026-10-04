@@ -24,6 +24,8 @@ from mathutils.kdtree import KDTree
 
 from scripts.glb_v2_rig_metrics import landmark_summary, landmark_group_summary, skin_weight_summary
 from scripts.glb_v2_character_support import assert_unrigged_mesh
+from scripts.glb_v2_pose_support import evaluated_positions as _evaluated_positions, rotated_bone, pose_quality
+from scripts.glb_v2_pose_metrics import pose_acceptance, check_pose_quality, check_pose_roundtrip
 
 
 EXPECTED_BONES = {
@@ -53,6 +55,8 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--max-leg-unrelated-weight", type=float, default=1.0)
     parser.add_argument("--require-observed-leg-cues", action="store_true")
     parser.add_argument("--check-leg-deformation", action="store_true")
+    parser.add_argument("--check-pose-quality", action="store_true",
+                        help="Enforce the fixture's 16-pose local edge-distortion budgets")
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     args = parser.parse_args(argv)
     for name in ("max_mean_joint_error", "max_joint_error", "max_arm_unrelated_weight",
@@ -96,16 +100,6 @@ def _unrigged_world_mesh(source: bpy.types.Object) -> bpy.types.Object:
     return obj
 
 
-def _evaluated_positions(obj: bpy.types.Object) -> tuple[tuple[float, float, float], ...]:
-    depsgraph = bpy.context.evaluated_depsgraph_get()
-    evaluated = obj.evaluated_get(depsgraph)
-    mesh = evaluated.to_mesh()
-    try:
-        return tuple(tuple(evaluated.matrix_world @ vertex.co) for vertex in mesh.vertices)
-    finally:
-        evaluated.to_mesh_clear()
-
-
 def _skin_rows(mesh: bpy.types.Object, armature: bpy.types.Object) -> list[list[float]]:
     deform = {bone.name for bone in armature.data.bones if bone.use_deform}
     indices = {group.index for group in mesh.vertex_groups if group.name in deform}
@@ -118,16 +112,9 @@ def _skin_rows(mesh: bpy.types.Object, armature: bpy.types.Object) -> list[list[
 def _pose_response(mesh: bpy.types.Object, armature: bpy.types.Object, region_indices=None,
                    *, posed_bone="upper_arm.L", rotation_axis=1) -> dict:
     rest = _evaluated_positions(mesh)
-    bone = armature.pose.bones[posed_bone]
-    original_rotation = bone.rotation_euler.copy()
-    original_mode = bone.rotation_mode
-    bone.rotation_mode = "XYZ"
-    bone.rotation_euler[rotation_axis] = math.radians(35)
-    bpy.context.view_layer.update()
-    posed = _evaluated_positions(mesh)
-    bone.rotation_euler = original_rotation
-    bone.rotation_mode = original_mode
-    bpy.context.view_layer.update()
+    direction = tuple(1 if index == rotation_axis else 0 for index in range(3))
+    with rotated_bone(armature, posed_bone, 35, direction):
+        posed = _evaluated_positions(mesh)
     if len(rest) != len(posed):
         raise AssertionError("Pose changed mesh topology")
     if region_indices:
@@ -180,6 +167,7 @@ def _roundtrip(mesh: bpy.types.Object, armature: bpy.types.Object, path: Path, c
             "fidelity": context.metadata["glb_export_roundtrip"],
             "pose_response": _pose_response(bound[0], arms[0], regions),
             "leg_pose_response": _pose_response(bound[0], arms[0], regions, posed_bone="thigh.L", rotation_axis=0),
+            "pose_quality": pose_quality(bound[0], arms[0], regions),
             "arm_region_leakage": {label: value for label,value in leakage.items() if label.startswith("arm")},
             "leg_region_leakage": {label: value for label,value in leakage.items() if label.startswith("leg")}, **weights}
 
@@ -339,10 +327,11 @@ def main() -> None:
     regions, leakage = _limb_region_quality(unrigged, reference_regions)
     pose = _pose_response(unrigged, rig.armature_object, regions)
     leg_pose = _pose_response(unrigged, rig.armature_object, regions, posed_bone="thigh.L", rotation_axis=0)
+    poses = pose_quality(unrigged, rig.armature_object, regions)
     context.set_output(pipeline.PipelineStage.RIG, rig)
     roundtrip = _roundtrip(unrigged, rig.armature_object, output / "canonical_rig.glb", context, reference_regions)
     report = {
-        "schema_version": 3,
+        "schema_version": 4,
         "reference_asset": args.asset,
         "input": {"path": str(unrigged_manifest.path), "sha256": unrigged_manifest.sha256,
                   "skin_count": unrigged_manifest.skin_count,
@@ -365,6 +354,7 @@ def main() -> None:
             "max_mean_leg_unrelated_weight": args.max_leg_unrelated_weight,
             "require_observed_leg_cues": args.require_observed_leg_cues,
             "check_leg_deformation": args.check_leg_deformation,
+            "pose_quality": pose_acceptance(args.asset) if args.check_pose_quality else None,
             "min_left_leg_displacement": .005,
             "max_right_leg_displacement": .001,
         },
@@ -375,12 +365,17 @@ def main() -> None:
         "leg_region_leakage": {label: value for label,value in leakage.items() if label.startswith("leg")},
         "pose_response": pose,
         "leg_pose_response": leg_pose,
+        "pose_quality": poses,
         "glb_roundtrip": roundtrip,
     }
     (output / "report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(f"{rig.implementation_id} mean joint error: {landmarks['mean_error_in_heights']:.4f} heights; "
           f"skin coverage: {weights['weighted_fraction']:.3f}; "
           f"left pose displacement: {pose['left_mean_displacement']:.4f}")
+    if args.check_pose_quality:
+        for observations in (poses, roundtrip["pose_quality"]):
+            check_pose_quality(observations, report["acceptance"]["pose_quality"])
+        check_pose_roundtrip(poses, roundtrip["pose_quality"])
     if weights["weighted_fraction"] < 1.0 or weights["max_influences_per_vertex"] > 4:
         raise AssertionError("Canonical rig skin coverage or influence count regressed")
     if weights["max_weight_sum_error"] > 0.02 or roundtrip["max_weight_sum_error"] > 0.02:

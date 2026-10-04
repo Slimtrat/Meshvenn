@@ -154,6 +154,28 @@ class RegionalFallbackSkinningTests(unittest.TestCase):
         self.assertGreater(sum(w for name,w in leg.items() if name in {"thigh.L","shin.L","foot.L"}),.95)
         self.assertGreater(sum(w for name,w in pelvis.items() if name in {"pelvis","spine","chest","neck","head"}),.95)
 
+    def test_fitted_joint_blends_are_bilateral_continuous_and_preserve_distal_regions(self):
+        points = biped_points(wrist_z=.74)
+        bones,_ = fit_canonical_biped_v2(points)
+        bounds = bounds_from_vertices(points)
+        for side,sign in (("L",1),("R",-1)):
+            for part in ("upper_arm","thigh"):
+                bone = next(b for b in bones if b.name == f"{part}.{side}")
+                axis = 0 if part == "upper_arm" else 2
+                previous = None
+                for delta in range(-30,31):
+                    point = list(bone.head)
+                    point[axis] += delta*.001*bounds.height
+                    current = regional_fallback_weights(point,bones,bounds,bone_guided=True)
+                    if previous is not None:
+                        change = sum(abs(current.get(n,0)-previous.get(n,0)) for n in set(current)|set(previous))
+                        self.assertLess(change,.12,(part,side,delta))
+                    previous = current
+            for point,family in (((sign*.3,0,.74),"arm"),((sign*.06,0,.25),"leg")):
+                weights = regional_fallback_weights(point,bones,bounds,bone_guided=True)
+                parts = ("upper_arm","forearm","hand") if family == "arm" else ("thigh","shin","foot")
+                self.assertGreater(sum(w for n,w in weights.items() if n in {f"{p}.{side}" for p in parts}),.95)
+
 
 if __name__ == "__main__":
     unittest.main()

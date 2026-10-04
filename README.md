@@ -472,6 +472,17 @@ priors; arm coverage confidence and lower-body evidence are reported separately.
 CI independently gates six leg-joint errors, leg-weight leakage and unilateral
 leg deformation before/after GLB reimport. V1 and default routing stay unchanged.
 
+V2 blends shoulder/hip regions across wider fitted-joint neighbourhoods and
+favours adjacent torso bones over distant axial influences at limb roots. Its
+regression benchmark probes 16 bilateral world-axis poses: shoulders at ±60°
+around Y/Z, hips at ±60° around X and ±35° around Y. Unique surface-edge length
+ratios within 12% of height around each joint measure compression and stretch,
+including the worst edge and worst-pose p95. Fixture-specific budgets gate both
+the generated rig and the reimported GLB, and compare matching probes across
+export independently of imported bone rolls. Diagnostic rotations restore full
+pose state even on failure. This is a local distortion gate, not a certificate
+for anatomical motion, volume preservation, intersections or arbitrary poses.
+
 This is an envelope fit, not anatomical inference.
 Extreme/unsupported poses, non-bipeds, facial rigs, and production retopology still need
 purpose-built work. V2 remains opt-in so existing scenes and default behavior do
