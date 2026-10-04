@@ -26,6 +26,8 @@ def _arguments() -> argparse.Namespace:
     )
     parser.add_argument("--expected-profile")
     parser.add_argument("--expected-animations", type=int, required=True)
+    parser.add_argument("--static-clip", action="append", default=[],
+                        help="Named authored reference-pose clip expected to remain constant")
     parser.add_argument("--output", type=Path, required=True)
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     return parser.parse_args(argv)
@@ -221,8 +223,10 @@ def main() -> None:
             for clip in motion.clips
         }
         _require(
-            pose_spans and all(span > 1.0e-4 for span in pose_spans.values()),
-            f"Automatic route produced a constant clip: {pose_spans}",
+            pose_spans and set(args.static_clip) <= pose_spans.keys()
+            and all((span <= 1.0e-4) if name in args.static_clip else (span > 1.0e-4)
+                    for name, span in pose_spans.items()),
+            f"Automatic route violated the static/dynamic clip inventory: {pose_spans}",
         )
         _require(manifest.skin_count >= 1, "Automatic route export lost its skin.")
         score = score_module.score_glb_first_pipeline(context)

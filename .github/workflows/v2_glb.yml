@@ -216,6 +216,43 @@ jobs:
             --expected-route geometry-only --expected-animations 0 \
             --output "${RUNNER_TEMP}/v2-benchmark/auto_toy_car"
 
+      - name: Preserve and automatically route real Mixamo and Unreal compatible fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_preservation_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/QuaterniusHuman.glb \
+            --expected-profile mixamo-humanoid-v1 \
+            --expected-archetype humanoid --expected-animations 7 \
+            --output "${RUNNER_TEMP}/v2-benchmark/preserved_mixamo"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_preservation_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/UAL1_Standard.glb \
+            --expected-profile unreal-mannequin-v1 \
+            --expected-archetype humanoid --expected-animations 43 \
+            --static-clip A_TPose --static-clip Pistol_Aim_Down \
+            --static-clip Pistol_Aim_Neutral --static-clip Pistol_Aim_Up \
+            --output "${RUNNER_TEMP}/v2-benchmark/preserved_unreal"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/QuaterniusHuman.glb \
+            --expected-route preserve-source --expected-profile mixamo-humanoid-v1 \
+            --expected-animations 7 \
+            --output "${RUNNER_TEMP}/v2-benchmark/auto_mixamo"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- \
+            --package-root "${GITHUB_WORKSPACE}" \
+            --input example/v2/assets/UAL1_Standard.glb \
+            --expected-route preserve-source --expected-profile unreal-mannequin-v1 \
+            --expected-animations 43 \
+            --static-clip A_TPose --static-clip Pistol_Aim_Down \
+            --static-clip Pistol_Aim_Neutral --static-clip Pistol_Aim_Up \
+            --output "${RUNNER_TEMP}/v2-benchmark/auto_unreal"
+
       - name: Benchmark Canonical Rig V1 against RiggedFigure
         shell: bash
         run: |

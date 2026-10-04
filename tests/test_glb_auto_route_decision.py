@@ -55,7 +55,7 @@ class GLBAutoRouteDecisionTests(unittest.TestCase):
 
     def test_contract_only_profile_does_not_claim_automatic_certification(self) -> None:
         decision = decide_glb_character_route(
-            source_skin_count=1, source_profile="mixamo-humanoid-v1",
+            source_skin_count=1, source_profile="meshvenn-canonical-v1",
             source_archetype="humanoid", source_certification="contract",
             compatible_targets=("source-rig-preservation-v1", "canonical-biped-v1"),
         )
