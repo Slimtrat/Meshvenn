@@ -270,7 +270,7 @@ jobs:
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- \
             --implementation canonical-biped-v2 \
-            --check-pose-quality \
+            --check-pose-quality --check-hinge-quality \
             --max-mean-joint-error 0.02 --max-joint-error 0.04 \
             --max-arm-unrelated-weight 0.08 \
             --require-observed-leg-cues --check-leg-deformation \
@@ -281,7 +281,7 @@ jobs:
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- \
             --implementation canonical-biped-v2 --asset quaternius_human \
-            --check-pose-quality \
+            --check-pose-quality --check-hinge-quality \
             --max-mean-joint-error 0.035 --max-joint-error 0.07 \
             --max-arm-unrelated-weight 0.015 \
             --require-observed-leg-cues --check-leg-deformation \
@@ -292,7 +292,7 @@ jobs:
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- \
             --implementation canonical-biped-v2 --asset quaternius_ual1 \
-            --check-pose-quality \
+            --check-pose-quality --check-hinge-quality \
             --max-mean-joint-error 0.04 --max-joint-error 0.09 \
             --max-arm-unrelated-weight 0.02 \
             --require-observed-leg-cues --check-leg-deformation \

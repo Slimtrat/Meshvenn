@@ -12,10 +12,15 @@ POSE_BUDGETS = {
     "quaternius_human": (1.18, 1.65, .018, .022),
     "quaternius_ual1": (.40, 1.95, .002, .002),
 }
+HINGE_BUDGETS = {
+    "rigged_figure": (.35, .36, 0.0, 0.0),
+    "quaternius_human": (.39, .58, 0.0, 0.0),
+    "quaternius_ual1": (.395, .63, 0.0, 0.0),
+}
 
 
-def pose_acceptance(asset):
-    p95,worst,collapsed,stretched = POSE_BUDGETS[asset]
+def pose_acceptance(asset, *, hinges=False):
+    p95,worst,collapsed,stretched = (HINGE_BUDGETS if hinges else POSE_BUDGETS)[asset]
     return {"worst_p95_abs_log_length_ratio": p95,
             "worst_abs_log_length_ratio": worst,
             "worst_collapsed_fraction": collapsed,
@@ -24,9 +29,9 @@ def pose_acceptance(asset):
             "min_posed_mean_displacement_in_heights": .01}
 
 
-def check_pose_quality(report, acceptance):
-    if report["pose_count"] != 16:
-        raise AssertionError("Missing bilateral shoulder/hip pose probes")
+def check_pose_quality(report, acceptance, *, expected_count=16):
+    if report["pose_count"] != expected_count:
+        raise AssertionError(f"Missing bilateral pose probes: expected {expected_count}")
     for name,limit in acceptance.items():
         value = report[name]
         if not math.isfinite(value) or value < 0:
@@ -36,11 +41,13 @@ def check_pose_quality(report, acceptance):
             raise AssertionError(f"Pose quality budget exceeded: {name} = {value:.6f}, limit = {limit}")
 
 
-def check_pose_roundtrip(before, after):
+def check_pose_roundtrip(before, after, *, expected_count=16):
     """Compare identical world-axis probes, not import-dependent bone rolls."""
     original = {p["id"]: p for p in before["poses"]}
     imported = {p["id"]: p for p in after["poses"]}
-    if len(original) != 16 or original.keys() != imported.keys() or len(after["poses"]) != 16:
+    if len(original) != expected_count or original.keys() != imported.keys() or any(
+        len(report["poses"]) != expected_count for report in (before,after)
+    ):
         raise AssertionError("GLB changed the set of deformation probes")
     for name,a in original.items():
         b = imported[name]
@@ -60,8 +67,13 @@ def _points(values):
     return points
 
 
-def joint_edge_summary(rest, posed, triangles, center, height, *, radius_in_heights=.12):
-    """Measure unique surface edges with both endpoints near the rest joint.
+def joint_edge_summary(rest, posed, triangles, center, height, *, radius_in_heights=.12,
+                       touching=False):
+    """Measure unique surface edges around the rest joint.
+
+    By default both endpoints must be near the joint. With touching=True,
+    retain edges with at least one endpoint near it, including transitions
+    between rings of a coarse mesh. Edges entirely outside are still excluded.
 
     Coincident seam vertices do not multiply edge samples. Degenerate/tiny
     rest edges are excluded, but collapsed posed edges remain failures.
@@ -81,7 +93,8 @@ def joint_edge_summary(rest, posed, triangles, center, height, *, radius_in_heig
         if len(triangle) != 3 or any(type(i) is not int or not 0 <= i < len(rest) for i in triangle):
             raise ValueError("Invalid triangle indices")
         for a,b in zip(triangle, (*triangle[1:],triangle[0])):
-            if max(math.dist(rest[i],center) for i in (a,b)) > radius_in_heights*height:
+            distances = [math.dist(rest[i],center) for i in (a,b)]
+            if (min(distances) if touching else max(distances)) > radius_in_heights*height:
                 continue
             length = math.dist(rest[a],rest[b])
             if length <= height*1e-5:

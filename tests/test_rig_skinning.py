@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 import unittest
+from dataclasses import replace
+from unittest.mock import patch
 
 from core.canonical_rig import MeshBounds, fit_canonical_biped
 from core.rig_skinning import regional_fallback_weights
@@ -175,6 +177,85 @@ class RegionalFallbackSkinningTests(unittest.TestCase):
                 weights = regional_fallback_weights(point,bones,bounds,bone_guided=True)
                 parts = ("upper_arm","forearm","hand") if family == "arm" else ("thigh","shin","foot")
                 self.assertGreater(sum(w for n,w in weights.items() if n in {f"{p}.{side}" for p in parts}),.95)
+
+    def test_fitted_hinge_core_uses_only_its_adjacent_bones_on_both_sides(self):
+        points = biped_points(wrist_z=.74)
+        bones,_ = fit_canonical_biped_v2(points)
+        bounds = bounds_from_vertices(points)
+        for side in ("L","R"):
+            for parent,child in (("upper_arm","forearm"),("thigh","shin")):
+                bone = next(b for b in bones if b.name == f"{child}.{side}")
+                weights = regional_fallback_weights(bone.head,bones,bounds,bone_guided=True)
+                self.assertEqual(set(weights),{f"{parent}.{side}",f"{child}.{side}"})
+                self.assertAlmostEqual(sum(weights.values()),1)
+
+    def test_hinge_neighbourhood_is_scale_translation_and_order_invariant(self):
+        points = biped_points(wrist_z=.74)
+        bones,_ = fit_canonical_biped_v2(points)
+        bounds = bounds_from_vertices(points)
+        for child in ("forearm.L","forearm.R","shin.L","shin.R"):
+            joint = next(b for b in bones if b.name == child).head
+            point = (joint[0],joint[1]+.025*bounds.height,joint[2])
+            baseline = regional_fallback_weights(point,bones,bounds,bone_guided=True)
+            for scale in (.001,1000):
+                move = lambda p: tuple(v*scale+o for v,o in zip(p,(3,-2,7)))
+                other_bones = tuple(replace(b,head=move(b.head),tail=move(b.tail)) for b in bones[::-1])
+                other = regional_fallback_weights(move(point),other_bones,
+                          MeshBounds(move(bounds.minimum),move(bounds.maximum)),bone_guided=True)
+                self.assertEqual(set(baseline),set(other))
+                for name in baseline:
+                    self.assertAlmostEqual(baseline[name],other[name],places=9)
+
+    def test_hinge_transition_keeps_weights_finite_continuous_and_bounded(self):
+        points = biped_points(wrist_z=.74)
+        bones,_ = fit_canonical_biped_v2(points)
+        bounds = bounds_from_vertices(points)
+        for child in ("forearm.L","forearm.R","shin.L","shin.R"):
+            joint = next(b for b in bones if b.name == child).head
+            previous = None
+            for delta in range(0,101):
+                point = list(joint)
+                axis = 0 if child.startswith("forearm") else 2
+                sign = -1 if child == "forearm.R" else 1
+                point[axis] += sign*delta*.001*bounds.height
+                weights = regional_fallback_weights(point,bones,bounds,bone_guided=True)
+                self.assertLessEqual(len(weights),4)
+                self.assertTrue(all(math.isfinite(v) and v>0 for v in weights.values()))
+                self.assertAlmostEqual(sum(weights.values()),1)
+                if previous is not None:
+                    change = sum(abs(weights.get(n,0)-previous.get(n,0)) for n in set(weights)|set(previous))
+                    self.assertLess(change,.12,(child,delta))
+                previous = weights
+
+    def test_legacy_solver_does_not_consult_the_hinge_prior(self):
+        with patch("core.rig_skinning._hinge_neighbourhood",side_effect=AssertionError("V1 touched V2 prior")):
+            self.assertEqual(self.weights((.45,0,1.2)),self.weights((.45,0,1.2)))
+
+    def test_overlapping_hinges_never_choose_an_excluded_region_or_drop_all_weights(self):
+        points = biped_points(wrist_z=.74)
+        bones,_ = fit_canonical_biped_v2(points)
+        bounds = bounds_from_vertices(points)
+        knee = next(b for b in bones if b.name == "shin.L").head
+        # The arm chain spatially overlaps a leg, but is excluded by region.
+        overlapping = tuple(replace(b,head=knee) if b.name == "forearm.L" else
+                            replace(b,tail=knee) if b.name == "upper_arm.L" else b for b in bones)
+        weights = regional_fallback_weights(knee,overlapping,bounds,bone_guided=True)
+        self.assertEqual(set(weights),{"thigh.L","shin.L"})
+        self.assertAlmostEqual(sum(weights.values()),1)
+
+    def test_fitted_grid_keeps_midline_fallback_and_full_finite_coverage(self):
+        points = biped_points(wrist_z=.74)
+        bones,_ = fit_canonical_biped_v2(points)
+        bounds = bounds_from_vertices(points)
+        for fx in (0,.25,.5,.75,1):
+            for fy in (0,.5,1):
+                for fz in (0,.2,.4,.6,.8,1):
+                    point = tuple(low+fraction*(high-low) for low,high,fraction in
+                                  zip(bounds.minimum,bounds.maximum,(fx,fy,fz)))
+                    weights = regional_fallback_weights(point,bones,bounds,bone_guided=True)
+                    self.assertTrue(1 <= len(weights) <= 4)
+                    self.assertTrue(all(math.isfinite(v) and v>0 for v in weights.values()))
+                    self.assertAlmostEqual(sum(weights.values()),1)
 
 
 if __name__ == "__main__":

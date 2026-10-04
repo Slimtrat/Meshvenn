@@ -108,6 +108,26 @@ def _attachment_axial_gate(name, point, bones, height):
     return gate
 
 
+def _hinge_neighbourhood(point, bones, bounds, gates):
+    """Fade nonadjacent chains out of a fitted elbow/knee neighbourhood.
+
+    Use only the strongest neighbourhood, so overlapping spatial priors never
+    exclude every bone. The midline retains its ambiguous axial fallback.
+    """
+    strongest = (0.0, frozenset())
+    lateral = (point[0]-bounds.center_x)/bounds.height
+    for side, sign in (("L", 1), ("R", -1)):
+        side_gate = _smoothstep(.015, .04, sign*lateral)
+        for family, parent, child in (("arm", "upper_arm", "forearm"), ("leg", "thigh", "shin")):
+            if gates[f"{family}.{side}"] <= 0.0:
+                continue
+            distance = math.dist(point, bones[f"{child}.{side}"].head)/bounds.height
+            blend = (1.0-_smoothstep(.04, .10, distance))*side_gate
+            if blend > strongest[0]:
+                strongest = (blend, frozenset((f"{parent}.{side}", f"{child}.{side}")))
+    return strongest
+
+
 def regional_fallback_weights(
     point: Sequence[float],
     bones: Sequence[BoneSpec],
@@ -145,15 +165,22 @@ def regional_fallback_weights(
     softness = max(0.040 * bounds.height / scale, 0.025 * bounds.width / scale, 1e-8)
     gates = (_fitted_region_gates(coordinates, deform, bounds) if bone_guided
              else _region_gates(coordinates, bounds))
+    hinge_blend, hinge_bones = (_hinge_neighbourhood(coordinates, deform, bounds, gates)
+                               if bone_guided else (0.0, frozenset()))
+    # Broaden the parent/child transition only near the fitted hinge. A narrow
+    # inverse-distance kernel folds nearby surface edges more sharply at 90°.
+    local_softness = softness * (1.0+.75*hinge_blend)
     scores: list[tuple[float, str]] = []
     for name in sorted(_REQUIRED):
         gate = _bone_gate(name, gates)
         if bone_guided and name in _AXIAL:
             gate *= _attachment_axial_gate(name,coordinates,deform,bounds.height)
+        if name not in hinge_bones:
+            gate *= 1.0-hinge_blend
         if gate <= 0.0:
             continue
         distance = _segment_distance(coordinates, deform[name], scale)
-        score = gate / (distance * distance + softness * softness) ** 1.5
+        score = gate / (distance * distance + local_softness * local_softness) ** 1.5
         if not math.isfinite(score) or score <= 0.0:
             raise ValueError("Cannot calculate finite skin weights for this mesh.")
         scores.append((score, name))

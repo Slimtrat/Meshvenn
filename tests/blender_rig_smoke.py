@@ -181,8 +181,8 @@ def _check_success(package_name: str, implementation, *, dense=False):
     _require(all(role and name for role, name in rig.semantic_bones.items()), "Empty semantic role")
     _require(rig.binding_method in {"blender-bone-heat", "canonical-distance", "canonical-envelope-v2"}, "Unknown binding method")
     if rig.implementation_id == "canonical-biped-v2":
-        _require(result.metadata["skinning_algorithm"] == "regional-fitted-v2-joint-blend",
-                 "V2 did not identify the joint-blend skinning revision")
+        _require(result.metadata["skinning_algorithm"] == "regional-fitted-v2-hinge-blend",
+                 "V2 did not identify the hinge-blend skinning revision")
     _require(any(
         modifier.type == "ARMATURE" and modifier.object is armature
         for modifier in obj.modifiers
