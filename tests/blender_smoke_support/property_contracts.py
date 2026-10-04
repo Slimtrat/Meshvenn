@@ -294,6 +294,7 @@ def _validate_pipeline_defaults(
         "Default Motion source path must be empty.",
     )
     _require(not settings.motion_preserve_pelvis_height, "Pelvis-height transfer must remain opt-in.")
+    _require(not settings.motion_contact_ik, "Contact IK must remain opt-in.")
 
     _require(
         settings.glb_input_path == ""
@@ -326,6 +327,8 @@ def _validate_pipeline_defaults(
     _require(default_context.metadata["motion_preserve_pelvis_height"] is False,
              "Default pelvis-height runtime metadata is incorrect.")
     settings.motion_preserve_pelvis_height = True
+    _require(default_context.metadata["motion_contact_ik"] is False, "Contact IK runtime default is incorrect.")
+    settings.motion_contact_ik = True
 
     settings.glb_input_path = "assets/source.glb"
     settings.glb_normalized_extent = 3.5
@@ -336,6 +339,8 @@ def _validate_pipeline_defaults(
     _require(configured_context.metadata["motion_preserve_pelvis_height"] is True,
              "Configured pelvis-height runtime metadata was not passed through.")
     settings.motion_preserve_pelvis_height = False
+    _require(configured_context.metadata["motion_contact_ik"] is True, "Contact IK runtime flag was not transmitted.")
+    settings.motion_contact_ik = False
     _require(
         configured_context.metadata["glb_input_path"]
         == bpy.path.abspath(settings.glb_input_path)

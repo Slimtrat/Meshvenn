@@ -92,7 +92,7 @@ def prepare_target(path: Path, output: Path, *, observe_contacts=False):
     return context,pipeline,rig,reference,height,imported.profile.identifier,neutral
 
 
-def observe_target(rig, motion, reference, height, *, imported_actions=None, armature=None, mesh=None):
+def observe_target(rig, motion, reference, height, *, imported_actions=None, armature=None, mesh=None, surface_step=1):
     armature = armature or rig.armature_object
     roles = {role:name for role,name in rig.semantic_bones.items() if role != "root"}
     originals = {clip["name"]:clip for clip in reference["clips"]}
@@ -113,11 +113,11 @@ def observe_target(rig, motion, reference, height, *, imported_actions=None, arm
                           "fps": clip.fps, "action": imported_actions[clip.name] if imported_actions is not None
                           else clip.action} for clip in motion.clips]
         result["contacts"] = observe_surfaces(mesh or rig.blender_object, armature, surface_clips,
-                                             reference["contacts"]["probes"], _bind_action)
+                                             reference["contacts"]["probes"], _bind_action, step=surface_step)
     return result
 
 
-def observe_export(path, rig, motion, reference, height):
+def observe_export(path, rig, motion, reference, height, *, surface_step=1):
     objects = set(bpy.data.objects)
     bpy.ops.import_scene.gltf(filepath=str(path),bone_heuristic="TEMPERANCE")
     imported = tuple(obj for obj in bpy.data.objects if obj not in objects)
@@ -137,4 +137,4 @@ def observe_export(path, rig, motion, reference, height):
         if track is None or len(track.strips) != 1 or track.strips[0].action is None:
             raise AssertionError(f"Motion GLB lost clip: {clip.name}")
         actions[clip.name] = track.strips[0].action
-    return observe_target(rig,motion,reference,height,imported_actions=actions,armature=arms[0],mesh=bound[0])
+    return observe_target(rig,motion,reference,height,imported_actions=actions,armature=arms[0],mesh=bound[0],surface_step=surface_step)

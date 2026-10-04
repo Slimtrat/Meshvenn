@@ -27,11 +27,14 @@ from .retarget import (
     snapshot_target_animation,
 )
 from .source import cleanup_imported_data, import_external_motion, snapshot_blender_data
+from .contact_surface import SoleSurface, observe_source_clip
+from .contact_ik import bake_contact_ik, validate_contact_target
 
 
 IMPLEMENTATION_ID = "canonical-motion-retarget-v1"
 SOURCE_PATH_METADATA_KEY = "motion_source_path"
 PELVIS_HEIGHT_METADATA_KEY = "motion_preserve_pelvis_height"
+CONTACT_IK_METADATA_KEY = "motion_contact_ik"
 
 
 def _mesh_height(meshes):
@@ -89,6 +92,10 @@ def _restore_blender_state(scene: Any, state: _BlenderState) -> None:
 def _require_target(context: PipelineContext) -> tuple[RigOutput, Any, Path]:
     if type(context.metadata.get(PELVIS_HEIGHT_METADATA_KEY, False)) is not bool:
         raise ValueError("motion_preserve_pelvis_height must be a boolean")
+    if type(context.metadata.get(CONTACT_IK_METADATA_KEY, False)) is not bool:
+        raise ValueError("motion_contact_ik must be a boolean")
+    if context.metadata.get(CONTACT_IK_METADATA_KEY, False) and not context.metadata.get(PELVIS_HEIGHT_METADATA_KEY, False):
+        raise ValueError("Contact IK requires Preserve Pelvis Height")
     rig = context.require_output(PipelineStage.RIG)
     if not isinstance(rig, RigOutput):
         raise TypeError("Canonical motion requires a RigOutput from the RIG stage")
@@ -113,6 +120,8 @@ def _require_target(context: PipelineContext) -> tuple[RigOutput, Any, Path]:
         rig.semantic_bones,
         armature.data.bones.keys(),
     )
+    if context.metadata.get(CONTACT_IK_METADATA_KEY, False):
+        validate_contact_target(rig)
     return rig, armature, source_path
 
 
@@ -133,6 +142,7 @@ class CanonicalMotionRetargetImplementation:
             "baked-quaternion-action",
             "in-place-root",
             "optional-scaled-pelvis-height",
+            "optional-baked-contact-ik",
         ),
     )
 
@@ -151,6 +161,7 @@ class CanonicalMotionRetargetImplementation:
             "source_path": str(source_path),
             "root_motion_mode": ROOT_MOTION_MODE,
             "preserve_pelvis_height": context.metadata.get(PELVIS_HEIGHT_METADATA_KEY, False),
+            "contact_ik": context.metadata.get(CONTACT_IK_METADATA_KEY, False),
         })
 
     def draw_settings(self, layout, context) -> None:
@@ -164,6 +175,11 @@ class CanonicalMotionRetargetImplementation:
             return
         box.prop(settings, "motion_source_path", text="Source GLB")
         box.prop(settings, "motion_preserve_pelvis_height")
+        row = box.row()
+        row.enabled = settings.motion_preserve_pelvis_height
+        row.prop(settings, "motion_contact_ik")
+        if settings.motion_contact_ik and not settings.motion_preserve_pelvis_height:
+            box.label(text="Contact IK requires Preserve Pelvis Height", icon="ERROR")
         if not settings.motion_source_path.strip():
             warning = box.row()
             warning.alert = True
@@ -208,6 +224,11 @@ class CanonicalMotionRetargetImplementation:
                 source_meshes = [obj for obj in imported.imported_objects if obj.type == "MESH" and any(
                     modifier.type == "ARMATURE" and modifier.object is imported.armature for modifier in obj.modifiers)]
                 pelvis_scale = _mesh_height((rig.blender_object,)) / _mesh_height(source_meshes)
+            contacts_enabled = context.metadata.get(CONTACT_IK_METADATA_KEY, False)
+            source_surface = target_surface = None
+            if contacts_enabled:
+                source_surface = SoleSurface(source_meshes, imported.armature, bone_map.source_bone_map)
+                target_surface = SoleSurface((rig.blender_object,), target_armature, rig.semantic_bones, target=True)
             root_bone = rig.semantic_bones["root"]
             target_snapshot = snapshot_target_animation(
                 target_armature,
@@ -215,7 +236,9 @@ class CanonicalMotionRetargetImplementation:
             )
             fps = scene.render.fps / scene.render.fps_base
             baked = []
+            contact_reports = []
             for source_action in imported.actions:
+                contact_source = observe_source_clip(source_surface, imported.armature, source_action, fps) if contacts_enabled else None
                 result = bake_retargeted_action(
                     imported.armature,
                     target_armature,
@@ -227,6 +250,8 @@ class CanonicalMotionRetargetImplementation:
                     pelvis_height_scale=pelvis_scale,
                 )
                 generated_actions.append(result.action)
+                if contacts_enabled:
+                    contact_reports.append(bake_contact_ik(rig, result, contact_source, target_surface))
                 baked.append(result)
             if not baked:
                 raise RuntimeError("No source animation was baked")
@@ -255,7 +280,11 @@ class CanonicalMotionRetargetImplementation:
                 "root_motion_mode": ROOT_MOTION_MODE,
                 "preserve_pelvis_height": pelvis_scale is not None,
                 "pelvis_height_scale": pelvis_scale,
+                "contact_ik": {"enabled": contacts_enabled, "clips": contact_reports,
+                               "policy": "source near-ground proxies; relative foot trajectory; flat rest floor; no world lock"},
             }
+            limited = sum(report["limited_sample_count"] for report in contact_reports)
+            metrics["contact_ik"]["limited_sample_count"] = limited
             output = MotionOutput(
                 rig=rig,
                 armature_object=target_armature,
@@ -283,6 +312,7 @@ class CanonicalMotionRetargetImplementation:
                 message=(
                     f"Retargeted {len(clips)} clip(s) across {len(bone_map.entries)} "
                     "canonical roles with in-place root motion."
+                    + (f" Inferred contact IK: {limited} limited samples; see residuals." if contacts_enabled else "")
                 ),
                 metrics=metrics,
                 metadata={

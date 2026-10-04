@@ -398,6 +398,14 @@ class BPT_PG_Settings(
         default=False,
     )
 
+    motion_contact_ik: BoolProperty(
+        name="Contact IK",
+        description=("Bake leg IK from inferred source sole contacts on the flat rest floor; "
+                     "0.2% height clearance, preserves relative foot travel, requires Preserve Pelvis Height; "
+                     "no physics or world lock"),
+        default=False,
+    )
+
     # =====================================================
     # EXPORT — GLB Export V1
     # =====================================================
