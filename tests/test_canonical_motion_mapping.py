@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -52,6 +53,8 @@ class CanonicalMotionMappingTests(unittest.TestCase):
                 "rigged-figure-v1": "RiggedFigure.glb",
                 "khronos-fox-v1": "Fox.glb",
                 "threejs-robot-expressive-v1": "RobotExpressive.glb",
+                "mixamo-humanoid-v1": "QuaterniusHuman.glb",
+                "unreal-mannequin-v1": "UAL1_Standard.glb",
             },
         )
         self.assertEqual(mapping.KHRONOS_FOX_PROFILE.rig_archetype, "quadruped")
@@ -79,6 +82,34 @@ class CanonicalMotionMappingTests(unittest.TestCase):
             with self.subTest(profile=profile.identifier):
                 detected = mapping.detect_source_profile(profile.required_bones)
                 self.assertEqual(detected.identifier, profile.identifier)
+
+    def test_certified_profiles_resolve_from_real_fixture_skin_joints(self) -> None:
+        from core.glb_route import PRESERVE_SOURCE_ROUTE, decide_glb_character_route
+        from tests.test_v2_assets import glb_document
+
+        example = ROOT / "example" / "v2"
+        manifest = json.loads((example / "manifest.json").read_text(encoding="utf-8"))
+        assets = {Path(asset["file"]).name: asset for asset in manifest["assets"]}
+        for profile in mapping.SOURCE_PROFILES:
+            if profile.certification != "e2e":
+                continue
+            with self.subTest(profile=profile.identifier):
+                asset = assets[profile.fixture]
+                document = glb_document(example / asset["file"])
+                joints = {document["nodes"][joint]["name"]
+                          for skin in document["skins"] for joint in skin["joints"]}
+                resolved = mapping.resolve_source_profile(joints)
+                self.assertEqual(resolved.profile, profile)
+                self.assertEqual(len(resolved.role_to_bone), 17)
+                decision = decide_glb_character_route(
+                    source_skin_count=asset["skins"], source_profile=profile.identifier,
+                    source_archetype=profile.rig_archetype,
+                    source_certification=profile.certification,
+                    compatible_targets=profile.compatible_target_rigs,
+                    source_animation_count=asset["animations"],
+                )
+                self.assertEqual(decision.route, PRESERVE_SOURCE_ROUTE)
+                self.assertFalse(decision.losses)
 
     def test_mixamo_namespaces_case_and_separators_are_normalized(self) -> None:
         names = {

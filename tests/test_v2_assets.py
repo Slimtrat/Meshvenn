@@ -47,20 +47,20 @@ class V2AssetTests(unittest.TestCase):
         cls.manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
 
     def test_corpus_is_pinned_and_complete(self) -> None:
-        self.assertEqual(self.manifest["schema_version"], 3)
+        self.assertEqual(self.manifest["schema_version"], 4)
         sources = self.manifest["sources"]
-        self.assertEqual(set(sources), {"khronos", "threejs"})
+        self.assertEqual(set(sources), {"khronos", "threejs", "avatar_stage", "quaternius_mirror"})
         for source in sources.values():
             self.assertRegex(source["revision"], r"^[0-9a-f]{40}$")
             self.assertRegex(source["repository"], r"^https://github\.com/")
         assets = self.manifest["assets"]
-        self.assertEqual(len(assets), 8)
+        self.assertEqual(len(assets), 10)
         self.assertEqual(len({asset["id"] for asset in assets}), len(assets))
         self.assertEqual({asset["source"] for asset in assets}, set(sources))
         listed = {asset["file"] for asset in assets}
         actual = {path.relative_to(EXAMPLE_ROOT).as_posix() for path in (EXAMPLE_ROOT / "assets").glob("*.glb")}
         self.assertEqual(listed, actual)
-        self.assertEqual(sum(asset["skins"] > 0 for asset in assets), 4)
+        self.assertEqual(sum(asset["skins"] > 0 for asset in assets), 6)
 
     def test_bytes_hashes_licenses_and_gltf_structure(self) -> None:
         for asset in self.manifest["assets"]:
@@ -78,6 +78,49 @@ class V2AssetTests(unittest.TestCase):
                 for field in ("meshes", "skins", "animations"):
                     self.assertEqual(len(document.get(field, [])), asset[field])
                 self.assertTrue(all(mesh.get("primitives") for mesh in document["meshes"]))
+
+    def test_new_humanoids_have_traceable_cc0_sources_and_clip_inventory(self) -> None:
+        fixtures = {asset["profile"]: asset for asset in self.manifest["assets"]
+                    if asset.get("profile") in {"mixamo-humanoid-v1", "unreal-mannequin-v1"}}
+        self.assertEqual(set(fixtures), {"mixamo-humanoid-v1", "unreal-mannequin-v1"})
+        for asset in fixtures.values():
+            with self.subTest(profile=asset["profile"]):
+                self.assertEqual(asset["license"], "CC0-1.0")
+                self.assertRegex(asset["license_url"], r"^https://")
+                self.assertTrue(asset["source_path"].endswith(".glb"))
+                self.assertNotIn("..", Path(asset["source_path"]).parts)
+                document = glb_document(EXAMPLE_ROOT / asset["file"])
+                names = [clip["name"] for clip in document["animations"]]
+                self.assertEqual(len(names), len(set(names)))
+                self.assertTrue(set(asset["static_clips"]) <= set(names))
+
+    def test_unreal_static_clip_exceptions_match_source_keyframe_data(self) -> None:
+        asset = next(item for item in self.manifest["assets"] if item["id"] == "quaternius_ual1")
+        path = EXAMPLE_ROOT / asset["file"]
+        data = path.read_bytes()
+        document = glb_document(path)
+        json_length = struct.unpack_from("<I", data, 12)[0]
+        binary_offset = 20 + json_length + 8
+        static = set()
+        for clip in document["animations"]:
+            changing = False
+            for sampler in clip["samplers"]:
+                self.assertEqual(sampler.get("interpolation", "LINEAR"), "LINEAR")
+                accessor = document["accessors"][sampler["output"]]
+                self.assertNotIn("sparse", accessor)
+                self.assertEqual(accessor["componentType"], 5126)
+                width = {"VEC3": 3, "VEC4": 4}[accessor["type"]]
+                view = document["bufferViews"][accessor["bufferView"]]
+                self.assertEqual(view["buffer"], 0)
+                offset = binary_offset + view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
+                stride = view.get("byteStride", 4 * width)
+                values = [struct.unpack_from("<" + "f" * width, data, offset + index * stride)
+                          for index in range(accessor["count"])]
+                changing |= any(max(row[axis] for row in values) - min(row[axis] for row in values) > 1.0e-6
+                                for axis in range(width))
+            if not changing:
+                static.add(clip["name"])
+        self.assertEqual(static, set(asset["static_clips"]))
 
 
 if __name__ == "__main__":

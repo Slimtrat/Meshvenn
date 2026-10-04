@@ -467,16 +467,20 @@ Motion card.
 
 Six deterministic adapters are registered: Khronos RiggedFigure, Khronos Fox,
 three.js RobotExpressive, Mixamo humanoid, Unreal Mannequin and Meshvenn
-Canonical. RiggedFigure, RobotExpressive and Fox are E2E-certified through the
-source-preservation route with respectively 1, 14 and 3 non-constant clips and
-a score of 100. RiggedFigure and RobotExpressive are also certified through the
+Canonical. RiggedFigure, RobotExpressive, Fox, QuaterniusHuman (Mixamo-compatible)
+and Quaternius UAL1 (Unreal-compatible) are E2E-tested through source preservation
+with respectively 1, 14, 3, 7 and 43 clips. UAL1 includes four deliberately static
+reference poses; their source keyframes and preserved poses are checked separately
+from moving clips. These CC0 fixtures are not Adobe or Epic assets, and passing
+them does not certify every external skeleton variant or an Unreal Engine import.
+RiggedFigure and RobotExpressive are also certified through the
 canonical humanoid route. Fox remains deliberately rejected by Canonical Biped,
 but now completes through its semantically correct quadruped source rig. The
-remaining adapters are contract-tested until redistributable fixtures are
-added. RiggedSimple is classified as insufficient because two generic bones
+Meshvenn Canonical adapter remains contract-tested. RiggedSimple is classified
+as insufficient because two generic bones
 cannot establish a complete mapping. Heuristic mapping of unknown skeletons is
 not supported. The automatic Blender/CI matrix verifies RiggedFigure and
-RobotExpressive and Fox through source preservation, and
+RobotExpressive, Fox and both Quaternius fixtures through source preservation, and
 RiggedSimple plus ToyCar through the geometry-only safety route.
 
 The optional **GLB Export V1** stage publishes single- or multi-mesh geometry as
@@ -647,7 +651,7 @@ Python / Blender validation
 
 The CI also creates installable Blender extension artifacts.
 
-The [GLB reference examples V2](example/v2/README.md) provide eight pinned,
+The [GLB reference examples V2](example/v2/README.md) provide ten pinned,
 individually licensed models. A dedicated CI workflow benchmarks reconstruction
 from ten rendered views and publishes silhouette, 3D surface and rig-quality scores.
 It also gates the complete product path through fresh rigging, Motion, GLB Export

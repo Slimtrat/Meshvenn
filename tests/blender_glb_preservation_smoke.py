@@ -23,6 +23,8 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--expected-profile", required=True)
     parser.add_argument("--expected-archetype", required=True)
     parser.add_argument("--expected-animations", type=int, required=True)
+    parser.add_argument("--static-clip", action="append", default=[],
+                        help="Named authored reference-pose clip expected to remain constant")
     parser.add_argument("--unsupported-input", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
@@ -235,8 +237,10 @@ def main() -> None:
     )
     spans = {clip.name: _clip_pose_span(rig.armature_object, clip) for clip in motion.clips}
     _require(
-        spans and all(span > 1.0e-4 for span in spans.values()),
-        f"Preserved source contains a constant clip: {spans}",
+        spans and set(args.static_clip) <= spans.keys()
+        and all((span <= 1.0e-4) if name in args.static_clip else (span > 1.0e-4)
+                for name, span in spans.items()),
+        f"Preservation violated the static/dynamic clip inventory: {spans}",
     )
     manifest = manifest_module.inspect_glb(exported.path)
     _require(manifest.skin_count >= 1, "Preserved export lost its skin")

@@ -201,6 +201,8 @@ MIXAMO_HUMANOID_PROFILE = MotionSourceProfile(
         ("shin.R", "RightLeg"),
         ("foot.R", "RightFoot"),
     ),
+    certification="e2e",
+    fixture="QuaterniusHuman.glb",
 )
 
 UNREAL_MANNEQUIN_PROFILE = MotionSourceProfile(
@@ -224,6 +226,8 @@ UNREAL_MANNEQUIN_PROFILE = MotionSourceProfile(
         ("shin.R", "calf_r"),
         ("foot.R", "foot_r"),
     ),
+    certification="e2e",
+    fixture="UAL1_Standard.glb",
 )
 
 MESHVENN_CANONICAL_PROFILE = MotionSourceProfile(
