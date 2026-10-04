@@ -14,6 +14,37 @@ FIXTURES = {
 }
 
 
+def compare_pelvis_height(reference, candidate, *, preserved):
+    if type(preserved) is not bool:
+        raise ValueError("Pelvis height preservation must be boolean")
+    originals, targets = _clips(reference), _clips(candidate)
+    if originals.keys() != targets.keys():
+        raise AssertionError("Pelvis height lost a clip")
+    worst = {"integer": (0., None), "interframe": (0., None)}
+    for name, clip in originals.items():
+        target = targets[name]
+        if any(clip[k] != target[k] for k in ("frame_start", "frame_end", "fps")):
+            raise AssertionError("Pelvis height timing changed")
+        for before, after in zip(clip["samples"], target["samples"]):
+            source_height, height = before["pelvis_height_offset_in_heights"], after["pelvis_height_offset_in_heights"]
+            if any(type(v) not in (int, float) or not math.isfinite(v) for v in (source_height, height)):
+                raise ValueError("Pelvis height observations must be finite")
+            error = abs(height - (source_height if preserved else 0.))
+            kind = "integer" if float(before["frame"]).is_integer() else "interframe"
+            if error >= worst[kind][0]: worst[kind] = (error, {"clip": name, "frame": before["frame"]})
+    return {kind: {"max_error_in_heights": value, "worst_sample": sample} for kind, (value, sample) in worst.items()}
+
+
+def check_pelvis_height(reference, candidate, *, preserved, integer_limit=1e-5, interframe_limit=.003):
+    if any(type(v) not in (int, float) or not math.isfinite(v) or v < 0 for v in (integer_limit, interframe_limit)):
+        raise ValueError("Pelvis height limits must be finite and nonnegative")
+    report = compare_pelvis_height(reference, candidate, preserved=preserved)
+    for kind, limit in (("integer", integer_limit), ("interframe", interframe_limit)):
+        if report[kind]["max_error_in_heights"] > limit:
+            raise AssertionError(f"Pelvis height {kind} transfer changed: {report[kind]}")
+    return report
+
+
 def sample_frames(start, end):
     if any(type(v) not in (int,float) or not math.isfinite(v) or not float(v).is_integer()
            for v in (start,end)) or end <= start:

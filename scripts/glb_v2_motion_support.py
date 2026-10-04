@@ -12,6 +12,7 @@ from scripts.benchmark_rig_v2 import (
     REPO_ROOT, EXPECTED_BONES, _package_modules, _source_limb_regions, _prepare_unrigged_input,
 )
 from scripts.glb_v2_motion_metrics import sample_frames
+from scripts.glb_v2_contact_support import source_sole_probes, observe_surfaces
 
 
 def _bind_action(armature, action):
@@ -39,12 +40,15 @@ def observe_clip(armature, action, roles, *, name, start, end, fps, height, root
             deltas[role] = list(pose @ rest.inverted())
         position = armature.matrix_world @ armature.pose.bones[root].head
         rest_position = armature.matrix_world @ armature.data.bones[root].head_local
+        pelvis = armature.matrix_world @ armature.pose.bones[roles["pelvis"]].head
+        pelvis_rest = armature.matrix_world @ armature.data.bones[roles["pelvis"]].head_local
         samples.append({"frame":frame, "rotations":deltas,
-                        "root_offset_in_heights":[v/height for v in position-rest_position]})
+                        "root_offset_in_heights":[v/height for v in position-rest_position],
+                        "pelvis_height_offset_in_heights":(pelvis.z-pelvis_rest.z)/height})
     return {"name":name, "frame_start":start, "frame_end":end, "fps":fps, "samples":samples}
 
 
-def prepare_target(path: Path, output: Path):
+def prepare_target(path: Path, output: Path, *, observe_contacts=False):
     _,pipeline,rig_module = _package_modules("canonical-biped-v2")
     package = REPO_ROOT.name
     source_module = importlib.import_module(f"{package}.implementations.canonical_motion.source")
@@ -52,19 +56,30 @@ def prepare_target(path: Path, output: Path):
     imported = source_module.import_external_motion(path,source_module.snapshot_blender_data())
     source = imported.armature
     roles = dict(mapping.resolve_source_profile(source.data.bones.keys()).role_to_bone)
+    meshes = [obj for obj in imported.imported_objects if obj.type == "MESH" and any(
+        modifier.type == "ARMATURE" and modifier.object is source for modifier in obj.modifiers)]
+    mesh = max(meshes,key=lambda obj:len(obj.data.vertices))
+    source_z = [float((obj.matrix_world @ v.co).z) for obj in meshes for v in obj.data.vertices]
+    source_height = max(source_z)-min(source_z)
     fps = bpy.context.scene.render.fps / bpy.context.scene.render.fps_base
     reference = {"clips":[observe_clip(source,action,roles,name=action.name,
                                        start=math.floor(action.frame_range[0]),end=math.ceil(action.frame_range[1]),
-                                       fps=fps,height=1,root=roles["pelvis"])
+                                       fps=fps,height=source_height,root=roles["pelvis"])
                            for action in imported.actions]}
     source.animation_data.action = None
     source.animation_data.use_nla = False
     source.data.pose_position = "REST"
     bpy.context.scene.frame_set(0)
     bpy.context.view_layer.update()
-    meshes = [obj for obj in imported.imported_objects if obj.type == "MESH" and any(
-        modifier.type == "ARMATURE" and modifier.object is source for modifier in obj.modifiers)]
-    mesh = max(meshes,key=lambda obj:len(obj.data.vertices))
+    if observe_contacts:
+        probes = source_sole_probes(mesh, source, roles)
+        clips = [{"name": action.name, "action": action, "fps": fps,
+                  "frame_start": math.floor(action.frame_range[0]),
+                  "frame_end": math.ceil(action.frame_range[1])} for action in imported.actions]
+        reference["contacts"] = observe_surfaces(mesh, source, clips, probes, _bind_action)
+        source.animation_data.action = None
+        source.data.pose_position = "REST"
+        bpy.context.view_layer.update()
     heads = {bone.name:tuple(source.matrix_world @ bone.head_local) for bone in source.data.bones}
     labels = _source_limb_regions(mesh,source,roles)
     context,mesh,_,_,neutral = _prepare_unrigged_input(mesh,heads,labels,output,pipeline)
@@ -77,7 +92,7 @@ def prepare_target(path: Path, output: Path):
     return context,pipeline,rig,reference,height,imported.profile.identifier,neutral
 
 
-def observe_target(rig, motion, reference, height, *, imported_actions=None, armature=None):
+def observe_target(rig, motion, reference, height, *, imported_actions=None, armature=None, mesh=None):
     armature = armature or rig.armature_object
     roles = {role:name for role,name in rig.semantic_bones.items() if role != "root"}
     originals = {clip["name"]:clip for clip in reference["clips"]}
@@ -92,7 +107,14 @@ def observe_target(rig, motion, reference, height, *, imported_actions=None, arm
         action = imported_actions[clip.name] if imported_actions is not None else clip.action
         clips.append(observe_clip(armature,action,roles,name=clip.name,start=clip.frame_start,
                                   end=clip.frame_end,fps=clip.fps,height=height,root=rig.semantic_bones["root"]))
-    return {"clips":clips}
+    result = {"clips": clips}
+    if "contacts" in reference:
+        surface_clips = [{"name": clip.name, "frame_start": clip.frame_start, "frame_end": clip.frame_end,
+                          "fps": clip.fps, "action": imported_actions[clip.name] if imported_actions is not None
+                          else clip.action} for clip in motion.clips]
+        result["contacts"] = observe_surfaces(mesh or rig.blender_object, armature, surface_clips,
+                                             reference["contacts"]["probes"], _bind_action)
+    return result
 
 
 def observe_export(path, rig, motion, reference, height):
@@ -115,4 +137,4 @@ def observe_export(path, rig, motion, reference, height):
         if track is None or len(track.strips) != 1 or track.strips[0].action is None:
             raise AssertionError(f"Motion GLB lost clip: {clip.name}")
         actions[clip.name] = track.strips[0].action
-    return observe_target(rig,motion,reference,height,imported_actions=actions,armature=arms[0])
+    return observe_target(rig,motion,reference,height,imported_actions=actions,armature=arms[0],mesh=bound[0])

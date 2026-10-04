@@ -391,6 +391,13 @@ class BPT_PG_Settings(
         subtype="FILE_PATH",
     )
 
+    motion_preserve_pelvis_height: BoolProperty(
+        name="Preserve Pelvis Height",
+        description=("Transfer vertical pelvis displacement scaled by rest-mesh height; "
+                     "root stays in place, without foot locking or IK"),
+        default=False,
+    )
+
     # =====================================================
     # EXPORT — GLB Export V1
     # =====================================================

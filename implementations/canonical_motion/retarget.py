@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import bpy
+from mathutils import Vector
 
 from .mapping import ResolvedBoneMap
 
@@ -136,9 +137,13 @@ def bake_retargeted_action(
     fps: float,
     action_name: str,
     root_motion_mode: str = ROOT_MOTION_MODE,
+    pelvis_height_scale: float | None = None,
 ) -> BakedAction:
     if root_motion_mode != ROOT_MOTION_MODE:
         raise ValueError(f"Unsupported root motion mode: {root_motion_mode}")
+    if pelvis_height_scale is not None and (type(pelvis_height_scale) not in (int, float)
+                                           or not math.isfinite(pelvis_height_scale) or pelvis_height_scale <= 0):
+        raise ValueError("Pelvis height scale must be finite and positive")
     start_value, end_value = (float(value) for value in source_action.frame_range)
     frame_start = math.floor(min(start_value, end_value))
     frame_end = math.ceil(max(start_value, end_value))
@@ -176,6 +181,13 @@ def bake_retargeted_action(
                 previous_quaternions.get(entry.target_bone),
             )
             pose_bone.rotation_quaternion = rotation
+            if entry.role == "pelvis" and pelvis_height_scale is not None:
+                source_pose = source_armature.matrix_world @ source_armature.pose.bones[entry.source_bone].head
+                source_rest = source_armature.matrix_world @ source_armature.data.bones[entry.source_bone].head_local
+                delta = Vector((0, 0, (source_pose.z - source_rest.z) * pelvis_height_scale))
+                base_world = target_armature.matrix_world @ _base_pose_matrix(target_armature, entry.target_bone)
+                pose_bone.location = base_world.to_3x3().inverted() @ delta
+                pose_bone.keyframe_insert(data_path="location", frame=frame, group=entry.target_bone)
             pose_bone.keyframe_insert(
                 data_path="rotation_quaternion",
                 frame=frame,

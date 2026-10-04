@@ -507,6 +507,14 @@ Import, bake and cleanup are transactional: an unsupported or broken source
 leaves the target rig unchanged. The source GLB is selected directly in the
 Motion card.
 
+**Preserve Pelvis Height** is an opt-in Motion setting (off by default). It
+transfers vertical pelvis displacement, scaled by target/source rest-mesh
+height, while keeping the canonical root fixed and preserving the existing
+rotation solve. It is not foot locking or IK: crouch/jump height is retained,
+but different leg proportions and skinning can still cause floor penetration
+or sliding. Headless callers set `motion_preserve_pelvis_height=True` in pipeline
+metadata. Source-preservation routes and default AUTO routing are unchanged.
+
 Six deterministic adapters are registered: Khronos RiggedFigure, Khronos Fox,
 three.js RobotExpressive, Mixamo humanoid, Unreal Mannequin and Meshvenn
 Canonical. RiggedFigure, RobotExpressive, Fox, QuaterniusHuman (Mixamo-compatible)
