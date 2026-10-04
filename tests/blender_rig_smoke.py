@@ -127,9 +127,22 @@ def _evaluated_positions(obj):
         evaluated.to_mesh_clear()
 
 
-def _check_success(package_name: str, implementation):
+def _subdivide_mesh(obj) -> None:
+    for selected in tuple(bpy.context.selected_objects):
+        selected.select_set(False)
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.mesh.subdivide(number_cuts=4)
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+
+def _check_success(package_name: str, implementation, *, dense=False):
     rig_contracts = importlib.import_module(f"{package_name}.core.rig_contracts")
     obj = _create_biped_mesh()
+    if dense:
+        _subdivide_mesh(obj)
     obj.location = (2.0, -3.0, 0.5)
     obj.rotation_euler[2] = math.radians(20)
     obj.scale = (1.1, 1.1, 1.1)
@@ -142,7 +155,7 @@ def _check_success(package_name: str, implementation):
     result = implementation.execute(context)
     _require(result.success, f"Rig stage failed: {result.message}")
     _require(result.stage == pipeline.PipelineStage.RIG, "Incorrect result stage")
-    _require(result.implementation_id == "canonical-biped-v1", "Incorrect implementation ID")
+    _require(result.implementation_id == implementation.descriptor.identifier, "Incorrect implementation ID")
     rig = result.payload
     _require(isinstance(rig, rig_contracts.RigOutput), "Result payload is not RigOutput")
     _require((rig.schema_version, rig.up_axis, rig.forward_axis) == (1, "Z", "-Y"), "Rig axes or schema changed")
@@ -165,7 +178,7 @@ def _check_success(package_name: str, implementation):
     _require(actual_bones == EXPECTED_BONES, f"Unexpected bone names: {actual_bones ^ EXPECTED_BONES}")
     _require(set(rig.semantic_bones.values()) == EXPECTED_BONES, "Semantic bone map is incomplete")
     _require(all(role and name for role, name in rig.semantic_bones.items()), "Empty semantic role")
-    _require(rig.binding_method in {"blender-bone-heat", "canonical-distance"}, "Unknown binding method")
+    _require(rig.binding_method in {"blender-bone-heat", "canonical-distance", "canonical-envelope-v2"}, "Unknown binding method")
     _require(any(
         modifier.type == "ARMATURE" and modifier.object is armature
         for modifier in obj.modifiers
@@ -207,6 +220,7 @@ def _check_glb_roundtrip(package_name: str, context, rig) -> None:
         path = Path(temporary) / "canonical-biped.glb"
         context.metadata["export_output_path"] = str(path)
         context.metadata["export_overwrite_existing"] = False
+        context.metadata["export_validate_roundtrip"] = True
         export_module = importlib.import_module(
             f"{package_name}.implementations.glb_export"
         )
@@ -351,6 +365,49 @@ def _check_invalid_mesh(package_name: str, implementation):
     print("Invalid mesh rejected without Blender data leaks")
 
 
+def _check_v2_guards_and_rollback(package_name: str, implementation):
+    bpy.ops.mesh.primitive_cube_add(size=1)
+    block = bpy.context.object
+    _subdivide_mesh(block)
+    context, _, _ = _context(package_name, block)
+    availability = implementation.availability(context)
+    _require(not availability.ready, "Dense block was incorrectly accepted as a humanoid")
+    _require("arm envelopes" in availability.reason, availability.reason)
+    before = set(bpy.data.armatures)
+    result = implementation.execute(context)
+    _require(result.failed and set(bpy.data.armatures) == before, "Rejected block leaked an armature")
+    _require(not block.vertex_groups and not block.modifiers, "Rejected block was partially skinned")
+
+    mesh = _create_biped_mesh()
+    _subdivide_mesh(mesh)
+    group = mesh.vertex_groups.new(name="user-mask")
+    group.add(tuple(range(len(mesh.data.vertices))), .75, "REPLACE")
+    modifier = mesh.modifiers.new("User modifier", "MIRROR")
+    mesh["meshvenn_rig_fit"] = "user-existing-value"
+    context, _, _ = _context(package_name, mesh)
+    state = (set(bpy.data.armatures), set(bpy.data.objects), mesh.matrix_world.copy())
+    binding = importlib.import_module(f"{package_name}.implementations.canonical_rig_v2.implementation")
+    original = binding.bind_mesh_deterministic
+
+    def _fail_after_binding(*args, **kwargs):
+        original(*args, **kwargs)
+        raise RuntimeError("Injected failure after completed V2 skinning")
+
+    try:
+        binding.bind_mesh_deterministic = _fail_after_binding
+        result = implementation.execute(context)
+    finally:
+        binding.bind_mesh_deterministic = original
+    _require(result.failed and "Injected failure" in result.message, "Binding failure was not exercised")
+    _require(set(bpy.data.armatures) == state[0] and set(bpy.data.objects) == state[1], "V2 failure leaked rig data")
+    _require(tuple(mesh.modifiers) == (modifier,) and tuple(mesh.vertex_groups) == (group,), "V2 failure changed user binding data")
+    _require(all(abs(group.weight(vertex.index) - .75) < 1e-6 for vertex in mesh.data.vertices), "V2 failure altered user weights")
+    _require(mesh.parent is None and mesh.matrix_world == state[2], "V2 failure changed the mesh transform")
+    _require(mesh["meshvenn_rig_fit"] == "user-existing-value", "V2 failure changed user metadata")
+    _require(bpy.context.mode == "OBJECT" and bpy.context.view_layer.objects.active is mesh, "V2 failure changed UI state")
+    print("V2 rejects dense non-bipeds and rolls back failed binding without changing user data")
+
+
 def _cleanup(initial_objects, initial_meshes, initial_armatures):
     for obj in tuple(bpy.data.objects):
         if obj.as_pointer() not in initial_objects:
@@ -378,6 +435,9 @@ def main() -> None:
         _check_non_biped_warning(package_name, implementation)
         _check_regional_fallback(package_name, implementation)
         _check_invalid_mesh(package_name, implementation)
+        v2 = importlib.import_module(f"{package_name}.implementations.canonical_rig_v2").CanonicalRigV2Implementation()
+        _check_success(package_name, v2, dense=True)
+        _check_v2_guards_and_rollback(package_name, v2)
         print("Canonical Rig Blender smoke: PASS")
     finally:
         _cleanup(initial_objects, initial_meshes, initial_armatures)

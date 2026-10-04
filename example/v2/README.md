@@ -6,7 +6,15 @@ The geometry cases are Avocado, BarramundiFish, BoomBox and ToyCar. The rig case
 
 The asset bytes, SHA-256 hashes and glTF structure are checked by `tests/test_v2_assets.py`. Blender CI imports all ten files and benchmarks the four static geometry assets. Each geometry source GLB is rendered into ten 2D views, which alone feed the native reconstruction. The report measures silhouette IoU (minimum 0.65), plus a symmetric 3D surface Chamfer and F-score (minimum 0.60 at a distance of 5% of the longest model extent). A shape-proportion error above 0.25 also fails CI. The 3D comparison centres each model and normalizes its longest dimension, but never rotates or ICP-aligns it. Empty input views score zero.
 
-The rig benchmark uses RiggedFigure's geometry with its original armature stripped off. Each canonical implementation sees only this unrigged mesh; the source skeleton is reserved for scoring 17 corresponding joint positions. CI keeps the V1 baseline and independently gates Canonical Biped V2 at a mean joint-head error of 0.06 model heights and a maximum error of 0.10. It also checks 100% skin coverage, at most four influences per vertex, normalized weights, localized pose deformation, and GLB export/import preservation. V2 reports its envelope-fit evidence and uses deterministic regional binding. Fox remains a quadruped import/animation case, not a canonical-biped success fixture.
+The rig benchmark exports a rest-geometry GLB with zero skins/actions/groups, deletes all source objects, armature datablocks and actions, then runs that file through the product INPUT/GEOMETRY/RIG path. Only scoring retains reference joint positions and arm-region labels; the fitter cannot access the source rig or weights. UVs/materials survive the neutral export. CI keeps V1 as a baseline and gates V2 on three humanoids with explicit 17-role source correspondences:
+
+| Unrigged input derived from | Maximum mean / worst joint error (model heights) | Maximum mean unrelated arm weight |
+| --- | --- | --- |
+| RiggedFigure | 0.02 / 0.04 | 0.08 |
+| QuaterniusHuman | 0.035 / 0.07 | 0.015 |
+| UAL1_Standard | 0.04 / 0.09 | 0.02 |
+
+Each case also requires 100% skin coverage, at most four normalized influences, localized arm deformation before/after reimport and fail-before-publish export fidelity. Arm-region labels come only from confident source weights (at least 70% on that arm's descendants); mean and worst leakage are reported, and only the mean is gated. V2 measures independent arm trajectories and local depth, ignores duplicate UV-seam positions and binds regions using fitted joints. Dense non-humanoid blocks are rejected cleanly, and an injected post-binding failure verifies rollback of user data. Axial/hip heights remain explicit canonical priors, not inferred anatomy. Fox remains a quadruped preservation fixture, never a successful canonical biped fit.
 
 The Motion smoke builds a fresh Canonical Biped V2 target, retargets RiggedFigure's real source action across 17 semantic roles, requires non-constant bone and vertex motion, routes the result through GLB Export V1, and verifies the action after reimport. RiggedSimple is an explicit clean-rejection fixture: its two generic bones are insufficient for the canonical profile and must not leak imported data or mutate the target.
 
@@ -43,6 +51,8 @@ With Blender and the native library available:
 blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_glb_v2.py -- --asset avocado --output output/v2-benchmark
 blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- --output output/v2-rig
 blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- --implementation canonical-biped-v2 --output output/v2-rig-canonical-v2
+blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- --implementation canonical-biped-v2 --asset quaternius_human --max-mean-joint-error 0.035 --max-joint-error 0.07 --max-arm-unrelated-weight 0.015 --output output/v2-rig-human
+blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- --implementation canonical-biped-v2 --asset quaternius_ual1 --max-mean-joint-error 0.04 --max-joint-error 0.09 --max-arm-unrelated-weight 0.02 --output output/v2-rig-ual1
 blender --background --factory-startup --python-exit-code 1 --python tests/blender_glb_export_smoke.py -- --package-root . --output output/v2-export
 blender --background --factory-startup --python-exit-code 1 --python tests/blender_motion_smoke.py -- --output output/v2-motion
 blender --background --factory-startup --python-exit-code 1 --python tests/blender_glb_first_pipeline_smoke.py -- --package-root . --input example/v2/assets/RiggedFigure.glb --static-input example/v2/assets/ToyCar.glb --unsupported-input example/v2/assets/RiggedSimple.glb --output output/v2-glb-first

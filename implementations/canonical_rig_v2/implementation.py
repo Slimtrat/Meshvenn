@@ -37,6 +37,8 @@ def _prepare(context: PipelineContext):
     bones, fit = fit_canonical_biped_v2(vertices)
     if fit.confidence < 0.25:
         raise ValueError("Canonical Biped V2 could not observe both arm envelopes.")
+    if max(fit.left_arm_thickness_in_heights, fit.right_arm_thickness_in_heights) > 0.18:
+        raise ValueError("Canonical Biped V2 requires separated, slender arm envelopes; broad blocks are not limbs.")
     existing = {group.name for group in mesh.vertex_groups}
     conflicts = existing.intersection(spec.name for spec in bones)
     if conflicts:
@@ -130,11 +132,11 @@ class CanonicalRigV2Implementation:
             mesh["meshvenn_rig_semantics"] = json.dumps(semantic_bones, sort_keys=True)
             mesh["meshvenn_rig_quality"] = json.dumps(quality.as_dict(), sort_keys=True)
             mesh["meshvenn_rig_fit"] = json.dumps(fit.as_dict(), sort_keys=True)
-            mesh["meshvenn_rig_skinning_algorithm"] = "regional-envelope-v2"
+            mesh["meshvenn_rig_skinning_algorithm"] = "regional-fitted-v2"
             armature["meshvenn_rig_implementation"] = IMPLEMENTATION_ID
             context.metadata["rig_object_name"] = armature.name
             context.metadata["rig_binding_method"] = binding_method
-            context.metadata["rig_skinning_algorithm"] = "regional-envelope-v2"
+            context.metadata["rig_skinning_algorithm"] = "regional-fitted-v2"
             context.metadata["rig_quality"] = quality.as_dict()
             context.metadata["rig_fit"] = fit.as_dict()
             return StageExecutionResult.succeeded(
@@ -151,7 +153,7 @@ class CanonicalRigV2Implementation:
                     "mesh_name": mesh.name,
                     "geometry_implementation": geometry.implementation_id,
                     "binding_method": binding_method,
-                    "skinning_algorithm": "regional-envelope-v2",
+                    "skinning_algorithm": "regional-fitted-v2",
                     "rig_quality": quality.as_dict(),
                     "rig_fit": fit.as_dict(),
                 },
@@ -180,5 +182,5 @@ class CanonicalRigV2Implementation:
         box = layout.box()
         box.label(text="Canonical Biped V2", icon="ARMATURE_DATA")
         box.label(text="Envelope-guided A/T-pose fit")
-        box.label(text="Deterministic regional skinning")
+        box.label(text="Fitted-joint regional skinning")
         box.label(text="Best for upright biped characters", icon="INFO")

@@ -5,6 +5,9 @@ import unittest
 
 from core.canonical_rig import MeshBounds, fit_canonical_biped
 from core.rig_skinning import regional_fallback_weights
+from core.canonical_rig import bounds_from_vertices
+from core.canonical_rig_v2 import fit_canonical_biped_v2
+from tests.test_canonical_rig_v2 import biped_points
 
 
 class RegionalFallbackSkinningTests(unittest.TestCase):
@@ -98,6 +101,49 @@ class RegionalFallbackSkinningTests(unittest.TestCase):
             self.weights((0, 0, 1), bones=self.bones[:-1])
         with self.assertRaises(ValueError):
             self.weights((0, 0, 1), bones=(*self.bones, self.bones[-1]))
+
+    def test_fitted_t_pose_inner_arm_is_not_bound_to_the_torso(self) -> None:
+        points = biped_points(wrist_z=.74)
+        points = [(x * 1.3 if abs(x) > .22 else x, y, z) for x, y, z in points]
+        bones, _ = fit_canonical_biped_v2(points)
+        bounds = bounds_from_vertices(points)
+        inner_arm = (.15, 0, .74)
+        legacy = regional_fallback_weights(inner_arm, bones, bounds)
+        guided = regional_fallback_weights(inner_arm, bones, bounds, bone_guided=True)
+        arm_mass = lambda weights: sum(weight for name, weight in weights.items()
+                                      if name in {"upper_arm.L", "forearm.L", "hand.L"})
+        self.assertLess(arm_mass(legacy), .1)
+        self.assertGreater(arm_mass(guided), .90)
+
+    def test_fitted_solver_is_scale_invariant_and_keeps_sides_and_limits(self) -> None:
+        points = biped_points(wrist_z=.74)
+        bones, _ = fit_canonical_biped_v2(points)
+        bounds = bounds_from_vertices(points)
+        moved = [(2 + 3*x, -4 + 3*y, 7 + 3*z) for x,y,z in points]
+        moved_bones, _ = fit_canonical_biped_v2(moved)
+        moved_bounds = bounds_from_vertices(moved)
+        for point in ((.20, 0, .74), (-.30, 0, .74), (.06, 0, .25), (0, 0, .60)):
+            weights = regional_fallback_weights(point, bones, bounds, bone_guided=True)
+            transformed = (2 + 3*point[0], -4 + 3*point[1], 7 + 3*point[2])
+            other = regional_fallback_weights(transformed, moved_bones, moved_bounds, bone_guided=True)
+            self.assertLessEqual(len(weights), 4)
+            self.assertAlmostEqual(sum(weights.values()), 1)
+            self.assertEqual(set(weights), set(other))
+            for name in weights:
+                self.assertAlmostEqual(weights[name], other[name], places=10)
+            if point[0] > .05:
+                self.assertFalse(any(name.endswith('.R') for name in weights))
+            elif point[0] < -.05:
+                self.assertFalse(any(name.endswith('.L') for name in weights))
+
+    def test_fitted_solver_does_not_bind_high_head_points_to_arms(self) -> None:
+        points = biped_points(wrist_z=.74)
+        bones, _ = fit_canonical_biped_v2(points)
+        weights = regional_fallback_weights((.14, 0, .98), bones,
+                                             bounds_from_vertices(points), bone_guided=True)
+        self.assertTrue(weights)
+        self.assertTrue(all(name in {"pelvis", "spine", "chest", "neck", "head"}
+                            for name in weights))
 
 
 if __name__ == "__main__":

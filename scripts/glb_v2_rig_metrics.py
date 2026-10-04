@@ -23,11 +23,15 @@ RIGGED_FIGURE_LANDMARKS = {
 }
 
 
-def landmark_summary(reference: dict, generated: dict, model_height: float) -> dict:
+def landmark_summary(reference: dict, generated: dict, model_height: float,
+                     *, correspondence: dict | None = None) -> dict:
     if not math.isfinite(model_height) or model_height <= 0:
         raise ValueError("model_height must be positive and finite")
     errors = {}
-    for target_name, reference_name in RIGGED_FIGURE_LANDMARKS.items():
+    mapping = RIGGED_FIGURE_LANDMARKS if correspondence is None else correspondence
+    if not mapping:
+        raise ValueError("No corresponding rig landmarks")
+    for target_name, reference_name in mapping.items():
         if reference_name not in reference or target_name not in generated:
             raise ValueError(f"Missing corresponding rig landmark: {reference_name} / {target_name}")
         source = tuple(float(value) for value in reference[reference_name])

@@ -261,15 +261,30 @@ jobs:
             --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- \
             --output "${RUNNER_TEMP}/v2-benchmark/rigged_figure"
 
-      - name: Benchmark Canonical Rig V2 against RiggedFigure
+      - name: Benchmark Canonical Rig V2 from three unrigged humanoid GLBs
         shell: bash
         run: |
           set -euo pipefail
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- \
             --implementation canonical-biped-v2 \
-            --max-mean-joint-error 0.06 --max-joint-error 0.10 \
+            --max-mean-joint-error 0.02 --max-joint-error 0.04 \
+            --max-arm-unrelated-weight 0.08 \
             --output "${RUNNER_TEMP}/v2-benchmark/rigged_figure_v2"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- \
+            --implementation canonical-biped-v2 --asset quaternius_human \
+            --max-mean-joint-error 0.035 --max-joint-error 0.07 \
+            --max-arm-unrelated-weight 0.015 \
+            --output "${RUNNER_TEMP}/v2-benchmark/quaternius_human_rig_v2"
+
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/benchmark_rig_v2.py -- \
+            --implementation canonical-biped-v2 --asset quaternius_ual1 \
+            --max-mean-joint-error 0.04 --max-joint-error 0.09 \
+            --max-arm-unrelated-weight 0.02 \
+            --output "${RUNNER_TEMP}/v2-benchmark/quaternius_ual1_rig_v2"
 
       - name: Run complete character reconstruction and animated GLB roundtrip
         shell: bash

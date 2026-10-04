@@ -1,4 +1,4 @@
-"""Region-aware deterministic fallback skinning for Canonical Biped V1.
+"""Region-aware deterministic skinning for Canonical Biped meshes.
 
 This is a spatial prior, not anatomical segmentation. It limits distant bone
 influences by chain and side before weighting the remaining bone segments.
@@ -67,12 +67,34 @@ def _bone_gate(name: str, gates: dict[str, float]) -> float:
     return gates[("arm" if family in _ARMS else "leg") + "." + side]
 
 
+def _fitted_region_gates(point, bones, bounds):
+    """Use fitted joint positions, not arm-pose-dependent overall mesh width."""
+    height = bounds.height
+    lateral = (point[0] - bounds.center_x) / height
+    z = (point[2] - bounds.minimum[2]) / height
+    gates = {}
+    for side, sign in (("L", 1), ("R", -1)):
+        outward = sign * lateral
+        shoulder = abs(bones[f"upper_arm.{side}"].head[0] - bounds.center_x) / height
+        shoulder_z = (bones[f"upper_arm.{side}"].head[2] - bounds.minimum[2]) / height
+        hip_z = (bones[f"thigh.{side}"].head[2] - bounds.minimum[2]) / height
+        arm = (_smoothstep(0.85 * shoulder, max(1.6 * shoulder, 0.12), outward)
+               * _smoothstep(hip_z - 0.04, hip_z + 0.10, z)
+               * (1.0 - _smoothstep(shoulder_z + 0.12, shoulder_z + 0.22, z)))
+        gates[f"arm.{side}"] = arm
+        gates[f"leg.{side}"] = ((1.0 - _smoothstep(hip_z + 0.02, hip_z + 0.10, z))
+                                 * _smoothstep(-0.015, 0.025, outward))
+    gates["axial"] = max(0.02, 1.0 - max(gates["arm.L"], gates["arm.R"]))
+    return gates
+
+
 def regional_fallback_weights(
     point: Sequence[float],
     bones: Sequence[BoneSpec],
     bounds: MeshBounds,
     *,
     max_influences: int = 4,
+    bone_guided: bool = False,
 ) -> dict[str, float]:
     """Return bounded skin weights for a point in a Canonical Biped mesh.
 
@@ -101,7 +123,8 @@ def regional_fallback_weights(
         raise ValueError("Canonical Biped V1 requires unique deforming bones in every region.")
     scale = max(dimensions)
     softness = max(0.040 * bounds.height / scale, 0.025 * bounds.width / scale, 1e-8)
-    gates = _region_gates(coordinates, bounds)
+    gates = (_fitted_region_gates(coordinates, deform, bounds) if bone_guided
+             else _region_gates(coordinates, bounds))
     scores: list[tuple[float, str]] = []
     for name in sorted(_REQUIRED):
         gate = _bone_gate(name, gates)

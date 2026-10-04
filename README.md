@@ -437,8 +437,11 @@ exact artifact hash. It is a sampled round-trip gate, not an anatomical quality 
 
 The optional RIG stage provides two compatible 18-bone A-pose implementations.
 **Canonical Biped V1** is the stable default. **Canonical Biped V2** is registered
-alongside it and fits the arm span, arm height, torso and leg centres from the
-observed mesh envelope before applying deterministic region-aware skinning. Both
+alongside it and measures each arm's span/trajectory and local joint depth from
+trimmed surface envelopes. UV-seam duplicates do not change the fit or inflate
+confidence. Its skinning regions follow fitted shoulders/hips rather than the
+arm-pose-dependent overall width. Dense blocks with broad false arm envelopes
+are rejected before any binding is created. Both
 implementations expose the same semantic bone contract for downstream animation
 systems, with normalized weights and at most four influences per vertex. V1 can
 fall back to that deterministic binding when Blender's bone-heat solver fails.
@@ -448,11 +451,19 @@ pipeline only for an upright character whose local Z axis is up and whose front
 faces -Y. A GLB export can carry the armature and skin when both mesh and
 armature are selected. The stage reports non-blocking rig-quality diagnostics
 (height-to-width ratio, lateral envelope asymmetry, and bilateral vertex
-coverage) in the stage metadata and on the mesh. Warnings flag risky input;
-they are not anatomical validation and do not prevent rig generation.
+coverage) in the stage metadata and on the mesh. V1 warnings remain non-blocking;
+V2 rejects insufficient arm observations and unsuitable silhouettes. Binding
+failures restore existing user groups, modifiers, transforms and rig metadata.
+
+V2 CI now starts from three verified unrigged GLBs: RiggedFigure and the two
+Quaternius humanoids. Source bones/weights only provide scoring references and
+are unavailable to the fitter. It gates 17 joint errors, normalized four-weight
+skinning, mean unrelated arm weights, localized pose response before/after
+reimport and fail-before-publish export fidelity. The axial/hip height anchors
+remain canonical priors and are identified as such in the fit report.
 
 This is an envelope fit, not anatomical inference.
-Asymmetric poses, non-bipeds, facial rigs, and production retopology still need
+Extreme/unsupported poses, non-bipeds, facial rigs, and production retopology still need
 purpose-built work. V2 remains opt-in so existing scenes and default behavior do
 not switch silently.
 
