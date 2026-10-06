@@ -12,6 +12,7 @@ from .geometry_contracts import GeometrySurfaceOutput
 from .motion_contracts import MotionOutput
 from .pipeline_contracts import PipelineContext, PipelineStage, validate_implementation_id
 from .rig_contracts import RigOutput
+from .modular_character import ModularCharacterSpec
 
 
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -77,6 +78,7 @@ class ExportOutput:
     metrics: Mapping[str, Any] = field(default_factory=dict)
     metadata: Mapping[str, Any] = field(default_factory=dict)
     schema_version: int = 1
+    modular_character: ModularCharacterSpec | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.geometry, GeometrySurfaceOutput):
@@ -117,7 +119,19 @@ class ExportOutput:
         animation_names = _normalize_names(
             tuple(self.animation_names), name="animation_names", required=False
         )
-        if self.geometry.object_name not in object_names:
+        if self.modular_character is not None:
+            if not isinstance(self.modular_character, ModularCharacterSpec):
+                raise TypeError("ExportOutput modular_character must be a ModularCharacterSpec.")
+            if self.rig is None or self.modular_character.rig_id != self.rig.implementation_id:
+                raise ValueError("Modular export must preserve its declared native rig.")
+            native_version = self.rig.implementation_id.rsplit("-v", 1)[-1]
+            if not native_version.isdigit() or self.modular_character.rig_version != int(native_version):
+                raise ValueError("Modular export native rig version does not match.")
+            if set(self.modular_character.ownership) != {obj.name for obj in self.geometry.blender_objects}:
+                raise ValueError("Modular export ownership must cover exactly the source geometry.")
+            if not {region.node_name for region in self.modular_character.regions}.issubset(object_names):
+                raise ValueError("Modular export object_names must include every declared region node.")
+        elif self.geometry.object_name not in object_names:
             raise ValueError("ExportOutput object_names must include the geometry object.")
         if self.rig is not None:
             armature_name = str(getattr(self.rig.armature_object, "name", "")).strip()

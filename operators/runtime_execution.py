@@ -155,6 +155,11 @@ def _new_pipeline_context(
                     settings.export_overwrite_existing
                 ),
                 "export_validate_roundtrip": bool(settings.export_validate_roundtrip),
+                "export_modular_character": bool(settings.export_modular_character),
+                "export_modular_manifest_path": (
+                    bpy.path.abspath(settings.export_modular_manifest_path)
+                    if settings.export_modular_character and settings.export_modular_manifest_path.strip() else ""
+                ),
             },
         )
     )

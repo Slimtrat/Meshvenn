@@ -58,6 +58,9 @@ jobs:
           mkdir -p native/bin
           cp build/native/libbpt_core.so native/bin/libbpt_core.so
 
+      - name: Verify versioned modular ownership, metadata and committed fixture
+        run: python -m unittest tests.test_modular_character_contracts tests.test_modular_partition tests.test_modular_gltf tests.test_modular_metadata tests.test_modular_fixture -v
+
       - name: Cache Blender
         id: blender-cache
         uses: actions/cache@v4
@@ -377,6 +380,17 @@ jobs:
               --max-extent-error 0.08 --max-mean-joint-error 0.04 --max-joint-error 0.09 \
               --output "${RUNNER_TEMP}/v2-benchmark/${asset}_character_organic"
           done
+
+      - name: Certify modular partition rollback and generate editable native V2 fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_modular_partition_smoke.py -- \
+            --output "${RUNNER_TEMP}/v2-benchmark/modular_partition"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/benchmark_modular_character.py -- \
+            --resolution 64 --output "${RUNNER_TEMP}/v2-benchmark/modular_character"
 
       - name: Upload V2 evidence
         if: always()

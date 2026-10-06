@@ -31,6 +31,7 @@ class _BlenderState:
     active_mode: str
     selected_objects: tuple[Any, ...]
     frame_current: int
+    frame_subframe: float
     visibility: tuple[_ObjectVisibility, ...]
 
 
@@ -41,6 +42,7 @@ def _capture_state(plan: GLBExportPlan) -> _BlenderState:
         active_mode=active.mode if active is not None else "OBJECT",
         selected_objects=tuple(bpy.context.selected_objects),
         frame_current=bpy.context.scene.frame_current,
+        frame_subframe=bpy.context.scene.frame_subframe,
         visibility=tuple(
             _ObjectVisibility(
                 object=obj,
@@ -106,7 +108,7 @@ def _restore_state(state: _BlenderState) -> None:
                 pass
     else:
         bpy.context.view_layer.objects.active = None
-    bpy.context.scene.frame_set(state.frame_current)
+    bpy.context.scene.frame_set(state.frame_current, subframe=state.frame_subframe)
     bpy.context.view_layer.update()
 
 
@@ -214,7 +216,8 @@ def _publish_validated_glb(
         ) from exc
 
 
-def export_glb(plan: GLBExportPlan, *, fidelity_report: dict | None = None) -> GLBManifest:
+def _export_prepared_glb(plan: GLBExportPlan, *, fidelity_report: dict | None = None,
+                         modular_expected=None) -> GLBManifest:
     plan.path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = plan.path.with_name(
         f".{plan.path.stem}.{uuid4().hex}.tmp.glb"
@@ -223,6 +226,10 @@ def export_glb(plan: GLBExportPlan, *, fidelity_report: dict | None = None) -> G
         if plan.validate_roundtrip:
             from .fidelity import capture_expectation, validate_roundtrip
             expected = capture_expectation(plan)
+        if plan.modular_spec is not None:
+            from .modular_fidelity import capture_modular_expectation, validate_modular_roundtrip
+            if modular_expected is None:
+                modular_expected = capture_modular_expectation(plan, plan.modular_spec)
         with _isolated_selection(plan), _only_export_actions(plan.actions):
             options: dict[str, Any] = {
                 # Blender's exporter appends a '/' to its directory, which is
@@ -237,6 +244,12 @@ def export_glb(plan: GLBExportPlan, *, fidelity_report: dict | None = None) -> G
                 "export_skins": plan.rig is not None,
                 "export_animations": plan.motion is not None,
             }
+            if plan.modular_spec is not None:
+                options["export_extras"] = True
+                options["export_rest_position_armature"] = True
+                options["export_vertex_color"] = "ACTIVE"
+                options["export_all_vertex_colors"] = True
+                options["export_attributes"] = True
             if plan.motion is not None:
                 options["export_animation_mode"] = (
                     "NLA_TRACKS" if plan.motion.implementation_id == "glb-source-motion-v1" else "ACTIONS"
@@ -245,6 +258,11 @@ def export_glb(plan: GLBExportPlan, *, fidelity_report: dict | None = None) -> G
             if "FINISHED" not in result:
                 raise RuntimeError(f"Blender GLB export failed: {result}")
 
+        if plan.modular_spec is not None:
+            from .modular_normals import restore_modular_normals
+            restore_modular_normals(temporary_path)
+            from .modular_metadata import embed_modular_metadata
+            embed_modular_metadata(temporary_path, plan.modular_spec)
         manifest = inspect_glb(temporary_path)
         _validate_manifest(plan, manifest)
         if plan.validate_roundtrip:
@@ -252,6 +270,12 @@ def export_glb(plan: GLBExportPlan, *, fidelity_report: dict | None = None) -> G
                 report = validate_roundtrip(plan, temporary_path, sha256=manifest.sha256, expected=expected)
             if fidelity_report is not None:
                 fidelity_report.update(report)
+        if plan.modular_spec is not None:
+            with _isolated_selection(plan):
+                report = validate_modular_roundtrip(
+                    plan, plan.modular_spec, temporary_path, modular_expected)
+            if fidelity_report is not None:
+                fidelity_report["modular_character"] = report
         protect_source_paths(plan.path, plan.source_paths)
         _publish_validated_glb(
             temporary_path,
@@ -261,6 +285,17 @@ def export_glb(plan: GLBExportPlan, *, fidelity_report: dict | None = None) -> G
         return inspect_glb(plan.path)
     finally:
         temporary_path.unlink(missing_ok=True)
+
+
+def export_glb(plan: GLBExportPlan, *, fidelity_report: dict | None = None) -> GLBManifest:
+    if plan.modular_spec is None:
+        return _export_prepared_glb(plan, fidelity_report=fidelity_report)
+    from .modular_partition import prepare_modular_meshes
+    from .modular_fidelity import capture_modular_expectation
+    expected = capture_modular_expectation(plan, plan.modular_spec)
+    with prepare_modular_meshes(plan, plan.modular_spec) as modular_plan:
+        return _export_prepared_glb(modular_plan, fidelity_report=fidelity_report,
+                                    modular_expected=expected)
 
 
 __all__ = ("export_glb",)

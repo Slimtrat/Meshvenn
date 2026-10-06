@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +16,7 @@ from ...core.glb_input_contracts import GLBFileInputOutput
 from ...core.motion_contracts import MotionOutput, validate_motion_output
 from ...core.pipeline_contracts import PipelineContext, PipelineStage
 from ...core.rig_contracts import RigOutput, validate_rig_output
+from ...core.modular_character import ModularCharacterSpec, mesh_surface_sha256
 
 
 OUTPUT_PATH_METADATA_KEY = "export_output_path"
@@ -35,6 +38,7 @@ class GLBExportPlan:
     source_paths: tuple[Path, ...] = ()
     validate_roundtrip: bool = False
     auxiliary_objects: tuple[Any, ...] = ()
+    modular_spec: ModularCharacterSpec | None = None
 
     @property
     def objects(self) -> tuple[Any, ...]:
@@ -88,6 +92,61 @@ def _is_bound_to_armature(mesh: Any, armature: Any) -> bool:
     return False
 
 
+def _modular_spec(context, meshes, rig, geometry):
+    value = context.metadata.get("export_modular_spec")
+    manifest_path = context.metadata.get("export_modular_manifest_path")
+    enabled = context.metadata.get("export_modular_character")
+    if enabled is not None and type(enabled) is not bool:
+        raise TypeError("export_modular_character must be boolean.")
+    if enabled is True and value is None and not manifest_path:
+        raise ValueError("Modular character export is enabled but no authoring manifest is selected.")
+    if enabled is False and (value is not None or manifest_path):
+        raise ValueError("Modular declarations conflict with disabled modular export.")
+    if value is not None and manifest_path:
+        raise ValueError("Select a modular spec or manifest path, not both.")
+    if manifest_path:
+        path = Path(manifest_path).expanduser().resolve(strict=True)
+        if path.stat().st_size > 16 * 1024 * 1024:
+            raise ValueError("Modular authoring manifest exceeds 16 MiB.")
+        value = json.loads(path.read_text("utf-8"))
+    if value is None:
+        return None
+    if rig is None:
+        raise ValueError("Modular character export requires the original rig.")
+    spec = value if isinstance(value, ModularCharacterSpec) else ModularCharacterSpec.from_dict(value)
+    spec.validate_against(
+        {obj.name: len(obj.data.polygons) for obj in meshes},
+        tuple(rig.armature_object.data.bones.keys()), rig.implementation_id,
+        mesh_surface_hashes={obj.name: mesh_surface_sha256(
+            [tuple(vertex.co) for vertex in obj.data.vertices],
+            [tuple(face.vertices) for face in obj.data.polygons]) for obj in meshes},
+        rig_version=int(rig.implementation_id.rsplit("-v", 1)[-1]),
+    )
+    provenance = {}
+    for key in ("normalized_height", "target_height", "normalization_scale"):
+        if hasattr(geometry, key):
+            provenance[key] = getattr(geometry, key)
+        elif key in geometry.metadata:
+            provenance[key] = geometry.metadata[key]
+        elif key in geometry.metrics:
+            provenance[key] = geometry.metrics[key]
+        else:
+            raise ValueError(f"Modular export requires certified geometry normalization: {key} is missing.")
+    declared = spec.coordinates.normalization
+    if (type(provenance["normalized_height"]) is not bool
+            or provenance["normalized_height"] != declared.normalized_height
+            or provenance["target_height"] != declared.target_height
+            or not math.isclose(float(provenance["normalization_scale"]), declared.scale, rel_tol=1e-8, abs_tol=1e-12)):
+        raise ValueError("Modular normalization declaration contradicts the source geometry provenance.")
+    if declared.normalized_height:
+        heights = [float((obj.matrix_world @ vertex.co).z) for obj in meshes for vertex in obj.data.vertices]
+        if not math.isclose(max(heights) - min(heights), declared.target_height, rel_tol=1e-5, abs_tol=1e-6):
+            raise ValueError("Modular target height contradicts the actual source world surface.")
+    if not math.isclose(float(bpy.context.scene.unit_settings.scale_length), 1.0):
+        raise ValueError("Modular V1 requires Blender world units to represent meters.")
+    return spec
+
+
 def build_export_plan(context: PipelineContext) -> GLBExportPlan:
     geometry = require_geometry_surface_output(context)
     mesh = _require_scene_object(
@@ -135,6 +194,10 @@ def build_export_plan(context: PipelineContext) -> GLBExportPlan:
     validate_roundtrip = context.metadata.get("export_validate_roundtrip", False)
     if not isinstance(validate_roundtrip, bool):
         raise TypeError('Pipeline metadata "export_validate_roundtrip" must be boolean.')
+    modular_spec = _modular_spec(context, mesh_objects, rig, geometry)
+    # A modular artifact is never published without all regional fidelity gates.
+    if modular_spec is not None:
+        validate_roundtrip = True
     auxiliary_objects = tuple(
         _require_scene_object(obj, object_type="EMPTY", label="EXPORT hierarchy parent")
         for obj in getattr(geometry, "auxiliary_objects", ())
@@ -152,6 +215,7 @@ def build_export_plan(context: PipelineContext) -> GLBExportPlan:
         source_paths=_source_paths(context),
         validate_roundtrip=validate_roundtrip,
         auxiliary_objects=auxiliary_objects,
+        modular_spec=modular_spec,
     )
 
 

@@ -436,6 +436,19 @@ class BPT_PG_Settings(
         default=True,
     )
 
+    export_modular_character: BoolProperty(
+        name="Modular Character",
+        description="Export independent skinned regions and authored sockets; requires a valid authoring JSON",
+        default=False,
+    )
+
+    export_modular_manifest_path: StringProperty(
+        name="Modular Authoring JSON",
+        description="Opt-in explicit face ownership and bone-local sockets; validated before publishing",
+        default="",
+        subtype="FILE_PATH",
+    )
+
     # =====================================================
     # Legacy selector
     #

@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
 from core.export_contracts import ExportOutput, require_export_output, validate_export_output
 from core.geometry_contracts import GeometryProjectionSpace, GeometrySurfaceOutput
 from core.motion_contracts import MotionClipOutput, MotionOutput
+from core.modular_character import (
+    CoordinateConvention, ModularCharacterSpec, NormalizationConvention,
+    RegionSpec, SeamDeclarations, SocketSpec,
+)
 from core.pipeline_contracts import PipelineContext, PipelineStage
 from core.rig_contracts import RigOutput
 
@@ -90,6 +95,66 @@ class ExportContractTests(unittest.TestCase):
         self.assertIs(static_output.geometry, self.geometry)
         self.assertIsNone(static_output.rig)
         self.assertIsNone(static_output.motion)
+
+    def modular_spec(self, **updates) -> ModularCharacterSpec:
+        values = {
+            "rig_id": "canonical-biped-v2", "rig_version": 2,
+            "coordinates": CoordinateConvention(NormalizationConvention(False, None, 1.0)),
+            "regions": (RegionSpec("core", "body-core", "Character_Core"),
+                        RegionSpec("arm-left", "left-arm", "Character_LeftArm")),
+            "ownership": {"Character": ("core", "arm-left")},
+            "ownership_source_sha256": {"Character": "a" * 64},
+            "seams": SeamDeclarations(),
+            "sockets": (SocketSpec("socket-left-arm", "left-arm", "upper_arm.L", "arm-left",
+                                   (0, 0, 0), (0, 0, 0, 1), (1, 1, 1)),),
+        }
+        values.update(updates)
+        return ModularCharacterSpec(**values)
+
+    def modular_output(self, **updates) -> ExportOutput:
+        values = {"rig": replace(self.rig, implementation_id="canonical-biped-v2"),
+                  "motion": None, "animation_names": (), "modular_character": self.modular_spec(),
+                  "object_names": ("Character_Core", "Character_LeftArm", "Armature")}
+        values.update(updates)
+        return self.output(**values)
+
+    def test_legacy_export_remains_full_body_and_does_not_advertise_modularity(self) -> None:
+        output = self.output()
+        self.assertIsNone(output.modular_character)
+        self.assertIn(self.geometry.object_name, output.object_names)
+        with self.assertRaises(ValueError):
+            self.output(object_names=("Character_Core", "Character_LeftArm", "Armature"))
+
+    def test_modular_export_may_omit_only_the_original_surface_node(self) -> None:
+        spec = self.modular_spec()
+        output = self.modular_output(modular_character=spec)
+        self.assertIs(output.modular_character, spec)
+        self.assertNotIn(self.geometry.object_name, output.object_names)
+        self.assertIs(output.geometry, self.geometry)
+        self.assertIs(output.rig.geometry, self.geometry)
+        self.assertEqual(output.rig.implementation_id, spec.rig_id)
+        for region in spec.regions:
+            self.assertIn(region.node_name, output.object_names)
+        with self.assertRaises(ValueError):
+            self.modular_output(object_names=("Character_Core", "Armature"))
+        with self.assertRaises(ValueError):
+            self.modular_output(object_names=("Character_Core", "Character_LeftArm"))
+
+    def test_modular_export_requires_typed_spec_and_the_unchanged_native_rig(self) -> None:
+        with self.assertRaises(TypeError):
+            self.modular_output(modular_character=self.modular_spec().to_dict())
+        with self.assertRaises(ValueError):
+            self.modular_output(rig=None)
+        with self.assertRaises(ValueError):
+            self.modular_output(rig=self.rig)
+        with self.assertRaises(ValueError):
+            self.modular_output(modular_character=self.modular_spec(rig_version=3))
+
+    def test_modular_spec_ownership_must_include_the_exported_geometry(self) -> None:
+        spec = self.modular_spec(ownership={"Different_Source": ("core", "arm-left")},
+                                 ownership_source_sha256={"Different_Source": "a" * 64})
+        with self.assertRaises(ValueError):
+            self.modular_output(modular_character=spec)
 
     def test_output_accepts_an_absolute_glb_path_and_no_animations(self) -> None:
         path = Path("build/static.glb").resolve(strict=False)
