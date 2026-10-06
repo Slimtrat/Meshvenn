@@ -140,6 +140,14 @@ jobs:
             "core/motion_contracts.py"
             "core/export_contracts.py"
             "core/export_paths.py"
+            "core/modular_character/__init__.py"
+            "core/modular_character/coordinates.py"
+            "core/modular_character/json_io.py"
+            "core/modular_character/ownership.py"
+            "core/modular_character/partition.py"
+            "core/modular_character/parts.py"
+            "core/modular_character/spec.py"
+            "core/modular_character/validation.py"
             "core/glb_input_contracts.py"
             "core/glb_pipeline_score.py"
             "core/glb_route.py"
@@ -433,6 +441,7 @@ jobs:
             "tests/test_export_contracts.py"
             "tests/test_export_paths.py"
             "tests/test_glb_export_manifest.py"
+            "tests/test_extension_packaging.py"
             "tests/test_glb_input_contracts.py"
             "tests/test_glb_pipeline_score.py"
             "tests/test_glb_auto_route_decision.py"
@@ -953,6 +962,7 @@ jobs:
           # Automatically includes:
           #
           #   geometry_contracts/ (recursive package)
+          #   modular_character/ (recursive package)
           #   native_bridge/ (recursive package)
           #   pipeline_contracts/ (recursive package)
           #   pipeline_registry/ (recursive package)
@@ -968,6 +978,7 @@ jobs:
 
           cp -R \
             core/geometry_contracts \
+            core/modular_character \
             core/native_bridge \
             core/sdf \
             core/sdf_surface \
@@ -1190,6 +1201,14 @@ jobs:
             "core/motion_contracts.py"
             "core/export_contracts.py"
             "core/export_paths.py"
+            "core/modular_character/__init__.py"
+            "core/modular_character/coordinates.py"
+            "core/modular_character/json_io.py"
+            "core/modular_character/ownership.py"
+            "core/modular_character/partition.py"
+            "core/modular_character/parts.py"
+            "core/modular_character/spec.py"
+            "core/modular_character/validation.py"
             "core/glb_input_contracts.py"
             "core/glb_pipeline_score.py"
             "core/glb_route.py"
@@ -1705,6 +1724,14 @@ jobs:
             "blender_projection_tool/core/motion_contracts.py"
             "blender_projection_tool/core/export_contracts.py"
             "blender_projection_tool/core/export_paths.py"
+            "blender_projection_tool/core/modular_character/__init__.py"
+            "blender_projection_tool/core/modular_character/coordinates.py"
+            "blender_projection_tool/core/modular_character/json_io.py"
+            "blender_projection_tool/core/modular_character/ownership.py"
+            "blender_projection_tool/core/modular_character/partition.py"
+            "blender_projection_tool/core/modular_character/parts.py"
+            "blender_projection_tool/core/modular_character/spec.py"
+            "blender_projection_tool/core/modular_character/validation.py"
             "blender_projection_tool/core/glb_input_contracts.py"
             "blender_projection_tool/core/glb_pipeline_score.py"
             "blender_projection_tool/core/glb_route.py"
