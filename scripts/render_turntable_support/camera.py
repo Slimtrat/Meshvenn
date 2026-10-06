@@ -225,6 +225,7 @@ def setup_render(
     scene = (
         bpy.context.scene
     )
+    scene.render.pixel_aspect_x = scene.render.pixel_aspect_y = 1.0
 
     scene.render.engine = (
         "CYCLES"

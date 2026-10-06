@@ -48,3 +48,32 @@ def assert_unrigged_mesh(mesh: object) -> None:
     if len(mesh.vertex_groups):
         raise AssertionError("Reconstructed mesh unexpectedly has source vertex groups")
 
+
+def connectivity_summary(vertices, polygons) -> dict:
+    """Measure real surface components, welding exact glTF seam duplicates."""
+    unique, indices = {}, []
+    for vertex in vertices:
+        key = tuple(vertex)
+        indices.append(unique.setdefault(key, len(unique)))
+    neighbors = [set() for _ in unique]
+    for face in polygons:
+        welded = [indices[i] for i in face]
+        for a,b in zip(welded,welded[1:]+welded[:1]):
+            neighbors[a].add(b)
+            neighbors[b].add(a)
+    pending = set(range(len(neighbors)))
+    counts = []
+    while pending:
+        stack = [pending.pop()]
+        count = 0
+        while stack:
+            vertex = stack.pop()
+            count += 1
+            for other in neighbors[vertex]:
+                if other in pending:
+                    pending.remove(other)
+                    stack.append(other)
+        counts.append(count)
+    return {"component_count": len(counts), "unique_position_count": len(unique),
+            "component_sizes": sorted(counts, reverse=True)}
+

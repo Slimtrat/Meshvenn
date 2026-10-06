@@ -6,6 +6,22 @@ The geometry cases are Avocado, BarramundiFish, BoomBox and ToyCar. The rig case
 
 The asset bytes, SHA-256 hashes and glTF structure are checked by `tests/test_v2_assets.py`. Blender CI imports all ten files and benchmarks the four static geometry assets. Each geometry source GLB is rendered into ten 2D views, which alone feed the native reconstruction. The report measures silhouette IoU (minimum 0.65), plus a symmetric 3D surface Chamfer and F-score (minimum 0.60 at a distance of 5% of the longest model extent). A shape-proportion error above 0.25 also fails CI. The 3D comparison centres each model and normalizes its longest dimension, but never rotates or ICP-aligns it. Empty input views score zero.
 
+## Coherent humanoid reconstruction
+
+RiggedFigure remains a compatibility baseline, not an anatomical style target: its source geometry is already box-shaped. The complete character benchmark also reconstructs **QuaterniusHuman and UAL1_Standard** from their isolated, unrigged rest meshes. The actual reference mesh, source weights and bones never enter reconstruction. Native-normalized projection cameras match the scanner's angle-dependent cube spans and inverse elevation convention, with an explicit camera basis at TOP/BOT to avoid pole roll ambiguity. The calibrated sheet occupies the full cells (no decorative inset) and uses 3000×1800 pixels so thin limbs are not undersampled. The old common-ortho preview renderer remains available; it is not a calibrated scanner input.
+
+The new humanoid CI gates require one connected reconstructed surface, mean silhouette IoU ≥0.88, **every view** IoU ≥0.80, surface F-score ≥0.97, extent error ≤0.08, and mean/worst joint errors ≤0.04/0.09 model heights. Both assets must retain all authored clips through product Motion/Export and validated GLB reimport. A neutral three-quarter PNG previews the generated rest geometry, not the reference model.
+
+Actual 128-voxel reconstructions (neutral material, not concept art):
+
+![QuaterniusHuman organic reconstruction](previews/QuaterniusHumanOrganic.png)
+
+![UAL1 organic reconstruction](previews/UAL1Organic.png)
+
+In Blender, **Native Visual Hull → Surface Finish → Organic** enables bounded geometric anti-terracing before material projection and rigging. The faithful setting remains the default for existing files and hard-surface assets. The same refined coordinates feed the Blender mesh and native/BVH consumers. Organic uses 24 Taubin pairs, moves a vertex at most 0.75 voxel, preserves face connectivity and checks fan-triangle orientation/area. Open/non-manifold edges and degenerate faces are pinned. Each closed component with a measurable signed volume is limited to 2% volume drift; unchecked components are explicitly reported, not credited with volume preservation. This is not a remesher or a global self-intersection certificate.
+
+This finish suppresses voxel-scale terracing; it cannot turn cubic input proportions into human anatomy, infer hidden facial detail, or restore an absent limb. For a humanoid result the source views or source GLB must describe a humanoid. With an existing good GLB, the direct GLB-first preservation route keeps more detail than a pixel reconstruction.
+
 The rig benchmark exports a rest-geometry GLB with zero skins/actions/groups, deletes all source objects, armature datablocks and actions, then runs that file through the product INPUT/GEOMETRY/RIG path. Only scoring retains reference joint positions and arm-region labels; the fitter cannot access the source rig or weights. UVs/materials survive the neutral export. CI keeps V1 as a baseline and gates V2 on three humanoids with explicit 17-role source correspondences:
 
 | Unrigged input derived from | Maximum mean / worst joint error (model heights) | Maximum mean unrelated arm weight | Maximum six-leg-joint mean / worst error | Maximum mean unrelated leg weight |
@@ -126,8 +142,10 @@ blender --background --factory-startup --python-exit-code 1 --python tests/blend
 blender --background --factory-startup --python-exit-code 1 --python tests/blender_glb_first_pipeline_smoke.py -- --package-root . --input example/v2/assets/Fox.glb --expected-profile khronos-fox-v1 --expected-animations 3 --output output/v2-glb-first-fox
 blender --background --factory-startup --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- --package-root . --input example/v2/assets/QuaterniusHuman.glb --expected-route preserve-source --expected-profile mixamo-humanoid-v1 --expected-animations 7 --output output/v2-auto-mixamo
 blender --background --factory-startup --python-exit-code 1 --python tests/blender_glb_auto_route_smoke.py -- --package-root . --input example/v2/assets/UAL1_Standard.glb --expected-route preserve-source --expected-profile unreal-mannequin-v1 --expected-animations 43 --static-clip A_TPose --static-clip Pistol_Aim_Down --static-clip Pistol_Aim_Neutral --static-clip Pistol_Aim_Up --output output/v2-auto-unreal
-blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_character_v2.py -- --output output/v2-character
-blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_character_v2.py -- --rig-implementation canonical-biped-v2 --output output/v2-character-canonical-v2
+blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_character_v2.py -- --asset rigged_figure --rig-implementation canonical-biped-v1 --surface-refinement none --resolution 48 --output output/v2-character
+blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_character_v2.py -- --asset rigged_figure --surface-refinement none --resolution 48 --output output/v2-character-canonical-v2
+blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_character_v2.py -- --asset quaternius_human --resolution 128 --surface-refinement organic --require-connected --preview --min-iou 0.88 --min-view-iou 0.80 --min-surface-fscore 0.97 --max-extent-error 0.08 --max-mean-joint-error 0.04 --max-joint-error 0.09 --output output/v2-character-human
+blender --background --factory-startup --python-exit-code 1 --python scripts/benchmark_character_v2.py -- --asset quaternius_ual1 --resolution 128 --surface-refinement organic --require-connected --preview --min-iou 0.88 --min-view-iou 0.80 --min-surface-fscore 0.97 --max-extent-error 0.08 --max-mean-joint-error 0.04 --max-joint-error 0.09 --output output/v2-character-ual1
 ```
 
 The geometry output contains source and reconstructed sheets, the generated GLB, and `report.json` with both silhouette and 3D surface measurements. Export, Rig, Motion and character outputs contain their own reports plus GLB artifacts. GLB Export V1 records container structure, byte size and SHA-256; the character artifact includes the retargeted source action verified after reimport. CI thresholds are regression gates, not a claim that silhouettes fully recover an object's 3D shape, that every external renderer reproduces Blender exactly, or that this rig and retarget profile are production-ready for every character.

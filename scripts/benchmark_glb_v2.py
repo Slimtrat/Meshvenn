@@ -80,18 +80,20 @@ def create_blank_template(path: Path, *, width: int = 1000, height: int = 600) -
 def render_projection(input_glb: Path, template: Path, output: Path) -> None:
     previous_argv = sys.argv
     sys.argv = ["blender", "--", "--input", str(input_glb), "--template", str(template),
-                "--output", str(output), "--samples", "1", "--material-mode", "neutral"]
+                "--output", str(output), "--samples", "1", "--material-mode", "neutral",
+                "--projection-convention", "native-normalized"]
     try:
         render_sheet()
     finally:
         sys.argv = previous_argv
 
 
-def reconstruct(source_sheet: Path, output: Path, resolution: int) -> Path:
+def reconstruct(source_sheet: Path, output: Path, resolution: int, *, surface_refinement="none") -> Path:
     options = argparse.Namespace(
         resolution=resolution, threshold=0.1, sheet_white_threshold=0.94,
         profiles=["L10"], thread_count=0, symmetry_x=False, voxel_size=1.0,
         target_height=2.0, mesh_mode="surface_nets", skip_blend=True,
+        surface_refinement=surface_refinement,
     )
     generated_root = output / "generated"
     process_sheet(source_sheet, generated_root, options, logger=RunLogger())

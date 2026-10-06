@@ -8,6 +8,7 @@ from ...core.geometry_contracts import GeometryProjectionSpace
 from ...core.native_bridge import NativeVolume, normalize_mesh_mode
 from ...core.pipeline_contracts import PipelineContext
 from .constants import DEFAULT_CENTER_XY, DEFAULT_MESH_MODE, DEFAULT_VOXEL_SIZE
+from ...core.surface_refinement import validate_surface_refinement
 
 
 def _resolve_settings(context: PipelineContext) -> Any:
@@ -29,6 +30,7 @@ class NativeVisualHullConfig:
     center_xy: bool
     normalize_height: bool
     target_height: float
+    surface_refinement: str = "none"
 
     def validate(self) -> None:
         if self.resolution < 16 or self.resolution > 256:
@@ -40,6 +42,7 @@ class NativeVisualHullConfig:
         if not math.isfinite(self.target_height) or self.target_height <= 0.0:
             raise ValueError("Target height must be finite and greater than zero.")
         normalize_mesh_mode(self.mesh_mode)
+        validate_surface_refinement(self.surface_refinement, self.mesh_mode)
 
 
 def _config_from_settings(settings: Any) -> NativeVisualHullConfig:
@@ -63,6 +66,7 @@ def _config_from_settings(settings: Any) -> NativeVisualHullConfig:
         center_xy=DEFAULT_CENTER_XY,
         normalize_height=bool(settings.normalize_height),
         target_height=float(settings.target_height),
+        surface_refinement=str(getattr(settings, "surface_refinement", "none")),
     )
     config.validate()
     return config

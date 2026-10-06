@@ -4,6 +4,7 @@ from .shared import BLEND_MODE, MATERIAL_MODE, NativeScanner, Path, RunLogger, V
 from .extraction import extract_sheet
 from .profile import _process_profile
 from .projection import prepare_material_views, prepare_projections
+from core.surface_refinement import validate_surface_refinement
 
 def process_sheet(
     sheet_path: Path,
@@ -12,6 +13,7 @@ def process_sheet(
     *,
     logger: RunLogger,
 ) -> None:
+    validate_surface_refinement(getattr(args, "surface_refinement", "none"), args.mesh_mode)
     sheet_name = (
         sheet_path.stem
     )

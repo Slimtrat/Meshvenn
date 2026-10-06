@@ -96,6 +96,7 @@ def parse_args() -> argparse.Namespace:
         "--json-log",
         action="store_true",
     )
+    parser.add_argument("--surface-refinement", choices=("none", "organic"), default="none")
 
     parser.add_argument(
         "--skip-blend",

@@ -1,6 +1,6 @@
 """Run the complete GLB -> views -> geometry -> rig -> posed GLB benchmark.
 
-RiggedFigure's source armature is used only to record scoring landmarks. The
+The source armature is used only to record scoring landmarks. The
 rendered input is a newly exported, unrigged rest mesh, and the generated rig
 receives only the native reconstruction produced from those pixels.
 """
@@ -34,7 +34,7 @@ from scripts.glb_v2_animation_fixture import (
     inspect_isolated_reference,
 )
 from scripts.generate_example_native_support.extraction import extract_sheet
-from scripts.glb_v2_character_support import assert_unrigged_mesh, normalized_landmarks
+from scripts.glb_v2_character_support import assert_unrigged_mesh, normalized_landmarks, connectivity_summary
 from scripts.glb_v2_metrics import score_silhouettes
 from scripts.glb_v2_rig_metrics import landmark_summary, skin_weight_summary
 from scripts.glb_v2_surface_metrics import compare_glb_surfaces
@@ -45,11 +45,16 @@ from scripts.run_logger import RunLogger
 def arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--resolution", type=int, default=48)
+    parser.add_argument("--resolution", type=int, default=96)
+    parser.add_argument("--asset", choices=("rigged_figure", "quaternius_human", "quaternius_ual1"), default="quaternius_human")
+    parser.add_argument("--surface-refinement", choices=("none", "organic"), default="organic")
+    parser.add_argument("--preview", action="store_true")
+    parser.add_argument("--require-connected", action="store_true")
+    parser.add_argument("--min-view-iou", type=float, default=0.0)
     parser.add_argument(
         "--rig-implementation",
         choices=("canonical-biped-v1", "canonical-biped-v2"),
-        default="canonical-biped-v1",
+        default="canonical-biped-v2",
     )
     parser.add_argument("--min-iou", type=float, default=0.65)
     parser.add_argument("--min-surface-fscore", type=float, default=0.85)
@@ -64,10 +69,14 @@ def _world_vertices(mesh: bpy.types.Object) -> list[tuple[float, float, float]]:
     return [tuple(mesh.matrix_world @ vertex.co) for vertex in mesh.data.vertices]
 
 
-def _export_unrigged_reference(source_path: Path, output_path: Path) -> tuple[dict, list, dict]:
+def _export_unrigged_reference(source_path: Path, output_path: Path) -> tuple[dict, list, dict, dict]:
     clear_scene()
     bpy.ops.import_scene.gltf(filepath=str(source_path.resolve()))
     armature = next(obj for obj in bpy.context.scene.objects if obj.type == "ARMATURE")
+    armature.data.pose_position = "REST"
+    bpy.context.view_layer.update()
+    mapping = importlib.import_module(f"{REPO_ROOT.name}.implementations.canonical_motion.mapping")
+    correspondence = dict(mapping.resolve_source_profile(armature.data.bones.keys()).role_to_bone)
     source_mesh = max(
         (obj for obj in bpy.context.scene.objects if obj.type == "MESH" and any(
             modifier.type == "ARMATURE" for modifier in obj.modifiers
@@ -91,7 +100,7 @@ def _export_unrigged_reference(source_path: Path, output_path: Path) -> tuple[di
     if "FINISHED" not in result or not output_path.is_file():
         raise AssertionError("Could not create isolated unrigged reference GLB")
     isolation = inspect_isolated_reference(output_path)
-    return reference_heads, reference_vertices, isolation
+    return reference_heads, reference_vertices, isolation, correspondence
 
 
 def _rig_reconstruction(
@@ -106,6 +115,9 @@ def _rig_reconstruction(
         key=lambda obj: len(obj.data.vertices),
     )
     assert_unrigged_mesh(mesh)
+    connectivity = connectivity_summary(
+        _world_vertices(mesh), [tuple(p.vertices) for p in mesh.data.polygons],
+    )
     context = pipeline.PipelineContext(scene=bpy.context.scene)
     geometry = geometry_contracts.GeometrySurfaceOutput(
         blender_object=mesh,
@@ -146,11 +158,14 @@ def _rig_reconstruction(
     if not motion_result.success:
         raise AssertionError(f"Character Motion failed: {motion_result.message}")
     motion = motion_result.payload
-    clip = motion.clips[0]
+    clip = next((item for item in motion.clips
+                 if item.name.rsplit(".", 1)[0] in ("Walk", "Walk_Loop")
+                 or item.name in ("Walk", "Walk_Loop")), motion.clips[0])
     context.set_output(pipeline.PipelineStage.MOTION, motion)
     export_path = output / "character_animated.glb"
     context.metadata["export_output_path"] = str(export_path)
     context.metadata["export_overwrite_existing"] = True
+    context.metadata["export_validate_roundtrip"] = True
     export_module = importlib.import_module(
         f"{package_name}.implementations.glb_export"
     )
@@ -171,8 +186,11 @@ def _rig_reconstruction(
     }
     candidate_vertices = _world_vertices(mesh)
     weights = skin_weight_summary(_skin_rows(mesh, rig.armature_object))
-    roundtrip = existing_action_glb_roundtrip(exported.path)
+    roundtrip = existing_action_glb_roundtrip(exported.path, clip_name=clip.action.name)
+    if set(exported.animation_names) != {clip.action.name for clip in motion.clips}:
+        raise AssertionError("Character export lost authored clips")
     return {
+        "connectivity": connectivity,
         "rig_implementation": rig.implementation_id,
         "binding_method": rig.binding_method,
         "quality": result.metadata["rig_quality"],
@@ -198,6 +216,7 @@ def _rig_reconstruction(
             "fps": clip.fps,
             "animated_role_count": len(clip.animated_roles),
             "mapped_role_count": len(motion.source_bone_map),
+            "clip_count": len(motion.clips),
         },
     }
 
@@ -205,7 +224,7 @@ def _rig_reconstruction(
 def main() -> None:
     args = arguments()
     thresholds = (
-        args.min_iou, args.min_surface_fscore, args.max_extent_error,
+        args.min_iou, args.min_view_iou, args.min_surface_fscore, args.max_extent_error,
         args.max_mean_joint_error, args.max_joint_error,
     )
     if args.resolution < 16 or any(not 0.0 <= value <= 1.0 for value in thresholds):
@@ -213,19 +232,19 @@ def main() -> None:
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     manifest = json.loads((REPO_ROOT / "example" / "v2" / "manifest.json").read_text("utf-8"))
-    asset = next(item for item in manifest["assets"] if item["id"] == "rigged_figure")
+    asset = next(item for item in manifest["assets"] if item["id"] == args.asset)
     source_path = REPO_ROOT / "example" / "v2" / asset["file"]
     isolated_path = output / "reference_unrigged.glb"
-    reference_heads, reference_vertices, isolation = _export_unrigged_reference(
+    reference_heads, reference_vertices, isolation, correspondence = _export_unrigged_reference(
         source_path, isolated_path
     )
 
     template = output / "blank_template.png"
     source_sheet = output / "source_sheet.png"
     reconstruction_sheet = output / "reconstruction_sheet.png"
-    create_blank_template(template)
+    create_blank_template(template, width=3000, height=1800)
     render_projection(isolated_path, template, source_sheet)
-    generated_glb = reconstruct(source_sheet, output, args.resolution)
+    generated_glb = reconstruct(source_sheet, output, args.resolution, surface_refinement=args.surface_refinement)
     render_projection(generated_glb, template, reconstruction_sheet)
     reference_views, _ = extract_sheet(
         source_sheet, output / "reference_views", white_threshold=0.94,
@@ -244,13 +263,16 @@ def main() -> None:
     candidate_normalized = normalized_landmarks(
         rig.pop("candidate_heads"), rig.pop("candidate_vertices")
     )
-    landmarks = landmark_summary(reference_normalized, candidate_normalized, 1.0)
+    landmarks = landmark_summary(reference_normalized, candidate_normalized, 1.0,
+                                 correspondence=correspondence)
     acceptance = {
         "minimum_silhouette_iou": args.min_iou,
         "minimum_surface_fscore": args.min_surface_fscore,
         "maximum_extent_error": args.max_extent_error,
         "maximum_mean_joint_error_in_heights": args.max_mean_joint_error,
         "maximum_joint_error_in_heights": args.max_joint_error,
+        "minimum_per_view_iou": args.min_view_iou,
+        "requires_connected_surface": args.require_connected,
         "minimum_skin_coverage": 1.0,
         "maximum_influences_per_vertex": 4,
         "maximum_weight_sum_error": 0.02,
@@ -270,6 +292,10 @@ def main() -> None:
             "reference_armature_used_for": "normalized landmark scoring only",
         },
         "resolution": args.resolution,
+        "surface_refinement": args.surface_refinement,
+        "projection_convention": "native-normalized",
+        "refinement": json.loads((output / "generated" / source_sheet.stem / "manifest.json")
+                                  .read_text("utf-8"))["profiles"]["L10"]["surface_refinement"],
         "acceptance": acceptance,
         "silhouette": silhouette,
         "surface_3d": surface,
@@ -285,6 +311,10 @@ def main() -> None:
     )
     if silhouette["valid_input_views"] != silhouette["total_views"]:
         raise AssertionError("Character source rendering contains invalid views")
+    if min(silhouette["per_view_iou"].values()) < args.min_view_iou:
+        raise AssertionError("Character reconstruction lost a required view silhouette")
+    if args.require_connected and rig["connectivity"]["component_count"] != 1:
+        raise AssertionError("Character reconstruction has disconnected limbs or fragments")
     if (
         silhouette["mean_iou"] < args.min_iou
         or surface["surface_fscore"] < args.min_surface_fscore
@@ -314,6 +344,9 @@ def main() -> None:
         raise AssertionError("Character GLB roundtrip lost its animation")
     if roundtrip["max_vertex_displacement"] <= acceptance["minimum_motion_peak_displacement"]:
         raise AssertionError("Imported retargeted Motion did not deform the character")
+    if args.preview:
+        from scripts.glb_v2_character_preview import render_character_preview
+        render_character_preview(generated_glb, output / "character_preview.png")
 
 
 if __name__ == "__main__":

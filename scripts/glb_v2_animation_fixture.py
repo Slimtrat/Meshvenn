@@ -128,6 +128,7 @@ def animated_glb_roundtrip(
 
 def existing_action_glb_roundtrip(
     path: Path,
+    *, clip_name: str | None = None,
 ) -> dict:
     """Reimport and measure a retargeted GLB already published by EXPORT."""
     if not path.is_file() or path.stat().st_size <= 0:
@@ -152,6 +153,16 @@ def existing_action_glb_roundtrip(
         raise AssertionError("Retargeted GLB roundtrip lost its animation")
 
     imported_action = arms[0].animation_data.action
+    if clip_name is not None:
+        tracks = [track for track in arms[0].animation_data.nla_tracks if track.name == clip_name]
+        if len(tracks) != 1 or len(tracks[0].strips) != 1:
+            raise AssertionError(f"Retargeted GLB lost requested clip: {clip_name}")
+        imported_action = tracks[0].strips[0].action
+        arms[0].animation_data.use_nla = False
+        arms[0].animation_data.action = None
+        for bone in arms[0].pose.bones:
+            bone.matrix_basis.identity()
+        arms[0].animation_data.action = imported_action
     frame_start = math.floor(float(imported_action.frame_range[0]))
     frame_end = math.ceil(float(imported_action.frame_range[1]))
     if frame_end <= frame_start:
@@ -179,6 +190,7 @@ def existing_action_glb_roundtrip(
         "glb_bytes": path.stat().st_size,
         "bone_count": len(arms[0].data.bones),
         "animation_count": len(new_actions),
+        "measured_clip_name": clip_name,
         "imported_action_names": sorted(item.name for item in new_actions),
         "frame_start": frame_start,
         "frame_end": frame_end,

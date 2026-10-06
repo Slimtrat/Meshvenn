@@ -53,6 +53,7 @@ class GeometryMaterialDrawerMixin:
             ),
             icon="INFO",
         )
+        quality.prop(settings, "surface_refinement", text="Surface Finish")
 
         performance = (
             layout.box()
