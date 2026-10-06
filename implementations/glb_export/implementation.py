@@ -43,6 +43,7 @@ class GLBExportImplementation:
             "artifact-integrity",
             "source-file-protection",
             "export-roundtrip-verification",
+            "opt-in-modular-character-v1",
         ),
     )
 
@@ -76,6 +77,12 @@ class GLBExportImplementation:
         box.prop(settings, "export_output_path", text="Output GLB")
         box.prop(settings, "export_overwrite_existing", text="Overwrite Existing")
         box.prop(settings, "export_validate_roundtrip", text="Verify Export by Reimport")
+        box.prop(settings, "export_modular_character", text="Modular Character")
+        if settings.export_modular_character:
+            box.prop(settings, "export_modular_manifest_path", text="Modular Authoring JSON")
+            box.label(text="Explicit regions and sockets; verification is mandatory")
+            box.operator("bpt.export_existing_modular_source", text="Export Authored Source (No Rebuild)", icon="EXPORT")
+            box.label(text="JSON originals are authoritative; preview edits are not exported", icon="INFO")
         raw_path = settings.export_output_path.strip()
         if not raw_path:
             warning = box.row()
@@ -99,10 +106,19 @@ class GLBExportImplementation:
                 message=f"Cannot prepare GLB export: {exc}",
             )
 
+        staged_catalogue = None
         try:
+            if plan.modular_spec is not None:
+                from .modular_source import stage_authored_scene_catalogue
+                staged_catalogue = stage_authored_scene_catalogue(plan)
             fidelity_report = {}
             manifest = export_glb(plan, fidelity_report=fidelity_report)
-            object_names = tuple(obj.name for obj in plan.objects)
+            object_names = (
+                tuple(region.node_name for region in plan.modular_spec.regions)
+                + (plan.armature_object.name,)
+                + tuple(obj.name for obj in plan.auxiliary_objects)
+                if plan.modular_spec is not None else tuple(obj.name for obj in plan.objects)
+            )
             metrics = {
                 "size_bytes": manifest.size_bytes,
                 "node_count": len(manifest.node_names),
@@ -139,7 +155,12 @@ class GLBExportImplementation:
                 animation_names=manifest.animation_names,
                 metrics=metrics,
                 metadata=metadata,
+                modular_character=plan.modular_spec,
             )
+            if staged_catalogue is not None:
+                from .modular_source import commit_authored_scene_catalogue
+                metadata["authored_source_catalogue"] = commit_authored_scene_catalogue(plan, staged_catalogue)
+                output.metadata["authored_source_catalogue"] = metadata["authored_source_catalogue"]
             context.metadata["exported_glb_path"] = str(output.path)
             context.metadata["exported_glb_sha256"] = output.sha256
             context.metadata["exported_animation_names"] = output.animation_names
@@ -167,6 +188,10 @@ class GLBExportImplementation:
                     OVERWRITE_METADATA_KEY: plan.overwrite_existing,
                 },
             )
+        finally:
+            if staged_catalogue is not None:
+                from .modular_source import discard_uncommitted_catalogue
+                discard_uncommitted_catalogue(staged_catalogue)
 
 
 __all__ = ("IMPLEMENTATION_ID", "GLBExportImplementation")

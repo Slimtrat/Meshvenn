@@ -22,6 +22,16 @@ from .base_groups import (
     BPT_PG_ProjectionView,
 )
 
+
+def _blend_relative_path_options():
+    # Blender 5.2 advertises this RNA capability. Older hosts must not receive
+    # an unknown property flag during registration.
+    options = {"ANIMATABLE"}
+    if "is_path_supports_blend_relative" in bpy.types.StringProperty.bl_rna.properties:
+        options.add("PATH_SUPPORTS_BLEND_RELATIVE")
+    return options
+
+
 class BPT_PG_Settings(
     PropertyGroup
 ):
@@ -422,6 +432,7 @@ class BPT_PG_Settings(
         description="Destination for the generated glTF 2.0 binary asset",
         default=DEFAULT_EXPORT_OUTPUT_PATH,
         subtype="FILE_PATH",
+        options=_blend_relative_path_options(),
     )
 
     export_overwrite_existing: BoolProperty(
@@ -434,6 +445,20 @@ class BPT_PG_Settings(
         name="Verify Export by Reimport",
         description="Check sampled deformations, skin, clips, morphs and materials before publishing",
         default=True,
+    )
+
+    export_modular_character: BoolProperty(
+        name="Modular Character",
+        description="Export independent skinned regions and authored sockets; requires a valid authoring JSON",
+        default=False,
+    )
+
+    export_modular_manifest_path: StringProperty(
+        name="Modular Authoring JSON",
+        description="Opt-in explicit face ownership and bone-local sockets; validated before publishing",
+        default="",
+        subtype="FILE_PATH",
+        options=_blend_relative_path_options(),
     )
 
     # =====================================================

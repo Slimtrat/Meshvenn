@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import bpy
+from ...core.color_encoding import encode_srgb_rgba
 
 from ...core.geometry_contracts import (
     GeometrySurfaceOutput,
@@ -80,8 +81,12 @@ def _create_baked_image(
     )
 
     try:
+        # Image.pixels on a byte buffer writes encoded UNORM8 values. Merely
+        # tagging linear bytes as sRGB makes shaders decode them a second time.
+        # glTF baseColorTexture requires sRGB RGB; alpha remains linear.
+        image.colorspace_settings.name = "sRGB"
         image.pixels.foreach_set(
-            result.texture.pixels
+            encode_srgb_rgba(result.texture.pixels)
         )
 
         image.update()

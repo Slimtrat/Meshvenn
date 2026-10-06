@@ -21,6 +21,7 @@ from .projections import (
     BPT_OT_RemoveProjection,
 )
 from .runtime import clear_pipeline_runtime_state
+from .modular_export import BPT_OT_ExportExistingModularSource
 from .selection import (
     BPT_OT_ResetPipelineSettings,
     BPT_OT_SetPipelineImplementation,
@@ -55,6 +56,7 @@ CLASSES = (
     BPT_OT_RunPipelineStage,
 
     BPT_OT_GenerateCharacter,
+    BPT_OT_ExportExistingModularSource,
 )
 
 

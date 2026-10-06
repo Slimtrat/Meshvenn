@@ -59,6 +59,15 @@ class BlenderFactoryTests(unittest.TestCase):
         self.assertTrue(visible)
         self.assertEqual(len(backend.calls), 1)
 
+    def test_opt_in_backend_uses_authoritative_loop_triangles_not_polygon_tessellation(self):
+        obj = self._mesh_object()
+        obj.data.calc_loop_triangles = MagicMock()
+        obj.data.loop_triangles = [SimpleNamespace(vertices=(2, 1, 0))]
+        with patch('core.material_visibility._build_blender_bvh_raycast', return_value=RecordingRaycast()) as build:
+            MeshVisibilityTester.from_blender_object(obj, use_loop_triangles=True)
+        obj.data.calc_loop_triangles.assert_called_once_with()
+        self.assertEqual(build.call_args.args[1], [(2, 1, 0)])
+
     def test_non_mesh_object_is_rejected(self) -> None:
         obj = SimpleNamespace(type='LIGHT', data=None)
         with self.assertRaises(TypeError):

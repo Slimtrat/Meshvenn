@@ -1,0 +1,53 @@
+name: Publish trusted V2 preview
+
+on:
+  workflow_run:
+    workflows: [GLB V2 Benchmark]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v2-preview-publish-${{ github.event.workflow_run.pull_requests[0].number || github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish run-specific V2 evidence
+    # Explicitly authorized: default-branch publisher may write PNG assets/comments.
+    # workflow_run executes this definition from the default branch only.
+    # PR/fork code and artifact files are NEVER executed with write permissions.
+    if: >-
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.event == 'pull_request' ||
+       (github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout publisher from trusted default branch only
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+
+      - name: Publish validated data, never code from the producer artifact
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRODUCER_RUN: ${{ github.event.workflow_run.id }}
+          PRODUCER_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          PRODUCER_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/publish_v2_preview.py --publish \
+            --evidence "${RUNNER_TEMP}/validated-v2-preview" \
+            --source-sha "${PRODUCER_SHA}" \
+            --run-id "${PRODUCER_RUN}" --run-attempt "${PRODUCER_ATTEMPT}" \
+            --repository "${GITHUB_REPOSITORY}" --status pending \
+            --artifact-url "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_RUN}#artifacts"

@@ -153,3 +153,21 @@ blender --background --factory-startup --python-exit-code 1 --python scripts/ben
 ```
 
 The geometry output contains source and reconstructed sheets, the generated GLB, and `report.json` with both silhouette and 3D surface measurements. Export, Rig, Motion and character outputs contain their own reports plus GLB artifacts. GLB Export V1 records container structure, byte size and SHA-256; the character artifact includes the retargeted source action verified after reimport. CI thresholds are regression gates, not a claim that silhouettes fully recover an object's 3D shape, that every external renderer reproduces Blender exactly, or that this rig and retarget profile are production-ready for every character.
+# Modular character export
+
+The opt-in V1 region/socket contract and reproducible native V2 fixture are described
+in [the contract documentation](../../docs/modular-character-v1.md). The packed
+editable source and hash-linked GLB/manifest live in `modular/UAL1/`. Upstream Blender
+fidelity and downstream Godot/Stytch acceptance are separate gates.
+
+Its geometry uses the unchanged neutral silhouettes; a separate calibrated
+source-color/emission path feeds UV Bake V2 (512², 2 samples/axis). The packed
+source retains those color images and truthful stage selections. Re-export with
+**Export Authored Source (No Rebuild)**; regenerate/rebake through the documented
+CLI, not the ordinary Generate button. Appearance evidence includes actual
+fallback counts and a non-primary color GLB/shader roundtrip with sRGB storage;
+it is not a general texture-quality certification. V2 previews show six states of
+the final reimported GLB with SHA/run/attempt, separating modular 64 evidence from
+geometry 128 and the folded legacy output. Automatic write-enabled publishing
+uses only trusted main-branch code after integration; the initial PR exposes
+summary and attempt-suffixed benchmark/preview artifacts.

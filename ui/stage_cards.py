@@ -292,6 +292,7 @@ class StageCardsMixin:
 
             config.enabled = (
                 stage_settings.enabled
+                or (stage == PipelineStage.EXPORT and settings.export_modular_character)
             )
 
             self._draw_implementation_settings(

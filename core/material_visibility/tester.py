@@ -92,7 +92,8 @@ class MeshVisibilityTester:
         return self.query(position, camera_direction).visible
 
     @classmethod
-    def from_blender_object(cls, obj: Any, *, config: VisibilityConfig | None=None) -> 'MeshVisibilityTester':
+    def from_blender_object(cls, obj: Any, *, config: VisibilityConfig | None=None,
+                            use_loop_triangles: bool=False) -> 'MeshVisibilityTester':
         """
         Build a BVH directly from a Blender mesh object.
 
@@ -130,6 +131,13 @@ class MeshVisibilityTester:
             polygons.append(indices)
         if not polygons:
             raise ValueError('Cannot build visibility BVH from a mesh without polygons.')
+        if use_loop_triangles:
+            # UV sampling uses these exact triangles; BVH must not retessellate
+            # nonplanar quads into a different rendered surface.
+            mesh.calc_loop_triangles()
+            polygons = [tuple(triangle.vertices) for triangle in mesh.loop_triangles]
+            if not polygons:
+                raise ValueError('Cannot build visibility BVH without loop triangles.')
         diagonal = bounding_box_diagonal(vertices)
         surface_epsilon = compute_surface_epsilon(diagonal, config)
         max_distance = compute_ray_distance(diagonal, surface_epsilon, config)

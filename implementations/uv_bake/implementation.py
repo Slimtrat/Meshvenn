@@ -169,8 +169,8 @@ class UVBakeImplementation:
             )
 
             material_views = (
-                _material_views_from_geometry(
-                    geometry
+                _material_views_from_context(
+                    context, geometry
                 )
             )
 

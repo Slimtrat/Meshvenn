@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import tempfile
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -311,6 +313,10 @@ def _validate_pipeline_defaults(
         not settings.export_overwrite_existing and settings.export_validate_roundtrip,
         "Export overwrite must default to disabled.",
     )
+    _require(
+        not settings.export_modular_character and settings.export_modular_manifest_path == "",
+        "Modular export must default to disabled with no authoring manifest.",
+    )
 
     runtime_module = importlib.import_module(
         f"{package_name}.operators.runtime_execution"
@@ -321,7 +327,9 @@ def _validate_pipeline_defaults(
         and default_context.metadata["glb_normalized_extent"] == 2.0
         and default_context.metadata["export_output_path"] == ""
         and default_context.metadata["export_overwrite_existing"] is False
-        and default_context.metadata["export_validate_roundtrip"] is True,
+        and default_context.metadata["export_validate_roundtrip"] is True
+        and default_context.metadata["export_modular_character"] is False
+        and default_context.metadata["export_modular_manifest_path"] == "",
         "Default Export runtime metadata is incorrect.",
     )
     _require(default_context.metadata["motion_preserve_pelvis_height"] is False,
@@ -335,6 +343,8 @@ def _validate_pipeline_defaults(
     settings.export_output_path = "exports/character.glb"
     settings.export_overwrite_existing = True
     settings.export_validate_roundtrip = False
+    settings.export_modular_character = True
+    settings.export_modular_manifest_path = "exports/character.modular.json"
     configured_context = runtime_module._new_pipeline_context(bpy.context)
     _require(configured_context.metadata["motion_preserve_pelvis_height"] is True,
              "Configured pelvis-height runtime metadata was not passed through.")
@@ -348,9 +358,39 @@ def _validate_pipeline_defaults(
         and configured_context.metadata["export_output_path"]
         == bpy.path.abspath(settings.export_output_path)
         and configured_context.metadata["export_overwrite_existing"] is True
-        and configured_context.metadata["export_validate_roundtrip"] is False,
+        and configured_context.metadata["export_validate_roundtrip"] is False
+        and configured_context.metadata["export_modular_character"] is True
+        and configured_context.metadata["export_modular_manifest_path"]
+        == bpy.path.abspath(settings.export_modular_manifest_path),
         "Configured Export runtime metadata was not normalized through bpy.path.abspath.",
     )
+    planning_module = importlib.import_module(f"{package_name}.implementations.glb_export.planning")
+    settings.export_modular_manifest_path = ""
+    incomplete_context = runtime_module._new_pipeline_context(bpy.context)
+    try:
+        planning_module._modular_spec(incomplete_context, (), None, None)
+    except ValueError as exc:
+        _require("no authoring manifest" in str(exc),
+                 "Enabled modular export failed for the wrong reason before authoring validation.")
+    else:
+        raise AssertionError("Enabled modular export must reject a missing authoring declaration.")
+    with tempfile.TemporaryDirectory() as temporary:
+        settings.export_modular_manifest_path = str(Path(temporary) / "missing-authoring.json")
+        missing_file_context = runtime_module._new_pipeline_context(bpy.context)
+        try:
+            planning_module._modular_spec(missing_file_context, (), None, None)
+        except FileNotFoundError:
+            pass
+        else:
+            raise AssertionError("Enabled modular export must not guess ownership when its JSON is unavailable.")
+    # An unchecked opt-in must leave a stored manifest inert, not change a legacy export.
+    settings.export_modular_character = False
+    disabled_context = runtime_module._new_pipeline_context(bpy.context)
+    _require(disabled_context.metadata["export_modular_character"] is False
+             and disabled_context.metadata["export_modular_manifest_path"] == ""
+             and planning_module._modular_spec(disabled_context, (), None, None) is None,
+             "Disabled modular export must ignore its stored authoring path.")
+    settings.export_modular_manifest_path = ""
     settings.glb_input_path = ""
     settings.glb_normalized_extent = 2.0
     settings.export_output_path = ""

@@ -113,6 +113,9 @@ def _smart_project_uv(obj: bpy.types.Object, *, uv_layer_name: str, island_margi
         obj.select_set(True)
         view_layer.objects.active = obj
         uv_layer = _ensure_named_uv_layer(mesh, uv_layer_name)
+        # Edit-mode transitions invalidate the UV-layer RNA wrapper. Keep the
+        # stable name rather than dereferencing freed storage after unwrap.
+        resolved_name = uv_layer.name
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='SELECT')
         result = bpy.ops.uv.smart_project(angle_limit=math.radians(angle_limit_degrees), margin_method='FRACTION', island_margin=island_margin, area_weight=0.0, correct_aspect=True, scale_to_bounds=True)
@@ -120,7 +123,7 @@ def _smart_project_uv(obj: bpy.types.Object, *, uv_layer_name: str, island_margi
             raise RuntimeError(f'Blender Smart UV Project returned {result}.')
         bpy.ops.object.mode_set(mode='OBJECT')
         mesh.update()
-        resolved_layer = mesh.uv_layers.get(uv_layer.name)
+        resolved_layer = mesh.uv_layers.get(resolved_name)
         if resolved_layer is None:
             raise RuntimeError('Smart UV Project completed without a UV layer.')
         mesh.uv_layers.active = resolved_layer

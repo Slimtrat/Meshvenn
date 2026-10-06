@@ -135,6 +135,10 @@ def _store_pipeline_runtime(
     pipeline_context: PipelineContext,
     report: PipelineExecutionReport,
 ) -> None:
+    # Execution imports the state store; defer message helpers to avoid a
+    # module cycle while also supporting direct existing-source exports.
+    from .runtime_execution import _pipeline_failure_message, _pipeline_success_message
+
     key = (
         _scene_key(
             scene
