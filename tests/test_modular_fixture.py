@@ -31,8 +31,10 @@ class ModularFixtureTests(unittest.TestCase):
             self.assertGreater(len(payload), 1024)
             self.assertEqual(hashlib.sha256(payload).hexdigest(), self.manifest[key])
         self.assertEqual(self.manifest["native_joint_count"], 18)
+        self.assertEqual(self.manifest["source_connectivity"]["component_count"], 1)
         self.assertEqual(self.manifest["animation_count"], 43)
         self.assertEqual(self.manifest["source_asset"], "quaternius_ual1")
+        self.assertEqual(self.manifest["source_license"], "CC0-1.0")
         self.assertIn("uv-bake-v2", self.manifest["pipeline"])
         source = ROOT / "example/v2/assets/UAL1_Standard.glb"
         self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), self.manifest["source_sha256"])

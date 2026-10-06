@@ -12,7 +12,8 @@ from ..canonical_motion.source import cleanup_imported_data, snapshot_blender_da
 from .fidelity import _surface_error, _tree, _weight_error
 from .fidelity_samples import material_signatures, sample_state
 from .modular_gltf import read_accessor, read_glb
-from .modular_partition import REGION_ID_KEY, REGION_ROLE_KEY, SEAM_POLICY, SEAM_POLICY_KEY
+from .modular_import_normals import CODEC_TOLERANCE, capture_import_normal_inputs, verify_imported_normal_codec
+from .modular_partition import COLOR_ATTRIBUTE_PREFIX, REGION_ID_KEY, REGION_ROLE_KEY, SEAM_POLICY, SEAM_POLICY_KEY
 
 
 _AXES = Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, -1, 0, 0), (0, 0, 0, 1)))
@@ -50,6 +51,13 @@ def _corner_records(obj, faces):
     data = obj.data
     data.calc_loop_triangles()
     normal_matrix = obj.matrix_world.to_3x3().inverted().transposed()
+    color_layers = [layer for layer in data.color_attributes if not layer.name.startswith(COLOR_ATTRIBUTE_PREFIX)]
+    if color_layers and data.color_attributes.render_color_index >= 0:
+        active_name = data.color_attributes[data.color_attributes.render_color_index].name
+        active_color = next((layer for layer in color_layers if layer.name == active_name), None)
+        if active_color is not None:
+            color_layers.remove(active_color)
+            color_layers.insert(0, active_color)
     material_cache = {}
     result = []
     for triangle in data.loop_triangles:
@@ -64,7 +72,7 @@ def _corner_records(obj, faces):
         for loop in triangle.loops:
             vertex = data.loops[loop].vertex_index
             colors = tuple(tuple(layer.data[loop if layer.domain == "CORNER" else vertex].color)
-                           for layer in data.color_attributes)
+                           for layer in color_layers)
             result.append((tuple(obj.matrix_world @ data.vertices[vertex].co),
                            tuple((normal_matrix @ data.corner_normals[loop].vector).normalized()),
                            tuple(tuple(layer.data[loop].uv) for layer in data.uv_layers),
@@ -205,10 +213,18 @@ def _raw_bindings(path, spec, expected):
     if (set(joint_nodes) != set(expected["joint_rest"]) or len(joints) != len(joint_nodes)
             or len(set(joints)) != len(joints) or set(joints) != set(joint_nodes.values())):
         raise ValueError("Modular GLB changed the common joint inventory.")
-    matrices = read_accessor(document, binary, skin.get("inverseBindMatrices"))
+    matrix_index = skin.get("inverseBindMatrices")
+    matrices = read_accessor(document, binary, matrix_index)
+    matrix_accessor = document["accessors"][matrix_index]
+    if matrix_accessor.get("type") != "MAT4" or matrix_accessor.get("componentType") != 5126:
+        raise ValueError("Modular GLB inverse binds must be float32 MAT4 accessors.")
     if len(matrices) != len(joints) or any(len(matrix) != 16 for matrix in matrices):
         raise ValueError("Modular GLB inverse-bind matrix count differs from its joints.")
     by_node = dict(zip(joints, matrices))
+    rest_skin_matrices = []
+    for joint in joints:
+        inverse = Matrix(tuple(tuple(by_node[joint][column * 4 + row] for column in range(4)) for row in range(4)))
+        rest_skin_matrices.append(world(joint) @ inverse)
     bind_error = joint_error = socket_error = 0.0
     for name, index in joint_nodes.items():
         if nodes[index].get("name") != name:
@@ -221,6 +237,7 @@ def _raw_bindings(path, spec, expected):
         if expected_parent is not None and parents.get(index) != joint_nodes[expected_parent]:
             raise ValueError("Modular GLB changed native bone parentage.")
     raw_normal_error = 0.0
+    raw_rest_skin_normal_roundoff = 0.0
     raw_corner_metrics = {}
     source_points = [record[0] for records in expected["corners"].values() for record in records]
     raw_extent = max(max(point[axis] for point in source_points) - min(point[axis] for point in source_points) for axis in range(3))
@@ -249,6 +266,15 @@ def _raw_bindings(path, spec, expected):
             weights = read_accessor(document, binary, attributes.get("WEIGHTS_0"))
             influences = read_accessor(document, binary, attributes.get("JOINTS_0"))
             positions = read_accessor(document, binary, attributes.get("POSITION"))
+            weight_accessor = document["accessors"][attributes["WEIGHTS_0"]]
+            joint_accessor = document["accessors"][attributes["JOINTS_0"]]
+            position_accessor = document["accessors"][attributes["POSITION"]]
+            if (weight_accessor.get("type") != "VEC4" or weight_accessor.get("componentType") not in (5121, 5123, 5126)
+                    or (weight_accessor.get("componentType") != 5126 and not weight_accessor.get("normalized", False))
+                    or joint_accessor.get("type") != "VEC4" or joint_accessor.get("componentType") not in (5121, 5123)
+                    or joint_accessor.get("normalized", False)
+                    or position_accessor.get("type") != "VEC3" or position_accessor.get("componentType") != 5126):
+                raise ValueError("Modular GLB uses invalid glTF position/skin accessor encodings.")
             normals = read_accessor(document, binary, attributes.get("NORMAL"))
             normal_accessor = document["accessors"][attributes["NORMAL"]]
             if normal_accessor.get("componentType") != 5126 or normal_accessor.get("type") != "VEC3":
@@ -267,24 +293,61 @@ def _raw_bindings(path, spec, expected):
                 raise ValueError("Modular GLB must preserve triangle position/normal alignment.")
             texcoords = [read_accessor(document, binary, attributes[name]) for name in sorted(
                 (name for name in attributes if name.startswith("TEXCOORD_")), key=lambda name: int(name.split("_")[-1]))]
+            for name in attributes:
+                if not name.startswith("TEXCOORD_"):
+                    continue
+                uv_accessor = document["accessors"][attributes[name]]
+                if (uv_accessor.get("type") != "VEC2" or uv_accessor.get("componentType") not in (5121, 5123, 5126)
+                        or (uv_accessor.get("componentType") != 5126 and not uv_accessor.get("normalized", False))):
+                    raise ValueError("Modular GLB uses invalid glTF UV accessor encodings.")
+            color_names = sorted((name for name in attributes if name.startswith("COLOR_")), key=lambda name: int(name.split("_")[-1]))
+            colors = [read_accessor(document, binary, attributes[name]) for name in color_names]
+            if any(document["accessors"][attributes[name]].get("componentType") != 5126
+                   or document["accessors"][attributes[name]].get("type") != "VEC4" for name in color_names):
+                raise ValueError("Modular GLB colors must preserve unquantized linear float32 RGBA.")
             if any(len(layer) != len(positions) for layer in texcoords):
                 raise ValueError("Modular GLB UV accessor differs from its vertex count.")
+            if any(len(layer) != len(positions) for layer in colors):
+                raise ValueError("Modular GLB color accessor differs from its vertex count.")
             indices = (tuple(row[0] for row in read_accessor(document, binary, primitive["indices"]))
                        if "indices" in primitive else tuple(range(len(positions))))
+            if "indices" in primitive:
+                index_accessor = document["accessors"][primitive["indices"]]
+                if (index_accessor.get("type") != "SCALAR" or index_accessor.get("componentType") not in (5121, 5123, 5125)
+                        or index_accessor.get("normalized", False)):
+                    raise ValueError("Modular GLB uses invalid glTF triangle index encodings.")
             if len(indices) % 3 or any(type(vertex) is not int or not 0 <= vertex < len(positions) for vertex in indices):
                 raise ValueError("Modular GLB triangle indices are invalid.")
-            normal_matrix = world(index).to_3x3().inverted().transposed()
-            for vertex in indices:
+            rest_vertices = []
+            for vertex, (values, influences_row) in enumerate(zip(weights, influences)):
+                # glTF skinning ignores the mesh node's world transform.
+                # Blender bakes its source object transform into POSITION;
+                # applying the ancestor rig scale again would double-normalize
+                # real native characters. Evaluate the actual shared skin.
+                deformation = Matrix(tuple(tuple(sum(weight * rest_skin_matrices[joint][row][column]
+                                                      for weight, joint in zip(values, influences_row))
+                                                  for column in range(4)) for row in range(4)))
+                point = _AXES.inverted() @ deformation @ Vector(positions[vertex])
                 normal = Vector(normals[vertex])
                 if abs(normal.length_squared - 1) > 2e-6:
                     raise ValueError("Modular GLB has non-unit raw vertex normals.")
-                point = _AXES.inverted() @ world(index) @ Vector(positions[vertex])
-                normal = _AXES.to_3x3().inverted() @ (normal_matrix @ normal).normalized()
-                raw_corners.append((tuple(point), tuple(normal),
-                                    tuple((uv[vertex][0], 1 - uv[vertex][1]) for uv in texcoords), (), None))
+                skinned_normal = (deformation.to_3x3().inverted().transposed() @ normal).normalized()
+                raw_rest_skin_normal_roundoff = max(raw_rest_skin_normal_roundoff,
+                                                    max(abs(a - b) for a, b in zip(normal, skinned_normal)))
+                # Certify the stored, authoritative float32 NORMAL separately
+                # from the finite-precision G*IBM multiplication. At rest this
+                # pipeline stores normals in the baked world glTF frame.
+                normal = _AXES.to_3x3().inverted() @ normal
+                rest_vertices.append((tuple(point), tuple(normal)))
+            for vertex in indices:
+                point, normal = rest_vertices[vertex]
+                raw_corners.append((point, normal,
+                                    tuple((uv[vertex][0], 1 - uv[vertex][1]) for uv in texcoords),
+                                    tuple(tuple(layer[vertex]) for layer in colors), None))
         raw_normal_error = max(raw_normal_error, _corner_error(expected["corners"][region.id], tuple(raw_corners),
                                                               raw_tolerance, normal_tolerance=RAW_NORMAL_TOLERANCE,
-                                                              ignore_color_material=True, report=raw_corner_metrics))
+                                                              ignore_material=True, color_tolerance=RAW_NORMAL_TOLERANCE,
+                                                              report=raw_corner_metrics))
     socket_bindings = bindings.get("sockets", {})
     if set(socket_bindings) != {socket.id for socket in spec.sockets}:
         raise ValueError("Modular GLB changed the socket inventory.")
@@ -299,18 +362,25 @@ def _raw_bindings(path, spec, expected):
         socket_error = max(socket_error, _matrix_error(world(joint) @ local, rest @ local))
     if max(bind_error, joint_error, socket_error) > ATTRIBUTE_TOLERANCE:
         raise ValueError(f"Modular GLB changed bind/rest/socket matrices: {bind_error:.6g}/{joint_error:.6g}/{socket_error:.6g}.")
+    if raw_rest_skin_normal_roundoff > ATTRIBUTE_TOLERANCE:
+        raise ValueError("Modular GLB rest skin matrices changed the authoritative vertex normal frame.")
     return {"max_inverse_bind_error": bind_error, "max_joint_rest_error": joint_error,
             "max_socket_rest_error": socket_error, "skin_count": len(skins),
             "raw_normalized_four_influence_skin_verified": True,
             "max_raw_corner_normal_uv_error": raw_normal_error, "raw_normal_tolerance": RAW_NORMAL_TOLERANCE,
             "max_raw_normal_error": raw_corner_metrics.get("max_normal_error", 0.0),
+            "max_raw_rest_skin_normal_roundoff": raw_rest_skin_normal_roundoff,
             "max_raw_uv_error": raw_corner_metrics.get("max_uv_error", 0.0),
+            "max_raw_color_error": raw_corner_metrics.get("max_color_error", 0.0),
+            "raw_color_tolerance": RAW_NORMAL_TOLERANCE,
+            "color_channel_order": "render-active color first, remaining source layers in declaration order",
             "raw_triangle_count": raw_corner_metrics.get("matched_triangle_count", 0),
             "_joint_rest_matrices": {name: _flatten(world(index)) for name, index in joint_nodes.items()}}
 
 
 def _corner_error(left, right, tolerance, *, normal_tolerance=IMPORTED_NORMAL_TOLERANCE,
-                  ignore_color_material=False, report=None):
+                  ignore_color_material=False, ignore_material=False, color_tolerance=COLOR_TOLERANCE, report=None,
+                  correspondence=None):
     if len(left) != len(right) or len(left) % 3:
         raise ValueError("Modular GLB changed the number of triangle corners.")
     source = tuple(left[index:index + 3] for index in range(0, len(left), 3))
@@ -319,9 +389,10 @@ def _corner_error(left, right, tolerance, *, normal_tolerance=IMPORTED_NORMAL_TO
         return tuple(sum(record[0][axis] for record in triangle) / 3 for axis in range(3))
     tree = _tree(tuple(center(triangle) for triangle in target))
     consumed, maximum = set(), 0.0
-    for triangle in source:
+    for source_index, triangle in enumerate(source):
         matches, diagnostics = [], []
-        for _, index, _ in tree.find_range(center(triangle), tolerance):
+        nearby = tree.find_range(center(triangle), tolerance)
+        for _, index, _ in nearby:
             if index in consumed:
                 continue
             other_triangle = target[index]
@@ -329,13 +400,18 @@ def _corner_error(left, right, tolerance, *, normal_tolerance=IMPORTED_NORMAL_TO
             for shift in range(3):
                 score, valid = 0.0, True
                 normal_max = uv_max = color_max = 0.0
+                position_max = position_sum = 0.0
                 for corner, record in enumerate(triangle):
                     other = other_triangle[(corner + shift) % 3]
-                    if (Vector(record[0]) - Vector(other[0])).length > tolerance:
+                    position_error = (Vector(record[0]) - Vector(other[0])).length
+                    if position_error > tolerance:
                         valid = False
                         break
-                    if (len(record[2]) != len(other[2]) or (not ignore_color_material and
-                            (record[4] != other[4] or len(record[3]) != len(other[3])))):
+                    position_max = max(position_max, position_error)
+                    position_sum += position_error
+                    if (len(record[2]) != len(other[2])
+                            or (not (ignore_color_material or ignore_material) and record[4] != other[4])
+                            or (not ignore_color_material and len(record[3]) != len(other[3]))):
                         diagnostics.append(f"material_match={record[4] == other[4]}, UVs={len(record[2])}/{len(other[2])}, colors={len(record[3])}/{len(other[3])}")
                         valid = False
                         break
@@ -345,19 +421,29 @@ def _corner_error(left, right, tolerance, *, normal_tolerance=IMPORTED_NORMAL_TO
                     color = 0.0 if ignore_color_material else max((abs(a - b) for a, b in zip(
                         (v for rgba in record[3] for v in rgba),
                         (v for rgba in other[3] for v in rgba))), default=0.0)
-                    if normal_error > normal_tolerance or uv_error > ATTRIBUTE_TOLERANCE or color > COLOR_TOLERANCE:
-                        diagnostics.append(f"normal={normal_error:.6g}, UV={uv_error:.6g}, color={color:.6g}")
+                    if normal_error > normal_tolerance or uv_error > ATTRIBUTE_TOLERANCE or color > color_tolerance:
+                        diagnostics.append(f"normal={normal_error:.6g}, UV={uv_error:.6g}, color={color:.6g}, "
+                                           f"source_colors={record[3]}, imported_colors={other[3]}")
                         valid = False
                         break
                     score = max(score, normal_error, uv_error, color)
                     normal_max, uv_max, color_max = max(normal_max, normal_error), max(uv_max, uv_error), max(color_max, color)
                 if valid:
-                    matches.append((score, index, normal_max, uv_max, color_max))
+                    # The tolerance is a gate, not a geometric matching score.
+                    # Adjacent tiny triangles can share all shader attributes;
+                    # prefer the actual float32 vertex correspondence rather
+                    # than consuming a neighbour with a smaller UV roundoff.
+                    matches.append((position_max, position_sum, score, index, normal_max, uv_max, color_max, shift))
         if not matches:
             raise ValueError("Modular GLB changed triangle coverage/winding or a corner normal, UV, color or material assignment: "
-                             f"center={center(triangle)}, candidates={diagnostics[:6]}.")
-        score, index, normal_max, uv_max, color_max = min(matches)
+                             f"center={center(triangle)}, nearby={len(nearby)}, "
+                             f"consumed={sum(index in consumed for _, index, _ in nearby)}, "
+                             f"nearest_center={tree.find(center(triangle))[2]:.6g}, candidates={diagnostics[:6]}.")
+        _, _, score, index, normal_max, uv_max, color_max, shift = min(matches)
         consumed.add(index)
+        if correspondence is not None:
+            correspondence.extend((source_index * 3 + corner, index * 3 + (corner + shift) % 3)
+                                  for corner in range(3))
         maximum = max(maximum, score)
         if report is not None:
             report["max_normal_error"] = max(report.get("max_normal_error", 0.0), normal_max)
@@ -381,8 +467,10 @@ def validate_modular_roundtrip(plan, spec, path, expected):
     snapshot = snapshot_blender_data()
     state = _capture_state(plan)
     try:
-        if "FINISHED" not in bpy.ops.import_scene.gltf(filepath=str(path), bone_heuristic="TEMPERANCE"):
-            raise RuntimeError("Modular GLB round-trip import failed.")
+        with capture_import_normal_inputs() as normal_inputs:
+            if "FINISHED" not in bpy.ops.import_scene.gltf(filepath=str(path), bone_heuristic="TEMPERANCE",
+                                                        import_shading="NORMALS", merge_vertices=False):
+                raise RuntimeError("Modular GLB round-trip import failed.")
         objects = tuple(obj for obj in bpy.data.objects if obj not in snapshot.objects)
         armatures = tuple(obj for obj in objects if obj.type == "ARMATURE")
         meshes = tuple(obj for obj in objects if obj.type == "MESH")
@@ -407,12 +495,28 @@ def validate_modular_roundtrip(plan, spec, path, expected):
             rig.data.pose_position = "REST"
             bpy.context.view_layer.update()
             rest = _region_samples(members, rig)
-            rest_errors, attribute_errors, weight_errors, corner_metrics = {}, {}, {}, {}
+            rest_errors, attribute_errors, weight_errors, corner_metrics, pre_codec_metrics = {}, {}, {}, {}, {}
+            codec_metrics = {}
             for key, (obj, faces) in members.items():
                 rest_errors[key] = _surface_error(expected["rest"][key]["points"], rest[key]["points"])
                 try:
-                    attribute_errors[key] = _corner_error(expected["corners"][key], _corner_records(obj, set(faces)), tolerance,
-                                                          report=corner_metrics)
+                    imported_corners = _corner_records(obj, set(faces))
+                    codec = verify_imported_normal_codec(obj, normal_inputs)
+                    input_normals = codec.pop("_pre_codec_corner_normals")
+                    if len(input_normals) != len(imported_corners):
+                        raise ValueError("Blender normal-codec input triangles differ from the imported surface.")
+                    for metric, value in codec.items():
+                        codec_metrics[metric] = max(codec_metrics.get(metric, 0.0), value)
+                    pre_codec_corners = tuple((record[0], normal, *record[2:])
+                                             for record, normal in zip(imported_corners, input_normals))
+                    # RAW NORMAL already has a strict 2e-6 source proof. The
+                    # independently observed float32 bind-frame conversion
+                    # must stay inside the existing matrix arithmetic budget;
+                    # decoded fan normals must reproduce the exact codec.
+                    _corner_error(expected["corners"][key], pre_codec_corners, tolerance,
+                                  normal_tolerance=ATTRIBUTE_TOLERANCE, report=pre_codec_metrics)
+                    attribute_errors[key] = _corner_error(expected["corners"][key], imported_corners, tolerance,
+                                                          normal_tolerance=math.inf, report=corner_metrics)
                 except ValueError as exc:
                     raise ValueError(f"Modular region {key!r}: {exc}") from exc
                 weight_errors[key] = _weight_error(expected["rest"][key]["skin"], rest[key]["skin"], tolerance)
@@ -468,12 +572,16 @@ def validate_modular_roundtrip(plan, spec, path, expected):
                 raise ValueError("Modular GLB changed a socket transform on the actually posed imported joint.")
         return {"schema_version": 1, "passed": True, "region_count": len(members),
                 "socket_count": len(spec.sockets), "position_tolerance": tolerance,
-                "uv_tolerance": ATTRIBUTE_TOLERANCE, "imported_normal_tolerance": IMPORTED_NORMAL_TOLERANCE,
+                "uv_tolerance": ATTRIBUTE_TOLERANCE, "imported_normal_codec_tolerance": CODEC_TOLERANCE,
+                "imported_pre_codec_normal_tolerance": ATTRIBUTE_TOLERANCE,
+                "imported_normal_validation": "source-to-float32 input proof and deterministic isolated Blender codec replay",
+                "blender_normal_codec_version": bpy.app.version_string,
                 "color_tolerance": COLOR_TOLERANCE,
                 "max_rest_error": max(rest_errors.values(), default=0.0),
                 "max_compound_deformation_error": max(pose_errors.values(), default=0.0),
                 "max_corner_attribute_error": max(attribute_errors.values(), default=0.0),
                 "max_imported_normal_error": corner_metrics.get("max_normal_error", 0.0),
+                "max_imported_pre_codec_normal_error": pre_codec_metrics.get("max_normal_error", 0.0),
                 "max_imported_uv_error": corner_metrics.get("max_uv_error", 0.0),
                 "max_imported_color_error": corner_metrics.get("max_color_error", 0.0),
                 "max_weight_error": max(weight_errors.values(), default=0.0),
@@ -482,7 +590,8 @@ def validate_modular_roundtrip(plan, spec, path, expected):
                 "max_socket_compound_error": socket_compound_error,
                 "max_socket_rest_and_compound_error": max(raw["max_socket_rest_error"], socket_compound_error),
                 "sampling": "unmodified source rest corners and deterministic all-joint compound pose",
-                "seam_policy": SEAM_POLICY, "scope": "source-to-modular-export fidelity; not anatomical certification", **raw}
+                "seam_policy": SEAM_POLICY, "scope": "source-to-modular-export fidelity; not anatomical certification",
+                **codec_metrics, **raw}
     finally:
         cleanup_imported_data(snapshot)
         _restore_state(state)

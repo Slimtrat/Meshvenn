@@ -61,6 +61,14 @@ class ModularGLTFReaderTests(unittest.TestCase):
         binary = struct.pack("<16f", *range(16))
         self.assertEqual(reader.read_accessor(_document(binary, kind="MAT4", count=1), binary, 0), (tuple(range(16)),))
 
+    def test_rejects_invalid_explicit_gltf_stride(self):
+        binary = bytes(600)
+        for stride in (5, 6, 256):
+            document = _document(binary, 5121, "VEC4")
+            document["bufferViews"][0]["byteStride"] = stride
+            with self.subTest(stride=stride), self.assertRaisesRegex(ValueError, "byteStride"):
+                reader.read_accessor(document, binary, 0)
+
     def test_rejects_bad_accessor_bounds_alignment_and_float(self):
         binary = struct.pack("<6f", 1, 2, 3, 4, 5, 6)
         mutations = (("count", 3), ("count", True), ("byteOffset", 1),

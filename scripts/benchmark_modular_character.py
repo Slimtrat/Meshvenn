@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.benchmark_character_v2 import _export_unrigged_reference
 from scripts.benchmark_glb_v2 import create_blank_template, render_projection
 from scripts.generate_example_native_support.extraction import extract_sheet
+from scripts.glb_v2_character_support import connectivity_summary
 from scripts.modular_character_authoring import author_fixture_spec
 from scripts.run_logger import RunLogger
 
@@ -85,6 +86,11 @@ def main():
         context.metadata["motion_source_path"] = str(source)
         motion = _stage(context, stage.MOTION, _module("implementations.canonical_motion").CanonicalMotionRetargetImplementation())
         geometry, rig = geometry_result.payload, rig_result.payload
+        source_connectivity = connectivity_summary(
+            [tuple(vertex.co) for vertex in geometry.blender_object.data.vertices],
+            [tuple(face.vertices) for face in geometry.blender_object.data.polygons])
+        if source_connectivity["component_count"] != 1:
+            raise AssertionError("The modular humanoid fixture must not contain detached fragments.")
         if len(rig.armature_object.data.bones) != 18:
             raise AssertionError("Modular fixture must retain the native eighteen-joint rig.")
         contract = _module("core.modular_character")
@@ -108,9 +114,9 @@ def main():
         with _module("implementations.glb_export.modular_partition").prepare_modular_meshes(plan, spec):
             geometry.blender_object.hide_render = True
             geometry.blender_object.hide_set(True)
-            settings.export_output_path = str(output / "character.glb")
+            settings.export_output_path = "//character.glb"
             settings.export_modular_character = True
-            settings.export_modular_manifest_path = str(output / "authoring.json")
+            settings.export_modular_manifest_path = "//authoring.json"
             bpy.ops.file.pack_all()
             result = bpy.ops.wm.save_as_mainfile(filepath=str(output / "source.blend"), compress=True)
             if "FINISHED" not in result:
@@ -120,11 +126,14 @@ def main():
                         (output / "source.blend").read_bytes()).hexdigest(),
                     "authoring": "authoring.json", "contract": envelope,
                     "source_asset": "quaternius_ual1", "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+                    "source_license": "CC0-1.0", "source_credit": "Quaternius (reference model and source animations)",
                     "pipeline": ["isolated source rest mesh", "ten calibrated views", "native-visual-hull",
                                  "uv-bake-v2", "canonical-biped-v2", "canonical-motion-retarget-v1", "modular GLB"],
                     "source_rig_isolation": isolation, "resolution": args.resolution,
+                    "source_connectivity": source_connectivity,
                     "surface_refinement": geometry.metadata["surface_refinement"],
                     "material": material.metrics, "native_joint_count": 18,
+                    "surface_representation": "authoritative-source-Blender-loop-triangles; no caps or additional surface",
                     "animation_count": len(exported.animation_names), "partition_authoring": choices,
                     "roundtrip": fidelity, "consumer_acceptance": "Godot/Stytch gates are separate and not certified here"}
         _write_json(output / "manifest.json", manifest)

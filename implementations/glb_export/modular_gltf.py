@@ -26,7 +26,10 @@ def read_glb(path):
     size = source.stat().st_size
     if not 20 <= size <= MAX_GLB_BYTES:
         raise ValueError("Modular GLB size is outside the supported validation budget.")
-    payload = source.read_bytes()
+    with source.open("rb") as stream:
+        payload = stream.read(MAX_GLB_BYTES + 1)
+    if len(payload) > MAX_GLB_BYTES:
+        raise ValueError("Modular GLB grew beyond the supported validation budget.")
     magic, version, length = struct.unpack_from("<4sII", payload)
     if magic != b"glTF" or version != 2 or length != len(payload):
         raise ValueError("Invalid modular GLB header.")
@@ -85,6 +88,8 @@ def read_accessor(document, binary, index):
     columns = _SIZES[kind]
     packed = width * columns
     stride = _integer(view.get("byteStride", packed), "accessor stride", minimum=packed)
+    if "byteStride" in view and (stride % 4 or not 4 <= stride <= 252):
+        raise ValueError("Modular bufferView byteStride must be four-byte aligned and <= 252.")
     if stride % width or inner % width or (offset + inner) % width:
         raise ValueError("Modular accessor alignment is invalid.")
     if offset + length > len(binary) or inner + stride * (count - 1) + packed > length:

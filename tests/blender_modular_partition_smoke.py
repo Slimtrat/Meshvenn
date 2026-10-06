@@ -27,6 +27,9 @@ def main():
     contracts = importlib.import_module(f"{package.__name__}.core.modular_character")
     partition = importlib.import_module(f"{package.__name__}.implementations.glb_export.modular_partition")
     fidelity = importlib.import_module(f"{package.__name__}.implementations.glb_export.modular_fidelity")
+    codec = importlib.import_module(f"{package.__name__}.implementations.glb_export.modular_import_normals")
+    importer = importlib.import_module("io_scene_gltf2.blender.imp.mesh")
+    original_smoothing = importer.set_poly_smoothing
     metadata = importlib.import_module(f"{package.__name__}.implementations.glb_export.modular_metadata")
     normal_transport = importlib.import_module(f"{package.__name__}.implementations.glb_export.modular_normals")
     gltf = importlib.import_module(f"{package.__name__}.implementations.glb_export.modular_gltf")
@@ -45,15 +48,27 @@ def main():
     hand = data.edit_bones.new("hand.L")
     hand.head, hand.tail, hand.parent = (0, 0, 1), (1, 0, 1), bone
     bpy.ops.object.mode_set(mode="OBJECT")
+    # A non-identity rig frame reproduces the native character normalization.
+    # Skinned POSITION uses jointGlobal * inverseBind, never meshWorld again.
+    rig.matrix_world = (Matrix.Translation((-0.2, 0.1, 0.35)) @ Matrix.Rotation(0.23, 4, "Z")
+                        @ Matrix.Diagonal((0.4, 0.4, 0.4, 1)))
     mesh = bpy.data.meshes.new("ModularSourceMesh")
-    mesh.from_pydata(((-0.5, 0, 0.5), (0.5, 0, 0.5), (0.5, 0, 1.5), (-0.5, 0, 1.5)), (), ((0, 1, 2), (0, 2, 3)))
+    # The first face is intentionally non-planar. The partition must preserve
+    # its existing loop-triangle tessellation, not select a different diagonal.
+    mesh.from_pydata(((-0.5, 0, 0.5), (0.5, 0.05, 0.5), (0.5, 0.11, 1.5),
+                      (-0.5, -0.05, 1.5), (1.2, 0.2, 1.0)), (), ((0, 1, 2, 3), (1, 4, 2)))
     uv = mesh.uv_layers.new(name="AuthoredUV")
+    secondary_uv = mesh.uv_layers.new(name="SecondaryUV")
     color = mesh.color_attributes.new(name="AuthoredColor", type="FLOAT_COLOR", domain="CORNER")
+    point_color = mesh.color_attributes.new(name="PointColor", type="FLOAT_COLOR", domain="POINT")
     for loop in mesh.loops:
         uv.data[loop.index].uv = (0.15 + 0.12 * loop.index, 0.8 - 0.1 * loop.index)
-        color.data[loop.index].color = (0.2 + 0.08 * loop.index, 0.3, 0.6, 1)
-    mesh.color_attributes.active_color_index = 0
-    mesh.color_attributes.render_color_index = 0
+        secondary_uv.data[loop.index].uv = (0.2 + 0.08 * loop.index, 0.3 + 0.05 * loop.index)
+        color.data[loop.index].color = (0.2 + 0.08 * loop.index, 0.3, 0.6, 0.3 + 0.08 * loop.index)
+    for index, item in enumerate(point_color.data):
+        item.color = (0.1 + 0.1 * index, 0.4, 0.7, 0.2 + 0.12 * index)
+    mesh.color_attributes.active_color_index = 1
+    mesh.color_attributes.render_color_index = 1
     normal = Vector((0.1, -1, 0.05)).normalized()
     mesh.normals_split_custom_set([normal] * len(mesh.loops))
     material = bpy.data.materials.new("AuthoredMaterial")
@@ -64,8 +79,8 @@ def main():
     source.parent = rig
     source.matrix_world = (Matrix.Translation((0.3, 0.1, 0.2)) @ Matrix.Rotation(0.4, 4, "Z")
                            @ Matrix.Diagonal((1.3, 0.8, 1.1, 1)))
-    source.vertex_groups.new(name="root").add(list(range(4)), 0.3, "REPLACE")
-    source.vertex_groups.new(name="hand.L").add(list(range(4)), 0.7, "REPLACE")
+    source.vertex_groups.new(name="root").add(list(range(5)), 0.3, "REPLACE")
+    source.vertex_groups.new(name="hand.L").add(list(range(5)), 0.7, "REPLACE")
     modifier = source.modifiers.new("CommonRig", "ARMATURE")
     modifier.object = rig
     signature = contracts.mesh_surface_sha256([tuple(vertex.co) for vertex in mesh.vertices],
@@ -110,6 +125,9 @@ def main():
     product_report = {}
     exported = exporter.export_glb(product_plan, fidelity_report=product_report)
     assert exported.skin_count == 1 and product_report["modular_character"]["passed"]
+    assert product_report["modular_character"]["max_imported_normal_codec_error"] == 0
+    assert product_report["modular_character"]["max_raw_normal_error"] <= fidelity.RAW_NORMAL_TOLERANCE
+    assert importer.set_poly_smoothing is original_smoothing
     assert exporter._capture_state(product_plan) == product_ui
     assert product_data == (set(bpy.data.objects), set(bpy.data.meshes), set(bpy.data.actions))
     published = product_path.read_bytes()
@@ -159,14 +177,35 @@ def main():
         except ValueError:
             pass
     assert product_path.read_bytes() == published
+    duplicate_manifest = (args.output / "ambiguous-authoring.json").resolve()
+    duplicate_manifest.write_text('{"version":99,' + json.dumps(spec.to_dict())[1:], "utf-8")
+    try:
+        planning._modular_spec(SimpleNamespace(metadata={"export_modular_manifest_path": str(duplicate_manifest)}),
+                               (source,), plan.rig, provenance)
+        raise AssertionError("Duplicate modular manifest fields were accepted")
+    except ValueError as exc:
+        assert "duplicate key" in str(exc)
+    protected_manifest = (args.output / "authoring.glb").resolve()
+    protected_manifest.write_text(json.dumps(spec.to_dict()), "utf-8")
+    protected_bytes = protected_manifest.read_bytes()
+    try:
+        planning._resolve_path(SimpleNamespace(
+            metadata={"export_modular_manifest_path": str(protected_manifest),
+                      "export_output_path": str(protected_manifest), "export_overwrite_existing": True},
+            get_output=lambda stage: None))
+        raise AssertionError("Export overwrote its .glb-named authoring manifest")
+    except ValueError as exc:
+        assert "cannot overwrite its source file" in str(exc)
+    assert protected_manifest.read_bytes() == protected_bytes
+    assert product_path.read_bytes() == published
     with partition.prepare_modular_meshes(plan, spec) as prepared:
         assert len(prepared.mesh_objects) == 2
-        assert sum(len(obj.data.polygons) for obj in prepared.mesh_objects) == 2
+        assert sum(len(obj.data.polygons) for obj in prepared.mesh_objects) == 3
         for obj in prepared.mesh_objects:
             key = obj[partition.REGION_ID_KEY]
-            assert len(obj.data.uv_layers) == len(mesh.uv_layers) == 1
-            assert len(obj.data.color_attributes) == len(mesh.color_attributes) == 1
-            assert fidelity._corner_error(expected["corners"][key], fidelity._corner_records(obj, {0}), 1e-6) <= fidelity.ATTRIBUTE_TOLERANCE
+            assert len(obj.data.uv_layers) == len(mesh.uv_layers) == 2
+            assert len([layer for layer in obj.data.color_attributes if not layer.name.startswith(partition.COLOR_ATTRIBUTE_PREFIX)]) == len(mesh.color_attributes) == 2
+            assert fidelity._corner_error(expected["corners"][key], fidelity._corner_records(obj, set(range(len(obj.data.polygons)))), 1e-6) <= fidelity.ATTRIBUTE_TOLERANCE
         with exporter._isolated_selection(prepared):
             result = bpy.ops.export_scene.gltf(filepath=str(path), export_format="GLB", use_selection=True,
                                                export_skins=True, export_animations=False, export_extras=True,
@@ -181,13 +220,15 @@ def main():
         known_data = (set(bpy.data.objects), set(bpy.data.meshes), set(bpy.data.actions))
         report = fidelity.validate_modular_roundtrip(prepared, spec, path, expected)
         assert report["passed"] and report["region_count"] == 2
+        assert report["max_imported_normal_codec_error"] == 0
+        assert importer.set_poly_smoothing is original_smoothing
         assert exporter._capture_state(prepared) == ui
         assert known_data == (set(bpy.data.objects), set(bpy.data.meshes), set(bpy.data.actions))
         document, binary = gltf.read_glb(path)
         primitive = document["meshes"][0]["primitives"][0]
-        for corruption in ("weights", "normal", "winding"):
+        for corruption in ("weights", "normal", "color", "uv", "winding"):
             damaged = bytearray(binary)
-            semantic = {"weights": "WEIGHTS_0", "normal": "NORMAL"}.get(corruption)
+            semantic = {"weights": "WEIGHTS_0", "normal": "NORMAL", "color": "COLOR_0", "uv": "TEXCOORD_0"}.get(corruption)
             accessor_index = primitive["attributes"][semantic] if semantic else primitive["indices"]
             accessor = document["accessors"][accessor_index]
             view = document["bufferViews"][accessor["bufferView"]]
@@ -198,6 +239,10 @@ def main():
                 struct.pack_into("<4f", damaged, offset, *(value * 2 for value in values))
             elif corruption == "normal":
                 struct.pack_into("<3f", damaged, offset, 0, 0, 1)
+            elif corruption == "color":
+                struct.pack_into("<4f", damaged, offset, 1, 1, 1, 1)
+            elif corruption == "uv":
+                struct.pack_into("<2f", damaged, offset, 0, 0)
             else:
                 code, width = {5121: ("B", 1), 5123: ("H", 2), 5125: ("I", 4)}[accessor["componentType"]]
                 indices = gltf.read_accessor(document, binary, accessor_index)
@@ -223,6 +268,40 @@ def main():
                 raise AssertionError("Injected validation failure was not raised")
             except ValueError as exc:
                 assert "Injected fidelity" in str(exc)
+        assert exporter._capture_state(prepared) == ui
+        assert known_data == (set(bpy.data.objects), set(bpy.data.meshes), set(bpy.data.actions))
+        assert importer.set_poly_smoothing is original_smoothing
+        def fail_smoothing(gltf, pymesh, mesh, vert_normals, loop_vidxs):
+            raise RuntimeError("Injected import codec failure")
+        with patch.object(importer, "set_poly_smoothing", fail_smoothing):
+            try:
+                fidelity.validate_modular_roundtrip(prepared, spec, path, expected)
+                raise AssertionError("Injected import codec failure was not raised")
+            except RuntimeError as exc:
+                assert "Injected import codec" in str(exc)
+            assert importer.set_poly_smoothing is fail_smoothing
+        assert importer.set_poly_smoothing is original_smoothing
+        assert exporter._capture_state(prepared) == ui
+        assert known_data == (set(bpy.data.objects), set(bpy.data.meshes), set(bpy.data.actions))
+        def corrupt_imported_normals(obj, captured):
+            obj.data.normals_split_custom_set_from_vertices([(0, 0, 1)] * len(obj.data.vertices))
+            return codec.verify_imported_normal_codec(obj, captured)
+        with patch.object(fidelity, "verify_imported_normal_codec", corrupt_imported_normals):
+            try:
+                fidelity.validate_modular_roundtrip(prepared, spec, path, expected)
+                raise AssertionError("Imported normal corruption passed codec replay")
+            except ValueError as exc:
+                assert "codec inputs" in str(exc)
+        assert importer.set_poly_smoothing is original_smoothing
+        assert exporter._capture_state(prepared) == ui
+        assert known_data == (set(bpy.data.objects), set(bpy.data.meshes), set(bpy.data.actions))
+        with patch.object(importer, "set_poly_smoothing", lambda unexpected: None):
+            try:
+                fidelity.validate_modular_roundtrip(prepared, spec, path, expected)
+                raise AssertionError("Unknown importer normal interface passed verification")
+            except ValueError as exc:
+                assert "normal-codec interface" in str(exc)
+        assert importer.set_poly_smoothing is original_smoothing
         assert exporter._capture_state(prepared) == ui
         assert known_data == (set(bpy.data.objects), set(bpy.data.meshes), set(bpy.data.actions))
     assert set(bpy.data.objects) == baseline[0] and set(bpy.data.meshes) == baseline[1]

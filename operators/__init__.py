@@ -26,4 +26,5 @@ from .presets import (
 )
 from .selection import BPT_OT_ResetPipelineSettings, BPT_OT_SetPipelineImplementation
 from .pipeline import BPT_OT_GenerateCharacter, BPT_OT_RunPipeline, BPT_OT_RunPipelineStage
+from .modular_export import BPT_OT_ExportExistingModularSource
 from .registration import CLASSES, register, unregister

@@ -59,7 +59,7 @@ jobs:
           cp build/native/libbpt_core.so native/bin/libbpt_core.so
 
       - name: Verify versioned modular ownership, metadata and committed fixture
-        run: python -m unittest tests.test_modular_character_contracts tests.test_modular_partition tests.test_modular_gltf tests.test_modular_metadata tests.test_modular_fixture -v
+        run: python -m unittest tests.test_modular_character_contracts tests.test_modular_partition tests.test_modular_gltf tests.test_modular_metadata tests.test_modular_json tests.test_modular_fixture -v
 
       - name: Verify continuous contour fitting and surface safeguards
         run: python -m unittest tests.test_contour_surface tests.test_surface_refinement tests.test_projection_frame -v
@@ -404,6 +404,10 @@ jobs:
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python scripts/benchmark_modular_character.py -- \
             --resolution 64 --output "${RUNNER_TEMP}/v2-benchmark/modular_character"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_modular_source_smoke.py -- \
+            --input-source "${RUNNER_TEMP}/v2-benchmark/modular_character/source.blend" \
+            --output "${RUNNER_TEMP}/v2-benchmark/modular_reopen"
 
       - name: Upload V2 evidence
         if: always()

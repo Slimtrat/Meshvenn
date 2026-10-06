@@ -13,6 +13,9 @@ as a `ModularCharacterSpec` or its JSON dictionary; alternatively use
 `export_modular_manifest_path`. An enabled mode without a valid manifest fails.
 Every modular export runs fidelity validation before atomic publication, even if
 the ordinary "Verify Export by Reimport" option is disabled.
+Authoring JSON rejects duplicate keys at every nesting level and non-finite
+numbers. The selected authoring file is protected against overwrite, even when
+its filename happens to end in `.glb`.
 
 The authoring document declares:
 
@@ -35,6 +38,8 @@ The authoring document declares:
 - Derived `capabilities` describe actual regions/sockets and explicitly declared
   missing roles. Duplicate, ambiguous, dangling, or unsupported declarations fail.
 
+The current Blender implementation certifies the native Canonical Biped V2 rig;
+the generic contract does not prescribe five regions or a consumer armature.
 V1 refuses shape keys, active non-armature modifiers, loose vertices, more than
 four influences, and a region spanning multiple source-object frames. These are
 explicit unsupported inputs, not silent loss of geometry or attributes.
@@ -68,6 +73,9 @@ all inherited scale; the local TRS is not in Blender's display-bone basis. It is
 relative to the exported glTF joint. Hide equipment by its declared owning region
 if your presentation policy requires it; Meshvenn does not make that gameplay choice.
 Metadata-only sockets add **no** skin joints.
+Skinned world positions follow `sum(weight * joint_world * inverse_bind) * position`;
+do not apply the mesh node's world transform a second time. The native rig may
+carry a non-identity parent scale, which remains part of the original skeleton.
 
 ## Reproducible generated fixture
 
@@ -76,7 +84,7 @@ Run from the repository root with Blender 5.2.1 and the built native engine:
 ```sh
 blender --background --factory-startup --python-exit-code 1 \
   --python scripts/benchmark_modular_character.py -- \
-  --resolution 64 --output tmp/modular-character
+  --resolution 64 --output tmp/modular-fixture
 ```
 
 The script isolates the CC0 UAL1 source at rest, renders ten calibrated views, and
@@ -88,11 +96,42 @@ they are **not** a generic classifier and never inspect dominant bone weights.
 
 Outputs include `character.glb`, packed editable `source.blend`, `authoring.json`,
 and a hash-linked `manifest.json` with resolved references and validation evidence.
-The source keeps the authoritative whole-body mesh hidden, independently editable
-derived preview parts visible, and the authoring JSON as a Blender Text datablock.
-Edit the authoritative source and regenerate ownership/hashes before export;
-preview copies are not a second surface authority. Fresh staging copies are
-temporary and do not overwrite or rename the existing preview objects.
+The source keeps the authoritative whole-body mesh hidden, derived preview parts
+visible, and exact authoring/rig/motion catalogues as Blender Text datablocks.
+Preview copies are visualization only, not a second surface authority: edit the
+original object named in `ownership`, not a visible preview. Position or topology
+edits invalidate the ownership hash and require explicit reauthoring; changes to
+UVs, materials or normalized weights are exported from that original and checked
+against it. Fresh staging copies are temporary and do not overwrite or rename
+the existing preview objects.
+The hidden original exists only as editable Blender authoring authority; it is
+not included as an invisible whole body in the GLB. Only declared regions are
+exported as surfaces.
+
+To export this existing source, open `source.blend`, enable **Modular Character**
+in EXPORT, and use **Export Authored Source (No Rebuild)**. This dedicated operator
+rehydrates the stored native geometry, exact armature and local action catalogue;
+it never reruns INPUT, GEOMETRY, rig fitting or retargeting. The ordinary pipeline
+Generate button still reconstructs geometry and is not this re-export route.
+The fixture uses portable `//character.glb` and `//authoring.json` paths: copy the
+whole fixture directory before re-exporting elsewhere. Missing actions, stale
+surface ownership or contradictory provenance fail before publication.
+Headless callers use `bpy.ops.bpt.export_existing_modular_source()` after loading
+and registering the add-on, or `context_from_authored_scene` in
+`implementations.glb_export.modular_source` followed by the regular exporter.
+
+The relocation/re-export CI check can also be reproduced locally:
+
+```sh
+blender --background --factory-startup --python-exit-code 1 \
+  --python tests/blender_modular_source_smoke.py -- \
+  --input-source tmp/modular-fixture/source.blend --output tmp/modular-reopen
+```
+
+The product exporter, not only the fixture script, persists its exact versioned
+rig/action catalogue after a successful modular export. An explicitly static
+catalogue stores an empty clip list; unrelated scene actions are never discovered.
+An existing user Text datablock is not overwritten.
 
 The committed fixture is in `example/v2/modular/UAL1/`. It is a pipeline/fidelity
 fixture, not a certification of material coverage, triangle budget, mobile quality,
@@ -112,6 +151,21 @@ normals through a temporary float-vector attribute, restores those exact values 
 the GLB's `NORMAL` accessor, then removes the transport attribute. Raw GLB normals
 are checked separately from Blender's reimported normal representation; the UV
 budget is not increased to hide normal quantization.
+Likewise, source linear RGBA float32 values are transported explicitly for each
+vertex-color layer, avoiding Blender's active-color/all-colors channel conversion.
+Raw GLB color fidelity is checked separately from the importer's color quantization.
+
+For Blender 5.2.1 verification, decoded smooth-fan normals are not mistaken for
+the authoritative accessor values. The verifier independently checks vectors
+before the importer's normal codec, then replays the public Mesh encoding API on
+an isolated copy and requires a strict match with the imported representation.
+It reports source-to-display drift and angle separately. Its temporary recognized
+import hook is always restored; an unsupported interface fails closed.
+
+Export parts use the authoritative source's Blender loop triangles, including their
+original corner attributes. This fixes non-planar quad/ngon tessellation before
+partitioning: reindexing a regional copy cannot silently pick another diagonal.
+It is a triangulated representation of the same source surface, not cap geometry.
 
 Stytch/Godot should independently gate import of region IDs, shared skin/joints,
 runtime deformation, hiding each limb, and bone-local socket/equipment visibility.

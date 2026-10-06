@@ -20,6 +20,8 @@ SEAM_POLICY_KEY = "meshvenn_seam_policy"
 SEAM_POLICY = "shared-open-seams-no-caps"
 NORMAL_ATTRIBUTE = "_meshvenn_normal_gltf"
 NORMAL_SEMANTIC = NORMAL_ATTRIBUTE.upper()
+COLOR_ATTRIBUTE_PREFIX = "_meshvenn_color_"
+COLOR_SEMANTIC_PREFIX = COLOR_ATTRIBUTE_PREFIX.upper()
 
 
 def _preflight(plan, spec):
@@ -42,7 +44,8 @@ def _preflight(plan, spec):
             raise ValueError("Modular partition requires Object-mode source meshes.")
         if source.data.shape_keys is not None:
             raise ValueError("Modular V1 does not support shape keys; source is unchanged.")
-        if source.data.attributes.get(NORMAL_ATTRIBUTE) is not None:
+        if any(attribute.name == NORMAL_ATTRIBUTE or attribute.name.startswith(COLOR_ATTRIBUTE_PREFIX)
+               for attribute in source.data.attributes):
             raise ValueError("Modular source collides with the reserved normal transport attribute.")
         surface_hash = mesh_surface_sha256(
             [tuple(vertex.co) for vertex in source.data.vertices],
@@ -59,6 +62,8 @@ def _preflight(plan, spec):
             raise ValueError("Each modular source must have one binding to the common armature.")
         if active[0].use_deform_preserve_volume or active[0].use_bone_envelopes:
             raise ValueError("Modular GLB requires linear vertex-group armature deformation.")
+        if not active[0].use_vertex_groups or active[0].vertex_group or active[0].use_multi_modifier:
+            raise ValueError("Modular GLB does not support armature masks or disabled vertex-group skinning.")
         owners = spec.ownership[source.name]
         if len(owners) != len(source.data.polygons):
             raise ValueError(f"Modular ownership face count differs for {source.name!r}.")
@@ -111,6 +116,10 @@ def _copy_attribute(source, target, source_indices):
     if field is None:
         raise ValueError(f"Unsupported modular mesh attribute: {source.name!r}.")
     for item, index in zip(target.data, source_indices):
+        if index is None:
+            # New diagonals only tessellate an existing authored face; they
+            # have no original edge attributes and retain Blender's defaults.
+            continue
         value = getattr(source.data[index], field)
         setattr(item, field, tuple(value) if hasattr(value, "__len__") else value)
 
@@ -118,25 +127,30 @@ def _copy_attribute(source, target, source_indices):
 def _partition(source, region, face_indices):
     mesh = source.data
     faces = [mesh.polygons[index] for index in face_indices]
+    mesh.calc_loop_triangles()
+    selected_faces = set(face_indices)
+    triangles = [triangle for triangle in mesh.loop_triangles if triangle.polygon_index in selected_faces]
     vertex_indices = sorted({index for face in faces for index in face.vertices})
     remap = {original: new for new, original in enumerate(vertex_indices)}
-    loop_indices = [index for face in faces for index in face.loop_indices]
+    loop_indices = [index for triangle in triangles for index in triangle.loops]
+    original_faces = [triangle.polygon_index for triangle in triangles]
     normals = [tuple(mesh.corner_normals[index].vector) for index in loop_indices]
     target = bpy.data.meshes.new(f"{region.node_name}.Mesh")
     obj = None
     try:
         target.from_pydata([tuple(mesh.vertices[index].co) for index in vertex_indices], [],
-                           [[remap[index] for index in face.vertices] for face in faces])
+                           [[remap[index] for index in triangle.vertices] for triangle in triangles])
         for material in mesh.materials:
             target.materials.append(material)
-        for output, original in zip(target.polygons, faces):
+        for output, face_index in zip(target.polygons, original_faces):
+            original = mesh.polygons[face_index]
             output.material_index = original.material_index
             output.use_smooth = original.use_smooth
         source_edges = {tuple(sorted(edge.vertices)): edge.index for edge in mesh.edges}
-        edge_indices = [source_edges[tuple(sorted(vertex_indices[index] for index in edge.vertices))]
+        edge_indices = [source_edges.get(tuple(sorted(vertex_indices[index] for index in edge.vertices)))
                         for edge in target.edges]
         domains = {"POINT": vertex_indices, "EDGE": edge_indices,
-                   "FACE": face_indices, "CORNER": loop_indices}
+                   "FACE": original_faces, "CORNER": loop_indices}
         # Topology is built above; Blender owns these structural attributes.
         structural = {"position", ".corner_vert", ".corner_edge", ".edge_verts"}
         for attribute in mesh.attributes:
@@ -169,6 +183,18 @@ def _partition(source, region, face_indices):
         for output, original in zip(transport.data, normals):
             normal = (source_normal_matrix @ Vector(original)).normalized()
             output.vector = (normal.x, normal.z, -normal.y)
+        colors = list(mesh.color_attributes)
+        if colors and mesh.color_attributes.render_color_index >= 0:
+            render_color = colors.pop(mesh.color_attributes.render_color_index)
+            colors.insert(0, render_color)
+        for index, layer in enumerate(colors):
+            # Blender's exporter may whiten non-active color channels when
+            # several layers exist. Carry every authoritative layer separately
+            # as linear float4 and publish it as the corresponding COLOR_n.
+            color_transport = target.attributes.new(f"{COLOR_ATTRIBUTE_PREFIX}{index}", "FLOAT_COLOR", "CORNER")
+            for output, loop in zip(color_transport.data, loop_indices):
+                original = loop if layer.domain == "CORNER" else mesh.loops[loop].vertex_index
+                output.color = layer.data[original].color
         target.update()
         obj = source.copy()
         obj.name = region.node_name
@@ -219,4 +245,5 @@ def prepare_modular_meshes(plan, spec):
 
 
 __all__ = ("prepare_modular_meshes", "REGION_ID_KEY", "REGION_ROLE_KEY", "SOURCE_MESH_KEY",
-           "SEAM_POLICY_KEY", "SEAM_POLICY", "NORMAL_ATTRIBUTE", "NORMAL_SEMANTIC")
+           "SEAM_POLICY_KEY", "SEAM_POLICY", "NORMAL_ATTRIBUTE", "NORMAL_SEMANTIC",
+           "COLOR_ATTRIBUTE_PREFIX", "COLOR_SEMANTIC_PREFIX")

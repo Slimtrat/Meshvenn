@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import json
 import math
 from pathlib import Path
 from typing import Any
@@ -17,6 +16,7 @@ from ...core.motion_contracts import MotionOutput, validate_motion_output
 from ...core.pipeline_contracts import PipelineContext, PipelineStage
 from ...core.rig_contracts import RigOutput, validate_rig_output
 from ...core.modular_character import ModularCharacterSpec, mesh_surface_sha256
+from ...core.modular_character.json_io import strict_json_loads
 
 
 OUTPUT_PATH_METADATA_KEY = "export_output_path"
@@ -58,7 +58,8 @@ def _require_scene_object(value: Any, *, object_type: str, label: str) -> Any:
 
 
 def _source_paths(context: PipelineContext) -> tuple[Path, ...]:
-    values = [context.metadata.get(key) for key in ("glb_input_path", MOTION_SOURCE_PATH_METADATA_KEY)]
+    values = [context.metadata.get(key) for key in (
+        "glb_input_path", MOTION_SOURCE_PATH_METADATA_KEY, "export_modular_manifest_path")]
     source = context.get_output(PipelineStage.INPUT)
     if isinstance(source, GLBFileInputOutput):
         values.append(source.path)
@@ -108,7 +109,7 @@ def _modular_spec(context, meshes, rig, geometry):
         path = Path(manifest_path).expanduser().resolve(strict=True)
         if path.stat().st_size > 16 * 1024 * 1024:
             raise ValueError("Modular authoring manifest exceeds 16 MiB.")
-        value = json.loads(path.read_text("utf-8"))
+        value = strict_json_loads(path.read_text("utf-8"))
     if value is None:
         return None
     if rig is None:

@@ -6,7 +6,7 @@ import json
 import struct
 
 from .modular_gltf import read_accessor, read_glb
-from .modular_partition import NORMAL_SEMANTIC, REGION_ID_KEY
+from .modular_partition import COLOR_SEMANTIC_PREFIX, NORMAL_SEMANTIC, REGION_ID_KEY
 
 
 def restore_modular_normals(path):
@@ -34,6 +34,26 @@ def restore_modular_normals(path):
             if len(values) != len(positions) or any(abs(sum(v * v for v in normal) - 1) > 2e-6 for normal in values):
                 raise ValueError("Modular source normal transport is not unit length or vertex aligned.")
             attributes["NORMAL"] = attributes.pop(NORMAL_SEMANTIC)
+            if any(semantic.startswith(COLOR_SEMANTIC_PREFIX) for semantic in attributes):
+                # Transport layers themselves are also visible to Blender's
+                # "all colors" option. Discard its possibly whitened/duplicate
+                # COLOR channels before publishing the exact source channels.
+                for semantic in tuple(attributes):
+                    if semantic.startswith("COLOR_"):
+                        del attributes[semantic]
+            for semantic in tuple(attributes):
+                if not semantic.startswith(COLOR_SEMANTIC_PREFIX):
+                    continue
+                color_index = semantic.removeprefix(COLOR_SEMANTIC_PREFIX)
+                if not color_index.isdigit():
+                    raise ValueError("Invalid modular source color transport channel.")
+                color_accessor = document["accessors"][attributes[semantic]]
+                if color_accessor.get("type") != "VEC4" or color_accessor.get("componentType") != 5126:
+                    raise ValueError("Modular source color transport must be unquantized linear float32 VEC4.")
+                color_values = read_accessor(document, binary, attributes[semantic])
+                if len(color_values) != len(positions):
+                    raise ValueError("Modular source color transport differs from its vertex count.")
+                attributes[f"COLOR_{color_index}"] = attributes.pop(semantic)
             restored += 1
     if not restored:
         raise ValueError("Modular GLB contains no source-normal transport primitives.")

@@ -1,0 +1,30 @@
+{
+  "implementation": "fixture-authored-whole-face-planes-v1",
+  "scope": "UAL1 native reconstruction T-pose only; not a generic anatomical classifier",
+  "units": "source mesh local coordinates",
+  "center_x": -0.00029468536376953125,
+  "arm_cut_x": [
+    -7.833833241462707,
+    7.833243870735168
+  ],
+  "hip_cut_z": 30.967786960601806,
+  "tie_break": "whole polygon centroid, then left for center-plane ties",
+  "boundary": "open-shared-vertices",
+  "caps": 0,
+  "surface_coverage": {
+    "source_polygon_count": 2308,
+    "region_polygon_counts": {
+      "body-core": 1003,
+      "left-arm": 233,
+      "right-arm": 232,
+      "left-leg": 420,
+      "right-leg": 420
+    },
+    "unowned_source_polygons": 0,
+    "duplicated_source_polygons": 0,
+    "extra_cap_polygons": 0,
+    "original_open_boundary_edges": 0,
+    "original_nonmanifold_edges": 2,
+    "new_inter_region_seam_edges": 67
+  }
+}
