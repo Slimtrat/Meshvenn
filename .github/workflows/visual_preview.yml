@@ -1,7 +1,7 @@
-name: Visual Preview
+name: Legacy Sheet Diagnostics
 
 run-name: >-
-  Visual Preview | ${{ github.event_name }} |
+  Legacy Sheet Diagnostics | ${{ github.event_name }} |
   ${{ github.event_name == 'workflow_dispatch' && inputs.profiles || 'L2 L10' }}
 
 
@@ -2066,9 +2066,13 @@ jobs:
           }
 
           {
-            echo "<!-- bpt-visual-preview -->"
+            echo "<!-- bpt-legacy-visual-preview -->"
+            echo "<details>"
+            echo "<summary>Diagnostics legacy — feuilles L2/L10, hors pipeline personnage V2</summary>"
             echo
-            echo "## Projection Tool — Visual Comparison"
+            echo "## Ancienne pipeline feuilles — comparaison de régression"
+            echo
+            echo "Ces diagnostics utilisent surface_nets et projected-color-v1.2. Ils ne qualifient ni Organic, ni UV Bake V2, ni le rig/motion/export modulaire. Voir les preuves Meshvenn V2 pour le pipeline actuel."
             echo
 
             echo "**Base:** \`${BASE_REF}@${BASE_SHORT}\` · **PR:** \`#${PR_NUMBER}@${PR_SHORT}\`"
@@ -2177,6 +2181,8 @@ jobs:
             echo "---"
             echo
             echo "<sub>PR assets are transient. Successful main previews are validated by metadata and committed permanently under docs/previews.</sub>"
+            echo
+            echo "</details>"
 
           } > "${COMMENT_FILE}"
 
@@ -2203,7 +2209,7 @@ jobs:
             const fs = require("fs");
 
             const marker =
-              "<!-- bpt-visual-preview -->";
+              "<!-- bpt-legacy-visual-preview -->";
 
             const body =
               fs.readFileSync(

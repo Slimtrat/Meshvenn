@@ -39,6 +39,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -63,6 +65,9 @@ jobs:
 
       - name: Verify continuous contour fitting and surface safeguards
         run: python -m unittest tests.test_contour_surface tests.test_surface_refinement tests.test_projection_frame -v
+
+      - name: Verify modern preview provenance, gates and stale-safe publication
+        run: python -m unittest tests.test_v2_preview_evidence tests.test_v2_preview_publication tests.test_material_inputs tests.test_uv_bake_color_diagnostics tests.test_color_encoding -v
 
       - name: Cache Blender
         id: blender-cache
@@ -399,6 +404,10 @@ jobs:
         run: |
           set -euo pipefail
           "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_material_inputs_smoke.py
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_material_color_roundtrip_smoke.py
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python tests/blender_modular_partition_smoke.py -- \
             --output "${RUNNER_TEMP}/v2-benchmark/modular_partition"
           "${BLENDER_ROOT}/blender" --background --factory-startup \
@@ -409,11 +418,43 @@ jobs:
             --input-source "${RUNNER_TEMP}/v2-benchmark/modular_character/source.blend" \
             --output "${RUNNER_TEMP}/v2-benchmark/modular_reopen"
 
+      - name: Render the newly generated modular GLB, animation and socket states
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/render_v2_pipeline_preview.py -- \
+            --evidence "${RUNNER_TEMP}/v2-benchmark" \
+            --output "${RUNNER_TEMP}/v2-benchmark/preview" \
+            --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
+
       - name: Upload V2 evidence
+        id: evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: glb-v2-benchmark
+          name: glb-v2-benchmark-${{ github.run_attempt }}
           path: ${{ runner.temp }}/v2-benchmark
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Upload modern rendered preview bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: glb-v2-preview-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/v2-benchmark/preview
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Read-only V2 summary, including forks and failed runs
+        if: always()
+        shell: bash
+        run: |
+          python scripts/publish_v2_preview.py \
+            --evidence "${RUNNER_TEMP}/v2-benchmark/preview" \
+            --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}" \
+            --repository "${GITHUB_REPOSITORY}" --status "${{ job.status }}" \
+            --artifact-url "${{ steps.evidence.outputs.artifact-url }}"
