@@ -124,6 +124,11 @@ def parse_args() -> argparse.Namespace:
         "--keep-stills",
         action="store_true",
     )
+    parser.add_argument(
+        "--projection-convention", choices=("common-ortho", "native-normalized"),
+        default="common-ortho",
+        help="Use native-normalized for sheets consumed by the native scanner.",
+    )
 
     return parser.parse_args(
         argv

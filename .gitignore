@@ -22,6 +22,7 @@ env/
 # Generic build output
 dist/
 build/
+native/bin/
 output/
 tmp/
 

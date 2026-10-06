@@ -110,6 +110,13 @@ class BPT_PG_Settings(
         ),
         default=False,
     )
+    surface_refinement: EnumProperty(
+        name="Surface Finish",
+        description="Bounded voxel-scale geometry refinement; does not infer anatomy",
+        items=(("none", "Faithful", "Keep the native surface unchanged"),
+               ("organic", "Organic", "Reduce voxel terracing while preserving topology and limiting volume drift")),
+        default="none",
+    )
 
     thread_count: IntProperty(
         name="Threads",

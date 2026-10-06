@@ -5,10 +5,15 @@ from __future__ import annotations
 import unittest
 from types import SimpleNamespace
 
-from scripts.glb_v2_character_support import assert_unrigged_mesh, normalized_landmarks
+from scripts.glb_v2_character_support import assert_unrigged_mesh, normalized_landmarks, connectivity_summary
 
 
 class GLBV2CharacterSupportTests(unittest.TestCase):
+    def test_connectivity_welds_seams_but_rejects_floating_hands(self):
+        points = [(0,0,0),(1,0,0),(0,1,0),(1,0,0),(2,0,0),(0,1,0)]
+        self.assertEqual(connectivity_summary(points,[(0,1,2),(3,4,5)])["component_count"],1)
+        self.assertEqual(connectivity_summary(points+[(7,0,0)],[(0,1,2),(3,4,5)])["component_count"],2)
+
     def test_normalization_uses_body_height_and_floor(self) -> None:
         vertices = [(-1, -2, 4), (3, 2, 8)]
         result = normalized_landmarks({"joint": (1, 0, 6)}, vertices)

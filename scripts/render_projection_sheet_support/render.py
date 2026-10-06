@@ -7,9 +7,10 @@ import sys
 from array import array
 from pathlib import Path
 import bpy
-from mathutils import Vector
+from mathutils import Matrix, Vector
 
 from .camera import place_projection_camera
+from core.projection_frame import native_projection_frame, native_projection_axes
 
 def render_view(
     *,
@@ -27,6 +28,7 @@ def render_view(
     ],
     ortho_scale: float,
     output_dir: Path,
+    native_side: float | None = None,
 ) -> Path:
     (
         x0,
@@ -60,15 +62,25 @@ def render_view(
     scene.render.resolution_percentage = (
         100
     )
+    scene.render.pixel_aspect_x = scene.render.pixel_aspect_y = 1.0
+    if native_side is not None:
+        ortho_scale, scene.render.pixel_aspect_x = native_projection_frame(
+            native_side, azimuth, elevation, width, height,
+        )
 
     place_projection_camera(
         camera,
         target=target,
         model_size=model_size,
         azimuth_degrees=azimuth,
-        elevation_degrees=elevation,
+        # Native normalized coordinates use the inverse elevation rotation.
+        elevation_degrees=-elevation if native_side is not None else elevation,
         ortho_scale=ortho_scale,
     )
+    if native_side is not None:
+        right, up, backward = native_projection_axes(azimuth, elevation)
+        camera.location = target + Vector(backward) * (native_side * 4)
+        camera.rotation_euler = Matrix((right, up, backward)).transposed().to_euler()
 
     output_path = (
         output_dir

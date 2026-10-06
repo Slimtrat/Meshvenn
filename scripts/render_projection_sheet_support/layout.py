@@ -64,6 +64,7 @@ def inset_bbox(
 def build_cells(
     sheet_width: int,
     sheet_height: int,
+    *, inset: int = CELL_INSET,
 ) -> list[
     tuple[
         str,
@@ -99,7 +100,7 @@ def build_cells(
                 azimuth,
                 elevation,
                 inset_bbox(
-                    bbox
+                    bbox, inset=inset,
                 ),
             )
         )

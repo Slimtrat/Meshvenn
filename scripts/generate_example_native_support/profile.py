@@ -3,6 +3,8 @@ from __future__ import annotations
 from .shared import BLEND_MODE, MATERIAL_MODE, Path, RunLogger, VISIBILITY_MODE, argparse
 from .profile_reporting import _finalize_profile, _log_material
 from .profile_setup import _create_mesh_and_material, _initial_profile_info
+from dataclasses import replace
+from core.surface_refinement import refine_native_surface
 
 def _process_profile(
     *,
@@ -18,6 +20,13 @@ def _process_profile(
     level_logger = (
         logger.child()
     )
+    refinement = {"mode": "none", "applied": False}
+    if snapshot.mesh is not None:
+        mesh, refinement = refine_native_surface(
+            snapshot.mesh, voxel_size=args.voxel_size,
+            mode=getattr(args, "surface_refinement", "none"), mesh_mode=args.mesh_mode,
+        )
+        snapshot = replace(snapshot, mesh=mesh)
 
     with level_logger.section(
         level_name,
@@ -42,6 +51,7 @@ def _process_profile(
         active_material_views, profile_info = _initial_profile_info(
             snapshot, material_views, args
         )
+        profile_info["surface_refinement"] = refinement
         if snapshot.mesh is None:
             manifest["profiles"][level_name] = profile_info
             return

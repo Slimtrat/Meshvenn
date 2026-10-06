@@ -1,5 +1,7 @@
 from __future__ import annotations
 import bpy
+import json
+from ...core.surface_refinement import refine_native_surface
 from ...core.native_bridge import NativeCore
 from ...core.native_scan_trace import scan_named_projections
 from ...core.native_mesh_builder import (
@@ -115,10 +117,15 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
                     "mesh_mode": config.mesh_mode,
                 },
             )
+        native_mesh, refinement = refine_native_surface(
+            native_mesh, voxel_size=config.voxel_size, mode=config.surface_refinement,
+            mesh_mode=config.mesh_mode,
+        )
         obj = create_blender_mesh_from_native(
             native_mesh, mesh_name=DEFAULT_MESH_NAME, object_name=DEFAULT_OBJECT_NAME
         )
         shade_smooth_native_object(obj)
+        obj["bpt_surface_refinement"] = json.dumps(refinement, sort_keys=True)
         projection_space = _projection_space_from_volume(volume, config)
         normalization_scale = _apply_non_destructive_height_normalization(
             obj, enabled=config.normalize_height, target_height=config.target_height
@@ -143,6 +150,7 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
             "sharp_drop_view_count": len(trace.sharp_drop_views),
         }
         output_metadata = {
+            "surface_refinement": refinement,
             "mesh_mode": config.mesh_mode,
             "symmetry_x": config.symmetry_x,
             "thread_count": config.thread_count,
@@ -173,6 +181,7 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
         context.metadata["geometry_implementation"] = IMPLEMENTATION_ID
         context.metadata["geometry_contract"] = "surface-output-v1"
         context.metadata["geometry_mesh_mode"] = config.mesh_mode
+        context.metadata["geometry_surface_refinement"] = refinement
         context.metadata["geometry_occupied_voxels"] = volume.occupied_count
         context.metadata["geometry_view_diagnostics"] = view_diagnostics
         context.metadata["geometry_projection_space"] = {
@@ -207,6 +216,7 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
                 "sharp_drop_view_count": len(trace.sharp_drop_views),
             },
             metadata={
+                "surface_refinement": refinement,
                 "object_name": created_object.name,
                 "mesh_name": created_object.data.name,
                 "geometry_contract": "surface-output-v1",

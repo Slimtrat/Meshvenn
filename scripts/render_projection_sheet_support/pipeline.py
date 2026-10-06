@@ -10,7 +10,7 @@ import bpy
 from mathutils import Vector
 
 from scripts.render_turntable import center_objects, clear_scene, create_camera, ensure_preview_material, import_glb, setup_lighting
-from .source import parse_args, load_sheet
+from .source import parse_args, load_sheet, CELL_INSET
 from .layout import build_cells, clear_cell
 from .camera import common_ortho_scale, configure_projection_render
 from .render import render_view, composite_view, save_sheet
@@ -111,6 +111,7 @@ def main() -> None:
     cells = build_cells(
         sheet_width,
         sheet_height,
+        inset=0 if args.projection_convention == "native-normalized" else CELL_INSET,
     )
 
     ortho_scale = common_ortho_scale(
@@ -118,6 +119,8 @@ def main() -> None:
         cells,
         framing=args.framing,
     )
+    native_side = (max(model_size) * args.framing
+                   if args.projection_convention == "native-normalized" else None)
 
     print(
         (
@@ -173,6 +176,7 @@ def main() -> None:
             bbox=bbox,
             ortho_scale=ortho_scale,
             output_dir=stills_dir,
+            native_side=native_side,
         )
 
         composite_view(
