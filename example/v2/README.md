@@ -159,3 +159,15 @@ The opt-in V1 region/socket contract and reproducible native V2 fixture are desc
 in [the contract documentation](../../docs/modular-character-v1.md). The packed
 editable source and hash-linked GLB/manifest live in `modular/UAL1/`. Upstream Blender
 fidelity and downstream Godot/Stytch acceptance are separate gates.
+
+Its geometry uses the unchanged neutral silhouettes; a separate calibrated
+source-color/emission path feeds UV Bake V2 (512², 2 samples/axis). The packed
+source retains those color images and truthful stage selections. Re-export with
+**Export Authored Source (No Rebuild)**; regenerate/rebake through the documented
+CLI, not the ordinary Generate button. Appearance evidence includes actual
+fallback counts and a non-primary color GLB/shader roundtrip with sRGB storage;
+it is not a general texture-quality certification. V2 previews show six states of
+the final reimported GLB with SHA/run/attempt, separating modular 64 evidence from
+geometry 128 and the folded legacy output. Automatic write-enabled publishing
+uses only trusted main-branch code after integration; the initial PR exposes
+summary and attempt-suffixed benchmark/preview artifacts.

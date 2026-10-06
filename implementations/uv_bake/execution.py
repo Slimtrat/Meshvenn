@@ -31,7 +31,7 @@ def execute_uv_bake(self, context: PipelineContext) -> StageExecutionResult:
         return StageExecutionResult.failed_result(stage=PipelineStage.MATERIAL, implementation_id=IMPLEMENTATION_ID, message=f'Compatible GEOMETRY surface is unavailable: {exc}')
     try:
         _validate_geometry(geometry)
-        material_views = _material_views_from_geometry(geometry)
+        material_views = _material_views_from_context(context, geometry)
         config = _config_from_settings(settings)
     except Exception as exc:
         return StageExecutionResult.failed_result(stage=PipelineStage.MATERIAL, implementation_id=IMPLEMENTATION_ID, message=f'Geometry or UV Bake V2 configuration is invalid: {exc}', metadata={'geometry_implementation': geometry.implementation_id})
@@ -47,7 +47,8 @@ def execute_uv_bake(self, context: PipelineContext) -> StageExecutionResult:
     except Exception as exc:
         return StageExecutionResult.failed_result(stage=PipelineStage.MATERIAL, implementation_id=IMPLEMENTATION_ID, message=f'UV triangulation failed: {exc}', metadata={'geometry_implementation': geometry.implementation_id})
     try:
-        sampler = _build_surface_sampler(geometry, config)
+        sampler = _build_surface_sampler(geometry, config, views=material_views,
+                                         diagnostics=context.material_input is not None)
     except Exception as exc:
         return StageExecutionResult.failed_result(stage=PipelineStage.MATERIAL, implementation_id=IMPLEMENTATION_ID, message=f'Surface sampler creation failed: {exc}', metadata={'geometry_implementation': geometry.implementation_id})
     window_manager = getattr(bpy.context, 'window_manager', None)
@@ -100,4 +101,9 @@ def execute_uv_bake(self, context: PipelineContext) -> StageExecutionResult:
     context.metadata['uv_bake_image'] = image.name
     context.metadata['uv_bake_material'] = material.name
     context.metadata['uv_bake_effective_island_margin'] = config.effective_island_margin_fraction
+    context.metadata['material_storage_encoding'] = 'sRGB RGB / linear alpha, RGBA8'
+    obj['bpt_uv_bake_storage_encoding'] = context.metadata['material_storage_encoding']
+    if context.material_input is not None:
+        context.metadata['material_input_provenance'] = context.material_input.provenance()
+        context.metadata['material_sampling_diagnostics'] = dict(sampler.diagnostics)
     return StageExecutionResult.succeeded(stage=PipelineStage.MATERIAL, implementation_id=IMPLEMENTATION_ID, payload=output, message=f'UV texture baked: {config.texture_size}×{config.texture_size}, {stats.covered_pixels} covered texels.', metrics={'triangles': stats.triangle_count, 'rasterized_triangles': stats.rasterized_triangles, 'degenerate_triangles': stats.degenerate_triangles, 'texture_size': config.texture_size, 'covered_pixels': stats.covered_pixels, 'padded_pixels': stats.padded_pixels, 'overlap_pixels': stats.overlap_pixels, 'surface_samples': stats.surface_samples, 'fallback_samples': stats.fallback_samples, 'selected_source_samples': stats.selected_source_samples, 'coverage_ratio': stats.coverage_ratio, 'uv_total_area': layout.total_uv_area, 'uv_total_area_pixels': layout.total_texture_area_pixels, 'uv_min_triangle_area_pixels': layout.minimum_triangle_area_pixels, 'uv_mean_triangle_area_pixels': layout.mean_triangle_area_pixels, 'uv_max_triangle_area_pixels': layout.maximum_triangle_area_pixels, 'uv_subpixel_triangles': layout.subpixel_triangle_count, 'uv_subpixel_triangle_ratio': layout.subpixel_triangle_ratio}, metadata={'object_name': obj.name, 'geometry_implementation': geometry.implementation_id, 'image_name': image.name, 'material_name': material.name, 'uv_layer': uv_layer.name, 'texture_width': bake_result.texture.width, 'texture_height': bake_result.texture.height, 'padding_pixels': config.padding_pixels, 'samples_per_axis': config.samples_per_axis, 'visibility': config.enable_visibility, 'reuse_existing_uv': config.reuse_existing_uv, 'requested_island_margin': config.island_margin, 'effective_island_margin': config.effective_island_margin_fraction, 'effective_island_margin_pixels': config.effective_island_margin_pixels, 'projection_space': {'width': projection_space.width, 'depth': projection_space.depth, 'height': projection_space.height, 'voxel_size': projection_space.voxel_size, 'center_xy': projection_space.center_xy, 'convention': projection_space.convention.value}})

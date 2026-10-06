@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from .stages import PipelineStage
+if TYPE_CHECKING:
+    from ..material_inputs import MaterialProjectionInput
 
 
 @dataclass
@@ -13,6 +15,7 @@ class PipelineContext:
     source: Any = None
     outputs: dict[PipelineStage, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+    material_input: MaterialProjectionInput | None = None
 
     def set_output(self, stage: PipelineStage, value: Any) -> None:
         self.outputs[PipelineStage(stage)] = value

@@ -49,6 +49,11 @@ def _expected_source_color(
     )
 
 
+def _encoded_rgba(color):
+    return tuple(value * 12.92 if value <= .0031308 else 1.055 * value ** (1/2.4) - .055
+                 for value in color[:3]) + (color[3],)
+
+
 def _validate_texture_buffer(
     result,
 ) -> None:
@@ -261,10 +266,10 @@ def _validate_blender_image(
         )
 
         source = (
-            _expected_source_color(
+            _encoded_rgba(_expected_source_color(
                 x,
                 y,
-            )
+            ))
         )
 
         for channel in range(
@@ -295,8 +300,8 @@ def _validate_blender_image(
     #
     # Blender byte image:
     #
-    #     16 / 255
-    #     == 0.062745098...
+    #     sRGB(0.0625) -> 71 / 255
+    #     == 0.278431372...
     # -----------------------------------------------------
 
     bottom_left = (
@@ -309,7 +314,7 @@ def _validate_blender_image(
 
     expected_quantized = (
         _quantize_unorm8(
-            0.0625
+            0.27730417690977277
         )
     )
 
@@ -347,7 +352,7 @@ def _validate_blender_image(
     print(
         (
             "  source R: "
-            "0.062500000"
+            "0.062500000 linear / 0.277304177 sRGB"
         )
     )
 

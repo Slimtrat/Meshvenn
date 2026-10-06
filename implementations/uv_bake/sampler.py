@@ -50,6 +50,7 @@ del _dependency
 def _build_surface_sampler(
     geometry: GeometrySurfaceOutput,
     config: UVBakeMaterialConfig,
+    *, views=None, diagnostics=False,
 ):
     """
     Build the Projected Color V1.2 surface sampler used by
@@ -68,7 +69,7 @@ def _build_surface_sampler(
         reconstruction implementation internals
     """
 
-    views = list(
+    views = list(views) if views is not None else list(
         _material_views_from_geometry(
             geometry
         )
@@ -92,14 +93,35 @@ def _build_surface_sampler(
             MeshVisibilityTester
             .from_blender_object(
                 geometry
-                .blender_object
+                .blender_object,
+                use_loop_triangles=True,
             )
         )
 
+    counters = {name: 0 for name in (
+        "total_samples", "candidate_samples", "source_rejected_samples", "visible_samples",
+        "occluded_samples", "front_facing_samples", "backface_samples", "grazing_rejected_samples",
+        "primary_samples", "projected_fallback_samples", "neutral_fallback_samples", "selected_samples")}
     def sample_surface(
         position,
         normal,
     ) -> SurfaceColorSample:
+        if diagnostics:
+            from ...core.projected_material.blending import _blend_projected_color_detailed
+            result = _blend_projected_color_detailed(
+                position, normal, views, **projection_space.as_projection_kwargs(),
+                facing_power=config.facing_power, fallback_color=DEFAULT_FALLBACK_COLOR,
+                allow_backface_fallback=config.allow_backface_fallback,
+                visibility_tester=visibility_tester, blend_config=blend_config)
+            for name in ("total_samples", "candidate_samples", "source_rejected_samples",
+                         "visible_samples", "occluded_samples", "front_facing_samples",
+                         "backface_samples", "grazing_rejected_samples", "selected_samples"):
+                counters[name] = counters.get(name, 0) + getattr(result, name)
+            kind = ("neutral_fallback_samples" if not result.selected_samples else
+                    "projected_fallback_samples" if result.used_fallback else "primary_samples")
+            counters[kind] = counters.get(kind, 0) + 1
+            return SurfaceColorSample(color=result.color, used_fallback=result.used_fallback,
+                                      selected_samples=result.selected_samples)
         (
             color,
             accepted_samples,
@@ -174,6 +196,7 @@ def _build_surface_sampler(
             ),
         )
 
+    sample_surface.diagnostics = counters
     return sample_surface
 
 

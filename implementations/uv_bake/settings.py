@@ -292,6 +292,18 @@ def _material_views_from_geometry(
     return resolved
 
 
+def _material_views_from_context(context, geometry):
+    # Absence preserves the historical path exactly. An invalid explicit
+    # appearance input must never silently select neutral geometry images.
+    appearance = context.material_input
+    if appearance is None:
+        return _material_views_from_geometry(geometry)
+    from ...core.material_inputs import MaterialProjectionInput
+    if not isinstance(appearance, MaterialProjectionInput):
+        raise TypeError("material_input must be MaterialProjectionInput.")
+    return appearance.validate_for(geometry)
+
+
 # =========================================================
 # Geometry validation
 # =========================================================

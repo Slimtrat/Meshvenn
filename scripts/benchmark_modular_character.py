@@ -22,6 +22,10 @@ from scripts.generate_example_native_support.extraction import extract_sheet
 from scripts.glb_v2_character_support import connectivity_summary
 from scripts.modular_character_authoring import author_fixture_spec
 from scripts.run_logger import RunLogger
+from scripts.render_material_projections import render_material_projections
+from scripts.modular_character_appearance import prepare_appearance, save_appearance_provenance
+from scripts.modular_appearance_evidence import certify_appearance
+from scripts.material_color_transport import certify_material_color_transport
 
 
 def _module(name):
@@ -29,6 +33,10 @@ def _module(name):
 
 
 def _stage(context, stage, implementation):
+    selections = _module("properties.pipeline")
+    selections.ensure_pipeline_defaults(context.settings)
+    selections.set_pipeline_implementation(context.settings, stage, implementation.descriptor.identifier)
+    selections.pipeline_stage_settings(context.settings, stage).enabled = True
     result = implementation.execute(context)
     if not result.success:
         raise AssertionError(f"Modular fixture {stage.name}: {result.message}")
@@ -59,6 +67,12 @@ def main():
                              alpha_threshold=.1, logger=RunLogger())
     if len(views) != 10 or not all(view.valid for view in views):
         raise AssertionError("Modular fixture requires all ten calibrated source views.")
+    color_transport = certify_material_color_transport(output / "appearance/color_transport", _module)
+    color_views, appearance_provenance = render_material_projections(isolated, output / "appearance/views")
+    appearance_provenance["source_sha256"] = hashlib.sha256(source.read_bytes()).hexdigest()
+    geometry_input = {"mode": "neutral-silhouette", "sheet_sha256": hashlib.sha256(sheet.read_bytes()).hexdigest(),
+                      "views": [{"name": view.name, "sha256": hashlib.sha256(view.path.read_bytes()).hexdigest()}
+                                for view in views]}
     package = importlib.import_module(ROOT.name)
     package.register()
     try:
@@ -68,7 +82,7 @@ def main():
         settings.target_height = 2
         settings.surface_refinement = "organic"
         settings.uv_bake_texture_size = "512"
-        settings.uv_bake_samples_per_axis = "1"
+        settings.uv_bake_samples_per_axis = "2"
         settings.projections.clear()
         for view in views:
             projection = settings.projections.add()
@@ -81,7 +95,14 @@ def main():
         stage = pipeline.PipelineStage
         prepared = _stage(context, stage.INPUT, _module("implementations.projection_images").ProjectionImagesImplementation())
         geometry_result = _stage(context, stage.GEOMETRY, _module("implementations.native_visual_hull").NativeVisualHullImplementation())
+        context.material_input, source_signals = prepare_appearance(
+            geometry_result.payload, color_views, appearance_provenance, _module)
         material = _stage(context, stage.MATERIAL, _module("implementations.uv_bake").UVBakeImplementation())
+        appearance = certify_appearance(material.payload.bake_result,
+                                        context.metadata["material_sampling_diagnostics"], source_signals)
+        appearance.update(appearance_provenance)
+        appearance.update(atlas_storage="srgb-byte-from-scene-linear", color_transport=color_transport)
+        save_appearance_provenance(appearance)
         rig_result = _stage(context, stage.RIG, _module("implementations.canonical_rig_v2").CanonicalRigV2Implementation())
         context.metadata["motion_source_path"] = str(source)
         motion = _stage(context, stage.MOTION, _module("implementations.canonical_motion").CanonicalMotionRetargetImplementation())
@@ -133,6 +154,8 @@ def main():
                     "source_connectivity": source_connectivity,
                     "surface_refinement": geometry.metadata["surface_refinement"],
                     "material": material.metrics, "native_joint_count": 18,
+                    "geometry_input_mode": "neutral-silhouette", "geometry_input": geometry_input,
+                    "material_input_mode": "source-color-projection", "appearance": appearance,
                     "surface_representation": "authoritative-source-Blender-loop-triangles; no caps or additional surface",
                     "animation_count": len(exported.animation_names), "partition_authoring": choices,
                     "roundtrip": fidelity, "consumer_acceptance": "Godot/Stytch gates are separate and not certified here"}

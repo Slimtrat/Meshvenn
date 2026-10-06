@@ -141,6 +141,46 @@ The committed fixture is in `example/v2/modular/UAL1/`. It is a pipeline/fidelit
 fixture, not a certification of material coverage, triangle budget, mobile quality,
 realistic anatomy, sealed wound caps, or any game-engine runtime.
 
+### Separate appearance inputs
+
+The modular fixture retains the exact ten **neutral** geometry inputs, native
+resolution 64, original surface/ownership hash, eighteen-joint rig and 43 clips.
+Its MATERIAL stage instead receives ten separately rendered source-color views
+via the opt-in typed `PipelineContext.material_input: MaterialProjectionInput`.
+The image-only contract checks real view/buffer/mask types, finite scene-linear
+RGBA, exact camera calibration/alignment and projection frame. It cannot carry a
+source mesh, depth or armature. Without it, existing input selection is unchanged.
+
+The isolated source's real Principled Base Color graph is captured as emission
+with no lighting or shadows, Standard/sRGB 16-bit PNG and transparent background.
+This capture currently rejects non-OPAQUE GLB materials, linked/partial alpha and
+unsupported shader graphs; it does not silently flatten them. Source images and
+their hashes/provenance are packed into the editable `.blend`. Re-export **No
+Rebuild** preserves the baked material; the ordinary Generate button does **not**
+rehydrate this separate color input. Regenerate through the CLI above to rebake it.
+
+UV Bake V2 has two production corrections: visibility now uses the same Blender
+loop triangles as UV sampling (avoiding false occlusion on nonplanar quads), and
+scene-linear RGB is explicitly encoded to portable sRGB RGBA8 (alpha stays linear).
+These correct surface sampling/storage, not geometry, rig fitting or their gates.
+The atlas remains 512² with 2 samples/axis; the other benchmark settings are unchanged.
+
+`manifest.appearance` separates real source-view signal, atlas signal, primary/
+projected/neutral fallback counts, occupancy and encoding. Counters must agree
+with actual bake work. The known non-primary linear RGB (.25,.50,.75) is also
+rendered, baked, exported and reimported through actual shaders; its maximum
+linear error must stay below .004, the declared RGBA8 transport budget. A white
+atlas, missing counters, wrong gamma or substantial neutral fallback cannot pass.
+This certifies measured source-color transport, not exact spatial texture recovery
+or reconstruction of source roughness/metalness, transparency or PBR lighting.
+
+V2 previews show six states of the final reimported GLB with its SHA/run/attempt.
+The modular 64 partition evidence stays distinct from the 128 geometry benchmark;
+legacy previews are folded separately. Automatic publishing starts only after
+integration on the trusted default branch; artifacts never provide executable
+scripts to a write-enabled publishing job. Before integration use the CI summary
+and `glb-v2-benchmark-<attempt>` / `glb-v2-preview-<attempt>` artifacts.
+
 ## Validation and consumer boundary
 
 Upstream gates check exact face ownership, shared native skeleton, original corner

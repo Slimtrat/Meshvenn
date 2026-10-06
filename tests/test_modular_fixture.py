@@ -76,6 +76,28 @@ class ModularFixtureTests(unittest.TestCase):
         self.assertTrue(self.manifest["roundtrip"]["passed"])
         self.assertIn("separate", self.manifest["consumer_acceptance"])
 
+    def test_appearance_is_real_color_separate_from_neutral_geometry(self):
+        self.assertEqual(self.manifest["geometry_input_mode"], "neutral-silhouette")
+        self.assertEqual(self.manifest["material_input_mode"], "source-color-projection")
+        proof = self.manifest["appearance"]
+        self.assertTrue(proof["passed"])
+        self.assertEqual(proof["source_sha256"], self.manifest["source_sha256"])
+        self.assertEqual(proof["render_mode"], "base-color-emission")
+        self.assertFalse(proof["lighting_baked"])
+        self.assertEqual(proof["texture_size"], 512)
+        self.assertEqual(proof["samples_per_axis"], 2)
+        self.assertEqual(proof["atlas_storage"], "srgb-byte-from-scene-linear")
+        self.assertEqual(len(proof["views"]), 10)
+        self.assertTrue(all(record["alpha_occupied_pixels"] > 0 for record in proof["views"]))
+        self.assertLess(proof["neutral_fallback_ratio"], .01)
+        self.assertGreater(proof["atlas_signal"]["chromatic_fraction"], .90)
+        self.assertLess(proof["atlas_signal"]["white_fraction"], .01)
+        transport = proof["color_transport"]
+        self.assertTrue(transport["passed"])
+        self.assertLessEqual(transport["max_linear_error"], .004)
+        self.assertEqual(transport["source_linear_rgb"], [.25, .5, .75])
+        self.assertIn("not general", proof["scope"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import replace
 import importlib
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -79,6 +80,24 @@ def main():
         assert settings.export_modular_character
         assert settings.export_modular_manifest_path == "//authoring.json"
         assert settings.export_output_path == "//character.glb"
+        appearance_text = bpy.data.texts.get("meshvenn-material-input.json")
+        if appearance_text is not None:
+            appearance = json.loads(appearance_text.as_string())
+            assert appearance["atlas_storage"] == "srgb-byte-from-scene-linear"
+            assert appearance["color_transport"]["passed"]
+            assert len(appearance["views"]) == 10
+            for record in appearance["views"]:
+                image = bpy.data.images[record["packed_image"]]
+                assert image.packed_file is not None and image.use_fake_user
+                assert hashlib.sha256(image.packed_file.data).hexdigest() == record["sha256"]
+            selections = importlib.import_module(f"{root.name}.properties.pipeline")
+            assert settings.pipeline.initialized
+            expected = {"input": "projection-images", "geometry": "native-visual-hull",
+                        "material": "uv-bake-v2", "rig": "canonical-biped-v2",
+                        "motion": "canonical-motion-retarget-v1", "export": "glb-export-v1"}
+            for name, identifier in expected.items():
+                selected = selections.pipeline_stage_settings(settings, name)
+                assert selected.implementation_id == identifier and selected.enabled, (name, selected.implementation_id)
         settings.export_output_path = "//reexport.glb"
         settings.export_overwrite_existing = True
         api = importlib.import_module(f"{root.name}.implementations.glb_export.modular_source")
