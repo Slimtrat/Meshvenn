@@ -12,8 +12,10 @@ from array import array
 from dataclasses import replace
 
 from .native_bridge.models import NativeMesh
+from .surface_safety import constrain_faces, _normal, _dot
 
 REFINEMENT_PAIRS = 24
+CONTOUR_REFINEMENT_PAIRS = 48
 
 
 def validate_surface_refinement(mode: str, mesh_mode: str) -> None:
@@ -21,16 +23,6 @@ def validate_surface_refinement(mode: str, mesh_mode: str) -> None:
         raise ValueError("Surface refinement must be none or organic.")
     if mode == "organic" and mesh_mode != "surface_nets":
         raise ValueError("Organic refinement requires Surface Nets, not voxel blocks.")
-
-
-def _normal(points, tri):
-    a, b, c = (points[i] for i in tri)
-    u, v = [b[k] - a[k] for k in range(3)], [c[k] - a[k] for k in range(3)]
-    return (u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0])
-
-
-def _dot(a, b):
-    return sum(x*y for x, y in zip(a, b))
 
 
 def _volume(points, triangles, origin):
@@ -47,12 +39,16 @@ def _roughness(points, neighbors, voxel_size):
 
 
 def refine_native_surface(mesh: NativeMesh, *, voxel_size: float,
-                          mode: str = "none", mesh_mode: str = "surface_nets") -> tuple[NativeMesh, dict]:
+                          mode: str = "none", mesh_mode: str = "surface_nets",
+                          contour_surface=None) -> tuple[NativeMesh, dict]:
     validate_surface_refinement(mode, mesh_mode)
     if not math.isfinite(voxel_size) or voxel_size <= 0:
         raise ValueError("Refinement voxel size must be finite and positive.")
     if mode == "none":
         return mesh, {"mode": "none", "applied": False}
+    if contour_surface is not None and not math.isclose(
+            contour_surface.space.voxel_size, voxel_size, rel_tol=1e-12, abs_tol=0):
+        raise ValueError("Contour and mesh voxel sizes must match.")
     if (not mesh.vertex_count or len(mesh.vertices) % 3
             or len(mesh.polygon_starts) != mesh.polygon_count or not mesh.polygon_count):
         raise ValueError("Organic refinement requires a valid nonempty mesh.")
@@ -106,8 +102,12 @@ def refine_native_surface(mesh: NativeMesh, *, voxel_size: float,
         component_triangles[membership[tri[0]]].append(tri)
     points = original
     limit = .75 * voxel_size
-    for _ in range(REFINEMENT_PAIRS):
-        for strength in (.5, -.53):
+    if contour_surface is not None:
+        points = [p if i in pinned else contour_surface.project(p,p,limit)
+                  for i,p in enumerate(original)]
+    pairs = CONTOUR_REFINEMENT_PAIRS if contour_surface is not None else REFINEMENT_PAIRS
+    for _ in range(pairs):
+        for strength in (.5, -.5 if contour_surface is not None else -.53):
             proposed = []
             for i, (p, row) in enumerate(zip(points, neighbors)):
                 if i in pinned or not row:
@@ -120,6 +120,14 @@ def refine_native_surface(mesh: NativeMesh, *, voxel_size: float,
                     q = tuple(original[i][k]+(q[k]-original[i][k])*limit/distance for k in range(3))
                 proposed.append(q)
             points = proposed
+    locally_limited = 0
+    if contour_surface is not None:
+        # Keep most of the anti-terracing pass rather than restoring every
+        # pixel-scale corner of the signed-distance field in the final fit.
+        fitted = [p if i in pinned else contour_surface.project(p,original[i],limit,iterations=3)
+                  for i,p in enumerate(points)]
+        points = [tuple(.75*p[k]+.25*q[k] for k in range(3)) for p,q in zip(points,fitted)]
+        points, locally_limited = constrain_faces(original,points,triangles,limit)
     volume_drifts, attenuated = [], 0
     for component, tris in zip(components, component_triangles):
         normals = [_normal(original, t) for t in tris]
@@ -150,8 +158,10 @@ def refine_native_surface(mesh: NativeMesh, *, voxel_size: float,
             raise ValueError("Surface refinement could not preserve face orientation.")
     displacement = max(math.dist(a,b) for a,b in zip(points,original))
     report = {
-        "mode": mode, "algorithm": "bounded-taubin-v1", "applied": displacement > 0,
-        "iterations": REFINEMENT_PAIRS, "displacement_limit_in_voxels": .75,
+        "mode": mode,
+        "algorithm": "contour-taubin-v2" if contour_surface is not None else "bounded-taubin-v1",
+        "applied": displacement > 0,
+        "iterations": pairs, "displacement_limit_in_voxels": .75,
         "maximum_displacement_in_voxels": displacement/voxel_size,
         "roughness_before_in_voxels": _roughness(original,neighbors,voxel_size),
         "roughness_after_in_voxels": _roughness(points,neighbors,voxel_size),
@@ -161,4 +171,13 @@ def refine_native_surface(mesh: NativeMesh, *, voxel_size: float,
         "attenuated_component_count": attenuated, "topology_preserved": True,
         "face_orientation_preserved": True,
     }
+    if contour_surface is not None:
+        report["locally_limited_vertex_count"] = locally_limited
+        before = contour_surface.residual_summary(original)
+        after = contour_surface.residual_summary(points)
+        report["mean_contour_residual_before_in_voxels"] = before["mean_in_voxels"]
+        report["mean_contour_residual_after_in_voxels"] = after["mean_in_voxels"]
+        report["contour_residual_sample_count"] = before["total_samples"]
+        report["contour_residual_valid_samples_before"] = before["valid_samples"]
+        report["contour_residual_valid_samples_after"] = after["valid_samples"]
     return replace(mesh, vertices=array("f", (x for p in points for x in p))), report

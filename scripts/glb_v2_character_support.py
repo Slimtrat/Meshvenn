@@ -9,6 +9,35 @@ from collections.abc import Mapping, Sequence
 Point3 = tuple[float, float, float]
 
 
+def assert_refinement_quality(report: Mapping, *, min_roughness_reduction: float = 0.,
+                              min_contour_reduction: float = 0.) -> None:
+    """Fail opt-in finish gates independently from the existing geometry gates."""
+    for threshold in (min_roughness_reduction,min_contour_reduction):
+        if not math.isfinite(threshold) or not 0 <= threshold <= 1:
+            raise ValueError("Refinement reductions must be in 0..1.")
+    if min_roughness_reduction == min_contour_reduction == 0:
+        return
+    if (report.get("algorithm") != "contour-taubin-v2"
+            or not report.get("topology_preserved") or not report.get("face_orientation_preserved")):
+        raise AssertionError("Character contour refinement or its safeguards are missing")
+    for prefix,threshold in (("roughness",min_roughness_reduction),
+                             ("mean_contour_residual",min_contour_reduction)):
+        if threshold == 0:
+            continue
+        before = report.get(f"{prefix}_before_in_voxels")
+        after = report.get(f"{prefix}_after_in_voxels")
+        if (type(before) not in (float,int) or type(after) not in (float,int)
+                or not math.isfinite(before) or not math.isfinite(after) or before <= 0 or after < 0):
+            raise AssertionError(f"Character {prefix} reduction has no valid evidence")
+        if after > before*(1-threshold):
+            raise AssertionError(f"Character {prefix} reduction fell below {threshold:.0%}")
+    if min_contour_reduction:
+        total = report.get("contour_residual_sample_count")
+        counts = [report.get(f"contour_residual_valid_samples_{phase}") for phase in ("before","after")]
+        if (type(total) is not int or total <= 0 or any(type(n) is not int or n > total or n < .95*total for n in counts)):
+            raise AssertionError("Character contour residual is not measurable on at least 95% of vertices")
+
+
 def normalized_landmarks(
     landmarks: Mapping[str, Sequence[float]],
     vertices: Sequence[Sequence[float]],

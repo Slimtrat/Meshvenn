@@ -5,6 +5,8 @@ from .profile_reporting import _finalize_profile, _log_material
 from .profile_setup import _create_mesh_and_material, _initial_profile_info
 from dataclasses import replace
 from core.surface_refinement import refine_native_surface
+from core.contour_surface import ContourSurface
+from core.geometry_contracts import GeometryProjectionSpace
 
 def _process_profile(
     *,
@@ -16,15 +18,25 @@ def _process_profile(
     scans_root: Path,
     args: argparse.Namespace,
     logger: RunLogger,
+    projections: dict,
+    contour_cache: dict,
 ) -> None:
     level_logger = (
         logger.child()
     )
     refinement = {"mode": "none", "applied": False}
     if snapshot.mesh is not None:
+        contour = None
+        if getattr(args, "surface_refinement", "none") == "organic":
+            active_views = [projections[name] for name in snapshot.applied_views]
+            contour = ContourSurface.from_views(active_views, GeometryProjectionSpace(
+                snapshot.volume.width, snapshot.volume.depth, snapshot.volume.height,
+                voxel_size=args.voxel_size, center_xy=True,
+            ), cache=contour_cache)
         mesh, refinement = refine_native_surface(
             snapshot.mesh, voxel_size=args.voxel_size,
             mode=getattr(args, "surface_refinement", "none"), mesh_mode=args.mesh_mode,
+            contour_surface=contour,
         )
         snapshot = replace(snapshot, mesh=mesh)
 

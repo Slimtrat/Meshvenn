@@ -61,6 +61,9 @@ jobs:
       - name: Verify versioned modular ownership, metadata and committed fixture
         run: python -m unittest tests.test_modular_character_contracts tests.test_modular_partition tests.test_modular_gltf tests.test_modular_metadata tests.test_modular_fixture -v
 
+      - name: Verify continuous contour fitting and surface safeguards
+        run: python -m unittest tests.test_contour_surface tests.test_surface_refinement tests.test_projection_frame -v
+
       - name: Cache Blender
         id: blender-cache
         uses: actions/cache@v4
@@ -377,9 +380,19 @@ jobs:
               --asset "${asset}" --resolution 128 --surface-refinement organic \
               --rig-implementation canonical-biped-v2 --require-connected --preview \
               --min-iou 0.88 --min-view-iou 0.80 --min-surface-fscore 0.97 \
+              --min-roughness-reduction 0.20 --min-contour-reduction 0.50 \
               --max-extent-error 0.08 --max-mean-joint-error 0.04 --max-joint-error 0.09 \
               --output "${RUNNER_TEMP}/v2-benchmark/${asset}_character_organic"
           done
+
+      - name: Verify organic batch profiles share contour fields
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_contour_batch_smoke.py -- \
+            "${RUNNER_TEMP}/v2-benchmark/quaternius_human_character_organic/source_sheet.png" \
+            "${RUNNER_TEMP}/v2-benchmark/organic_batch"
 
       - name: Certify modular partition rollback and generate editable native V2 fixture
         shell: bash

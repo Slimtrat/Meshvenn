@@ -2,6 +2,7 @@ from __future__ import annotations
 import bpy
 import json
 from ...core.surface_refinement import refine_native_surface
+from ...core.contour_surface import ContourSurface
 from ...core.native_bridge import NativeCore
 from ...core.native_scan_trace import scan_named_projections
 from ...core.native_mesh_builder import (
@@ -117,16 +118,19 @@ def execute_native_visual_hull(context: PipelineContext) -> StageExecutionResult
                     "mesh_mode": config.mesh_mode,
                 },
             )
+        projection_space = _projection_space_from_volume(volume, config)
+        contour = (ContourSurface.from_views(source.views, projection_space)
+                   if config.surface_refinement == "organic" else None)
         native_mesh, refinement = refine_native_surface(
             native_mesh, voxel_size=config.voxel_size, mode=config.surface_refinement,
             mesh_mode=config.mesh_mode,
+            contour_surface=contour,
         )
         obj = create_blender_mesh_from_native(
             native_mesh, mesh_name=DEFAULT_MESH_NAME, object_name=DEFAULT_OBJECT_NAME
         )
         shade_smooth_native_object(obj)
         obj["bpt_surface_refinement"] = json.dumps(refinement, sort_keys=True)
-        projection_space = _projection_space_from_volume(volume, config)
         normalization_scale = _apply_non_destructive_height_normalization(
             obj, enabled=config.normalize_height, target_height=config.target_height
         )

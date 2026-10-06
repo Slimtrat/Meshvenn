@@ -190,6 +190,98 @@
     "TOP",
     "BOT"
   ],
+  "view_diagnostics": [
+    {
+      "view": "000",
+      "order_index": 0,
+      "before": 262144,
+      "after": 88960,
+      "removed_count": 173184,
+      "retained_fraction": 0.33935546875,
+      "status": "ok"
+    },
+    {
+      "view": "090",
+      "order_index": 1,
+      "before": 88960,
+      "after": 22252,
+      "removed_count": 66708,
+      "retained_fraction": 0.25013489208633094,
+      "status": "ok"
+    },
+    {
+      "view": "180",
+      "order_index": 2,
+      "before": 22252,
+      "after": 17192,
+      "removed_count": 5060,
+      "retained_fraction": 0.7726047096890167,
+      "status": "ok"
+    },
+    {
+      "view": "270",
+      "order_index": 3,
+      "before": 17192,
+      "after": 11519,
+      "removed_count": 5673,
+      "retained_fraction": 0.67002093997208,
+      "status": "ok"
+    },
+    {
+      "view": "045",
+      "order_index": 4,
+      "before": 11519,
+      "after": 11072,
+      "removed_count": 447,
+      "retained_fraction": 0.9611945481378592,
+      "status": "ok"
+    },
+    {
+      "view": "135",
+      "order_index": 5,
+      "before": 11072,
+      "after": 10674,
+      "removed_count": 398,
+      "retained_fraction": 0.9640534682080925,
+      "status": "ok"
+    },
+    {
+      "view": "225",
+      "order_index": 6,
+      "before": 10674,
+      "after": 10528,
+      "removed_count": 146,
+      "retained_fraction": 0.9863219036912123,
+      "status": "ok"
+    },
+    {
+      "view": "315",
+      "order_index": 7,
+      "before": 10528,
+      "after": 10305,
+      "removed_count": 223,
+      "retained_fraction": 0.9788183890577508,
+      "status": "ok"
+    },
+    {
+      "view": "TOP",
+      "order_index": 8,
+      "before": 10305,
+      "after": 10055,
+      "removed_count": 250,
+      "retained_fraction": 0.9757399320718098,
+      "status": "ok"
+    },
+    {
+      "view": "BOT",
+      "order_index": 9,
+      "before": 10055,
+      "after": 9800,
+      "removed_count": 255,
+      "retained_fraction": 0.9746394828443561,
+      "status": "ok"
+    }
+  ],
   "profiles": {
     "L2": {
       "generated": true,
@@ -214,6 +306,10 @@
         3,
         61
       ],
+      "surface_refinement": {
+        "mode": "none",
+        "applied": false
+      },
       "material": {
         "mode": "projected-color-v1.2",
         "attribute": "bpt_projected_color",
@@ -317,6 +413,10 @@
         3,
         53
       ],
+      "surface_refinement": {
+        "mode": "none",
+        "applied": false
+      },
       "material": {
         "mode": "projected-color-v1.2",
         "attribute": "bpt_projected_color",
@@ -430,6 +530,10 @@
         3,
         50
       ],
+      "surface_refinement": {
+        "mode": "none",
+        "applied": false
+      },
       "material": {
         "mode": "projected-color-v1.2",
         "attribute": "bpt_projected_color",
@@ -551,6 +655,10 @@
         3,
         50
       ],
+      "surface_refinement": {
+        "mode": "none",
+        "applied": false
+      },
       "material": {
         "mode": "projected-color-v1.2",
         "attribute": "bpt_projected_color",
