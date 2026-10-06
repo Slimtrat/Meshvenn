@@ -116,6 +116,10 @@ Generate button still reconstructs geometry and is not this re-export route.
 The fixture uses portable `//character.glb` and `//authoring.json` paths: copy the
 whole fixture directory before re-exporting elsewhere. Missing actions, stale
 surface ownership or contradictory provenance fail before publication.
+The bundle already contains `character.glb` and overwrite is disabled by default.
+Choose a new **Output GLB**, or enable **Overwrite Existing** in your working copy
+before clicking the re-export button; the distributed artifact is not replaced
+silently.
 Headless callers use `bpy.ops.bpt.export_existing_modular_source()` after loading
 and registering the add-on, or `context_from_authored_scene` in
 `implementations.glb_export.modular_source` followed by the regular exporter.
