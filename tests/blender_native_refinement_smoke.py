@@ -53,6 +53,10 @@ def main():
         assert faithful.payload.native_mesh.vertices != output.native_mesh.vertices
         assert output.metadata['surface_refinement']['mode'] == 'organic'
         assert output.metadata['surface_refinement']['topology_preserved']
+        finish = output.metadata['surface_refinement']
+        assert finish['algorithm'] == 'contour-taubin-v2'
+        assert finish['mean_contour_residual_after_in_voxels'] < finish['mean_contour_residual_before_in_voxels']
+        assert finish['maximum_displacement_in_voxels'] <= .75
         assert abs(output.blender_object.dimensions.z-2) < 1e-6
         actual = tuple(c for vertex in output.blender_object.data.vertices for c in vertex.co)
         assert actual == tuple(output.native_mesh.vertices), 'Native/BVH and Blender coordinates differ'

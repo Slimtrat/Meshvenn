@@ -34,7 +34,9 @@ from scripts.glb_v2_animation_fixture import (
     inspect_isolated_reference,
 )
 from scripts.generate_example_native_support.extraction import extract_sheet
-from scripts.glb_v2_character_support import assert_unrigged_mesh, normalized_landmarks, connectivity_summary
+from scripts.glb_v2_character_support import (
+    assert_unrigged_mesh, normalized_landmarks, connectivity_summary, assert_refinement_quality,
+)
 from scripts.glb_v2_metrics import score_silhouettes
 from scripts.glb_v2_rig_metrics import landmark_summary, skin_weight_summary
 from scripts.glb_v2_surface_metrics import compare_glb_surfaces
@@ -51,6 +53,8 @@ def arguments() -> argparse.Namespace:
     parser.add_argument("--preview", action="store_true")
     parser.add_argument("--require-connected", action="store_true")
     parser.add_argument("--min-view-iou", type=float, default=0.0)
+    parser.add_argument("--min-roughness-reduction", type=float, default=0.0)
+    parser.add_argument("--min-contour-reduction", type=float, default=0.0)
     parser.add_argument(
         "--rig-implementation",
         choices=("canonical-biped-v1", "canonical-biped-v2"),
@@ -226,6 +230,7 @@ def main() -> None:
     thresholds = (
         args.min_iou, args.min_view_iou, args.min_surface_fscore, args.max_extent_error,
         args.max_mean_joint_error, args.max_joint_error,
+        args.min_roughness_reduction, args.min_contour_reduction,
     )
     if args.resolution < 16 or any(not 0.0 <= value <= 1.0 for value in thresholds):
         raise ValueError("resolution must be >= 16 and thresholds must be between 0 and 1")
@@ -273,6 +278,8 @@ def main() -> None:
         "maximum_joint_error_in_heights": args.max_joint_error,
         "minimum_per_view_iou": args.min_view_iou,
         "requires_connected_surface": args.require_connected,
+        "minimum_roughness_reduction": args.min_roughness_reduction,
+        "minimum_contour_residual_reduction": args.min_contour_reduction,
         "minimum_skin_coverage": 1.0,
         "maximum_influences_per_vertex": 4,
         "maximum_weight_sum_error": 0.02,
@@ -311,6 +318,9 @@ def main() -> None:
     )
     if silhouette["valid_input_views"] != silhouette["total_views"]:
         raise AssertionError("Character source rendering contains invalid views")
+    assert_refinement_quality(report["refinement"],
+                              min_roughness_reduction=args.min_roughness_reduction,
+                              min_contour_reduction=args.min_contour_reduction)
     if min(silhouette["per_view_iou"].values()) < args.min_view_iou:
         raise AssertionError("Character reconstruction lost a required view silhouette")
     if args.require_connected and rig["connectivity"]["component_count"] != 1:

@@ -114,7 +114,7 @@ class BPT_PG_Settings(
         name="Surface Finish",
         description="Bounded voxel-scale geometry refinement; does not infer anatomy",
         items=(("none", "Faithful", "Keep the native surface unchanged"),
-               ("organic", "Organic", "Reduce voxel terracing while preserving topology and limiting volume drift")),
+               ("organic", "Organic", "Fit continuous silhouettes and reduce voxel terracing with bounded, topology-preserving smoothing")),
         default="none",
     )
 

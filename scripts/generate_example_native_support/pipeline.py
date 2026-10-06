@@ -222,12 +222,15 @@ def process_sheet(
         # -------------------------------------------------
         # Build one Blender object per profile
         # -------------------------------------------------
+        contour_cache = {}
         for level_name, snapshot in result.snapshots.items():
             _process_profile(
                 sheet_name=sheet_name, level_name=level_name,
                 snapshot=snapshot, material_views=material_views,
                 manifest=manifest, scans_root=scans_root,
                 args=args, logger=logger,
+                projections=projections,
+                contour_cache=contour_cache,
             )
 
         # -------------------------------------------------
