@@ -147,6 +147,35 @@ def compare_owned_variant(reference, reference_binary, candidate, candidate_bina
             "scope": "Before/after source weight edit. New-source skin fidelity is separately gated by export; old weights are intentionally not retained."}
 
 
+def compare_shoulder_variant(reference, reference_binary, candidate, candidate_binary, read_accessor):
+    """Two explicitly changed inverse binds; all old skin/surface gates retained."""
+    old,faces,binds,images,count = _records(reference,reference_binary,read_accessor)
+    new,new_faces,new_binds,new_images,new_count = _records(candidate,candidate_binary,read_accessor)
+    if count != 14252 or new_count != count or faces != new_faces or set(old) != set(new) or images != new_images:
+        raise ValueError("Shoulder correction changed source geometry/UV/topology/atlas.")
+    if set(binds) != set(new_binds):
+        raise ValueError("Shoulder correction changed native joint names.")
+    errors = {name:max(abs(a-b) for a,b in zip(matrix,new_binds[name])) for name,matrix in binds.items()}
+    if {name for name,value in errors.items() if value > 2e-4} != {"upper_arm.L","upper_arm.R"}:
+        raise ValueError("Shoulder correction changed an undeclared inverse bind or did not edit both shoulders.")
+    for key,rows in old.items():
+        matches = list(new[key])
+        if len(rows) != len(matches):
+            raise ValueError("Shoulder correction lost or duplicated source corners.")
+        for normal,weights,material in rows:
+            candidates = [i for i,(_,other,mat) in enumerate(matches) if weights == other and material == mat]
+            if not candidates:
+                raise ValueError("Shoulder correction changed exact skin weights/materials.")
+            index = min(candidates,key=lambda i:max(abs(a-b) for a,b in zip(normal,matches[i][0])))
+            other_normal,_,_ = matches.pop(index)
+            if max(abs(a-b) for a,b in zip(normal,other_normal)) > 2e-6:
+                raise ValueError("Shoulder correction changed source corner normals.")
+    return {"passed":True,"intentionally_changed_bind_names":["upper_arm.L","upper_arm.R"],
+            "inverse_bind_max_errors":errors,"triangle_count":count,
+            "exact_surface_uv_skin_materials_atlas_preserved":True,
+            "scope":"Separate intentional rest-origin edit. Ordinary new-source export fidelity remains strict; old unchanged-bind comparison must reject."}
+
+
 def compare_head_variant(reference, reference_binary, candidate, candidate_binary, read_accessor, envelope):
     """Separate intentional edit proof; NEVER a relaxation of compare_reference.
 
