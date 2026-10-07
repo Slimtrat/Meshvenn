@@ -7,8 +7,9 @@ screenshots or consumer implementation are included.
 
 The supplied one-leg JSON has identical bytes. The hidden-left-leg render tests
 visibility with the same Hall pose; it does not qualify hop motion. Held, walk
-and one-leg-hop matrices were missing at that revision and are still required
-for complete issue #60 triage.
+and one-leg-hop matrices were missing at that historical revision. They are now
+available in the [complete nineteen-pose series](complete/README.md), pinned to
+the newer Stytch revision `1c9040e51be1e757c974eca794604cb9553cb532`.
 
 ## Replay without reconstructing the character
 

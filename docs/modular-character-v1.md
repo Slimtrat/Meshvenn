@@ -174,8 +174,13 @@ or consumer acceptance. Neck and shoulder/torso quality remain unqualified.
 provide an independent native-source / decoded-GLB / reimport replay for #60.
 They reproduce the upstream skin collapse before partitioning, with sub-micrometre
 surface agreement. The supplied one-leg snapshot is byte-identical: hiding a
-region is not an independent hop pose. Held/walk/hop inputs and corrected
-consumer qualification are still required; #60 is not resolved by this lot.
+region is not an independent hop pose. The newer
+[nineteen synchronized poses](../example/v2/poses/StytchDoll/complete/README.md)
+include held, three walk frames, twelve explicit mono-leg hop frames and world
+transit. All reproduce upstream distortion with source/raw/reimport agreement
+within 1.1 micrometres locally. World transit is a Walk approach, not an explicit
+Hop just because of its filename. Corrected source and consumer qualification
+are still required; #60 is not resolved by these fidelity/triage checks.
 
 The committed fixture is in `example/v2/modular/UAL1/`. It is a pipeline/fidelity
 fixture, not a certification of material coverage, triangle budget, mobile quality,

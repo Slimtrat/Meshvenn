@@ -56,16 +56,19 @@ def decoded_lbs(document, binary, probe, reader):
     return points, rest_error
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pose", type=Path, required=True)
     parser.add_argument("--fixture", type=Path, default=ROOT / "example/v2/modular/StytchDoll")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--hidden-region", choices=("left-arm", "right-arm", "left-leg", "right-leg"))
+    parser.add_argument("--hidden-regions", nargs="+", choices=("left-arm", "right-arm", "left-leg", "right-leg"))
+    parser.add_argument("--no-render", action="store_true", help="Run all numerical replay gates without rendering PNGs.")
     parser.add_argument("--source-sha", default="local-uncommitted")
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--run-attempt", default=None)
-    args = parser.parse_args(sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else [])
+    args = parser.parse_args(argv if argv is not None else (sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else []))
+    hidden_regions = sorted(set((args.hidden_regions or [])+([args.hidden_region] if args.hidden_region else [])))
     output, fixture = args.output.resolve(), args.fixture.resolve(strict=True)
     if output.exists() and any(output.iterdir()):
         raise ValueError("Choose an empty replay output directory.")
@@ -95,11 +98,13 @@ def main():
     triangles = [tuple(t.vertices) for t in mesh.data.loop_triangles]
     center_x = (max(p[0] for p in rest)+min(p[0] for p in rest))/2
     torso = [.45 <= (p[2]-floor)/height <= .67 and abs(p[0]-center_x)/height <= .14 for p in rest]
-    _camera((mesh,), 768, 32)
-    _render(output / "native_rest.png")
+    if not args.no_render:
+        _camera((mesh,), 768, 32)
+        _render(output / "native_rest.png")
     applied_error = apply_probe(rig, probe)
     native = list(_positions((mesh,))[mesh.name])
-    _render(output / "native_pose.png")
+    if not args.no_render:
+        _render(output / "native_pose.png")
     torso_edges = masked_edge_summary(rest, native, triangles, torso, height)
     assert source_snapshot(mesh, rig) == before
     reader = module("implementations.glb_export.modular_gltf")
@@ -110,19 +115,22 @@ def main():
     imported_error = apply_probe(rigs[0], probe)
     imported_by_mesh = _positions(meshes)
     imported = [p for mesh in meshes for p in imported_by_mesh[mesh.name]]
-    _camera(meshes, 768, 32)
-    _render(output / "glb_pose.png")
-    if args.hidden_region:
-        hidden = next(obj for obj in meshes if obj.name == "Doll_"+args.hidden_region.replace("-", "_"))
+    if not args.no_render:
+        _camera(meshes, 768, 32)
+        _render(output / "glb_pose.png")
+    for region in hidden_regions:
+        hidden = next(obj for obj in meshes if obj.name == "Doll_"+region.replace("-", "_"))
         hidden.hide_render = True
-        _render(output / ("glb_pose_hidden_"+args.hidden_region+".png"))
+    if hidden_regions and not args.no_render:
+        _render(output / ("glb_pose_hidden_"+"_".join(hidden_regions)+".png"))
     import_raw_error = hausdorff(raw, imported)
     # Independently verify source skin, raw glTF LBS and Blender reimport. These
     # are diagnostic replay gates, not changes to existing export tolerances.
     passed = raw_native_error < 2e-5*height and import_raw_error < 2e-5*height
     report = {"passed": passed, "asset_sha256": probe.asset_sha256, "input_pose_sha256": digest(args.pose),
               "source_sha": args.source_sha, "run_id": args.run_id, "run_attempt": args.run_attempt,
-              "hidden_region": args.hidden_region,
+              "hidden_region": hidden_regions[0] if len(hidden_regions) == 1 else None,
+              "hidden_regions": hidden_regions,
               "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
               "native_rest_error_in_heights": native_rest_error/height_native,
               "glb_rest_world_max_error": glb_rest_error, "native_applied_delta_error": applied_error,
