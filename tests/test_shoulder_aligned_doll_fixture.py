@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import struct
 import unittest
+from unittest.mock import patch
 
 from core.modular_character import ModularCharacterSpec
 from core.native_pose_probe import NativePoseProbe
@@ -29,12 +30,36 @@ def read(path):
     return json.loads(path.read_text("utf-8"))
 
 
+def legacy_float_sum(values):
+    """Python 3.11 left-to-right float sum, versus compensated 3.12+ sum."""
+    total = 0
+    for value in values:
+        total += value
+    return total
+
+
 class ShoulderAlignedDollTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.manifest, cls.quality = read(FIXTURE / "manifest.json"), read(FIXTURE / "pose-quality.json")
         cls.old, cls.old_binary = reader.read_glb(BASE / "character.glb")
         cls.new, cls.new_binary = reader.read_glb(FIXTURE / "character.glb")
+
+    def assert_recomputed_pose_matches(self, recalculated, pinned):
+        self.assertEqual(recalculated.keys(), pinned.keys())
+        for key in ("AssetSha256", "CoordinateFrame"):
+            self.assertEqual(recalculated[key], pinned[key])
+        self.assertEqual(len(recalculated["Bones"]), len(pinned["Bones"]))
+        for actual, expected in zip(recalculated["Bones"], pinned["Bones"]):
+            self.assertEqual(actual.keys(), expected.keys())
+            for key in ("Name", "Parent", "Rest"):
+                self.assertEqual(actual[key], expected[key])
+            self.assertEqual(len(actual["Pose"]), len(expected["Pose"]))
+            for value, target in zip(actual["Pose"], expected["Pose"]):
+                # Only double arithmetic recomputation may differ at the last
+                # bit between Python versions. Delivered bytes/hash, rests and
+                # every source/export fidelity threshold remain unchanged.
+                self.assertAlmostEqual(value, target, delta=1e-12)
 
     def test_distinct_immutable_bundle_and_portable_authoring_provenance(self):
         self.assertEqual(digest(BASE / "character.glb"), BASE_SHA)
@@ -115,7 +140,7 @@ class ShoulderAlignedDollTests(unittest.TestCase):
             derived = NativePoseProbe.from_dict(read(derived_path))
             old = NativePoseProbe.from_dict(read(CAPTURES / original["probe"]))
             recalculated = derive_pose(old, {bone.name: bone.rest for bone in derived.bones}, GLB_SHA)
-            self.assertEqual(document(recalculated), document(derived))
+            self.assert_recomputed_pose_matches(document(recalculated), document(derived))
             for role in ("left-arm", "right-arm"):
                 before, after = case["baseline_cohorts"][role], case["candidate_cohorts"][role]
                 self.assertEqual(after["edge_count"], before["edge_count"])
@@ -129,6 +154,23 @@ class ShoulderAlignedDollTests(unittest.TestCase):
             self.assertLess(case["rest_world_matrix_max_error"], 2e-6)
         self.assertTrue(self.quality["shoulder_metric_improves_every_pose"])
         self.assertTrue(self.quality["hall_held_collapsed_cohorts_eliminated"])
+
+    def test_python_311_recomputation_retains_pinned_poses(self):
+        index = read(CAPTURES / "index.json")
+        with patch("core.native_pose_capture.sum", legacy_float_sum, create=True), \
+                patch("scripts.shoulder_pose_derivation.sum", legacy_float_sum, create=True):
+            for case in index["cases"]:
+                derived = NativePoseProbe.from_dict(read(FIXTURE / "derived-poses" / (case["id"] + ".json")))
+                old = NativePoseProbe.from_dict(read(CAPTURES / case["probe"]))
+                recalculated = derive_pose(old, {bone.name: bone.rest for bone in derived.bones}, GLB_SHA)
+                self.assert_recomputed_pose_matches(document(recalculated), document(derived))
+
+    def test_recomputation_roundoff_allowance_rejects_changed_pose(self):
+        pinned = read(FIXTURE / "derived-poses/factory-hall.json")
+        changed = json.loads(json.dumps(pinned))
+        changed["Bones"][0]["Pose"][-1] += 1e-9
+        with self.assertRaises(AssertionError):
+            self.assert_recomputed_pose_matches(changed, pinned)
 
     def test_own_render_fingerprints_and_limits_cannot_claim_consumer_acceptance(self):
         self.assertEqual(len(self.quality["images"]), 14)
