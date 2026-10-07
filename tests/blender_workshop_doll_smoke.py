@@ -70,6 +70,12 @@ def main():
         assert {p.name for p in relocated.iterdir()} == {"source.blend", "authoring.json"}
         settings.export_output_path = "//reexport.glb"
         bpy.context.scene.frame_set(17, subframe=.375)
+        # A selected original armature must never join the importer's multi-edit
+        # session. Its parent-composed rest matrices must remain bit-exact.
+        rig.hide_set(False)
+        rig.select_set(True)
+        bpy.context.view_layer.objects.active = rig
+        selected_before = tuple(bpy.context.selected_objects)
         forbidden = (("implementations.projection_images", "ProjectionImagesImplementation"),
                      ("implementations.native_visual_hull", "NativeVisualHullImplementation"),
                      ("implementations.uv_bake", "UVBakeImplementation"),
@@ -80,7 +86,10 @@ def main():
                 cls = getattr(module(module_name), class_name)
                 guards.enter_context(patch.object(cls, "execute", side_effect=AssertionError("Rebuild is forbidden.")))
             assert bpy.ops.bpt.export_existing_modular_source() == {"FINISHED"}
-        assert source_snapshot(mesh, rig) == before
+        from scripts.author_stytch_doll import assert_source_unchanged
+        assert_source_unchanged(before, source_snapshot(mesh, rig), output)
+        assert tuple(bpy.context.selected_objects) == selected_before
+        assert bpy.context.view_layer.objects.active is rig and rig.mode == "OBJECT"
         assert (bpy.context.scene.frame_current, bpy.context.scene.frame_subframe) == (17, .375)
         published = (relocated / "reexport.glb").read_bytes()
         result = module("operators.runtime").get_last_pipeline_context(bpy.context.scene).require_output(pipeline.PipelineStage.EXPORT)
