@@ -1,0 +1,619 @@
+{
+  "passed": true,
+  "source_sha": "c4f2ad92f7dedcd34dd4e8712eb56aacb125ad7e",
+  "run_id": null,
+  "run_attempt": null,
+  "baseline": {
+    "source.blend": "76e8f9ce6e0130cb85805cd873b3cb0b3a5c45826c50cbda0881b7e88d9f20d4",
+    "authoring.json": "6175875370538764d4c958603a212bc1e6eb6e93f1803fb3c7d98bfaf58f5b3d",
+    "character.glb": "76590fd9c335335255f2eb2a4fc0866adf3c5a6a6fad0d4938c9e7550b7dcb57"
+  },
+  "candidate": {
+    "source.blend": "69bb7e8af073c53703dd3e76cc6a1bce72fe7aea5b1628f8ea2d5e661243c724",
+    "authoring.json": "6175875370538764d4c958603a212bc1e6eb6e93f1803fb3c7d98bfaf58f5b3d",
+    "character.glb": "dc0ba1f2129d09754f0ff53cf609a709338a6946acf1f8f341c8ae4624e4e9bc"
+  },
+  "pose_set_sha256": "151b15b934db6cdf97e4299e5fc096ecb429f098577b403268b13ccf4b12636e",
+  "consumer_pose_revision": "1c9040e51be1e757c974eca794604cb9553cb532",
+  "captured_asset_sha256": "76590fd9c335335255f2eb2a4fc0866adf3c5a6a6fad0d4938c9e7550b7dcb57",
+  "candidate_uses_identical_native_rest_frames": true,
+  "intentional_source_weight_edit": {
+    "algorithm": "authored-regional-v1-axial-isolation",
+    "changed_vertex_count": 4193,
+    "collar_in_heights": 0.06,
+    "distance_policy": "source polygon-edge geodesics; coincident seams welded for observation only",
+    "head_envelope": {
+      "algorithm": "closed-central-neck-narrowing-v1",
+      "closed_section_count": 9,
+      "contrast": 0.6771067085659174,
+      "end_z": 51.37579736709595,
+      "neck_z": 50.06679552078247,
+      "scope": "Surface cue for skin weights only; native rest joints are unchanged.",
+      "start_z": 47.77604228973389
+    },
+    "interface_vertex_counts": {
+      "left-arm": 26,
+      "left-leg": 22,
+      "right-arm": 26,
+      "right-leg": 22
+    },
+    "native_rest_joints_unchanged": true,
+    "scope": "Intentional authored axial/attachment weight edit; no joint refit or full visual acceptance.",
+    "unchanged_distal_vertex_count": 2935
+  },
+  "surface_and_material_proof": {
+    "passed": true,
+    "intentional_source_weight_edit": true,
+    "changed_corner_count": 25170,
+    "triangle_count": 14252,
+    "exact_surface_uv_materials_atlas_and_inverse_binds_preserved": true,
+    "reference_normal_delta_diagnostic": 0.0,
+    "scope": "Before/after source weight edit. New-source skin fidelity is separately gated by export; old weights are intentionally not retained."
+  },
+  "case_count": 19,
+  "cases": [
+    {
+      "id": "Hop-meshvenn-hop-00",
+      "probe_sha256": "1c52eb9604da9fe8fccbbe9aed10751f8267035ef06ba0b09b52a312a3924618",
+      "matrix_proof_sha256": "a80ed2b1d52122000c04acbe93802fbf21009cbe847261492fc20545bf026749",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.3180092859488897,
+        "max_abs_log_length_ratio": 2.161868388523747,
+        "min_length_ratio": 0.5177010887370005,
+        "max_length_ratio": 8.687353856914505,
+        "outside_20_percent_count": 1134,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.648846318843815,
+        "max_abs_log_length_ratio": 1.2204761006377747,
+        "min_length_ratio": 0.5753186214898824,
+        "max_length_ratio": 3.3888007598125047,
+        "outside_20_percent_count": 368,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 6.597025503651821e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 8.719407560420223e-07
+    },
+    {
+      "id": "Hop-meshvenn-hop-01",
+      "probe_sha256": "29a1ea5ea690c6127f41adbc705e13cbeafb9b64468918db79302231e8756a48",
+      "matrix_proof_sha256": "79a1511752b3bf3e8cd31fb23b2645a2d3c36ca4e8a1f323563342f178699a6e",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.260085720930398,
+        "max_abs_log_length_ratio": 2.117868144753774,
+        "min_length_ratio": 0.4244271113161332,
+        "max_length_ratio": 8.313395626786598,
+        "outside_20_percent_count": 1095,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6467001193052352,
+        "max_abs_log_length_ratio": 1.2081545445893442,
+        "min_length_ratio": 0.65056656211459,
+        "max_length_ratio": 3.34730165313208,
+        "outside_20_percent_count": 370,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 1.085741587303346e-06,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 7.980124792084098e-07
+    },
+    {
+      "id": "Hop-meshvenn-hop-02",
+      "probe_sha256": "1d59b155361e53bfff17b03f4cbac8b77e211ac8187d5c9ad4bb5e0f5bf54b3f",
+      "matrix_proof_sha256": "7058fcbc03d4578c08008d06820428f2f8b542604b2cfce8059f2140ecaf6ad7",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.303313072511961,
+        "max_abs_log_length_ratio": 2.1341414080978924,
+        "min_length_ratio": 0.5014133185978538,
+        "max_length_ratio": 8.449788471506082,
+        "outside_20_percent_count": 1127,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6600176775222909,
+        "max_abs_log_length_ratio": 1.2040194579701908,
+        "min_length_ratio": 0.6316818698956296,
+        "max_length_ratio": 3.33348884910851,
+        "outside_20_percent_count": 369,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 7.562981636510813e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 7.609287422383204e-07
+    },
+    {
+      "id": "Hop-meshvenn-hop-03",
+      "probe_sha256": "1892ad206f137b852f36c5d05f1bd84ddc0647b0286d52285f87796b25e9f2dc",
+      "matrix_proof_sha256": "757aff3115be5dcadd2146d0fe6a8fc181e2070b06753ac48de395fd9a0d96a1",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.2909959065854133,
+        "max_abs_log_length_ratio": 2.0972421243721513,
+        "min_length_ratio": 0.3987860694128595,
+        "max_length_ratio": 8.143679658509518,
+        "outside_20_percent_count": 1103,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6683336933834114,
+        "max_abs_log_length_ratio": 1.1925521171151994,
+        "min_length_ratio": 0.6712474034129067,
+        "max_length_ratio": 3.2954809375799656,
+        "outside_20_percent_count": 367,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 7.748603820800781e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 6.854534149169922e-07
+    },
+    {
+      "id": "Hop-meshvenn-hop-04",
+      "probe_sha256": "bc07be33926aae10a02054d99f7c9a72f68e96594453805ca8ba01d9d67cd876",
+      "matrix_proof_sha256": "c6aa977411e92527d798bd2039350219dc95fa8ca38a757a157f384d330efd0d",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.2815985862316548,
+        "max_abs_log_length_ratio": 2.158047751433858,
+        "min_length_ratio": 0.4826731375325692,
+        "max_length_ratio": 8.6542259556979,
+        "outside_20_percent_count": 1114,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6516896950855243,
+        "max_abs_log_length_ratio": 1.2261899691637455,
+        "min_length_ratio": 0.6149760381746509,
+        "max_length_ratio": 3.408219346608792,
+        "outside_20_percent_count": 366,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 8.601468834967818e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 9.834766387939453e-07
+    },
+    {
+      "id": "Hop-meshvenn-hop-05",
+      "probe_sha256": "6b5af9b7e3885997156c7b46abec0f60fe25880bd3f692b2f3a689796b67680b",
+      "matrix_proof_sha256": "74a0a0771eb969b1b4ecb2cac4837038de5e4df81b1161de8751a3a88ad4750e",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.3215022370144036,
+        "max_abs_log_length_ratio": 2.193729313786391,
+        "min_length_ratio": 0.3867580871736861,
+        "max_length_ratio": 8.96859753995849,
+        "outside_20_percent_count": 1153,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6346155712952439,
+        "max_abs_log_length_ratio": 1.2301618296609542,
+        "min_length_ratio": 0.5182595438684349,
+        "max_length_ratio": 3.4217832375070096,
+        "outside_20_percent_count": 403,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 9.642386658015312e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 7.43417103876709e-07
+    },
+    {
+      "id": "Hop-meshvenn-hop-06",
+      "probe_sha256": "b1ecdf7455bbea4946fcd414201d69ce6e60adca91c9249b38fdd4e428eb6b03",
+      "matrix_proof_sha256": "ddad2270959b1433efd0b223f343c1bda6a0125ba76c903c88b08ae58d7cf7de",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.3242859457539131,
+        "max_abs_log_length_ratio": 2.236331163645041,
+        "min_length_ratio": 0.355000500486331,
+        "max_length_ratio": 9.35893183369024,
+        "outside_20_percent_count": 1163,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6518787005795529,
+        "max_abs_log_length_ratio": 1.2514288685766435,
+        "min_length_ratio": 0.46167091599430976,
+        "max_length_ratio": 3.495333763589362,
+        "outside_20_percent_count": 410,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 6.428365963984106e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 7.108963018254144e-07
+    },
+    {
+      "id": "Hop-meshvenn-hop-07",
+      "probe_sha256": "b1a76e28936f9e5ad79108b28d140178ed50ea2962ad2ceb716df3bf6eeb1d4e",
+      "matrix_proof_sha256": "4c8bfad6c245e07a16daed1412f0a883ec40bde3751cdff17185e9040232e1ce",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.2702305728570915,
+        "max_abs_log_length_ratio": 2.1131005375700926,
+        "min_length_ratio": 0.4047549712275248,
+        "max_length_ratio": 8.273854954169808,
+        "outside_20_percent_count": 1100,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6612335770753037,
+        "max_abs_log_length_ratio": 1.208096125907901,
+        "min_length_ratio": 0.6492963372512838,
+        "max_length_ratio": 3.3471061138947387,
+        "outside_20_percent_count": 368,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 8.539288387510169e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 9.372344607072591e-07
+    },
+    {
+      "id": "Hop-meshvenn-hop-08",
+      "probe_sha256": "4527b26889fadb7e82878b1340bf0804bb85c87395a763d49d9aa4d0ec88c99b",
+      "matrix_proof_sha256": "afc0a786878fed5b9b7dd2c0383798572889917aeda53d02bb9399a6204d7f0c",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.2948588275454533,
+        "max_abs_log_length_ratio": 2.080756087884538,
+        "min_length_ratio": 0.3895195634766626,
+        "max_length_ratio": 8.01052328479428,
+        "outside_20_percent_count": 1099,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6673733703892165,
+        "max_abs_log_length_ratio": 1.186300581723087,
+        "min_length_ratio": 0.6796498873509165,
+        "max_length_ratio": 3.274943384371849,
+        "outside_20_percent_count": 371,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 7.133906478884455e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 7.183534194155072e-07
+    },
+    {
+      "id": "Hop-meshvenn-hop-09",
+      "probe_sha256": "71d9d87280b99b8f2c77d89d668787bb05bbb214169ba1765791b93bef9cf33a",
+      "matrix_proof_sha256": "62bf1e318f8ad4743528e6a262ade5b4fbf0e6a77a51c51eadcafa044521a27a",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.2846577619764545,
+        "max_abs_log_length_ratio": 2.1779431329947925,
+        "min_length_ratio": 0.539891496119027,
+        "max_length_ratio": 8.828129283478122,
+        "outside_20_percent_count": 1129,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6500652076231316,
+        "max_abs_log_length_ratio": 1.2300245407769488,
+        "min_length_ratio": 0.6007433890593299,
+        "max_length_ratio": 3.42131349695084,
+        "outside_20_percent_count": 368,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 7.638934675924247e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 7.822754923836328e-07
+    },
+    {
+      "id": "Hop-meshvenn-hop-10",
+      "probe_sha256": "e730d3cbeef5172434eab6d67509379a1b458d48879b92bd835cd325fe6d9561",
+      "matrix_proof_sha256": "5c3818f93519a872f22f47894a9e4dcc653b51fa988c19e724536cf65b805824",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.2983924468959398,
+        "max_abs_log_length_ratio": 2.0749080242728466,
+        "min_length_ratio": 0.3579335401410285,
+        "max_length_ratio": 7.963813947769899,
+        "outside_20_percent_count": 1098,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6744983397776548,
+        "max_abs_log_length_ratio": 1.182996737149042,
+        "min_length_ratio": 0.6860919987210841,
+        "max_length_ratio": 3.2641413344138717,
+        "outside_20_percent_count": 369,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 8.539288387510169e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 8.845819365888019e-07
+    },
+    {
+      "id": "Hop-meshvenn-hop-11",
+      "probe_sha256": "dc81dc4d91e4ce3e3332c5d6f3a0014a1f2eaff87f6251c2484571d7b475eb35",
+      "matrix_proof_sha256": "6cf167f73afa33b31ef62a1b27829657cf981ef99f1e81ac75c8a41f821dd161",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.309268517241487,
+        "max_abs_log_length_ratio": 2.20045064809531,
+        "min_length_ratio": 0.4783436328480164,
+        "max_length_ratio": 9.029081521132056,
+        "outside_20_percent_count": 1148,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6509809791295047,
+        "max_abs_log_length_ratio": 1.2376436200999361,
+        "min_length_ratio": 0.5395026311265999,
+        "max_length_ratio": 3.447480312813102,
+        "outside_20_percent_count": 391,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 7.633119025740598e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 7.344020218624792e-07
+    },
+    {
+      "id": "Walk-meshvenn-walk-00",
+      "probe_sha256": "ae52095bca1f404b92bc42ba4fbe045eb9e77a1d76b59a527864cdcc5e40a5fb",
+      "matrix_proof_sha256": "cf2d12ccf79a4878deeb08b6a82607edccee82be2c642bc0d135d442be0ec461",
+      "hidden_regions": [],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.7183044239487962,
+        "max_abs_log_length_ratio": 1.309525531599999,
+        "min_length_ratio": 0.5170046554270998,
+        "max_length_ratio": 3.70441566700027,
+        "outside_20_percent_count": 786,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.3063240066817778,
+        "max_abs_log_length_ratio": 0.6264932712459564,
+        "min_length_ratio": 0.898285133813239,
+        "max_length_ratio": 1.8710378394005711,
+        "outside_20_percent_count": 254,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 8.432332379015861e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 7.529142749262974e-07
+    },
+    {
+      "id": "Walk-meshvenn-walk-01",
+      "probe_sha256": "520d120a92577e27d49097e0868ffd11fcbafdd32b2ac38cc3132946123af2ee",
+      "matrix_proof_sha256": "98683f7d6754d37578012e052de93db2cb0fddb3faa37e556cdd535dae705da4",
+      "hidden_regions": [],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.7706011644136931,
+        "max_abs_log_length_ratio": 1.485152766653349,
+        "min_length_ratio": 0.22646774131478953,
+        "max_length_ratio": 3.8492501131582193,
+        "outside_20_percent_count": 867,
+        "collapsed_fraction": 0.0007695267410542517
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2956395765145294,
+        "max_abs_log_length_ratio": 0.6563195278706185,
+        "min_length_ratio": 0.8926500850165049,
+        "max_length_ratio": 1.9276844733049723,
+        "outside_20_percent_count": 226,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 8.456983096039039e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 7.346382062678458e-07
+    },
+    {
+      "id": "Walk-meshvenn-walk-02",
+      "probe_sha256": "5d4df57725081c110b7a1547eb201d1c19e05034289ccb3c7ad4087c5655dba1",
+      "matrix_proof_sha256": "cd7a6d1bf7b2816d50aa2f7f5130e8a5a315d9cbb92cfd2b42164c6b9b46715d",
+      "hidden_regions": [],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.6370782055430079,
+        "max_abs_log_length_ratio": 1.3513290490537087,
+        "min_length_ratio": 0.2588959464786882,
+        "max_length_ratio": 3.2114325417494602,
+        "outside_20_percent_count": 789,
+        "collapsed_fraction": 0.0
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.26555623781848087,
+        "max_abs_log_length_ratio": 0.591022649473211,
+        "min_length_ratio": 0.9298874168386169,
+        "max_length_ratio": 1.805834206838502,
+        "outside_20_percent_count": 200,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 9.557747944199946e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 6.399263838829938e-07
+    },
+    {
+      "id": "World-03-one-leg-hop",
+      "probe_sha256": "97e4a2989402256381eb859276c43fd29e5b3fd3849250701df644d0adb8d575",
+      "matrix_proof_sha256": "b9fec5c4179bc28638aef4ffbc51eecdf572cf08250456aa6b2ea52bdea3362b",
+      "hidden_regions": [
+        "right-arm",
+        "right-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.2716600641617555,
+        "max_abs_log_length_ratio": 2.2322912888716506,
+        "min_length_ratio": 0.16854667851766045,
+        "max_length_ratio": 9.321199189965425,
+        "outside_20_percent_count": 1234,
+        "collapsed_fraction": 0.00038476337052712584
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.5644268776922926,
+        "max_abs_log_length_ratio": 1.2149717465656036,
+        "min_length_ratio": 0.5706242766967914,
+        "max_length_ratio": 3.3701988432845313,
+        "outside_20_percent_count": 367,
+        "collapsed_fraction": 0.0
+      },
+      "source_vs_decoded_max_error_m": 8.845819365888019e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 6.982907621022605e-07
+    },
+    {
+      "id": "factory-hall",
+      "probe_sha256": "d1f51f57e695a26a7aea94fe41f0f74fb43310b7f1564837d220cad9f85e92ca",
+      "matrix_proof_sha256": "96db68c669ac971cc2e9dd1eff4d087343f64e06fa8356140866f7ff42f5af85",
+      "hidden_regions": [],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.9308127881387394,
+        "max_abs_log_length_ratio": 1.8127756117193625,
+        "min_length_ratio": 0.24898155964109758,
+        "max_length_ratio": 6.127431221032056,
+        "outside_20_percent_count": 783,
+        "collapsed_fraction": 0.00038476337052712584
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.4629467122085793,
+        "max_abs_log_length_ratio": 2.3566989717766313,
+        "min_length_ratio": 0.09473242202300224,
+        "max_length_ratio": 1.1905965369197344,
+        "outside_20_percent_count": 197,
+        "collapsed_fraction": 0.0015390534821085034
+      },
+      "source_vs_decoded_max_error_m": 8.416028549618204e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 7.123004479581141e-07
+    },
+    {
+      "id": "factory-held",
+      "probe_sha256": "a68595faf96915915b59a03253ed147ef1b5edd3cda293a8e92265fad9c580e9",
+      "matrix_proof_sha256": "47a7f884d59ef73e53b6dffbd66dc30ee791faf1fe402a9542a1a7b7f90eb750",
+      "hidden_regions": [],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 1.0758082467352625,
+        "max_abs_log_length_ratio": 1.8972697564068661,
+        "min_length_ratio": 0.180558033920318,
+        "max_length_ratio": 6.6676652182486595,
+        "outside_20_percent_count": 869,
+        "collapsed_fraction": 0.0015390534821085034
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.42073848474083253,
+        "max_abs_log_length_ratio": 1.6660636256702681,
+        "min_length_ratio": 0.1889895369193007,
+        "max_length_ratio": 1.5851420311812745,
+        "outside_20_percent_count": 252,
+        "collapsed_fraction": 0.0026933435936898806
+      },
+      "source_vs_decoded_max_error_m": 7.214378570097324e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 6.605854423469282e-07
+    },
+    {
+      "id": "factory-one-leg",
+      "probe_sha256": "d1f51f57e695a26a7aea94fe41f0f74fb43310b7f1564837d220cad9f85e92ca",
+      "matrix_proof_sha256": "96db68c669ac971cc2e9dd1eff4d087343f64e06fa8356140866f7ff42f5af85",
+      "hidden_regions": [
+        "left-leg"
+      ],
+      "baseline_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.9308127881387394,
+        "max_abs_log_length_ratio": 1.8127756117193625,
+        "min_length_ratio": 0.24898155964109758,
+        "max_length_ratio": 6.127431221032056,
+        "outside_20_percent_count": 783,
+        "collapsed_fraction": 0.00038476337052712584
+      },
+      "candidate_torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.4629467122085793,
+        "max_abs_log_length_ratio": 2.3566989717766313,
+        "min_length_ratio": 0.09473242202300224,
+        "max_length_ratio": 1.1905965369197344,
+        "outside_20_percent_count": 197,
+        "collapsed_fraction": 0.0015390534821085034
+      },
+      "source_vs_decoded_max_error_m": 8.416028549618204e-07,
+      "rest_world_matrix_max_error": 1.4901161193847656e-07,
+      "decoded_vs_reimport_max_error_m": 7.123004479581141e-07
+    }
+  ],
+  "torso_metric_improves_in_every_pose": true,
+  "torso_regression_gate": "Frozen cohort: at least 50% fewer edges outside [0.8,1.2] length ratio and 30% lower p95 absolute log strain in every pose. Not anatomical or visual acceptance.",
+  "visual_qualification": false,
+  "consumer_acceptance": false,
+  "images": {
+    "factory-hall-baseline.png": "d7e9fdb3fe79b17ba444c60446727a570fcef11a10bd290a2abe59a287f520e3",
+    "factory-hall-glb-candidate.png": "e032e851767c762b1348b3cd7d2d198dc0b55139f5c922c19d82b30d262d07a5",
+    "factory-hall-source-candidate.png": "2bc448e593ce073e25ab07cab8e1c46a851cb86b2b3005398b59e55f2c4cd2d9",
+    "factory-held-baseline.png": "8acb2bc6ecacffd37ef5396d2cf47f07795a0bed0a2e074e4dcb3bf0c2913476",
+    "factory-held-glb-candidate.png": "6272d9d96ab71e19e4406f40ac4b490dda878202c64d621ddbe27d71200b7e1d",
+    "factory-held-source-candidate.png": "b1de1fbca771954df57998f97e0e651b017962035d5d7bb16c37f7bdfd678816",
+    "Hop-meshvenn-hop-11-baseline.png": "8b75d36e403fc1ec1976b3466e628934a1e10621119378b9715aacc988c07f60",
+    "Hop-meshvenn-hop-11-glb-absent-limbs.png": "7faa3e65244541e82cb8be61dac7e535ffa9674ffd911ac7bb451bd99a46ae84",
+    "Hop-meshvenn-hop-11-glb-candidate.png": "65151b1666715e278e16e2adc9826d97f55f72fa837dca9ad863b50b82edea93",
+    "Hop-meshvenn-hop-11-source-candidate.png": "80ca83344fac30e0b691c300859928e3c87a91e4f1cc16c7e143d99fed6e829d",
+    "rest.png": "d0d168169c0130927b3bc11fd63a1291bd0c1ebef703cc57472b15fbe2fd4088",
+    "Walk-meshvenn-walk-02-baseline.png": "9f3c36cf6391cc829edef9ad1244f35424601a7ede64cad84254e133acb6857c",
+    "Walk-meshvenn-walk-02-glb-candidate.png": "ce52b6c4932a1723396b9fe96f93b0402f308ffb215f617b9918eda7918bfe57",
+    "Walk-meshvenn-walk-02-source-candidate.png": "c674353c14b30aab5338c01afd7a2beef1d434b97b268c6ca4b01e42e724f2fd"
+  },
+  "scope": "Intentional source-only skin edit. Exact old pose matrices reused only after identical native rests/binds are proved. No consumer geometry/weight repair, contact certification or appearance rebake."
+}
