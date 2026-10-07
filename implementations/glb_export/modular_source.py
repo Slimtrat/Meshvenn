@@ -2,12 +2,13 @@
 
 The JSON names the authoritative originals, never their derived preview copies.
 The saved catalogue names the exact rig and Actions; missing provenance fails.
+Loading prepares editable authority before export. An explicitly initialized
+historical source owns a pending catalogue: callers must export or discard it.
 """
 
 from __future__ import annotations
 
 import math
-import json
 import os
 from pathlib import Path
 
@@ -31,91 +32,19 @@ CATALOGUE_OWNER = "meshvenn_modular_source_catalogue"
 
 
 def stage_authored_scene_catalogue(plan):
-    """Prepare portable source metadata before export; never overwrite user Texts.
-
-    The staged Text is unreferenced until an entirely successful modular export.
-    Failure cleanup removes it without changing any original source references.
-    """
-    if plan.geometry.implementation_id != "native-visual-hull":
-        raise ValueError("Modular existing-source V1 requires saved native geometry provenance.")
-    rig, motion = plan.rig, plan.motion
-    spec, scene = plan.modular_spec, bpy.context.scene
-    if rig is None or spec is None or rig.implementation_id != spec.rig_id or spec.rig_id != "canonical-biped-v2":
-        raise ValueError("Authored modular source requires its declared Canonical Biped V2 rig.")
-    armature = _object(scene, rig.armature_object.name, "ARMATURE")
-    if (armature is not rig.armature_object
-            or _property(armature, "meshvenn_rig_implementation") != rig.implementation_id):
-        raise ValueError("Saved armature implementation contradicts its authored rig identity.")
-    _validate_semantics(rig.semantic_bones, armature)
-    text(rig.binding_method, name="saved native binding_method")
-    declared = spec.coordinates.normalization
-    for source in plan.mesh_objects:
-        if _object(scene, source.name, "MESH") is not source:
-            raise ValueError("Authored modular source no longer matches its exact saved name.")
-        if _projection_space(source) != plan.geometry.projection_space:
-            raise ValueError("Saved source projection provenance differs from the Geometry output.")
-        normalization = _normalization(source)
-        if (normalization != plan.geometry.normalization
-                or normalization.normalized_height != declared.normalized_height
-                or normalization.target_height != declared.target_height
-                or not math.isclose(normalization.scale, declared.scale,
-                                    rel_tol=1e-8, abs_tol=1e-12)):
-            raise ValueError("Saved source normalization contradicts the certified modular declaration.")
-        if (_property(source, "meshvenn_geometry_implementation") != plan.geometry.implementation_id
-                or _property(source, "meshvenn_rig_implementation") != rig.implementation_id
-                or strict_json_loads(_property(source, "meshvenn_rig_semantics")) != dict(rig.semantic_bones)):
-            raise ValueError("Saved source native geometry/rig identity cannot be preserved for re-export.")
-        _validate_binding(source, armature)
-    value = {
-        "schema_version": 1, "source_objects": [source.name for source in plan.mesh_objects],
-        "rig": {"armature": rig.armature_object.name, "implementation_id": rig.implementation_id,
-                "semantic_bones": dict(rig.semantic_bones), "binding_method": rig.binding_method},
-        "implementation_id": motion.implementation_id if motion else None,
-        "source_bone_map": dict(motion.source_bone_map) if motion else {},
-        "root_motion_mode": motion.root_motion_mode if motion else None,
-        "clips": [{"name": clip.name, "action": clip.action.name,
-                   "frame_start": clip.frame_start, "frame_end": clip.frame_end, "fps": clip.fps,
-                   "animated_roles": list(clip.animated_roles)} for clip in motion.clips] if motion else [],
-    }
-    # A successful product export must not persist a catalogue that fails its
-    # own re-open route (including exact local Action names, timing and FPS).
-    _motion(value, rig, scene)
-    payload = json.dumps(value, indent=2, allow_nan=False)
-    if len(payload.encode("utf-8")) > MAX_CATALOGUE_BYTES:
-        raise ValueError("Saved authored-scene catalogue exceeds 16 MiB.")
-    staged = bpy.data.texts.new(MOTION_CATALOGUE)
-    try:
-        staged.write(payload)
-        # String references in source ID properties are not Blender ID users.
-        staged.use_fake_user = True
-        staged[CATALOGUE_OWNER] = 1
-        staged["meshvenn_catalogue_committed"] = False
-        return staged
-    except Exception:
-        bpy.data.texts.remove(staged)
-        raise
+    """Compatibility facade; preparation belongs to authored-source operations."""
+    from ..authored_source import stage_authored_scene_catalogue as stage
+    return stage(plan)
 
 
 def commit_authored_scene_catalogue(plan, staged):
-    """Reference the successfully exported source catalogue, retaining prior Texts."""
-    previous = [(source, source.get(CATALOGUE_REFERENCE)) for source in plan.mesh_objects]
-    try:
-        for source in plan.mesh_objects:
-            source[CATALOGUE_REFERENCE] = staged.name
-        staged["meshvenn_catalogue_committed"] = True
-    except Exception:
-        for source, value in previous:
-            if value is None:
-                source.pop(CATALOGUE_REFERENCE, None)
-            else:
-                source[CATALOGUE_REFERENCE] = value
-        raise
-    return staged.name
+    from ..authored_source import commit_authored_scene_catalogue as commit
+    return commit(plan, staged)
 
 
 def discard_uncommitted_catalogue(staged):
-    if staged is not None and not staged.get("meshvenn_catalogue_committed", False):
-        bpy.data.texts.remove(staged)
+    from ..authored_source import discard_uncommitted_catalogue as discard
+    return discard(staged)
 
 
 def _property(obj, key):
@@ -362,6 +291,8 @@ def context_from_authored_scene(scene, *, output_path=None, overwrite_existing=N
         if "Stale ownership" in str(exc):
             raise ValueError("Authoritative source positions/topology changed; re-author ownership and its source fingerprint.") from exc
         raise
+    from ..authored_source import prepare_authored_source
+    prepare_authored_source(context)
     return context
 
 

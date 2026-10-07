@@ -182,6 +182,7 @@ def main():
         initialize = lambda: api.context_from_authored_scene(bpy.context.scene, output_path="//initialized.glb", initialize_static_source=True, binding_method="canonical-envelope-v2")
         prepared = initialize()
         assert not prepared.has_output(pipeline.PipelineStage.MOTION)
+        prepared.prepared_modular_source.discard()
         rejected(lambda: api.context_from_authored_scene(bpy.context.scene, output_path="//bad.glb", initialize_static_source=True, binding_method="guess"))
         rig.animation_data_create()
         action = bpy.data.actions.new("DoNotDropThisAction")

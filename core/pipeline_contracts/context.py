@@ -16,6 +16,9 @@ class PipelineContext:
     outputs: dict[PipelineStage, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
     material_input: MaterialProjectionInput | None = None
+    # Prepared by modular authoring/source loading, never inferred by EXPORT.
+    # Any keeps the generic, bpy-free pipeline independent of Blender IDs.
+    prepared_modular_source: Any = None
 
     def set_output(self, stage: PipelineStage, value: Any) -> None:
         self.outputs[PipelineStage(stage)] = value

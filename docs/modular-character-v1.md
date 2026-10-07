@@ -156,10 +156,22 @@ blender --background --factory-startup --python-exit-code 1 \
   --input-source tmp/modular-fixture/source.blend --output tmp/modular-reopen
 ```
 
-The product exporter, not only the fixture script, persists its exact versioned
-rig/action catalogue after a successful modular export. An explicitly static
-catalogue stores an empty clip list; unrelated scene actions are never discovered.
-An existing user Text datablock is not overwritten.
+Editable authority is prepared **before** export: native mesh and rig, declared
+face regions and sockets, exact Actions and their catalogue, and provenance.
+Source loading reuses the committed catalogue without creating or migrating a
+Text. Fresh authoring uses **Prepare Current Modular Source**, or headless
+`implementations.authored_source.prepare_authored_source(context)`, after the
+Geometry/Rig/Motion stages. Ordinary modular export refuses absent or stale
+preparation; it does not initialize the scene or discover unrelated Actions.
+
+Preparation owns any new unreferenced catalogue Text. After fidelity succeeds,
+publication commits its references and atomically publishes the GLB. Publication
+failure restores previous references and discards the pending Text; existing user
+Texts and the previous GLB remain intact. An explicitly static catalogue stores
+an empty clip list. Removing existing clips requires explicit re-authoring via
+`replace_existing=True`, never an implicit export-time change. Headless callers
+that prepare a new catalogue but do not export must call
+`context.prepared_modular_source.discard()`.
 
 ### Explicit face authoring and older static sources
 

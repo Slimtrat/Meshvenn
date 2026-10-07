@@ -237,6 +237,7 @@ REQUIRED_PACKAGE_FILES = (
     "implementations/canonical_motion/retarget.py",
     "implementations/canonical_motion/source.py",
     "implementations/glb_export/__init__.py",
+    "implementations/authored_source.py",
     "implementations/glb_export/implementation.py",
     "implementations/glb_export/planning.py",
     "implementations/glb_export/fidelity.py",

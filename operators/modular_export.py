@@ -41,7 +41,10 @@ class BPT_OT_ExportExistingModularSource(Operator):
             return {"CANCELLED"}
         selection = PipelineStageSelection(PipelineStage.EXPORT, IMPLEMENTATION_ID)
         started = time.perf_counter()
-        result = GLBExportImplementation().execute(prepared)
+        try:
+            result = GLBExportImplementation().execute(prepared)
+        finally:
+            prepared.prepared_modular_source.discard()
         elapsed = time.perf_counter() - started
         if result.success:
             prepared.set_output(PipelineStage.EXPORT, result.payload)

@@ -39,6 +39,7 @@ class GLBExportPlan:
     validate_roundtrip: bool = False
     auxiliary_objects: tuple[Any, ...] = ()
     modular_spec: ModularCharacterSpec | None = None
+    prepared_modular_source: Any = None
 
     @property
     def objects(self) -> tuple[Any, ...]:
@@ -209,6 +210,7 @@ def build_export_plan(context: PipelineContext) -> GLBExportPlan:
         validate_roundtrip=validate_roundtrip,
         auxiliary_objects=auxiliary_objects,
         modular_spec=modular_spec,
+        prepared_modular_source=context.prepared_modular_source if modular_spec is not None else None,
     )
 
 

@@ -110,6 +110,9 @@ def clear_pipeline_runtime_state(
     ) = None,
 ) -> None:
     if scene is None:
+        for stored in _LAST_PIPELINE_CONTEXTS.values():
+            if stored.prepared_modular_source is not None:
+                stored.prepared_modular_source.discard()
         _LAST_PIPELINE_REPORTS.clear()
         _LAST_PIPELINE_CONTEXTS.clear()
 
@@ -126,10 +129,12 @@ def clear_pipeline_runtime_state(
         None,
     )
 
-    _LAST_PIPELINE_CONTEXTS.pop(
+    previous = _LAST_PIPELINE_CONTEXTS.pop(
         key,
         None,
     )
+    if previous is not None and previous.prepared_modular_source is not None:
+        previous.prepared_modular_source.discard()
 def _store_pipeline_runtime(
     scene: bpy.types.Scene,
     pipeline_context: PipelineContext,
@@ -145,6 +150,9 @@ def _store_pipeline_runtime(
         )
     )
 
+    previous = _LAST_PIPELINE_CONTEXTS.get(key)
+    if previous is not None and previous is not pipeline_context and previous.prepared_modular_source is not None:
+        previous.prepared_modular_source.discard()
     _LAST_PIPELINE_CONTEXTS[
         key
     ] = (
