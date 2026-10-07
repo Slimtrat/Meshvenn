@@ -4,6 +4,7 @@ from typing import Any
 
 from ..pipeline_contracts import PipelineContext, PipelineStage
 from .surface import GeometrySurfaceOutput
+from .normalization import GeometryNormalization
 
 
 def validate_geometry_surface_output(output: Any) -> GeometrySurfaceOutput:
@@ -23,6 +24,10 @@ def validate_geometry_surface_output(output: Any) -> GeometrySurfaceOutput:
     if output.source is None:
         raise ValueError("GEOMETRY output contains no INPUT source.")
     output.projection_space.as_projection_kwargs()
+    if output.normalization is not None:
+        if not isinstance(output.normalization, GeometryNormalization):
+            raise TypeError("GEOMETRY normalization must be an explicit GeometryNormalization.")
+        output.normalization.validate_diagnostics(output.metrics, output.metadata)
     return output
 
 
@@ -45,5 +50,5 @@ def require_geometry_surface_output(context: PipelineContext) -> GeometrySurface
         return validate_geometry_surface_output(output)
     except (TypeError, ValueError) as exc:
         raise TypeError(
-            f"Pipeline GEOMETRY output is not compatible with the generic surface contract. Received {type(output).__name__}."
+            f"Pipeline GEOMETRY output is not compatible with the generic surface contract. Received {type(output).__name__}: {exc}"
         ) from exc

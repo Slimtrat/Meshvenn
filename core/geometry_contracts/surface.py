@@ -5,6 +5,7 @@ from typing import Any, Mapping
 
 from ..pipeline_contracts import validate_implementation_id
 from .projection import GeometryProjectionSpace
+from .normalization import GeometryNormalization
 
 
 def _normalize_mapping(value: Mapping[str, Any] | None, *, name: str) -> dict[str, Any]:
@@ -131,6 +132,9 @@ class GeometrySurfaceOutput:
     metrics: Mapping[str, Any] = field(default_factory=dict)
     metadata: Mapping[str, Any] = field(default_factory=dict)
     blender_objects: tuple[Any, ...] = ()
+    # None means uncertified, NOT disabled normalization. Nonmodular geometry
+    # consumers may use such a surface; modular publication must reject it.
+    normalization: GeometryNormalization | None = None
 
     def __post_init__(self) -> None:
         if self.blender_object is None:
@@ -147,6 +151,10 @@ class GeometrySurfaceOutput:
         object.__setattr__(
             self, "metadata", _normalize_mapping(self.metadata, name="metadata")
         )
+        if self.normalization is not None:
+            if not isinstance(self.normalization, GeometryNormalization):
+                raise TypeError("normalization must be GeometryNormalization or explicitly uncertified None.")
+            self.normalization.validate_diagnostics(self.metrics, self.metadata)
         objects = tuple(self.blender_objects) or (self.blender_object,)
         if any(item is None for item in objects):
             raise ValueError("Geometry surface objects cannot contain None.")

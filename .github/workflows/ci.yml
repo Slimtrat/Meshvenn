@@ -130,6 +130,7 @@ jobs:
             "core/geometry_contracts/__init__.py"
             "core/geometry_contracts/projection.py"
             "core/geometry_contracts/surface.py"
+            "core/geometry_contracts/normalization.py"
             "core/geometry_contracts/validation.py"
             "core/canonical_rig.py"
             "core/canonical_rig_v2.py"
@@ -1195,6 +1196,7 @@ jobs:
             "core/geometry_contracts/__init__.py"
             "core/geometry_contracts/projection.py"
             "core/geometry_contracts/surface.py"
+            "core/geometry_contracts/normalization.py"
             "core/geometry_contracts/validation.py"
             "core/canonical_rig_v2.py"
             "core/rig_lower_body.py"
@@ -1724,6 +1726,7 @@ jobs:
             "blender_projection_tool/core/geometry_contracts/__init__.py"
             "blender_projection_tool/core/geometry_contracts/projection.py"
             "blender_projection_tool/core/geometry_contracts/surface.py"
+            "blender_projection_tool/core/geometry_contracts/normalization.py"
             "blender_projection_tool/core/canonical_rig_v2.py"
             "blender_projection_tool/core/rig_lower_body.py"
             "blender_projection_tool/core/rig_head_envelope.py"
@@ -2078,6 +2081,9 @@ jobs:
 
           test -f \
             "${PACKAGE_ROOT}/core/geometry_contracts/surface.py"
+
+          test -f \
+            "${PACKAGE_ROOT}/core/geometry_contracts/normalization.py"
 
           test -f \
             "${PACKAGE_ROOT}/core/geometry_contracts/validation.py"
@@ -2598,6 +2604,14 @@ jobs:
             --package-root "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool" \
             --variant example/v2/modular/StytchDollHeadIsolated \
             --output "${RUNNER_TEMP}/head-refinement-packaged"
+
+      - name: Verify packaged explicit geometry normalization
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_geometry_normalization_smoke.py -- \
+            --package-root "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
 
       - name: Upload packaged head refinement verification
         uses: actions/upload-artifact@v4

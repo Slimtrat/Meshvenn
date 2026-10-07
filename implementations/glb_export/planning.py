@@ -123,21 +123,13 @@ def _modular_spec(context, meshes, rig, geometry):
             [tuple(face.vertices) for face in obj.data.polygons]) for obj in meshes},
         rig_version=int(rig.implementation_id.rsplit("-v", 1)[-1]),
     )
-    provenance = {}
-    for key in ("normalized_height", "target_height", "normalization_scale"):
-        if hasattr(geometry, key):
-            provenance[key] = getattr(geometry, key)
-        elif key in geometry.metadata:
-            provenance[key] = geometry.metadata[key]
-        elif key in geometry.metrics:
-            provenance[key] = geometry.metrics[key]
-        else:
-            raise ValueError(f"Modular export requires certified geometry normalization: {key} is missing.")
+    provenance = geometry.normalization
+    if provenance is None:
+        raise ValueError("Modular export requires explicit geometry normalization; load a supported authored source or repair the GEOMETRY producer.")
     declared = spec.coordinates.normalization
-    if (type(provenance["normalized_height"]) is not bool
-            or provenance["normalized_height"] != declared.normalized_height
-            or provenance["target_height"] != declared.target_height
-            or not math.isclose(float(provenance["normalization_scale"]), declared.scale, rel_tol=1e-8, abs_tol=1e-12)):
+    if (provenance.normalized_height != declared.normalized_height
+            or provenance.target_height != declared.target_height
+            or not math.isclose(provenance.scale, declared.scale, rel_tol=1e-8, abs_tol=1e-12)):
         raise ValueError("Modular normalization declaration contradicts the source geometry provenance.")
     if declared.normalized_height:
         heights = [float((obj.matrix_world @ vertex.co).z) for obj in meshes for vertex in obj.data.vertices]

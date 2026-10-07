@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 import bpy
 
-from ...core.geometry_contracts import GeometryProjectionSpace, GeometrySurfaceOutput
+from ...core.geometry_contracts import GeometryNormalization, GeometryProjectionSpace, GeometrySurfaceOutput
+from ...core.geometry_contracts.normalization import NATIVE_OBJECT_SCALE
 from ...core.native_bridge import NativeMesh, NativeVolume, normalize_mesh_mode
 from ...core.pipeline_contracts import PipelineContext, PipelineStage
 from ..projection_images import ProjectionImagesOutput
@@ -90,9 +91,6 @@ class NativeVisualHullOutput(GeometrySurfaceOutput):
     symmetry_x: bool
     thread_count: int
     mesh_mode: str
-    normalized_height: bool
-    target_height: float | None
-    normalization_scale: float
 
     def __init__(
         self,
@@ -125,24 +123,11 @@ class NativeVisualHullOutput(GeometrySurfaceOutput):
         if normalized_thread_count < 0:
             raise ValueError("Thread count cannot be negative.")
         normalized_mesh_mode = normalize_mesh_mode(str(mesh_mode))
-        normalized_scale = float(normalization_scale)
-        if not math.isfinite(normalized_scale) or normalized_scale <= 0.0:
-            raise ValueError(
-                "normalization_scale must be finite and greater than zero."
-            )
-        normalized_height_flag = bool(normalized_height)
-        normalized_target_height = None
-        if target_height is not None:
-            normalized_target_height = float(target_height)
-            if (
-                not math.isfinite(normalized_target_height)
-                or normalized_target_height <= 0.0
-            ):
-                raise ValueError("target_height must be finite and greater than zero.")
-        if normalized_height_flag and normalized_target_height is None:
-            raise ValueError(
-                "target_height is required when normalized_height is enabled."
-            )
+        normalization = GeometryNormalization(normalized_height, target_height, normalization_scale,
+                                              NATIVE_OBJECT_SCALE)
+        normalized_scale = normalization.scale
+        normalized_height_flag = normalization.normalized_height
+        normalized_target_height = normalization.target_height
         volume_width = int(volume.width)
         volume_depth = int(volume.depth)
         volume_height = int(volume.height)
@@ -203,6 +188,7 @@ class NativeVisualHullOutput(GeometrySurfaceOutput):
             implementation_id=IMPLEMENTATION_ID,
             metrics=resolved_metrics,
             metadata=resolved_metadata,
+            normalization=normalization,
         )
         object.__setattr__(self, "volume", volume)
         object.__setattr__(self, "native_mesh", native_mesh)
@@ -210,9 +196,20 @@ class NativeVisualHullOutput(GeometrySurfaceOutput):
         object.__setattr__(self, "symmetry_x", bool(symmetry_x))
         object.__setattr__(self, "thread_count", normalized_thread_count)
         object.__setattr__(self, "mesh_mode", normalized_mesh_mode)
-        object.__setattr__(self, "normalized_height", normalized_height_flag)
-        object.__setattr__(self, "target_height", normalized_target_height)
-        object.__setattr__(self, "normalization_scale", normalized_scale)
+
+    # Historical diagnostic callers keep read-only aliases, not independent
+    # mutable state. Generic consumers use the base contract's normalization.
+    @property
+    def normalized_height(self):
+        return self.normalization.normalized_height
+
+    @property
+    def target_height(self):
+        return self.normalization.target_height
+
+    @property
+    def normalization_scale(self):
+        return self.normalization.scale
 
     @property
     def projection_count(self) -> int:

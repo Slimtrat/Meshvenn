@@ -72,6 +72,7 @@ REQUIRED_PACKAGE_FILES = (
     "core/geometry_contracts/__init__.py",
     "core/geometry_contracts/projection.py",
     "core/geometry_contracts/surface.py",
+    "core/geometry_contracts/normalization.py",
     "core/geometry_contracts/validation.py",
     "core/canonical_rig.py",
     "core/canonical_rig_v2.py",

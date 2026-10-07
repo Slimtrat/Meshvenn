@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import math
+import json
 import bpy
 
-from ...core.geometry_contracts import GeometryProjectionSpace
+from ...core.geometry_contracts import GeometryNormalization, GeometryProjectionSpace
+from ...core.geometry_contracts.normalization import NATIVE_OBJECT_SCALE
 from ...core.native_bridge import NativeMesh, NativeVolume
 from ..projection_images import ProjectionImagesOutput
 from .config import NativeVisualHullConfig
@@ -86,6 +88,9 @@ def _write_geometry_metadata(
     obj["meshvenn_geometry_version"] = "1"
     obj["meshvenn_native_space_preserved"] = True
     obj["meshvenn_normalization_scale"] = float(normalization_scale)
+    obj["meshvenn_geometry_normalization"] = json.dumps(GeometryNormalization(
+        config.normalize_height, config.target_height if config.normalize_height else None,
+        normalization_scale, NATIVE_OBJECT_SCALE).to_dict(), sort_keys=True, allow_nan=False)
     obj["meshvenn_projection_convention"] = projection_space.convention.value
     obj["meshvenn_projection_width"] = projection_space.width
     obj["meshvenn_projection_depth"] = projection_space.depth
