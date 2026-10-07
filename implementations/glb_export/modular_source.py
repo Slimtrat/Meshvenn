@@ -197,7 +197,8 @@ def _initial_static_catalogue(sources, binding_method):
         if len(modifiers) != 1 or modifiers[0].type != "ARMATURE" or modifiers[0].object is None:
             raise ValueError("Static initialization requires exactly one native armature binding.")
         if _property(source, "meshvenn_rig_skinning_algorithm") not in (
-                "regional-fitted-v2-leg-root-transfer", "regional-fitted-v2-head-isolation"):
+                "regional-fitted-v2-leg-root-transfer", "regional-fitted-v2-head-isolation",
+                "authored-regional-v1-axial-isolation"):
             raise ValueError("This source's native binding is not qualified for static initialization.")
         armatures.append(modifiers[0].object)
     if len(set(armatures)) != 1:

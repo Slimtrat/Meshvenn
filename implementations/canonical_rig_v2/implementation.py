@@ -197,4 +197,5 @@ class CanonicalRigV2Implementation:
         box.label(text="Fitted-joint regional skinning")
         box.label(text="Closed neck cue isolates head weights")
         box.operator("bpt.refine_head_weights", icon="MOD_VERTEX_WEIGHT")
+        box.operator("bpt.refine_owned_skin", icon="MOD_VERTEX_WEIGHT")
         box.label(text="Best for upright biped characters", icon="INFO")

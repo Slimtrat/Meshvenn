@@ -20,7 +20,8 @@ def refine_head_weights(mesh):
         raise ValueError("Select a local single-user authoritative mesh in Object mode, not a region preview.")
     if mesh.get("meshvenn_rig_implementation") != "canonical-biped-v2":
         raise ValueError("Head refinement requires an existing Canonical Biped V2 source.")
-    if mesh.get("meshvenn_rig_skinning_algorithm") == ALGORITHM:
+    if (mesh.get("meshvenn_rig_skinning_algorithm") == ALGORITHM
+            or "meshvenn_owned_skin_refinement" in mesh):
         raise ValueError("This source already uses head isolation; rebind explicitly instead of repeatedly transferring weights.")
     active = [m for m in mesh.modifiers if m.show_viewport or m.show_render]
     if len(active) != 1 or active[0].type != "ARMATURE" or active[0].object is None:
