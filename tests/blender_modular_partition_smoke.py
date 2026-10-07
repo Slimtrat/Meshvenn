@@ -166,8 +166,9 @@ def main():
             if preview_data.users == 0:
                 bpy.data.meshes.remove(preview_data)
     published = product_path.read_bytes()
-    provenance = SimpleNamespace(metadata={"normalized_height": False, "target_height": None,
-                                          "normalization_scale": 1.0}, metrics={})
+    geometry_contracts = importlib.import_module(f"{root.name}.core.geometry_contracts")
+    provenance = SimpleNamespace(normalization=geometry_contracts.GeometryNormalization(
+        False, None, 1., "native-visual-hull-object-scale"))
     for settings_metadata in ({"export_modular_character": True},
                               {"export_modular_spec": replace(spec, coordinates=contracts.CoordinateConvention(
                                   contracts.NormalizationConvention(True, 2, 1)))}):

@@ -6,6 +6,7 @@ from .projection import (
     GeometryProjectionSpace,
 )
 from .surface import GeometrySurfaceOutput
+from .normalization import GeometryNormalization
 from .validation import (
     require_geometry_surface_output,
     validate_geometry_surface_output,
@@ -16,6 +17,7 @@ __all__ = (
     "GeometryProjectionConvention",
     "GeometryProjectionSpace",
     "GeometrySurfaceOutput",
+    "GeometryNormalization",
     "require_geometry_surface_output",
     "validate_geometry_surface_output",
 )

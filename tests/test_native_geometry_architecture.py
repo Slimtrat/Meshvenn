@@ -25,6 +25,7 @@ class NativeGeometryArchitectureTests(unittest.TestCase):
                 "GeometryProjectionConvention",
                 "GeometryProjectionSpace",
                 "GeometrySurfaceOutput",
+                "GeometryNormalization",
                 "require_geometry_surface_output",
                 "validate_geometry_surface_output",
             },

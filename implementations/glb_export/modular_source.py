@@ -13,7 +13,8 @@ from pathlib import Path
 
 import bpy
 
-from ...core.geometry_contracts import GeometryProjectionSpace, GeometrySurfaceOutput
+from ...core.geometry_contracts import GeometryNormalization, GeometryProjectionSpace, GeometrySurfaceOutput
+from ...core.geometry_contracts.normalization import HISTORICAL_SOURCE
 from ...core.modular_character import ModularCharacterSpec
 from ...core.modular_character.json_io import strict_json_loads
 from ...core.modular_character.validation import fields, number, sequence, text, unique
@@ -54,9 +55,10 @@ def stage_authored_scene_catalogue(plan):
         if _projection_space(source) != plan.geometry.projection_space:
             raise ValueError("Saved source projection provenance differs from the Geometry output.")
         normalization = _normalization(source)
-        if (normalization["normalized_height"] != declared.normalized_height
-                or normalization["target_height"] != declared.target_height
-                or not math.isclose(normalization["normalization_scale"], declared.scale,
+        if (normalization != plan.geometry.normalization
+                or normalization.normalized_height != declared.normalized_height
+                or normalization.target_height != declared.target_height
+                or not math.isclose(normalization.scale, declared.scale,
                                     rel_tol=1e-8, abs_tol=1e-12)):
             raise ValueError("Saved source normalization contradicts the certified modular declaration.")
         if (_property(source, "meshvenn_geometry_implementation") != plan.geometry.implementation_id
@@ -145,14 +147,25 @@ def _validate_binding(source, armature):
 
 
 def _normalization(source):
+    """The only historical conversion boundary; never mutate the source."""
+    saved = source.get("meshvenn_geometry_normalization")
+    if saved is not None:
+        normalization = GeometryNormalization.from_dict(strict_json_loads(saved))
+        claims = {}
+        if "bpt_normalize_height" in source:
+            claims["normalized_height"] = source["bpt_normalize_height"]
+        if "bpt_target_height" in source and source.get("bpt_normalize_height") is not False:
+            claims["target_height"] = source["bpt_target_height"]
+        if "meshvenn_normalization_scale" in source:
+            claims["normalization_scale"] = source["meshvenn_normalization_scale"]
+        normalization.validate_diagnostics(claims)
+        return normalization
     enabled = _property(source, "bpt_normalize_height")
     if type(enabled) is not bool:
         raise TypeError("Saved normalization flag must be boolean.")
-    return {"normalized_height": enabled,
-            "target_height": number(_property(source, "bpt_target_height"), name="saved target_height",
-                                    positive=True) if enabled else None,
-            "normalization_scale": number(_property(source, "meshvenn_normalization_scale"),
-                                          name="saved normalization_scale", positive=True)}
+    return GeometryNormalization(enabled,
+        _property(source, "bpt_target_height") if enabled else None,
+        _property(source, "meshvenn_normalization_scale"), HISTORICAL_SOURCE)
 
 
 def _projection_space(source):
@@ -327,7 +340,7 @@ def context_from_authored_scene(scene, *, output_path=None, overwrite_existing=N
     geometry = GeometrySurfaceOutput(
         blender_object=sources[0], blender_objects=sources, source=spec,
         projection_space=projection_space, implementation_id="native-visual-hull",
-        metadata={**normalization, "source": "saved-authored-scene"})
+        normalization=normalization, metadata={"source": "saved-authored-scene"})
     rig = RigOutput(geometry, sources[0], armature, declared_rig["implementation_id"],
                     semantics, declared_rig["binding_method"])
     context = PipelineContext(scene=scene, settings=settings, metadata={

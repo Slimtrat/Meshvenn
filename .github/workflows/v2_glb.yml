@@ -150,6 +150,19 @@ jobs:
             --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
             --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
 
+      - name: Verify explicit normalization and behavior-preserving Stytch consolidation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_geometry_normalization -v
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_geometry_normalization_smoke.py
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/benchmark_stabilization.py -- \
+            --output "${RUNNER_TEMP}/head-isolation/stabilization" \
+            --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
+
       - name: Verify organic geometry and calibrated projection frames
         shell: bash
         run: |

@@ -44,6 +44,30 @@ V1 refuses shape keys, active non-armature modifiers, loose vertices, more than
 four influences, and a region spanning multiple source-object frames. These are
 explicit unsupported inputs, not silent loss of geometry or attributes.
 
+### Explicit geometry normalization
+
+`GeometrySurfaceOutput.normalization` is the single height-normalization
+authority: a `GeometryNormalization` with the enabled flag, target height,
+uniform scale and provenance. `None` means uncertified, not disabled; modular
+publication rejects it. The exporter does not search native-specific attributes,
+metadata or metrics for coordinate state. Contradictory diagnostic claims fail
+validation instead of winning by lookup order.
+
+Native geometry preserves mesh-local projection coordinates, applies the same
+non-destructive object scaling and saves `meshvenn_geometry_normalization`.
+Historical constructor arguments remain read-only aliases of the explicit
+contract. Supported old native `.blend` sources convert their known ID properties
+once at the authored-source loading boundary, in memory only. Loading and export
+do not silently rewrite an old source. Missing or conflicting saved provenance
+requires explicit repair before publication. Existing extent-normalized GLB
+routes do not thereby acquire certified height provenance.
+
+`scripts/benchmark_stabilization.py` records source/authoring/baseline/candidate/
+pose-set fingerprints and the tested code revision together. It compares the
+unchanged doll on all nineteen synchronized poses, including source/raw/reimport
+fidelity, using existing thresholds. Its success is behavior preservation, not
+posed visual quality or Stytch acceptance; those remain tracked by #60.
+
 ## Reading the GLB
 
 The GLB contains an object at `asset.extras.meshvenn_modular_character`:
