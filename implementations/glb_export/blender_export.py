@@ -123,6 +123,26 @@ def _isolated_selection(plan: GLBExportPlan) -> Iterator[None]:
 
 
 @contextmanager
+def _isolated_import(plan: GLBExportPlan) -> Iterator[None]:
+    """Import probes with no original selected, then restore caller state.
+
+    glTF creates its armature in Edit Mode without deselecting existing objects.
+    Selecting the export rig here would enter multi-armature Edit Mode and
+    recompose the authoritative rig's rest matrices even without editing bones.
+    """
+    state = _capture_state(plan)
+    try:
+        if bpy.context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        for obj in tuple(bpy.context.selected_objects):
+            obj.select_set(False)
+        bpy.context.view_layer.objects.active = None
+        yield
+    finally:
+        _restore_state(state)
+
+
+@contextmanager
 def _only_export_actions(actions: tuple[Any, ...]) -> Iterator[None]:
     if not actions:
         yield
@@ -266,12 +286,12 @@ def _export_prepared_glb(plan: GLBExportPlan, *, fidelity_report: dict | None = 
         manifest = inspect_glb(temporary_path)
         _validate_manifest(plan, manifest)
         if plan.validate_roundtrip:
-            with _isolated_selection(plan):
+            with _isolated_import(plan):
                 report = validate_roundtrip(plan, temporary_path, sha256=manifest.sha256, expected=expected)
             if fidelity_report is not None:
                 fidelity_report.update(report)
         if plan.modular_spec is not None:
-            with _isolated_selection(plan):
+            with _isolated_import(plan):
                 report = validate_modular_roundtrip(
                     plan, plan.modular_spec, temporary_path, modular_expected)
             if fidelity_report is not None:

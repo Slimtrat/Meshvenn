@@ -1,0 +1,69 @@
+{
+  "source_sha": "local-uncommitted",
+  "run_id": null,
+  "run_attempt": null,
+  "artifact_sha256": "76590fd9c335335255f2eb2a4fc0866adf3c5a6a6fad0d4938c9e7550b7dcb57",
+  "reference_sha256": "169ec90b326ccb71c1868dc26e7676e80a53990e9906a6ab4d23af04118d2034",
+  "rendered_from_final_glb": true,
+  "pose_kind": "explicit compound native-joint probe, NOT an imported animation",
+  "pose": {
+    "chest": [
+      [
+        0,
+        1,
+        0
+      ],
+      0.15
+    ],
+    "upper_arm.L": [
+      [
+        0,
+        0,
+        1
+      ],
+      -0.25
+    ],
+    "forearm.L": [
+      [
+        0,
+        0,
+        1
+      ],
+      -0.55
+    ],
+    "upper_arm.R": [
+      [
+        0,
+        0,
+        1
+      ],
+      0.18
+    ],
+    "thigh.L": [
+      [
+        1,
+        0,
+        0
+      ],
+      0.22
+    ],
+    "shin.L": [
+      [
+        1,
+        0,
+        0
+      ],
+      -0.35
+    ]
+  },
+  "maximum_deformation_m": 0.30759926395576226,
+  "images": {
+    "source.png": "62ec8430369dadeb148e45c5343839a69f3497a1910cb366321a4f8d6f683ff8",
+    "rest.png": "493297e842b02f8f2f9e7badcd98ad2efd3248a93ea210f13047ff43df812c73",
+    "compound.png": "16e69a05cdfbc2219e557510faac259798d649e6c9781b5a2ae6f5d7ff9c01d0",
+    "hidden_left_arm.png": "f423275787e1f811b0b0c0f79a2b97192820f8b346753a351d7e9f25f40b17b0",
+    "sockets_rest.png": "1b89b269269ef6cc4484aef9480bb159ff83ef0dd299ed57ddbbe7c2299132f1",
+    "sockets_compound.png": "19d6c5280afec0f4696aa542174ec984b30f16c01d4ee42e60804aaaef1cb3f5"
+  },
+  "scope": "Appearance remains the original two-view bake; X-ray socket materials are diagnostic-only."
+}

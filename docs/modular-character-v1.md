@@ -137,6 +137,30 @@ rig/action catalogue after a successful modular export. An explicitly static
 catalogue stores an empty clip list; unrelated scene actions are never discovered.
 An existing user Text datablock is not overwritten.
 
+### Explicit face authoring and older static sources
+
+EXPORT exposes **Load Authored Face Ownership**, **Assign Selected Faces to Region**
+and **Save Authored Face Ownership**. Select an original single-user mesh; load a
+hash-matching JSON in Object mode, then assign visible whole faces in Object/Edit
+mode to an existing region ID. This edits an integer FACE attribute, not geometry,
+UVs or weights. Save validates complete ownership and preserves the current JSON's
+socket TRS; replacing face edits and overwriting JSON require explicit opt-in.
+Derived preview meshes, changed geometry, invalid codes and missing regions fail.
+
+An old unanimated native V2 source without a catalogue can use the separate
+**Initialize Old Static V2 Source (No Rebuild)** action. Headless callers explicitly
+pass `initialize_static_source=True, binding_method="canonical-envelope-v2"` to
+`bpy.ops.bpt.export_existing_modular_source`. This is not a fallback: existing
+catalogue references, unsupported bindings, or source/hierarchy/data Actions,
+NLA strips and drivers are refused. Only a successful ordinary modular publication
+commits the empty catalogue; failed initialization leaves no catalogue or output.
+
+The actual [Stytch workshop doll](../example/v2/modular/StytchDoll/README.md)
+demonstrates this route with five regions, eight authored native-local sockets,
+18 native joints and **zero clips**. Its source and original two-view bake remain
+unchanged. Its fidelity/triangle gates are distinct from the UAL1 appearance and
+43-clip fixtures, and from consumer quality certification.
+
 The committed fixture is in `example/v2/modular/UAL1/`. It is a pipeline/fidelity
 fixture, not a certification of material coverage, triangle budget, mobile quality,
 realistic anatomy, sealed wound caps, or any game-engine runtime.

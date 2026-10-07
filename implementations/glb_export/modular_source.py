@@ -239,7 +239,49 @@ def _motion(catalogue, rig, scene):
                         metadata={"source": "saved-authored-scene", "catalogue": MOTION_CATALOGUE})
 
 
-def context_from_authored_scene(scene, *, output_path=None, overwrite_existing=None):
+def _initial_static_catalogue(sources, binding_method):
+    """Explicit migration for an old, unanimated native V2 source; never fallback.
+
+    No catalogue/reference is written here. The exporter commits it only after
+    the exact source has passed the ordinary modular publication gates.
+    """
+    if binding_method != "canonical-envelope-v2":
+        raise ValueError("Static initialization requires the explicit canonical-envelope-v2 binding declaration.")
+    if any(CATALOGUE_REFERENCE in source for source in sources):
+        raise ValueError("A source already has a catalogue; use ordinary No Rebuild and repair invalid provenance explicitly.")
+    armatures = []
+    for source in sources:
+        modifiers = [item for item in source.modifiers if item.show_viewport or item.show_render]
+        if len(modifiers) != 1 or modifiers[0].type != "ARMATURE" or modifiers[0].object is None:
+            raise ValueError("Static initialization requires exactly one native armature binding.")
+        if _property(source, "meshvenn_rig_skinning_algorithm") != "regional-fitted-v2-leg-root-transfer":
+            raise ValueError("This source's native binding is not qualified for static initialization.")
+        armatures.append(modifiers[0].object)
+    if len(set(armatures)) != 1:
+        raise ValueError("Static source members must share the same exact native armature.")
+    armature = armatures[0]
+    animated_ids = set(sources) | {armature}
+    for source in tuple(animated_ids):
+        parent = source.parent
+        while parent is not None:
+            animated_ids.add(parent)
+            parent = parent.parent
+    animated_ids.update(obj.data for obj in tuple(animated_ids) if getattr(obj, "data", None) is not None)
+    animated_ids.update(data.shape_keys for data in tuple(animated_ids) if getattr(data, "shape_keys", None) is not None)
+    for source in animated_ids:
+        animation = source.animation_data
+        if animation is not None and (animation.action is not None or animation.drivers or
+                                     any(track.strips for track in animation.nla_tracks)):
+            raise ValueError("Static initialization refuses source/hierarchy Actions, NLA clips or drivers; author an exact motion catalogue instead.")
+    return {"schema_version": 1, "source_objects": [source.name for source in sources],
+            "rig": {"armature": armature.name, "implementation_id": "canonical-biped-v2",
+                    "semantic_bones": strict_json_loads(_property(sources[0], "meshvenn_rig_semantics")),
+                    "binding_method": binding_method},
+            "implementation_id": None, "source_bone_map": {}, "root_motion_mode": None, "clips": []}
+
+
+def context_from_authored_scene(scene, *, output_path=None, overwrite_existing=None,
+                                initialize_static_source=False, binding_method=None):
     """Prepare only EXPORT from exact saved source references and native Actions.
 
     Does not create a mesh, fit a rig, retarget, alter pose, or execute INPUT or
@@ -258,7 +300,12 @@ def context_from_authored_scene(scene, *, output_path=None, overwrite_existing=N
         raise ValueError("Authoring JSON must be a regular file of at most 16 MiB.")
     spec = ModularCharacterSpec.from_dict(strict_json_loads(manifest_path.read_text("utf-8")))
     sources = tuple(_object(scene, name, "MESH") for name in spec.ownership)
-    catalogue = _catalogue(sources)
+    if type(initialize_static_source) is not bool:
+        raise TypeError("initialize_static_source must be an explicit boolean.")
+    if not initialize_static_source and binding_method is not None:
+        raise ValueError("Binding declarations are only accepted during explicit static initialization.")
+    catalogue = (_initial_static_catalogue(sources, binding_method) if initialize_static_source
+                 else _catalogue(sources))
     declared_rig = catalogue["rig"]
     armature = _object(scene, declared_rig["armature"], "ARMATURE")
     if declared_rig["implementation_id"] != spec.rig_id or spec.rig_id != "canonical-biped-v2":
