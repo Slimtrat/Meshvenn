@@ -7,6 +7,7 @@ import bpy
 
 from ...core.canonical_rig import BoneSpec, MeshBounds
 from ...core.rig_skinning import regional_fallback_weights
+from ...core.rig_head_envelope import isolate_head_weights
 
 
 def _selection_snapshot():
@@ -132,16 +133,19 @@ def _bind_with_bone_heat(mesh_object, armature) -> None:
 
 def _bind_with_distance_weights(
     mesh_object, armature, bones: tuple[BoneSpec, ...], bounds: MeshBounds,
-    *, bone_guided: bool = False,
+    *, bone_guided: bool = False, head_envelope=None,
 ) -> None:
     groups = {
         spec.name: mesh_object.vertex_groups.new(name=spec.name)
         for spec in bones if spec.deform
     }
     for vertex in mesh_object.data.vertices:
-        for name, weight in regional_fallback_weights(
+        weights = regional_fallback_weights(
             vertex.co, bones, bounds, bone_guided=bone_guided
-        ).items():
+        )
+        if head_envelope is not None:
+            weights = isolate_head_weights(weights, vertex.co.z, head_envelope)
+        for name, weight in weights.items():
             groups[name].add((vertex.index,), weight, "REPLACE")
     modifier = mesh_object.modifiers.new("Meshvenn Skin", "ARMATURE")
     modifier.object = armature
@@ -185,7 +189,7 @@ def bind_mesh(
 
 
 def bind_mesh_deterministic(
-    mesh_object, armature, bones: tuple[BoneSpec, ...], bounds: MeshBounds
+    mesh_object, armature, bones: tuple[BoneSpec, ...], bounds: MeshBounds, *, head_envelope=None,
 ) -> tuple[str, int]:
     """Bind with the deterministic regional solver used by Canonical V2."""
     original_groups = {group.name for group in mesh_object.vertex_groups}
@@ -193,7 +197,8 @@ def bind_mesh_deterministic(
     original_parent = mesh_object.parent
     original_world = mesh_object.matrix_world.copy()
     try:
-        _bind_with_distance_weights(mesh_object, armature, bones, bounds, bone_guided=True)
+        _bind_with_distance_weights(mesh_object, armature, bones, bounds, bone_guided=True,
+                                    head_envelope=head_envelope)
         _normalize_skin_weights(mesh_object, bones)
         max_influences, unweighted = _skin_coverage(mesh_object, bones)
         if unweighted:

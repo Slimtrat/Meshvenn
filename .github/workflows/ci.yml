@@ -135,6 +135,7 @@ jobs:
             "core/canonical_rig_v2.py"
             "core/rig_lower_body.py"
             "core/rig_quality.py"
+            "core/rig_head_envelope.py"
             "core/rig_skinning.py"
             "core/rig_contracts.py"
             "core/motion_contracts.py"
@@ -291,6 +292,8 @@ jobs:
             "implementations/glb_export/fidelity.py"
             "implementations/glb_export/face_authoring.py"
             "operators/modular_authoring.py"
+            "operators/rig_refinement.py"
+            "implementations/canonical_rig_v2/head_refinement.py"
             "implementations/glb_export/fidelity_samples.py"
             "implementations/glb_input/__init__.py"
             "implementations/glb_input/implementation.py"
@@ -1196,6 +1199,7 @@ jobs:
             "core/canonical_rig_v2.py"
             "core/rig_lower_body.py"
             "core/canonical_rig.py"
+            "core/rig_head_envelope.py"
             "core/rig_quality.py"
             "core/rig_skinning.py"
             "core/rig_contracts.py"
@@ -1369,6 +1373,8 @@ jobs:
             "implementations/glb_input/__init__.py"
             "implementations/glb_export/face_authoring.py"
             "operators/modular_authoring.py"
+            "operators/rig_refinement.py"
+            "implementations/canonical_rig_v2/head_refinement.py"
             "implementations/glb_export/fidelity.py"
             "implementations/glb_export/fidelity_samples.py"
             "implementations/glb_input/implementation.py"
@@ -1720,6 +1726,7 @@ jobs:
             "blender_projection_tool/core/geometry_contracts/surface.py"
             "blender_projection_tool/core/canonical_rig_v2.py"
             "blender_projection_tool/core/rig_lower_body.py"
+            "blender_projection_tool/core/rig_head_envelope.py"
             "blender_projection_tool/core/geometry_contracts/validation.py"
             "blender_projection_tool/core/canonical_rig.py"
             "blender_projection_tool/core/rig_quality.py"
@@ -1851,6 +1858,8 @@ jobs:
             "blender_projection_tool/implementations/glb_export/implementation.py"
             "blender_projection_tool/implementations/glb_export/face_authoring.py"
             "blender_projection_tool/operators/modular_authoring.py"
+            "blender_projection_tool/operators/rig_refinement.py"
+            "blender_projection_tool/implementations/canonical_rig_v2/head_refinement.py"
             "blender_projection_tool/implementations/glb_export/manifest.py"
             "blender_projection_tool/implementations/glb_export/planning.py"
             "blender_projection_tool/implementations/glb_export/fidelity.py"
@@ -2242,6 +2251,10 @@ jobs:
           test -f \
             "${PACKAGE_ROOT}/operators/modular_authoring.py"
 
+          test -f "${PACKAGE_ROOT}/operators/rig_refinement.py"
+          test -f "${PACKAGE_ROOT}/implementations/canonical_rig_v2/head_refinement.py"
+          test -f "${PACKAGE_ROOT}/core/rig_head_envelope.py"
+
           test -f \
             "${PACKAGE_ROOT}/implementations/glb_export/blender_export.py"
 
@@ -2573,6 +2586,24 @@ jobs:
         with:
           name: stytch-workshop-doll-packaged-${{ github.run_attempt }}
           path: ${{ runner.temp }}/workshop-doll-packaged
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Verify packaged head refinement, exact rollback and variant relocation
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_head_refinement_smoke.py -- \
+            --package-root "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool" \
+            --variant example/v2/modular/StytchDollHeadIsolated \
+            --output "${RUNNER_TEMP}/head-refinement-packaged"
+
+      - name: Upload packaged head refinement verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: head-refinement-packaged-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/head-refinement-packaged
           if-no-files-found: error
           retention-days: 14
 

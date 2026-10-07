@@ -455,6 +455,15 @@ coverage) in the stage metadata and on the mesh. V1 warnings remain non-blocking
 V2 rejects insufficient arm observations and unsuitable silhouettes. Binding
 failures restore existing user groups, modifiers, transforms and rig metadata.
 
+V2 also observes a persistent closed central neck narrowing before smoothly
+transferring head weights to the existing head joint. Missing/open/ambiguous
+evidence retains its prior regional weights; V1 is unchanged. **Isolate Head
+Weights** applies the same undoable, transactional edit to an existing native V2
+source without rebuilding geometry, textures or rest joints. The distinct
+[Stytch head-isolation candidate](example/v2/modular/StytchDollHeadIsolated/README.md)
+and [exact consumer Hall replay](example/v2/poses/StytchDoll/README.md) separate
+head-probe/export success from remaining neck/torso defects and consumer acceptance.
+
 V2 CI now starts from three verified unrigged GLBs: RiggedFigure and the two
 Quaternius humanoids. Source bones/weights only provide scoring references and
 are unavailable to the fitter. It gates 17 joint errors, normalized four-weight

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "issue": "https://github.com/Slimtrat/Meshvenn/issues/60",
+  "source_repository": "Stytch0/Stytch",
+  "source_revision": "a0bbe82facb35b7108b10cdcf3b827c82a5c4c72",
+  "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollModularV1/Evidence/Factory/factory-hall-pose.json",
+  "source_git_blob": "993dd3708f547466cd47f7a4b8554346ab85b7f8",
+  "publication": "Source owner explicitly authorized public publication of the pose matrices and their provenance in Meshvenn. Private application captures and consumer code are excluded.",
+  "files": {
+    "factory-hall-pose.json": "032ad2517bd319a8c87a28a1f978c1bcc0bdac4ca23dce2dc37718d957632d52"
+  },
+  "asset_sha256": "76590fd9c335335255f2eb2a4fc0866adf3c5a6a6fad0d4938c9e7550b7dcb57",
+  "coordinate_frame": "Godot imported native bone-local; before unchanged ancestor normalization/facing",
+  "transform_serialization": "Twelve values: Basis.X.X/Y/Z, Basis.Y.X/Y/Z, Basis.Z.X/Y/Z, Origin.X/Y/Z. Basis vectors are columns; Pose includes the full parent-local transform, not a rest-relative delta.",
+  "duplicate_snapshot": {
+    "source_filename": "factory-one-leg-pose.json",
+    "sha256": "032ad2517bd319a8c87a28a1f978c1bcc0bdac4ca23dce2dc37718d957632d52",
+    "interpretation": "Byte-identical at this pinned revision. Hiding the left-leg region is a visibility replay, not an independent one-leg motion probe."
+  },
+  "missing_pose_matrices_at_revision": ["held", "walk", "one-leg-hop"],
+  "limits": "Exact Hall matrices only; no fabricated consumer snapshots or claim of full visual acceptance. No third-party CC0 license claim."
+}

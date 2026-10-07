@@ -115,6 +115,31 @@ jobs:
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python tests/blender_glb_v2_surface_smoke.py
 
+      - name: Gate head isolation and replay actual consumer Hall matrices
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_rig_head_envelope tests.test_head_isolation_metrics tests.test_head_isolated_doll_fixture tests.test_native_pose_probe -v
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/refine_workshop_doll.py -- \
+            --output "${RUNNER_TEMP}/head-isolation/authored"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_head_refinement_smoke.py -- \
+            --variant "${RUNNER_TEMP}/head-isolation/authored" \
+            --output "${RUNNER_TEMP}/head-isolation/api-and-relocation"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/benchmark_head_isolation.py -- \
+            --candidate "${RUNNER_TEMP}/head-isolation/authored" \
+            --output "${RUNNER_TEMP}/head-isolation/quality" \
+            --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/replay_stytch_doll_pose.py -- \
+            --pose example/v2/poses/StytchDoll/factory-hall-pose.json --hidden-region left-leg \
+            --output "${RUNNER_TEMP}/head-isolation/consumer-hall-replay" \
+            --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
+
       - name: Verify organic geometry and calibrated projection frames
         shell: bash
         run: |
@@ -488,6 +513,15 @@ jobs:
         with:
           name: glb-v2-preview-${{ github.run_attempt }}
           path: ${{ runner.temp }}/v2-benchmark/preview
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload separate head isolation and consumer pose replay evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stytch-head-isolation-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/head-isolation
           if-no-files-found: warn
           retention-days: 14
 

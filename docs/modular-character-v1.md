@@ -161,6 +161,22 @@ demonstrates this route with five regions, eight authored native-local sockets,
 unchanged. Its fidelity/triangle gates are distinct from the UAL1 appearance and
 43-clip fixtures, and from consumer quality certification.
 
+The separate [head-isolated candidate](../example/v2/modular/StytchDollHeadIsolated/README.md)
+intentionally edits only head-transition weights, with a new fingerprint and
+unchanged geometry, atlas, native rest joints, region ownership and sockets.
+Canonical V2 binding uses a persistent closed neck cue; an undoable **Isolate
+Head Weights** action exposes the same correction for existing native sources.
+Missing evidence leaves the original regional solver unchanged. Seven actual-GLB
+head probes and exact rollback/relocation checks are distinct from anatomical
+or consumer acceptance. Neck and shoulder/torso quality remain unqualified.
+
+[Captured Hall matrices and their provenance](../example/v2/poses/StytchDoll/README.md)
+provide an independent native-source / decoded-GLB / reimport replay for #60.
+They reproduce the upstream skin collapse before partitioning, with sub-micrometre
+surface agreement. The supplied one-leg snapshot is byte-identical: hiding a
+region is not an independent hop pose. Held/walk/hop inputs and corrected
+consumer qualification are still required; #60 is not resolved by this lot.
+
 The committed fixture is in `example/v2/modular/UAL1/`. It is a pipeline/fidelity
 fixture, not a certification of material coverage, triangle budget, mobile quality,
 realistic anatomy, sealed wound caps, or any game-engine runtime.
