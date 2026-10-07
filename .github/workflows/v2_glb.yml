@@ -165,6 +165,21 @@ jobs:
             --variant "${RUNNER_TEMP}/head-isolation/authored-body" \
             --output "${RUNNER_TEMP}/head-isolation/body-api-and-relocation"
 
+      - name: Gate observed shoulder pivots with explicitly derived rest-relative poses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_rig_shoulder_alignment tests.test_shoulder_pose_derivation tests.test_shoulder_aligned_doll_fixture -v
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/align_workshop_shoulders.py -- \
+            --output "${RUNNER_TEMP}/head-isolation/shoulder-aligned" \
+            --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_shoulder_alignment_smoke.py -- \
+            --variant "${RUNNER_TEMP}/head-isolation/shoulder-aligned" \
+            --output "${RUNNER_TEMP}/head-isolation/shoulder-api-and-relocation"
+
       - name: Verify explicit contracts and behavior-preserving Stytch consolidation
         shell: bash
         run: |

@@ -203,6 +203,15 @@ the frozen torso metrics and preserve native/raw/reimport fidelity. This does no
 replace the original: shoulder/neck folds and Stytch visual acceptance remain
 unqualified. Its source, GLB, matrix provenance and own Blender renders are pinned.
 
+The subsequent [shoulder-origin candidate](modular/StytchDollShoulderAligned/README.md)
+explicitly translates the two upper-arm rest origins onto observed closed
+attachment rings, retaining surface, weights, axes, native names and authored
+contract. Nineteen clearly labelled rest-relative **derived** poses gate bilateral
+shoulder improvements and strict fidelity; they are not captures of that new rig.
+Its editable source, portable authoring bytes, GLB and own paired renders are
+pinned separately. Stytch selected-artifact replay and visual acceptance are
+still required, with no replacement of prior candidates or expansion of scope.
+
 Its geometry uses the unchanged neutral silhouettes; a separate calibrated
 source-color/emission path feeds UV Bake V2 (512², 2 samples/axis). The packed
 source retains those color images and truthful stage selections. Re-export with
