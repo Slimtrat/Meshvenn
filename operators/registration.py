@@ -22,6 +22,9 @@ from .projections import (
 )
 from .runtime import clear_pipeline_runtime_state
 from .modular_export import BPT_OT_ExportExistingModularSource
+from .modular_authoring import (
+    BPT_OT_LoadModularFaceOwnership, BPT_OT_AssignModularFaces, BPT_OT_SaveModularFaceOwnership,
+)
 from .selection import (
     BPT_OT_ResetPipelineSettings,
     BPT_OT_SetPipelineImplementation,
@@ -57,6 +60,9 @@ CLASSES = (
 
     BPT_OT_GenerateCharacter,
     BPT_OT_ExportExistingModularSource,
+    BPT_OT_LoadModularFaceOwnership,
+    BPT_OT_AssignModularFaces,
+    BPT_OT_SaveModularFaceOwnership,
 )
 
 

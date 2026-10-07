@@ -81,7 +81,15 @@ class GLBExportImplementation:
         if settings.export_modular_character:
             box.prop(settings, "export_modular_manifest_path", text="Modular Authoring JSON")
             box.label(text="Explicit regions and sockets; verification is mandatory")
+            editing = box.column(align=True)
+            editing.operator("bpt.load_modular_face_ownership", text="Load Face Ownership", icon="IMPORT")
+            editing.operator("bpt.assign_modular_faces", text="Assign Selected Faces", icon="FACESEL")
+            editing.operator("bpt.save_modular_face_ownership", text="Save Face Ownership", icon="FILE_TICK")
             box.operator("bpt.export_existing_modular_source", text="Export Authored Source (No Rebuild)", icon="EXPORT")
+            initial = box.operator("bpt.export_existing_modular_source", text="Initialize Old Static V2 Source (No Rebuild)", icon="FILE_REFRESH")
+            initial.initialize_static_source = True
+            initial.binding_method = "canonical-envelope-v2"
+            box.label(text="Initialization explicitly declares no clips; animated sources are refused")
             box.label(text="JSON originals are authoritative; preview edits are not exported", icon="INFO")
         raw_path = settings.export_output_path.strip()
         if not raw_path:

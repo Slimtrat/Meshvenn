@@ -1,10 +1,9 @@
 """Export authored originals independently of the reconstruction pipeline."""
 
-from __future__ import annotations
-
 import time
 
 from bpy.types import Operator
+from bpy.props import BoolProperty, StringProperty
 
 from ..core.pipeline_contracts import PipelinePlan, PipelineStage, PipelineStageSelection
 from ..core.pipeline_runner import PipelineExecutionReport, StageRunRecord
@@ -20,6 +19,11 @@ class BPT_OT_ExportExistingModularSource(Operator):
         "Re-export the original objects named by the authoring JSON with their saved native rig and Actions; "
         "do not reconstruct geometry or export edits to derived preview copies"
     )
+    initialize_static_source: BoolProperty(
+        name="Initialize Old Static Source", default=False,
+        description="Explicit first export of an old unanimated native V2 source; never infer or drop clips",
+    )
+    binding_method: StringProperty(name="Declared Native Binding", default="")
 
     @classmethod
     def poll(cls, context):
@@ -28,7 +32,10 @@ class BPT_OT_ExportExistingModularSource(Operator):
     def execute(self, context):
         clear_pipeline_runtime_state(context.scene)
         try:
-            prepared = context_from_authored_scene(context.scene)
+            prepared = context_from_authored_scene(
+                context.scene, initialize_static_source=self.initialize_static_source,
+                binding_method=self.binding_method if self.initialize_static_source else None,
+            )
         except Exception as exc:
             self.report({"ERROR"}, f"Cannot re-export authoritative modular source: {exc}")
             return {"CANCELLED"}

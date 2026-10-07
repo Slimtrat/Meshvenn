@@ -61,7 +61,7 @@ jobs:
           cp build/native/libbpt_core.so native/bin/libbpt_core.so
 
       - name: Verify versioned modular ownership, metadata and committed fixture
-        run: python -m unittest tests.test_modular_character_contracts tests.test_modular_partition tests.test_modular_gltf tests.test_modular_metadata tests.test_modular_json tests.test_modular_fixture -v
+        run: python -m unittest tests.test_modular_character_contracts tests.test_modular_partition tests.test_modular_gltf tests.test_modular_metadata tests.test_modular_json tests.test_modular_fixture tests.test_workshop_doll_fixture -v
 
       - name: Verify continuous contour fitting and surface safeguards
         run: python -m unittest tests.test_contour_surface tests.test_surface_refinement tests.test_projection_frame -v
@@ -89,6 +89,24 @@ jobs:
           xz --test "${archive}"
           tar -xJf "${archive}" -C "${BLENDER_ROOT}" --strip-components=1
           rm "${archive}"
+
+      - name: Author, relocate and render the actual static Stytch workshop doll
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/author_stytch_doll.py -- \
+            --output "${RUNNER_TEMP}/stytch-workshop-doll/authored"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_workshop_doll_smoke.py -- \
+            --fixture "${RUNNER_TEMP}/stytch-workshop-doll/authored" \
+            --output "${RUNNER_TEMP}/stytch-workshop-doll/relocation"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/render_workshop_doll_preview.py -- \
+            --fixture "${RUNNER_TEMP}/stytch-workshop-doll/authored" \
+            --output "${RUNNER_TEMP}/stytch-workshop-doll/previews" \
+            --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
 
       - name: Verify 3D surface metric
         shell: bash
@@ -441,6 +459,28 @@ jobs:
           path: ${{ runner.temp }}/v2-benchmark
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Upload actual workshop doll evidence separately from UAL1
+        id: doll-evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stytch-workshop-doll-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/stytch-workshop-doll
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Read-only actual doll evidence summary
+        if: always()
+        shell: bash
+        env:
+          DOLL_ARTIFACT_URL: ${{ steps.doll-evidence.outputs.artifact-url }}
+        run: |
+          printf '%s\n' '### Actual Stytch workshop doll (not UAL1)' \
+            '5 authored regions / 8 native-local sockets / 18 joints / 0 clips / 14,252 triangles.' \
+            'Original appearance unqualified: 56.02% neutral fallback; compound pose is a probe, not animation.' \
+            'Godot/Stytch replay remains downstream. See the dedicated artifact for actual GLB renders and test results.' \
+            "[Workshop doll evidence](${DOLL_ARTIFACT_URL})" >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Upload modern rendered preview bundle
         if: always()

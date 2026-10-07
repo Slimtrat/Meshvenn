@@ -188,6 +188,14 @@ in [the contract documentation](../../docs/modular-character-v1.md). The packed
 editable source and hash-linked GLB/manifest live in `modular/UAL1/`. Upstream Blender
 fidelity and downstream Godot/Stytch acceptance are separate gates.
 
+The [actual Stytch workshop doll](modular/StytchDoll/README.md) is a separate
+owner-authorized native-source bundle: five explicit regions, eight native-local
+sockets, 18 unchanged joints, 14,252 triangles and **zero clips**. It exercises
+face editing, portable packed images, static catalogue initialization and No Rebuild
+without replacing geometry or weights. Its original two-view appearance remains
+unqualified (56.02% neutral fallback); do not substitute the UAL1 preview/animation
+evidence for this doll. Dedicated CI artifacts show its actual GLB and pose probes.
+
 Its geometry uses the unchanged neutral silhouettes; a separate calibrated
 source-color/emission path feeds UV Bake V2 (512², 2 samples/axis). The packed
 source retains those color images and truthful stage selections. Re-export with
