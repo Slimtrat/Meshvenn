@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+from array import array
 from types import SimpleNamespace
 from typing import Any
 
@@ -164,11 +165,22 @@ def _validate_generic_geometry_material_compatibility(
             obj
         )
 
+        material_module = importlib.import_module(
+            f"{package_name}.core.projected_material"
+        )
+        # The surface stays generic, but its advertised color capability must
+        # contain real image views: MATERIAL now validates coverage before use.
+        image_buffer = material_module.ImageBuffer(
+            width=1, height=1, pixels=array("f", (0.3, 0.5, 0.7, 1.0))
+        )
         fake_source = (
             SimpleNamespace(
-                material_views=(
-                    object(),
-                    object(),
+                material_views=tuple(
+                    material_module.ProjectedMaterialView.from_image_buffer(
+                        name=f"generic-view-{index}", image_buffer=image_buffer,
+                        azimuth_degrees=azimuth, elevation_degrees=0.0,
+                    )
+                    for index, azimuth in enumerate((0.0, 90.0))
                 )
             )
         )
