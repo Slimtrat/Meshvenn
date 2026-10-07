@@ -223,6 +223,20 @@ Stytch has not replayed this selected fingerprint. The original reference, the
 head-only candidate, and this candidate have separate hashes and limits. #60 and
 #63 remain open; engine/rig/format expansion remains paused.
 
+The separate [shoulder-origin successor](../example/v2/modular/StytchDollShoulderAligned/README.md)
+uses **Align Authored Shoulders** to translate only the two upper-arm rest origins
+to observed closed body/arm rings, preserving axes, hierarchy, surface, weights
+and authored contract. This static-source transaction rejects ambiguous rings,
+shared/animated/posed rigs, unsupported socket parents and repeated edits; failure
+restores the original datablock exactly. It does not change the default solver.
+Because rests intentionally differ, nineteen evidence-only poses are explicitly
+derived as `new Rest * inverse(old captured Rest) * old captured Pose`, retaining
+immutable capture lineage and the same raw/reimport fidelity gates. Both frozen
+shoulder cohorts improve in every pose, but these are not new consumer captures
+or visual acceptance. Select and replay its distinct GLB fingerprint in Stytch
+before qualifying #60/#63; legacy joint fit, atlas coverage and absent-limb seams
+remain documented limitations.
+
 [Captured Hall matrices and their provenance](../example/v2/poses/StytchDoll/README.md)
 provide an independent native-source / decoded-GLB / reimport replay for #60.
 They reproduce the upstream skin collapse before partitioning, with sub-micrometre

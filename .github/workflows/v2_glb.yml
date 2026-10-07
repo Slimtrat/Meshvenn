@@ -169,7 +169,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest tests.test_rig_shoulder_alignment tests.test_shoulder_pose_derivation -v
+          python -m unittest tests.test_rig_shoulder_alignment tests.test_shoulder_pose_derivation tests.test_shoulder_aligned_doll_fixture -v
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python scripts/align_workshop_shoulders.py -- \
             --output "${RUNNER_TEMP}/head-isolation/shoulder-aligned" \
