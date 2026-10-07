@@ -42,6 +42,8 @@ def write_json(path, value):
 
 def source_snapshot(mesh, armature):
     """Exact retained-authority check, separate from toleranced GLB transport."""
+    # Resolve loaded dependency-graph caches before taking either snapshot.
+    bpy.context.view_layer.update()
     from array import array
     pixel_hashes = {}
     for material in mesh.data.materials:
@@ -67,6 +69,14 @@ def source_snapshot(mesh, armature):
                                "matrix": [list(row) for row in bone.matrix_local],
                                "head": tuple(bone.head_local), "tail": tuple(bone.tail_local)}
                   for bone in armature.data.bones}}
+
+
+def assert_source_unchanged(before, after, diagnostic_directory):
+    if before != after:
+        changed = [key for key in before if before[key] != after[key]]
+        write_json(Path(diagnostic_directory) / "source-change-diagnostic.json",
+                   {"changed_fields": changed, "before": before, "after": after})
+        raise AssertionError("No Rebuild changed selected source authority: " + ", ".join(changed))
 
 
 def author_spec(mesh, plan, reference):
@@ -212,7 +222,7 @@ def main():
         stage = module("core.pipeline_contracts").PipelineStage
         exported = context.require_output(stage.EXPORT)
         after = source_snapshot(mesh, armature)
-        assert after == before, "No Rebuild changed selected native geometry, attributes, skin, materials or rest rig."
+        assert_source_unchanged(before, after, output)
         document, _ = module("implementations.glb_export.modular_gltf").read_glb(exported.path)
         envelope = document["asset"]["extras"]["meshvenn_modular_character"]
         from scripts.workshop_doll_evidence import compare_reference
