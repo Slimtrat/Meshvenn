@@ -206,6 +206,23 @@ Missing evidence leaves the original regional solver unchanged. Seven actual-GLB
 head probes and exact rollback/relocation checks are distinct from anatomical
 or consumer acceptance. Neck and shoulder/torso quality remain unqualified.
 
+The distinct [authored body-skin candidate](../example/v2/modular/StytchDollAuthoredSkin/README.md)
+adds a bounded source correction for #60: adjacent axial influences and explicit
+body/limb attachment collars, measured along original polygon edges. **Refine
+Authored Body Skin** edits the selected local native source transactionally;
+ambiguous ownership, contradictory coincident-seam weights and repeated edits
+are refused. Geometry, UVs, atlas, native rests/binds, authored regions and sockets
+remain unchanged; distal limb weights remain exact. The corrected source is
+prepared by No Rebuild before ordinary export, not repaired by the consumer.
+
+Nineteen exact captured poses gate at least 50% fewer torso edges outside the
+original [0.8,1.2] length ratio and 30% lower p95 absolute log strain in each pose,
+plus unchanged source/raw/reimport fidelity tolerances. These are improvement
+regressions, not visual acceptance: Hall/held shoulder and neck folds remain, and
+Stytch has not replayed this selected fingerprint. The original reference, the
+head-only candidate, and this candidate have separate hashes and limits. #60 and
+#63 remain open; engine/rig/format expansion remains paused.
+
 [Captured Hall matrices and their provenance](../example/v2/poses/StytchDoll/README.md)
 provide an independent native-source / decoded-GLB / reimport replay for #60.
 They reproduce the upstream skin collapse before partitioning, with sub-micrometre

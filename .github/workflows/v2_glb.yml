@@ -150,6 +150,21 @@ jobs:
             --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
             --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
 
+      - name: Gate authored torso skin on the nineteen exact Stytch poses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_rig_owned_skin tests.test_authored_skin_doll_fixture -v
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/refine_workshop_body.py -- \
+            --output "${RUNNER_TEMP}/head-isolation/authored-body" \
+            --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_owned_skin_smoke.py -- \
+            --variant "${RUNNER_TEMP}/head-isolation/authored-body" \
+            --output "${RUNNER_TEMP}/head-isolation/body-api-and-relocation"
+
       - name: Verify explicit contracts and behavior-preserving Stytch consolidation
         shell: bash
         run: |

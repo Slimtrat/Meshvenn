@@ -196,6 +196,13 @@ without replacing geometry or weights. Its original two-view appearance remains
 unqualified (56.02% neutral fallback); do not substitute the UAL1 preview/animation
 evidence for this doll. Dedicated CI artifacts show its actual GLB and pose probes.
 
+A distinct [authored skin candidate](modular/StytchDollAuthoredSkin/README.md)
+intentionally corrects axial/attachment weights without changing geometry,
+textures, rest joints, regions or sockets. All nineteen exact Stytch poses improve
+the frozen torso metrics and preserve native/raw/reimport fidelity. This does not
+replace the original: shoulder/neck folds and Stytch visual acceptance remain
+unqualified. Its source, GLB, matrix provenance and own Blender renders are pinned.
+
 Its geometry uses the unchanged neutral silhouettes; a separate calibrated
 source-color/emission path feeds UV Bake V2 (512², 2 samples/axis). The packed
 source retains those color images and truthful stage selections. Re-export with

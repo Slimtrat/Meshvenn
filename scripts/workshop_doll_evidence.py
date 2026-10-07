@@ -111,6 +111,42 @@ def compare_reference(reference, reference_binary, candidate, candidate_binary, 
             "scope": "Pinned full-body GLB comparison, separate from authoring-source and consumer gates."}
 
 
+def compare_owned_variant(reference, reference_binary, candidate, candidate_binary, read_accessor):
+    """Intentional source skin edit, never a relaxed unchanged-weight comparison.
+
+    Exact new-source weights are independently gated by ordinary modular export.
+    This checks the immutable baseline surface/material/bind and identifies the
+    intentional skin differences without claiming old weights were preserved.
+    """
+    old, faces, binds, images, count = _records(reference, reference_binary, read_accessor)
+    new, new_faces, new_binds, new_images, new_count = _records(candidate, candidate_binary, read_accessor)
+    if count != 14252 or new_count != count or faces != new_faces or set(old) != set(new):
+        raise ValueError("Authored skin edit changed original geometry/UV/winding/tessellation.")
+    if images != new_images or binds != new_binds:
+        raise ValueError("Authored skin edit changed embedded atlas or native inverse binds.")
+    changed, normal_delta = 0, 0.0
+    for key, rows in old.items():
+        matches = list(new[key])
+        if len(rows) != len(matches):
+            raise ValueError("Authored skin edit lost or duplicated source corners.")
+        for normal, weights, material in rows:
+            candidates = [i for i, (_, _, other) in enumerate(matches) if other == material]
+            if not candidates:
+                raise ValueError("Authored skin edit changed material semantics.")
+            i = min(candidates, key=lambda j: max(abs(a-b) for a,b in zip(normal, matches[j][0])))
+            other_normal, edited, _ = matches.pop(i)
+            if len(edited) > 4 or any(not math.isfinite(v) or v <= 0 for v in edited.values()):
+                raise ValueError("Authored skin edit has invalid native influences.")
+            changed += weights != edited
+            normal_delta = max(normal_delta, max(abs(a-b) for a,b in zip(normal, other_normal)))
+    if not changed:
+        raise ValueError("Authored skin candidate contains no intentional weight edit.")
+    return {"passed": True, "intentional_source_weight_edit": True, "changed_corner_count": changed,
+            "triangle_count": count, "exact_surface_uv_materials_atlas_and_inverse_binds_preserved": True,
+            "reference_normal_delta_diagnostic": normal_delta,
+            "scope": "Before/after source weight edit. New-source skin fidelity is separately gated by export; old weights are intentionally not retained."}
+
+
 def compare_head_variant(reference, reference_binary, candidate, candidate_binary, read_accessor, envelope):
     """Separate intentional edit proof; NEVER a relaxation of compare_reference.
 
