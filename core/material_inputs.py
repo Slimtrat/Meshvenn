@@ -54,6 +54,7 @@ class MaterialProjectionInput:
                     or image.width <= 0 or image.height <= 0 or type(image.pixels) is not array
                     or image.pixels.typecode != "f" or len(image.pixels) != image.width * image.height * 4):
                 raise TypeError("Appearance requires valid float RGBA image buffers.")
+            image.validate_coverage_alpha_mode()
             if any(not math.isfinite(value) or not 0 <= value <= 1 for value in image.pixels):
                 raise ValueError("Appearance RGBA buffers must be finite in [0, 1].")
             if (type(view.mask) is not BinaryMask or type(view.mask.width) is not int or type(view.mask.height) is not int

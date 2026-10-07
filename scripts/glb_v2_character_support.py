@@ -8,6 +8,49 @@ from collections.abc import Mapping, Sequence
 
 Point3 = tuple[float, float, float]
 
+DETAIL_SURFACE_DISTANCE = .01
+
+
+def assert_detail_surface_quality(surface: Mapping, *, minimum_fscore: float = 0.) -> float | None:
+    """Gate sampled distances to full triangles, independently of legacy F-score.
+
+    One percent is relative to the existing independent longest-extent frame;
+    this does not certify absolute scale, translation, topology or anatomy.
+    """
+    if type(minimum_fscore) not in (float, int) or not math.isfinite(minimum_fscore) or not 0 <= minimum_fscore <= 1:
+        raise ValueError("Detail surface F-score must be in 0..1.")
+    if minimum_fscore == 0:
+        return None
+    detail = surface.get("surface_bvh")
+    if (not isinstance(detail, Mapping)
+            or detail.get("algorithm") != "area-weighted deterministic samples to exact triangle BVH"
+            or detail.get("distance_units") != "fraction of each model's independent longest world-space bbox extent"
+            or type(detail.get("sample_count_per_surface")) is not int
+            or detail["sample_count_per_surface"] < 128):
+        raise AssertionError("Character detail surface metric has no valid triangle-distance evidence")
+    scores = detail.get("fscore_by_threshold")
+    if not isinstance(scores, (tuple, list)) or not scores:
+        raise AssertionError("Character detail surface metric has no threshold scores")
+    thresholds, selected = set(), None
+    for row in scores:
+        if not isinstance(row, Mapping):
+            raise AssertionError("Character detail surface score is invalid")
+        values = [row.get(key) for key in ("distance_threshold", "precision", "recall", "fscore")]
+        if any(type(value) not in (float, int) or not math.isfinite(value) or not 0 <= value <= 1 for value in values):
+            raise AssertionError("Character detail surface scores must be finite fractions")
+        threshold, precision, recall, score = values
+        if threshold <= 0 or threshold in thresholds:
+            raise AssertionError("Character detail surface thresholds must be positive and unique")
+        thresholds.add(threshold)
+        expected = 2 * precision * recall / (precision + recall) if precision + recall else 0.
+        if not math.isclose(score, expected, rel_tol=0., abs_tol=1e-12):
+            raise AssertionError("Character detail surface F-score contradicts precision/recall")
+        if threshold == DETAIL_SURFACE_DISTANCE:
+            selected = score
+    if selected is None or selected < minimum_fscore:
+        raise AssertionError(f"Character triangle-distance F-score at 1% fell below {minimum_fscore:.0%}")
+    return float(selected)
+
 
 def assert_refinement_quality(report: Mapping, *, min_roughness_reduction: float = 0.,
                               min_contour_reduction: float = 0.) -> None:

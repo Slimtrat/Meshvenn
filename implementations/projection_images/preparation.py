@@ -60,7 +60,7 @@ def prepare_projection(projection, *, alpha_threshold: float) -> PreparedProject
     )
     material_view = ProjectedMaterialView.from_image_buffer(
         name=name,
-        image_buffer=ImageBuffer(width=width, height=height, pixels=pixels),
+        image_buffer=ImageBuffer.from_copied_blender_pixels(image, pixels, width=width, height=height),
         azimuth_degrees=azimuth_degrees,
         elevation_degrees=elevation_degrees,
         flip_x=flip_x,

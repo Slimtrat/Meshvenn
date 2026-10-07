@@ -12,6 +12,7 @@ from core.sdf.mask import SignedDistanceMask
 from core.sdf.projection import SDFProjection
 from core.surface_refinement import refine_native_surface
 from core.surface_safety import constrain_faces, _normal, _dot
+from scripts.glb_v2_character_support import assert_refinement_quality
 from tests.test_surface_refinement import mesh, octahedron
 
 
@@ -120,8 +121,14 @@ class ContourSurfaceTests(unittest.TestCase):
         surface = ContourSurface((p,p),GeometryProjectionSpace(10,10,10))
         result,report = refine_native_surface(original,voxel_size=1,mode='organic',contour_surface=surface)
         self.assertEqual(report['algorithm'],'contour-taubin-v2')
+        self.assertEqual(report['micro_finish']['algorithm'], 'bounded-laplacian-v1')
+        self.assertEqual(report['micro_finish']['iterations'], 6)
+        self.assertEqual(report['micro_finish']['strength'], .1)
+        self.assertLess(report['micro_finish']['roughness_candidate_in_voxels'],
+                        report['micro_finish']['roughness_before_in_voxels'])
         self.assertLess(report['mean_contour_residual_after_in_voxels'],report['mean_contour_residual_before_in_voxels']*.6)
         self.assertLess(report['roughness_after_in_voxels'],report['roughness_before_in_voxels'])
+        assert_refinement_quality(report,min_roughness_reduction=.2,min_contour_reduction=.5)
         self.assertIs(result.indices,original.indices)
         for i in range(size*size):
             if i%size in (0,size-1) or i//size in (0,size-1):
@@ -155,6 +162,55 @@ class ContourSurfaceTests(unittest.TestCase):
         self.assertLessEqual(report['maximum_component_volume_drift'],.02)
         self.assertLessEqual(report['maximum_displacement_in_voxels'],.75)
         self.assertTrue(report['face_orientation_preserved'])
+        self.assertEqual(report['micro_finish']['iterations'], 6)
+
+    def test_micro_finish_is_deterministic_and_float32_orientation_safe(self):
+        size = 9
+        original = mesh([(x-4,y-4,5+.15*(-1)**(x+y)) for y in range(size) for x in range(size)],
+                        [(y*size+x,y*size+x+1,(y+1)*size+x+1,(y+1)*size+x)
+                         for y in range(size-1) for x in range(size-1)])
+        p = analytic_projection(fn=lambda u,v: v-.5)
+        surface = ContourSurface((p,p),GeometryProjectionSpace(10,10,10))
+        first,report = refine_native_surface(original,voxel_size=1,mode='organic',contour_surface=surface)
+        repeated,again = refine_native_surface(original,voxel_size=1,mode='organic',contour_surface=surface)
+        self.assertEqual(first.vertices,repeated.vertices)
+        self.assertEqual(report,again)
+        self.assertEqual(first.vertices.typecode,'f')
+        self.assertLessEqual(report['maximum_displacement_in_voxels'],.75)
+        self.assertEqual(report['pinned_vertex_count'],32)
+        original_points = [tuple(original.vertices[i:i+3]) for i in range(0,len(original.vertices),3)]
+        output_points = [tuple(first.vertices[i:i+3]) for i in range(0,len(first.vertices),3)]
+        for start,size in zip(original.polygon_starts,original.polygon_sizes):
+            face = tuple(original.indices[start:start+size])
+            for k in range(1,size-1):
+                triangle=(face[0],face[k],face[k+1])
+                normal=_normal(original_points,triangle)
+                self.assertGreaterEqual(_dot(_normal(output_points,triangle),normal),.1*_dot(normal,normal))
+
+    def test_micro_finish_does_not_change_legacy_organic_without_contours_or_none(self):
+        original=octahedron()
+        none,none_report=refine_native_surface(original,voxel_size=.2,mode='none')
+        self.assertIs(none,original)
+        self.assertEqual(none_report,{'mode':'none','applied':False})
+        with patch('core.surface_refinement.constrain_faces') as guard:
+            legacy,legacy_report=refine_native_surface(original,voxel_size=.2,mode='organic')
+        guard.assert_not_called()
+        self.assertEqual(legacy_report['algorithm'],'bounded-taubin-v1')
+        self.assertEqual(legacy_report['iterations'],24)
+        self.assertNotIn('micro_finish',legacy_report)
+        self.assertLessEqual(legacy_report['maximum_component_volume_drift'],.02)
+
+    def test_micro_finish_pins_degenerate_and_nonmanifold_vertices(self):
+        original=mesh([(0,0,0),(1,0,0),(2,0,0),(1,1,0),(1,-1,0)],
+                      [(0,1,2),(0,1,3),(1,0,4)])
+        p=analytic_projection(fn=lambda u,v:v-.5)
+        surface=ContourSurface((p,p),GeometryProjectionSpace(10,10,10))
+        result,report=refine_native_surface(original,voxel_size=1,mode='organic',contour_surface=surface)
+        self.assertEqual(result.vertices,original.vertices)
+        self.assertIs(result.indices,original.indices)
+        self.assertIs(result.polygon_starts,original.polygon_starts)
+        self.assertEqual(report['pinned_vertex_count'],5)
+        self.assertEqual(report['micro_finish']['iterations'],6)
 
     def test_batch_cache_tracks_pixels_angles_and_flips(self):
         space = GeometryProjectionSpace(10,10,10)

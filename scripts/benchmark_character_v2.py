@@ -36,6 +36,7 @@ from scripts.glb_v2_animation_fixture import (
 from scripts.generate_example_native_support.extraction import extract_sheet
 from scripts.glb_v2_character_support import (
     assert_unrigged_mesh, normalized_landmarks, connectivity_summary, assert_refinement_quality,
+    assert_detail_surface_quality,
 )
 from scripts.glb_v2_metrics import score_silhouettes
 from scripts.glb_v2_rig_metrics import landmark_summary, skin_weight_summary
@@ -62,6 +63,8 @@ def arguments() -> argparse.Namespace:
     )
     parser.add_argument("--min-iou", type=float, default=0.65)
     parser.add_argument("--min-surface-fscore", type=float, default=0.85)
+    parser.add_argument("--min-detail-surface-fscore", type=float, default=0.0,
+                        help="Minimum triangle-distance F-score at 1%% of normalized longest extent")
     parser.add_argument("--max-extent-error", type=float, default=0.25)
     parser.add_argument("--max-mean-joint-error", type=float, default=0.10)
     parser.add_argument("--max-joint-error", type=float, default=0.16)
@@ -230,7 +233,7 @@ def main() -> None:
     thresholds = (
         args.min_iou, args.min_view_iou, args.min_surface_fscore, args.max_extent_error,
         args.max_mean_joint_error, args.max_joint_error,
-        args.min_roughness_reduction, args.min_contour_reduction,
+        args.min_roughness_reduction, args.min_contour_reduction, args.min_detail_surface_fscore,
     )
     if args.resolution < 16 or any(not 0.0 <= value <= 1.0 for value in thresholds):
         raise ValueError("resolution must be >= 16 and thresholds must be between 0 and 1")
@@ -273,6 +276,8 @@ def main() -> None:
     acceptance = {
         "minimum_silhouette_iou": args.min_iou,
         "minimum_surface_fscore": args.min_surface_fscore,
+        "minimum_detail_surface_fscore": args.min_detail_surface_fscore,
+        "detail_surface_distance_threshold": .01,
         "maximum_extent_error": args.max_extent_error,
         "maximum_mean_joint_error_in_heights": args.max_mean_joint_error,
         "maximum_joint_error_in_heights": args.max_joint_error,
@@ -321,6 +326,7 @@ def main() -> None:
     assert_refinement_quality(report["refinement"],
                               min_roughness_reduction=args.min_roughness_reduction,
                               min_contour_reduction=args.min_contour_reduction)
+    assert_detail_surface_quality(surface, minimum_fscore=args.min_detail_surface_fscore)
     if min(silhouette["per_view_iou"].values()) < args.min_view_iou:
         raise AssertionError("Character reconstruction lost a required view silhouette")
     if args.require_connected and rig["connectivity"]["component_count"] != 1:

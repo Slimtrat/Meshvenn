@@ -8,7 +8,7 @@ import re
 import struct
 from pathlib import Path
 
-from scripts.glb_v2_character_support import assert_refinement_quality
+from scripts.glb_v2_character_support import assert_refinement_quality, assert_detail_surface_quality
 from scripts.v2_preview_appearance import appearance_caption, verify_appearance
 
 MARKER = "<!-- bpt-visual-preview -->"
@@ -130,6 +130,7 @@ def verified_evidence(directory: Path, sha: str, run_id: str, attempt: str) -> d
         if item.get("resolution") != 128 or item.get("surface_refinement") != "organic":
             raise ValueError("The reconstruction score does not use the qualified Organic settings.")
         assert_refinement_quality(item["refinement"], min_roughness_reduction=.2, min_contour_reduction=.5)
+        assert_detail_surface_quality(item["surface_3d"], minimum_fscore=.88)
         silhouette = item["silhouette"]
         if (unit_measure(silhouette["mean_iou"], "IoU") < .88
                 or silhouette["valid_input_views"] != silhouette["total_views"]
@@ -203,16 +204,21 @@ def build_comment(*, sha: str, run_url: str, status: str, evidence: dict | None 
               "| Fidélité positions, triangles, UV, normales brutes, poids, bind et matériaux | PASS · contrôles séparés |", "",
               "<details>", "<summary>Qualité de reconstruction — benchmarks séparés, résolution 128</summary>", "",
               "Ces deux scores ne sont pas attribués au GLB modulaire de résolution 64 présenté ci-dessus.", "",
-              "| Source | IoU silhouette | F-score 3D | Erreur moyenne joints / hauteur | Rugosité réduite | Résidu contour réduit |",
-              "| :--- | ---: | ---: | ---: | ---: | ---: |"]
+              "| Source | IoU silhouette | F-score 3D · 5% | F-score triangles · 1% | Erreur moyenne joints / hauteur | Rugosité réduite | Résidu contour réduit |",
+              "| :--- | ---: | ---: | ---: | ---: | ---: | ---: |"]
     for item in evidence["reconstruction"]:
         refinement = item["refinement"]
+        detail_score = assert_detail_surface_quality(item["surface_3d"], minimum_fscore=.88)
         lines.append(f"| {item['source_asset']} | {item['silhouette']['mean_iou']:.4f} | "
-                     f"{item['surface_3d']['surface_fscore']:.4f} | {item['landmarks']['mean_error_in_heights']:.4f} | "
+                     f"{item['surface_3d']['surface_fscore']:.4f} | {detail_score:.4f} | {item['landmarks']['mean_error_in_heights']:.4f} | "
                      f"{_percent_reduction(refinement, 'roughness_before_in_voxels', 'roughness_after_in_voxels')} | "
                      f"{_percent_reduction(refinement, 'mean_contour_residual_before_in_voxels', 'mean_contour_residual_after_in_voxels')} |")
-    lines += ["", "Gates réels : IoU ≥ 0.88 (chaque vue ≥ 0.80), F-score ≥ 0.97, joints moyens ≤ 0.04 H / "
+    lines += ["", "Gates réels : IoU ≥ 0.88 (chaque vue ≥ 0.80), F-score historique ≥ 0.97, "
+              "F-score aux triangles à 1% ≥ 0.88, joints moyens ≤ 0.04 H / "
               "pire ≤ 0.09 H, rugosité réduite ≥ 20%, contour réduit ≥ 50%, surface connectée et skin complet.", "",
+              "Les distances utilisent les boîtes englobantes normalisées indépendamment : elles ne certifient ni "
+              "l’échelle absolue ni une anatomie réaliste. Normales géométriques et défauts topologiques sont "
+              "rapportés séparément, sans prétendre certifier l’absence d’intersections.", "",
               "</details>", ""]
     if artifact_url:
         lines += [f"[Télécharger les preuves V2]({artifact_url}) : `modular_character/character.glb`, "

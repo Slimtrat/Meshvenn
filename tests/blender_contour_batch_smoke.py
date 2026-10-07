@@ -32,6 +32,8 @@ def main():
     for name in ('L2','L4','L10'):
         finish = profiles[name]['surface_refinement']
         assert finish['algorithm'] == 'contour-taubin-v2'
+        assert finish['micro_finish']['algorithm'] == 'bounded-laplacian-v1'
+        assert finish['micro_finish']['iterations'] == 6
         assert finish['maximum_displacement_in_voxels'] <= .75
         assert finish['face_orientation_preserved'] and finish['topology_preserved']
     print('Organic L2/L4/L10 profiles share one ten-view contour cache: PASS')

@@ -143,8 +143,10 @@ realistic anatomy, sealed wound caps, or any game-engine runtime.
 
 ### Separate appearance inputs
 
-The modular fixture retains the exact ten **neutral** geometry inputs, native
-resolution 64, original surface/ownership hash, eighteen-joint rig and 43 clips.
+The modular fixture retains the same ten **neutral** geometry inputs, native
+resolution 64, eighteen-joint rig and 43 clips. Geometry-finish updates regenerate
+the surface ownership hash, GLB and editable source together; old face-ownership
+documents must never be paired with a new surface.
 Its MATERIAL stage instead receives ten separately rendered source-color views
 via the opt-in typed `PipelineContext.material_input: MaterialProjectionInput`.
 The image-only contract checks real view/buffer/mask types, finite scene-linear
@@ -164,6 +166,23 @@ loop triangles as UV sampling (avoiding false occlusion on nonplanar quads), and
 scene-linear RGB is explicitly encoded to portable sRGB RGBA8 (alpha stays linear).
 These correct surface sampling/storage, not geometry, rig fitting or their gates.
 The atlas remains 512² with 2 samples/axis; the other benchmark settings are unchanged.
+
+Projected sampling additionally filters linear RGB in coverage-associated space
+and returns straight RGB, retaining alpha only as source confidence. Transparent
+background colors no longer darken opaque baked edges. Image buffers record the
+actual RNA association and byte encoding separately from the file's alpha label;
+PNG8 sRGB decoding and PNG16/EXR associated-linear handling are tested with real
+files. Raw buffer reads stay unchanged. Packed channels, unsupported encodings
+and invalid covered pixels fail before MATERIAL modifies UVs or material data.
+This does not add runtime transparency or change the region/socket contract.
+
+The contour-aware Organic route also has a separately reported six-pass bounded
+micro-finish before its existing final component/orientation/volume safeguards.
+It reduces residual voxel bands while trading some contour fit; the original
+silhouette, rig and motion gates remain unchanged. The independent 128 humanoid
+benchmarks additionally gate true triangle-distance F-score at 1% longest extent
+(minimum 0.88), not only the legacy point-sample F-score at 5%. Neither this score
+nor connectedness certifies manifold topology or realistic anatomy.
 
 `manifest.appearance` separates real source-view signal, atlas signal, primary/
 projected/neutral fallback counts, occupancy and encoding. Counters must agree

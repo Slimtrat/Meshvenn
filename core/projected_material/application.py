@@ -54,6 +54,8 @@ def apply_projected_material(obj: bpy.types.Object, views: list[ProjectedMateria
         raise TypeError('Projected material target must be a mesh object.')
     if not views:
         raise ValueError('At least one material projection is required.')
+    for view in views:
+        view.image.validate_coverage_data()
     if volume_width <= 0 or volume_depth <= 0 or volume_height <= 0:
         raise ValueError('Volume dimensions must be greater than zero.')
     if not math.isfinite(voxel_size) or voxel_size <= 0.0:

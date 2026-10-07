@@ -61,6 +61,11 @@ class ModularFixtureTests(unittest.TestCase):
         self.assertTrue(all("uri" not in image for image in self.document.get("images", [])))
 
     def test_surface_and_socket_evidence_is_explicit(self):
+        finish = self.manifest["surface_refinement"]
+        self.assertEqual(finish["micro_finish"]["algorithm"], "bounded-laplacian-v1")
+        self.assertEqual(finish["micro_finish"]["iterations"], 6)
+        self.assertTrue(finish["face_orientation_preserved"])
+        self.assertLessEqual(finish["maximum_displacement_in_voxels"], .75)
         spec = ModularCharacterSpec.from_dict(self.authoring)
         self.assertEqual(len(spec.sockets), 8)
         self.assertEqual({socket.role for socket in spec.sockets},
