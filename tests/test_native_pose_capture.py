@@ -6,7 +6,7 @@ import math
 from pathlib import Path
 import unittest
 
-from core.native_pose_capture import CONVENTION, LAYOUT, REGIONS, project_capture, validate_matrix_proof
+from core.native_pose_capture import CONVENTION, LAYOUT, MATRIX_TOLERANCE, REGIONS, project_capture, validate_matrix_proof
 from core.native_pose_probe import NativePoseProbe
 from scripts.extract_stytch_pose_series import SOURCE_BASE, SOURCE_BLOBS, verify_source_blob
 
@@ -68,6 +68,16 @@ class NativeCaptureTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             project_capture(value)
 
+    def test_diagnostic_rounding_never_relaxes_matrix_validation(self):
+        value = captured()
+        identity = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+        shifted = identity.copy()
+        shifted[9] = MATRIX_TOLERANCE + 2e-13
+        self.assertEqual(round(shifted[9], 12), MATRIX_TOLERANCE)
+        value["Ancestors"] = [{"Local": identity, "World": shifted}]
+        with self.assertRaisesRegex(ValueError, "float32 tolerance"):
+            project_capture(value)
+
     def test_visibility_and_nonfinite_provenance_cannot_be_laundered(self):
         for key, replacement in (("Visible", 1), ("Id", "unknown")):
             value = captured()
@@ -86,7 +96,7 @@ class NativeCaptureTests(unittest.TestCase):
     def test_nineteen_pinned_matrices_recompose_and_have_exact_provenance(self):
         index = load("index.json")
         self.assertEqual(hashlib.sha256((FIXTURE / "index.json").read_bytes()).hexdigest(),
-                         "5023701a1036067891bb961e527dc69d35e57973339ebad1c5e58d469d8e79c7")
+                         "151b15b934db6cdf97e4299e5fc096ecb429f098577b403268b13ccf4b12636e")
         self.assertEqual(index["source_revision"], "1c9040e51be1e757c974eca794604cb9553cb532")
         self.assertEqual(index["source_repository"], "Stytch0/Stytch")
         self.assertEqual(index["case_count"], 19)
@@ -97,7 +107,10 @@ class NativeCaptureTests(unittest.TestCase):
                 self.assertEqual(hashlib.sha256((FIXTURE / case[key]).read_bytes()).hexdigest(), case[key+"_sha256"])
             probe = NativePoseProbe.from_dict(load(case["probe"]))
             self.assertEqual(probe.asset_sha256, index["asset_sha256"])
-            self.assertEqual(validate_matrix_proof(probe, load(case["matrix_proof"])), case["matrix_recomposition"])
+            actual = validate_matrix_proof(probe, load(case["matrix_proof"]))
+            self.assertEqual(set(actual), set(case["matrix_recomposition"]))
+            for key, value in actual.items():
+                self.assertAlmostEqual(value, case["matrix_recomposition"][key], delta=1e-12)
             self.assertEqual(len(case["source_json_sha256"]), 64)
             self.assertEqual(len(case["source_git_blob"]), 40)
             self.assertEqual(case["source_git_blob"], SOURCE_BLOBS[case["source_path"].removeprefix(SOURCE_BASE)])

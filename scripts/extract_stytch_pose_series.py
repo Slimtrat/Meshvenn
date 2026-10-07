@@ -30,7 +30,7 @@ SOURCE_BLOBS = {
         "a0c79dedfcba7bc893c7746c10aa5873cc23f479", "e35b38a63b8e852d089b9697543bf0728252cb25",
         "420a99a444e72b839f82c54c586eab76b26aa772", "3949012bcd4bbf9e242358cb9f4a5cdcfd348b1b"))},
 }
-INDEX_SHA256 = "5023701a1036067891bb961e527dc69d35e57973339ebad1c5e58d469d8e79c7"
+INDEX_SHA256 = "151b15b934db6cdf97e4299e5fc096ecb429f098577b403268b13ccf4b12636e"
 
 
 def digest(data):
@@ -84,7 +84,7 @@ def main():
     # All validation precedes publication; bytes are mechanically projected,
     # never replaced with invented pose targets or unchecked private fields.
     if digest(encoded(index)) != INDEX_SHA256:
-        raise ValueError("Projected dataset changed; update its explicit qualification pin first.")
+        raise ValueError(f"Projected dataset changed ({digest(encoded(index))}); update its explicit qualification pin first.")
     output.mkdir(parents=True, exist_ok=True)
     for name, data in prepared:
         (output / name).write_bytes(data)

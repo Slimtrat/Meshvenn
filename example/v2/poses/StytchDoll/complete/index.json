@@ -19,9 +19,9 @@
       "matrix_proof": "Hop-meshvenn-hop-00.matrices.json",
       "matrix_proof_sha256": "a80ed2b1d52122000c04acbe93802fbf21009cbe847261492fc20545bf026749",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 9.066922712630543e-08,
-        "rest_relative_max_error": 2.1219329260357966e-07,
-        "skeleton_space_max_error": 4.0634028906083586e-06
+        "ancestor_chain_max_error": 9.0669e-08,
+        "rest_relative_max_error": 2.12193e-07,
+        "skeleton_space_max_error": 4.063403e-06
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-00.json",
@@ -47,9 +47,9 @@
       "matrix_proof": "Hop-meshvenn-hop-01.matrices.json",
       "matrix_proof_sha256": "79a1511752b3bf3e8cd31fb23b2645a2d3c36ca4e8a1f323563342f178699a6e",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 6.881288250326634e-08,
-        "rest_relative_max_error": 1.858785903863236e-06,
-        "skeleton_space_max_error": 2.800491195387167e-06
+        "ancestor_chain_max_error": 6.8813e-08,
+        "rest_relative_max_error": 1.858786e-06,
+        "skeleton_space_max_error": 2.800491e-06
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-01.json",
@@ -75,9 +75,9 @@
       "matrix_proof": "Hop-meshvenn-hop-02.matrices.json",
       "matrix_proof_sha256": "7058fcbc03d4578c08008d06820428f2f8b542604b2cfce8059f2140ecaf6ad7",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 9.071999995668989e-08,
-        "rest_relative_max_error": 3.321220276575332e-07,
-        "skeleton_space_max_error": 4.31952398116664e-06
+        "ancestor_chain_max_error": 9.072e-08,
+        "rest_relative_max_error": 3.32122e-07,
+        "skeleton_space_max_error": 4.319524e-06
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-02.json",
@@ -103,9 +103,9 @@
       "matrix_proof": "Hop-meshvenn-hop-03.matrices.json",
       "matrix_proof_sha256": "757aff3115be5dcadd2146d0fe6a8fc181e2070b06753ac48de395fd9a0d96a1",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 4.805804787455514e-08,
-        "rest_relative_max_error": 2.9220886688108294e-07,
-        "skeleton_space_max_error": 3.7408200910249434e-06
+        "ancestor_chain_max_error": 4.8058e-08,
+        "rest_relative_max_error": 2.92209e-07,
+        "skeleton_space_max_error": 3.74082e-06
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-03.json",
@@ -131,9 +131,9 @@
       "matrix_proof": "Hop-meshvenn-hop-04.matrices.json",
       "matrix_proof_sha256": "c6aa977411e92527d798bd2039350219dc95fa8ca38a757a157f384d330efd0d",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 4.167457290371601e-08,
-        "rest_relative_max_error": 1.8025995665027494e-06,
-        "skeleton_space_max_error": 2.555396704906343e-06
+        "ancestor_chain_max_error": 4.1675e-08,
+        "rest_relative_max_error": 1.8026e-06,
+        "skeleton_space_max_error": 2.555397e-06
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-04.json",
@@ -159,9 +159,9 @@
       "matrix_proof": "Hop-meshvenn-hop-05.matrices.json",
       "matrix_proof_sha256": "74a0a0771eb969b1b4ecb2cac4837038de5e4df81b1161de8751a3a88ad4750e",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 3.014023985947745e-08,
-        "rest_relative_max_error": 7.45332176421698e-07,
-        "skeleton_space_max_error": 3.035337371670721e-06
+        "ancestor_chain_max_error": 3.014e-08,
+        "rest_relative_max_error": 7.45332e-07,
+        "skeleton_space_max_error": 3.035337e-06
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-05.json",
@@ -187,9 +187,9 @@
       "matrix_proof": "Hop-meshvenn-hop-06.matrices.json",
       "matrix_proof_sha256": "ddad2270959b1433efd0b223f343c1bda6a0125ba76c903c88b08ae58d7cf7de",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 9.372523979145342e-08,
-        "rest_relative_max_error": 6.353371198031255e-07,
-        "skeleton_space_max_error": 3.0672772197704035e-06
+        "ancestor_chain_max_error": 9.3725e-08,
+        "rest_relative_max_error": 6.35337e-07,
+        "skeleton_space_max_error": 3.067277e-06
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-06.json",
@@ -215,9 +215,9 @@
       "matrix_proof": "Hop-meshvenn-hop-07.matrices.json",
       "matrix_proof_sha256": "4c8bfad6c245e07a16daed1412f0a883ec40bde3751cdff17185e9040232e1ce",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 4.3675884242588836e-08,
-        "rest_relative_max_error": 4.760909533274571e-07,
-        "skeleton_space_max_error": 5.655656309500046e-06
+        "ancestor_chain_max_error": 4.3676e-08,
+        "rest_relative_max_error": 4.76091e-07,
+        "skeleton_space_max_error": 5.655656e-06
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-07.json",
@@ -243,9 +243,9 @@
       "matrix_proof": "Hop-meshvenn-hop-08.matrices.json",
       "matrix_proof_sha256": "afc0a786878fed5b9b7dd2c0383798572889917aeda53d02bb9399a6204d7f0c",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 3.668710252258123e-08,
-        "rest_relative_max_error": 6.98843617641387e-07,
-        "skeleton_space_max_error": 2.305878993524857e-06
+        "ancestor_chain_max_error": 3.6687e-08,
+        "rest_relative_max_error": 6.98844e-07,
+        "skeleton_space_max_error": 2.305879e-06
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-08.json",
@@ -271,9 +271,9 @@
       "matrix_proof": "Hop-meshvenn-hop-09.matrices.json",
       "matrix_proof_sha256": "62bf1e318f8ad4743528e6a262ade5b4fbf0e6a77a51c51eadcafa044521a27a",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 7.372207599942726e-08,
-        "rest_relative_max_error": 1.93403191905972e-07,
-        "skeleton_space_max_error": 4.081476710382503e-06
+        "ancestor_chain_max_error": 7.3722e-08,
+        "rest_relative_max_error": 1.93403e-07,
+        "skeleton_space_max_error": 4.081477e-06
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-09.json",
@@ -299,9 +299,9 @@
       "matrix_proof": "Hop-meshvenn-hop-10.matrices.json",
       "matrix_proof_sha256": "5c3818f93519a872f22f47894a9e4dcc653b51fa988c19e724536cf65b805824",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 4.539688069904457e-08,
-        "rest_relative_max_error": 2.8023104547969524e-07,
-        "skeleton_space_max_error": 1.1721459060254347e-05
+        "ancestor_chain_max_error": 4.5397e-08,
+        "rest_relative_max_error": 2.80231e-07,
+        "skeleton_space_max_error": 1.1721459e-05
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-10.json",
@@ -327,9 +327,9 @@
       "matrix_proof": "Hop-meshvenn-hop-11.matrices.json",
       "matrix_proof_sha256": "6cf167f73afa33b31ef62a1b27829657cf981ef99f1e81ac75c8a41f821dd161",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 5.017734605594626e-08,
-        "rest_relative_max_error": 2.578454698642929e-07,
-        "skeleton_space_max_error": 5.457804576280978e-06
+        "ancestor_chain_max_error": 5.0177e-08,
+        "rest_relative_max_error": 2.57845e-07,
+        "skeleton_space_max_error": 5.457805e-06
       },
       "movement_classification": "Hop",
       "probe": "Hop-meshvenn-hop-11.json",
@@ -353,9 +353,9 @@
       "matrix_proof": "Walk-meshvenn-walk-00.matrices.json",
       "matrix_proof_sha256": "cf2d12ccf79a4878deeb08b6a82607edccee82be2c642bc0d135d442be0ec461",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 2.779999985769166e-08,
-        "rest_relative_max_error": 6.758639905513064e-07,
-        "skeleton_space_max_error": 4.837168383176049e-06
+        "ancestor_chain_max_error": 2.78e-08,
+        "rest_relative_max_error": 6.75864e-07,
+        "skeleton_space_max_error": 4.837168e-06
       },
       "movement_classification": "Walk",
       "probe": "Walk-meshvenn-walk-00.json",
@@ -379,9 +379,9 @@
       "matrix_proof": "Walk-meshvenn-walk-01.matrices.json",
       "matrix_proof_sha256": "98683f7d6754d37578012e052de93db2cb0fddb3faa37e556cdd535dae705da4",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 3.0823827601444975e-08,
-        "rest_relative_max_error": 1.8669241796942515e-07,
-        "skeleton_space_max_error": 2.642502259675439e-06
+        "ancestor_chain_max_error": 3.0824e-08,
+        "rest_relative_max_error": 1.86692e-07,
+        "skeleton_space_max_error": 2.642502e-06
       },
       "movement_classification": "Walk",
       "probe": "Walk-meshvenn-walk-01.json",
@@ -405,9 +405,9 @@
       "matrix_proof": "Walk-meshvenn-walk-02.matrices.json",
       "matrix_proof_sha256": "cd7a6d1bf7b2816d50aa2f7f5130e8a5a315d9cbb92cfd2b42164c6b9b46715d",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 3.051033470313769e-08,
-        "rest_relative_max_error": 1.7317898759472428e-06,
-        "skeleton_space_max_error": 5.155237765563925e-06
+        "ancestor_chain_max_error": 3.051e-08,
+        "rest_relative_max_error": 1.73179e-06,
+        "skeleton_space_max_error": 5.155238e-06
       },
       "movement_classification": "Walk",
       "probe": "Walk-meshvenn-walk-02.json",
@@ -434,9 +434,9 @@
       "matrix_proof": "World-03-one-leg-hop.matrices.json",
       "matrix_proof_sha256": "b9fec5c4179bc28638aef4ffbc51eecdf572cf08250456aa6b2ea52bdea3362b",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 2.5257089397712207e-07,
-        "rest_relative_max_error": 1.944498979611353e-06,
-        "skeleton_space_max_error": 4.360747830389755e-06
+        "ancestor_chain_max_error": 2.52571e-07,
+        "rest_relative_max_error": 1.944499e-06,
+        "skeleton_space_max_error": 4.360748e-06
       },
       "movement_classification": "walk-approach, not explicit hop",
       "probe": "World-03-one-leg-hop.json",
@@ -459,9 +459,9 @@
       "matrix_proof": "factory-hall.matrices.json",
       "matrix_proof_sha256": "96db68c669ac971cc2e9dd1eff4d087343f64e06fa8356140866f7ff42f5af85",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 8.371099976362468e-17,
-        "rest_relative_max_error": 9.174423247770847e-07,
-        "skeleton_space_max_error": 2.3393165236029745e-06
+        "ancestor_chain_max_error": 0.0,
+        "rest_relative_max_error": 9.17442e-07,
+        "skeleton_space_max_error": 2.339317e-06
       },
       "movement_classification": "presence",
       "probe": "factory-hall.json",
@@ -485,9 +485,9 @@
       "matrix_proof": "factory-held.matrices.json",
       "matrix_proof_sha256": "47a7f884d59ef73e53b6dffbd66dc30ee791faf1fe402a9542a1a7b7f90eb750",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 8.371099976362468e-17,
-        "rest_relative_max_error": 4.827189421519051e-07,
-        "skeleton_space_max_error": 7.762258334764738e-06
+        "ancestor_chain_max_error": 0.0,
+        "rest_relative_max_error": 4.82719e-07,
+        "skeleton_space_max_error": 7.762258e-06
       },
       "movement_classification": "held",
       "probe": "factory-held.json",
@@ -512,9 +512,9 @@
       "matrix_proof": "factory-one-leg.matrices.json",
       "matrix_proof_sha256": "96db68c669ac971cc2e9dd1eff4d087343f64e06fa8356140866f7ff42f5af85",
       "matrix_recomposition": {
-        "ancestor_chain_max_error": 8.371099976362468e-17,
-        "rest_relative_max_error": 9.174423247770847e-07,
-        "skeleton_space_max_error": 2.3393165236029745e-06
+        "ancestor_chain_max_error": 0.0,
+        "rest_relative_max_error": 9.17442e-07,
+        "skeleton_space_max_error": 2.339317e-06
       },
       "movement_classification": "presence",
       "probe": "factory-one-leg.json",

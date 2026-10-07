@@ -50,7 +50,10 @@ def validate_matrix_proof(probe, proof):
               "ancestor_chain_max_error": ancestor_error}
     if max(errors.values()) > MATRIX_TOLERANCE:
         raise ValueError(f"Captured matrices do not recompose within float32 tolerance: {errors}.")
-    return errors
+    # Gate on the unrounded values above. Diagnostics are not matrix authority:
+    # Python 3.12+ uses a more accurate float sum than 3.11. Suppress only
+    # sub-picometre last-bit noise when serializing reproducible provenance.
+    return {key: round(value, 12) for key, value in errors.items()}
 
 
 def project_capture(value):
