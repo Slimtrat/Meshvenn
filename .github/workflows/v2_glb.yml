@@ -119,7 +119,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m unittest tests.test_rig_head_envelope tests.test_head_isolation_metrics tests.test_head_isolated_doll_fixture tests.test_native_pose_probe -v
+          python -m unittest tests.test_rig_head_envelope tests.test_head_isolation_metrics tests.test_head_isolated_doll_fixture tests.test_native_pose_probe tests.test_native_pose_capture -v
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python scripts/refine_workshop_doll.py -- \
             --output "${RUNNER_TEMP}/head-isolation/authored"
@@ -137,6 +137,16 @@ jobs:
             --python-exit-code 1 --python scripts/replay_stytch_doll_pose.py -- \
             --pose example/v2/poses/StytchDoll/factory-hall-pose.json --hidden-region left-leg \
             --output "${RUNNER_TEMP}/head-isolation/consumer-hall-replay" \
+            --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
+
+      - name: Replay all nineteen synchronized Stytch poses and actual region visibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/replay_stytch_pose_series.py -- \
+            --output "${RUNNER_TEMP}/head-isolation/consumer-complete-replay" \
             --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
             --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
 

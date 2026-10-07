@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "asset_sha256": "76590fd9c335335255f2eb2a4fc0866adf3c5a6a6fad0d4938c9e7550b7dcb57",
+  "input_pose_sha256": "dc81dc4d91e4ce3e3332c5d6f3a0014a1f2eaff87f6251c2484571d7b475eb35",
+  "source_sha": "local-uncommitted",
+  "run_id": null,
+  "run_attempt": null,
+  "hidden_region": "right-leg",
+  "hidden_regions": [
+    "right-leg"
+  ],
+  "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+  "native_rest_error_in_heights": 1.6028117164254222e-07,
+  "glb_rest_world_max_error": 1.4901161193847656e-07,
+  "native_applied_delta_error": 8.58306884765625e-06,
+  "imported_applied_delta_error": 1.2159347534179688e-05,
+  "native_vs_decoded_glb_max_error_m": 8.379915925615933e-07,
+  "decoded_vs_reimport_max_error_m": 7.344020218624792e-07,
+  "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+  "torso_edges": {
+    "edge_count": 2599,
+    "p95_abs_log_length_ratio": 1.309268517241487,
+    "max_abs_log_length_ratio": 2.20045064809531,
+    "min_length_ratio": 0.4783436328480164,
+    "max_length_ratio": 9.029081521132056,
+    "outside_20_percent_count": 1148,
+    "collapsed_fraction": 0.0
+  },
+  "source_authority_unchanged": true,
+  "images": {
+    "glb_pose.png": "7985119c33375849d45d0fcf1f0aa99de7cd54fe43db823882a2fb83ed9c9f60",
+    "glb_pose_hidden_right-leg.png": "3166736f96bcef1fab4c1c1c9463206559dcdfa1a85455140115c5ed77c1553a",
+    "native_pose.png": "938c740be12c53facc2f135f1e12022c64f9892836cc5d7a8bdaa5a3ee403fec",
+    "native_rest.png": "c2fd3470ea6fb46f7bdccbe1ddf283f33daa879b69b636f8dbe920473e5d1ac2"
+  },
+  "visual_qualification": false,
+  "consumer_capture_pixel_equality_claimed": false,
+  "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+}
