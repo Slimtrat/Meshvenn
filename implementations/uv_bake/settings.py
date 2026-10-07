@@ -289,6 +289,8 @@ def _material_views_from_geometry(
             )
         )
 
+    for view in resolved:
+        view.image.validate_coverage_data()
     return resolved
 
 

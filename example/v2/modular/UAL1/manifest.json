@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "artifact": "character.glb",
-  "sha256": "a3ab5f047b3a5a60ecbfe7bf5113d6003d81f74b25c3c11e689b337487e38716",
+  "sha256": "a5fd563f3fa17b9fca8d27b9ac0126f31d59ab502c9be58ddb50ffd6c25ee95b",
   "editable_source": "source.blend",
-  "editable_source_sha256": "6357f8383a13bf36cc7ac64f320f27babd1c502486c5954a5df74a0c73a1186a",
+  "editable_source_sha256": "4199056d2f020afd429be775ffeddf1a5c44f3e477d966dc7ad9c0b0e567a322",
   "authoring": "authoring.json",
   "contract": {
     "spec": {
@@ -20,7 +20,7 @@
           "convention": "meshvenn-height-v1",
           "normalized_height": true,
           "target_height": 2.0,
-          "scale": 0.03829686866444594
+          "scale": 0.03838617123186774
         }
       },
       "regions": [
@@ -2363,7 +2363,7 @@
         ]
       },
       "ownership_source_sha256": {
-        "MeshvennScan": "e9104a1982d3efbad483a872405eb657a2668cf1ee604e19e45cae9337bd4ed2"
+        "MeshvennScan": "56e021ecbdd7cf7dc84f0f332d90d2fbe1d2382b418992e7f035bfd11942b338"
       },
       "seams": {
         "boundary_policy": "open-shared-vertices",
@@ -2689,9 +2689,9 @@
     "applied": true,
     "iterations": 48,
     "displacement_limit_in_voxels": 0.75,
-    "maximum_displacement_in_voxels": 0.6172827541536322,
+    "maximum_displacement_in_voxels": 0.69017088407814,
     "roughness_before_in_voxels": 0.11791950057744803,
-    "roughness_after_in_voxels": 0.09350769267099525,
+    "roughness_after_in_voxels": 0.0866757980054837,
     "pinned_vertex_count": 4,
     "component_count": 1,
     "volume_checked_component_count": 0,
@@ -2699,32 +2699,40 @@
     "attenuated_component_count": 0,
     "topology_preserved": true,
     "face_orientation_preserved": true,
+    "micro_finish": {
+      "algorithm": "bounded-laplacian-v1",
+      "iterations": 6,
+      "strength": 0.1,
+      "roughness_before_in_voxels": 0.09350769267099525,
+      "roughness_candidate_in_voxels": 0.0866757980054837,
+      "locally_limited_vertex_events": 0
+    },
     "locally_limited_vertex_count": 0,
     "mean_contour_residual_before_in_voxels": 0.2540990500597097,
-    "mean_contour_residual_after_in_voxels": 0.13554527187771623,
+    "mean_contour_residual_after_in_voxels": 0.17652954318319522,
     "contour_residual_sample_count": 2308,
     "contour_residual_valid_samples_before": 2306,
-    "contour_residual_valid_samples_after": 2300
+    "contour_residual_valid_samples_after": 2308
   },
   "material": {
     "triangles": 4616,
-    "rasterized_triangles": 4615,
+    "rasterized_triangles": 4616,
     "degenerate_triangles": 0,
     "texture_size": 512,
-    "covered_pixels": 92651,
-    "padded_pixels": 65946,
-    "overlap_pixels": 24994,
-    "surface_samples": 357050,
-    "fallback_samples": 814,
-    "selected_source_samples": 833433,
-    "coverage_ratio": 0.3534355163574219,
-    "uv_total_area": 0.34047213005399996,
-    "uv_total_area_pixels": 89252.72606087576,
-    "uv_min_triangle_area_pixels": 0.6502051167190075,
-    "uv_mean_triangle_area_pixels": 19.335512578179326,
-    "uv_max_triangle_area_pixels": 47.20179462013766,
-    "uv_subpixel_triangles": 3,
-    "uv_subpixel_triangle_ratio": 0.0006499133448873484
+    "covered_pixels": 107205,
+    "padded_pixels": 72253,
+    "overlap_pixels": 27125,
+    "surface_samples": 414026,
+    "fallback_samples": 526,
+    "selected_source_samples": 968742,
+    "coverage_ratio": 0.4089546203613281,
+    "uv_total_area": 0.3947771866097552,
+    "uv_total_area_pixels": 103488.47080662767,
+    "uv_min_triangle_area_pixels": 0.9890635603196807,
+    "uv_mean_triangle_area_pixels": 22.419512739737364,
+    "uv_max_triangle_area_pixels": 53.723622432909906,
+    "uv_subpixel_triangles": 1,
+    "uv_subpixel_triangle_ratio": 0.0002166377816291161
   },
   "native_joint_count": 18,
   "geometry_input_mode": "neutral-silhouette",
@@ -2778,31 +2786,31 @@
   "appearance": {
     "texture_size": 512,
     "samples_per_axis": 2,
-    "surface_samples": 357050,
-    "fallback_ratio": 0.0022797927461139897,
-    "neutral_fallback_ratio": 1.6804369135975354e-05,
+    "surface_samples": 414026,
+    "fallback_ratio": 0.001270451614149836,
+    "neutral_fallback_ratio": 1.4491843507412578e-05,
     "sampling_diagnostics": {
-      "total_samples": 3570500,
-      "candidate_samples": 3353890,
-      "source_rejected_samples": 216610,
-      "visible_samples": 1366139,
-      "occluded_samples": 1987751,
-      "front_facing_samples": 1334391,
-      "backface_samples": 31748,
-      "grazing_rejected_samples": 75035,
-      "primary_samples": 356236,
-      "projected_fallback_samples": 808,
+      "total_samples": 4140260,
+      "candidate_samples": 3957999,
+      "source_rejected_samples": 182261,
+      "visible_samples": 1626824,
+      "occluded_samples": 2331175,
+      "front_facing_samples": 1586959,
+      "backface_samples": 39865,
+      "grazing_rejected_samples": 97355,
+      "primary_samples": 413500,
+      "projected_fallback_samples": 520,
       "neutral_fallback_samples": 6,
-      "selected_samples": 833433
+      "selected_samples": 968742
     },
     "atlas_signal": {
-      "occupied_pixels": 92651,
-      "chromatic_fraction": 0.9999784136166906,
+      "occupied_pixels": 107205,
+      "chromatic_fraction": 0.9999906720768621,
       "white_fraction": 0.0,
       "mean_linear_rgb": [
-        0.7685569769263653,
-        0.38135066015392133,
-        0.09281942000823365
+        0.768791181848741,
+        0.3814375215720443,
+        0.09313454156336064
       ]
     },
     "source_view_signals": [
@@ -2928,7 +2936,7 @@
     "views": [
       {
         "name": "000",
-        "sha256": "61710341a0a2626cce7467cb13ee63c232ba3e6cb1cddf6fb34c6f6a4b59b7cf",
+        "sha256": "eb488211c99f8c7d6b82fa1fee49e0cabb29ab122aab7abfa3b77759e66c9494",
         "azimuth_degrees": 0.0,
         "elevation_degrees": 0.0,
         "width": 444,
@@ -2938,7 +2946,7 @@
       },
       {
         "name": "045",
-        "sha256": "4d9b495efbaffcd3ec47d573d2412730a3b506a4445c8cc97dd52418d87aacf8",
+        "sha256": "fea4516b4fe05f7c416bf14a211418077d47c93d43bbd6bfef4f2dcd1408244f",
         "azimuth_degrees": 45.0,
         "elevation_degrees": 0.0,
         "width": 444,
@@ -2948,7 +2956,7 @@
       },
       {
         "name": "090",
-        "sha256": "ad9d592f2be0a869d70fffeeacf90062360c0880b57f85002bea0ad48bb59d0f",
+        "sha256": "6d43be1aaabba1518b1f83d044ac52843c279de47f0ac9282c3e2e5c4a8e6c77",
         "azimuth_degrees": 90.0,
         "elevation_degrees": 0.0,
         "width": 444,
@@ -2958,7 +2966,7 @@
       },
       {
         "name": "135",
-        "sha256": "68c01ee23f4f65420a2c2e513076960da4f6306d78f0c7de73c8e990b879331c",
+        "sha256": "62d77faa7c1dde598717719cbffbabedb7d4084abc1b35e1615c8cbe9fa0272d",
         "azimuth_degrees": 135.0,
         "elevation_degrees": 0.0,
         "width": 444,
@@ -2968,7 +2976,7 @@
       },
       {
         "name": "180",
-        "sha256": "e8292a00aef3a8812e78f7ae55bac48b075fbcc3c5d2a809c6b2c4c9b315e470",
+        "sha256": "a54de61cdaf14a561ff538819b6e38a420b92b73368dde6d51baf174e017dc4d",
         "azimuth_degrees": 180.0,
         "elevation_degrees": 0.0,
         "width": 444,
@@ -2978,7 +2986,7 @@
       },
       {
         "name": "225",
-        "sha256": "401e15a2e10ab4acd57fe4755669fec219fa6668312f175e97bae4eaf39c6932",
+        "sha256": "0e31d0dffdece7710304896b395ebd101d0893239436a437f255ae567236d681",
         "azimuth_degrees": 225.0,
         "elevation_degrees": 0.0,
         "width": 444,
@@ -2988,7 +2996,7 @@
       },
       {
         "name": "270",
-        "sha256": "8296e9dd348ee5c11993d083dafe71acd84ed64de0664913e20b1315d1627ce3",
+        "sha256": "94126580f997c5ba8cb0699fb45388689317c59a2fbf4c30820410396ce56a92",
         "azimuth_degrees": 270.0,
         "elevation_degrees": 0.0,
         "width": 444,
@@ -2998,7 +3006,7 @@
       },
       {
         "name": "315",
-        "sha256": "0063826bf735833683e147733c0fe0fff80002d9158be99df9fc2f14a764477f",
+        "sha256": "cdb1b8cef8002467694c5ccb8fb86e3ec7de44ca7bf8eb1f803c939dacbe5e8c",
         "azimuth_degrees": 315.0,
         "elevation_degrees": 0.0,
         "width": 444,
@@ -3008,7 +3016,7 @@
       },
       {
         "name": "TOP",
-        "sha256": "cc0d05a6f2e8d02f08b42fd1fe72d56a608c706e9a445eda7e1ed6e424ef735d",
+        "sha256": "2602a2f46d86442459b39c4793519ef82f51dc55ec869d50cea533eeabcd0cae",
         "azimuth_degrees": 0.0,
         "elevation_degrees": 90.0,
         "width": 444,
@@ -3018,7 +3026,7 @@
       },
       {
         "name": "BOT",
-        "sha256": "2d628dfc40808701e54515091f50d2ca031676a9f97ed8ef4f4163408e34d78f",
+        "sha256": "6c06032a20c6b2ce10f68ce9af5bc9428ca8a1e332c82018cefb1e6ed866f4f4",
         "azimuth_degrees": 0.0,
         "elevation_degrees": -90.0,
         "width": 444,
@@ -3062,12 +3070,12 @@
     "implementation": "fixture-authored-whole-face-planes-v1",
     "scope": "UAL1 native reconstruction T-pose only; not a generic anatomical classifier",
     "units": "source mesh local coordinates",
-    "center_x": -0.00029468536376953125,
+    "center_x": -0.00022792816162109375,
     "arm_cut_x": [
-      -7.833833241462707,
-      7.833243870735168
+      -7.8155423402786255,
+      7.815086483955383
     ],
-    "hip_cut_z": 30.967786960601806,
+    "hip_cut_z": 30.965561008453367,
     "tie_break": "whole polygon centroid, then left for center-plane ties",
     "boundary": "open-shared-vertices",
     "caps": 0,
@@ -3093,21 +3101,21 @@
     "passed": true,
     "region_count": 5,
     "socket_count": 8,
-    "position_tolerance": 0.00040623428821563723,
+    "position_tolerance": 0.00040583686828613285,
     "uv_tolerance": 0.0002,
     "imported_normal_codec_tolerance": 2e-06,
     "imported_pre_codec_normal_tolerance": 0.0002,
     "imported_normal_validation": "source-to-float32 input proof and deterministic isolated Blender codec replay",
     "blender_normal_codec_version": "5.2.1 LTS",
     "color_tolerance": 0.004,
-    "max_rest_error": 1.1829541790575604e-06,
-    "max_compound_deformation_error": 1.163394472314394e-06,
-    "max_corner_attribute_error": 0.0008147954940795898,
-    "max_imported_normal_error": 0.0008147954940795898,
-    "max_imported_pre_codec_normal_error": 2.7641654014587402e-06,
+    "max_rest_error": 9.537689038552344e-07,
+    "max_compound_deformation_error": 8.38711684991722e-07,
+    "max_corner_attribute_error": 0.0006798016838729382,
+    "max_imported_normal_error": 0.0006798016838729382,
+    "max_imported_pre_codec_normal_error": 7.748603820800781e-07,
     "max_imported_uv_error": 2.9802322387695312e-08,
     "max_imported_color_error": 0.0,
-    "max_weight_error": 1.4498105493920832e-08,
+    "max_weight_error": 1.4611539256303985e-08,
     "hide_independence_by_region": {
       "body-core": {
         "left-arm": 0.0,
@@ -3141,23 +3149,23 @@
       }
     },
     "max_hide_independence_error": 0.0,
-    "max_socket_compound_error": 5.21540641784668e-07,
-    "max_socket_rest_and_compound_error": 5.21540641784668e-07,
+    "max_socket_compound_error": 5.960464477539062e-07,
+    "max_socket_rest_and_compound_error": 5.960464477539062e-07,
     "sampling": "unmodified source rest corners and deterministic all-joint compound pose",
     "seam_policy": "shared-open-seams-no-caps",
     "scope": "source-to-modular-export fidelity; not anatomical certification",
     "max_imported_normal_codec_error": 0.0,
-    "max_imported_normal_quantization_error": 0.0008148252964019775,
-    "max_imported_normal_quantization_angle_radians": 0.0012872905695918578,
+    "max_imported_normal_quantization_error": 0.0006794780492782593,
+    "max_imported_normal_quantization_angle_radians": 0.0006814179110857468,
     "max_inverse_bind_error": 0.0,
-    "max_joint_rest_error": 4.76837158203125e-07,
-    "max_socket_rest_error": 4.76837158203125e-07,
+    "max_joint_rest_error": 3.5762786865234375e-07,
+    "max_socket_rest_error": 3.5762786865234375e-07,
     "skin_count": 1,
     "raw_normalized_four_influence_skin_verified": true,
     "max_raw_corner_normal_uv_error": 2.9802322387695312e-08,
     "raw_normal_tolerance": 2e-06,
     "max_raw_normal_error": 0.0,
-    "max_raw_rest_skin_normal_roundoff": 2.775341272354126e-06,
+    "max_raw_rest_skin_normal_roundoff": 4.1350722312927246e-07,
     "max_raw_uv_error": 2.9802322387695312e-08,
     "max_raw_color_error": 0.0,
     "raw_color_tolerance": 2e-06,

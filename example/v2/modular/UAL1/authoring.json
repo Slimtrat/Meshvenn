@@ -12,7 +12,7 @@
       "convention": "meshvenn-height-v1",
       "normalized_height": true,
       "target_height": 2.0,
-      "scale": 0.03829686866444594
+      "scale": 0.03838617123186774
     }
   },
   "regions": [
@@ -2355,7 +2355,7 @@
     ]
   },
   "ownership_source_sha256": {
-    "MeshvennScan": "e9104a1982d3efbad483a872405eb657a2668cf1ee604e19e45cae9337bd4ed2"
+    "MeshvennScan": "56e021ecbdd7cf7dc84f0f332d90d2fbe1d2382b418992e7f035bfd11942b338"
   },
   "seams": {
     "boundary_policy": "open-shared-vertices",

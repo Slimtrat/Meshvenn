@@ -53,7 +53,7 @@ def _sample_source_view(position: tuple[float, float, float], normal: tuple[floa
     source_u, source_v = view.alignment.source_uv(projected.u, projected.v)
     if not (0.0 <= source_u <= 1.0 and 0.0 <= source_v <= 1.0):
         return None
-    red, green, blue, alpha = view.image.sample_bilinear(source_u, source_v)
+    red, green, blue, alpha = view.image.sample_bilinear_alpha_aware(source_u, source_v)
     if not math.isfinite(alpha) or alpha <= MIN_ALPHA:
         return None
     base_weight = view.weight * alpha

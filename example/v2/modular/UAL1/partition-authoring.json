@@ -2,12 +2,12 @@
   "implementation": "fixture-authored-whole-face-planes-v1",
   "scope": "UAL1 native reconstruction T-pose only; not a generic anatomical classifier",
   "units": "source mesh local coordinates",
-  "center_x": -0.00029468536376953125,
+  "center_x": -0.00022792816162109375,
   "arm_cut_x": [
-    -7.833833241462707,
-    7.833243870735168
+    -7.8155423402786255,
+    7.815086483955383
   ],
-  "hip_cut_z": 30.967786960601806,
+  "hip_cut_z": 30.965561008453367,
   "tie_break": "whole polygon centroid, then left for center-plane ties",
   "boundary": "open-shared-vertices",
   "caps": 0,

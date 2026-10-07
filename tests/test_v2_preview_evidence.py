@@ -54,7 +54,11 @@ def report(directory):
     reconstruction = [{"source_asset": name, "resolution": 128, "surface_refinement": "organic", "refinement": refinement,
         "silhouette": {"mean_iou": .93, "valid_input_views": 10, "total_views": 10,
                        "per_view_iou": {str(index): .9 for index in range(10)}},
-        "surface_3d": {"surface_fscore": .99, "max_extent_error": .01},
+        "surface_3d": {"surface_fscore": .99, "max_extent_error": .01, "surface_bvh": {
+            "algorithm": "area-weighted deterministic samples to exact triangle BVH",
+            "distance_units": "fraction of each model's independent longest world-space bbox extent",
+            "sample_count_per_surface": 4096,
+            "fscore_by_threshold": [{"distance_threshold": .01, "precision": .9, "recall": .9, "fscore": .9}]}},
         "landmarks": {"mean_error_in_heights": .02, "max_error_in_heights": .03},
         "connectivity": {"component_count": 1}, "skin_weights": {"weighted_fraction": 1}}
         for name in ("quaternius_human", "quaternius_ual1")]
@@ -144,6 +148,14 @@ class PreviewEvidenceTests(unittest.TestCase):
             self.verify()
         self.report["reconstruction"][0]["silhouette"]["mean_iou"] = .93
         self.report["reconstruction"][0]["refinement"]["mean_contour_residual_after_in_voxels"] = .29
+        self.save()
+        with self.assertRaises(AssertionError):
+            self.verify()
+
+    def test_fine_triangle_score_is_rechecked_despite_perfect_legacy_score(self):
+        surface = self.report["reconstruction"][0]["surface_3d"]
+        surface["surface_fscore"] = 1.
+        surface["surface_bvh"]["fscore_by_threshold"][0].update(precision=.8, recall=.8, fscore=.8)
         self.save()
         with self.assertRaises(AssertionError):
             self.verify()

@@ -85,6 +85,19 @@ class MaterialInputTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 image_signal(pixels, occupied)
 
+    def test_coverage_alpha_is_validated_before_the_material_stage(self):
+        for mode in ("STRAIGHT", "PREMUL", "NONE"):
+            candidate = replace(view(), image=replace(view().image, alpha_mode=mode))
+            replace(self.appearance, views=(candidate,)).validate_for(self.geometry)
+        for mode in ("CHANNEL_PACKED", "unknown", None, {}):
+            candidate = replace(view(), image=replace(view().image, alpha_mode=mode))
+            with self.subTest(mode=mode), self.assertRaisesRegex(ValueError, "coverage alpha"):
+                replace(self.appearance, views=(candidate,))
+        for encoding in ("unsupported:ACEScg", "unknown", None):
+            candidate = replace(view(), image=replace(view().image, rgb_encoding=encoding))
+            with self.subTest(encoding=encoding), self.assertRaisesRegex(ValueError, "encoding"):
+                replace(self.appearance, views=(candidate,))
+
     def test_white_atlas_cannot_pass_despite_full_coverage(self):
         stats = SimpleNamespace(texture_width=512, samples_per_axis=2, surface_samples=100,
                                 fallback_samples=0, selected_source_samples=100)

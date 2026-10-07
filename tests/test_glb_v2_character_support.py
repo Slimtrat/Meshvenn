@@ -6,10 +6,36 @@ import unittest
 from types import SimpleNamespace
 
 from scripts.glb_v2_character_support import assert_unrigged_mesh, normalized_landmarks, connectivity_summary
-from scripts.glb_v2_character_support import assert_refinement_quality
+from scripts.glb_v2_character_support import assert_refinement_quality, assert_detail_surface_quality
 
 
 class GLBV2CharacterSupportTests(unittest.TestCase):
+    def test_detail_surface_gate_requires_finite_consistent_triangle_evidence(self):
+        detail = {"algorithm": "area-weighted deterministic samples to exact triangle BVH",
+                  "distance_units": "fraction of each model's independent longest world-space bbox extent",
+                  "sample_count_per_surface": 4096,
+                  "fscore_by_threshold": [{"distance_threshold": .01, "precision": .9, "recall": .9, "fscore": .9}]}
+        self.assertEqual(assert_detail_surface_quality({"surface_bvh": detail}, minimum_fscore=.88), .9)
+        self.assertIsNone(assert_detail_surface_quality({}))
+        for changes in ({"algorithm": "sampled-point-kdtree"}, {"distance_units": "meters"},
+                        {"sample_count_per_surface": True}, {"sample_count_per_surface": 127},
+                        {"fscore_by_threshold": None}, {"fscore_by_threshold": []}):
+            with self.subTest(changes=changes), self.assertRaises(AssertionError):
+                assert_detail_surface_quality({"surface_bvh": detail | changes}, minimum_fscore=.88)
+        for changes in ({"fscore": .8}, {"precision": float("nan")}, {"recall": True},
+                        {"distance_threshold": .05}, {"precision": -1.}, {"fscore": 2.}):
+            row = detail["fscore_by_threshold"][0] | changes
+            with self.subTest(row=row), self.assertRaises(AssertionError):
+                assert_detail_surface_quality({"surface_bvh": detail | {"fscore_by_threshold": [row]}}, minimum_fscore=.88)
+        row = {"distance_threshold": .01, "precision": .8, "recall": .8, "fscore": .8}
+        with self.assertRaises(AssertionError):
+            assert_detail_surface_quality({"surface_bvh": detail | {"fscore_by_threshold": [row]}}, minimum_fscore=.88)
+        with self.assertRaises(AssertionError):
+            assert_detail_surface_quality({"surface_bvh": detail | {"fscore_by_threshold": detail["fscore_by_threshold"] * 2}}, minimum_fscore=.88)
+        for value in (True, float("nan"), -.1, 1.1):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                assert_detail_surface_quality({}, minimum_fscore=value)
+
     def test_refinement_gates_require_real_finite_improvements(self):
         report = {'algorithm':'contour-taubin-v2','topology_preserved':True,'face_orientation_preserved':True,
                   'roughness_before_in_voxels':.1,'roughness_after_in_voxels':.06,

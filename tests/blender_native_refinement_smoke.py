@@ -55,6 +55,9 @@ def main():
         assert output.metadata['surface_refinement']['topology_preserved']
         finish = output.metadata['surface_refinement']
         assert finish['algorithm'] == 'contour-taubin-v2'
+        assert finish['micro_finish']['algorithm'] == 'bounded-laplacian-v1'
+        assert finish['micro_finish']['iterations'] == 6
+        assert finish['micro_finish']['strength'] == .1
         assert finish['mean_contour_residual_after_in_voxels'] < finish['mean_contour_residual_before_in_voxels']
         assert finish['maximum_displacement_in_voxels'] <= .75
         assert abs(output.blender_object.dimensions.z-2) < 1e-6

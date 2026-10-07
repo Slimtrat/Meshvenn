@@ -104,6 +104,34 @@ These surface and joint metrics measure real 3D output, but do not certify hidde
 
 On Blender 5.2.1, worst sampled integer and half-frame penetration is zero in the five measured locomotion clips, before and after reimport. Human `Walk`'s extra source-relative XY error falls from 0.026076 to 0.00000834 heights; UAL1 crouch from 0.041260 to 0.003699. This does not remove the source's own drift: crouch still has about 0.305 heights of source-velocity-detrended drift. Some non-locomotion poses/transitions cannot reach their goals: the current Human/UAL1 outputs explicitly report 14/32 limited solve samples and worst residuals about 0.0194/0.0188 heights. Every corrected frame reports its window blend, reach error, final skin residual and convergence status, rather than claiming all clips have certified contacts. Unsupported target transforms, constraints/drivers/inheritance, missing sole patches or changing topology fail cleanly; a real mid-solve injected failure verifies restoration of the user's Action slot, NLA, pose and fractional timeline without leaked data. These are sampled flat-floor controls, not certification of all continuous poses, lower frame rates, arbitrary external rigs or ragdoll/physics behavior.
 
+## Visual quality controls
+
+Organic retains continuous silhouette fitting and the balanced Taubin pass, then
+adds six bounded Laplacian micro-finish passes of strength 0.1. The finish is
+reported separately as `micro_finish`; the final float32 face/0.75-voxel movement
+guards and per-closed-component 2% volume guard remain authoritative. Faithful
+and Organic without contour views are unchanged. This softens residual voxel
+bands; it does not infer anatomy, repair non-manifold junctions or create fingers.
+
+The humanoid 128 CI cases now also require triangle-distance F-score >= 0.88 at
+1% of the independently normalized longest extent. The existing point-sample
+F-score at 5%, silhouettes, rig, skin and all animation roundtrips remain gated.
+Reports include exact-triangle BVH distances at 0.5%, 1% and 2%, signed geometric
+normal comparisons and exact-position-welded topology incidents. These are
+scoring-only source comparisons, never reconstruction inputs. A connected mesh
+is not necessarily manifold; intersection freedom is not certified.
+
+Projected color now filters coverage-associated linear RGB, returning straight
+RGB and retaining filtered alpha as confidence for the opaque material. Transparent
+black or colored mattes cannot darken the silhouette border. Blender RNA storage
+is distinguished from file alpha labels: loaded color PNG16/EXR float buffers are
+associated linear data, while color PNG8 byte buffers need sRGB decoding before
+filtering. Raw `rgba`/`sample_bilinear` remain unchanged. Unsupported encodings,
+packed channels and invalid covered colors fail at MATERIAL before UV/material
+mutation. Tests use actual PNG8, PNG16 and EXR inputs and shader/GLB roundtrips,
+not only manually constructed buffers. This certifies transport/filtering, not
+complete spatial texture recovery or arbitrary PBR materials.
+
 ## Licensing and attribution
 
 Each model has its own license; the repository's code license does not replace it. The original license notices are linked below. Keep these credits when redistributing the V2 examples:

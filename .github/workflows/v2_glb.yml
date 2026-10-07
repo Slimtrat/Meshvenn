@@ -67,7 +67,7 @@ jobs:
         run: python -m unittest tests.test_contour_surface tests.test_surface_refinement tests.test_projection_frame -v
 
       - name: Verify modern preview provenance, gates and stale-safe publication
-        run: python -m unittest tests.test_v2_preview_evidence tests.test_v2_preview_publication tests.test_material_inputs tests.test_uv_bake_color_diagnostics tests.test_color_encoding -v
+        run: python -m unittest tests.test_v2_preview_evidence tests.test_v2_preview_publication tests.test_material_inputs tests.test_uv_bake_color_diagnostics tests.test_color_encoding tests.test_projected_color_alpha -v
 
       - name: Cache Blender
         id: blender-cache
@@ -386,6 +386,7 @@ jobs:
               --rig-implementation canonical-biped-v2 --require-connected --preview \
               --min-iou 0.88 --min-view-iou 0.80 --min-surface-fscore 0.97 \
               --min-roughness-reduction 0.20 --min-contour-reduction 0.50 \
+              --min-detail-surface-fscore 0.88 \
               --max-extent-error 0.08 --max-mean-joint-error 0.04 --max-joint-error 0.09 \
               --output "${RUNNER_TEMP}/v2-benchmark/${asset}_character_organic"
           done
@@ -407,6 +408,8 @@ jobs:
             --python-exit-code 1 --python tests/blender_material_inputs_smoke.py
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python tests/blender_material_color_roundtrip_smoke.py
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_projected_color_alpha_smoke.py
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python tests/blender_modular_partition_smoke.py -- \
             --output "${RUNNER_TEMP}/v2-benchmark/modular_partition"

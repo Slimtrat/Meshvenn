@@ -16,6 +16,8 @@ from .surface_safety import constrain_faces, _normal, _dot
 
 REFINEMENT_PAIRS = 24
 CONTOUR_REFINEMENT_PAIRS = 48
+MICRO_FINISH_ITERATIONS = 6
+MICRO_FINISH_STRENGTH = .1
 
 
 def validate_surface_refinement(mode: str, mesh_mode: str) -> None:
@@ -121,6 +123,7 @@ def refine_native_surface(mesh: NativeMesh, *, voxel_size: float,
                 proposed.append(q)
             points = proposed
     locally_limited = 0
+    micro_finish = None
     if contour_surface is not None:
         # Keep most of the anti-terracing pass rather than restoring every
         # pixel-scale corner of the signed-distance field in the final fit.
@@ -128,6 +131,34 @@ def refine_native_surface(mesh: NativeMesh, *, voxel_size: float,
                   for i,p in enumerate(points)]
         points = [tuple(.75*p[k]+.25*q[k] for k in range(3)) for p,q in zip(points,fitted)]
         points, locally_limited = constrain_faces(original,points,triangles,limit)
+        # The balanced Taubin pass suppresses high-frequency noise but retains
+        # some broader voxel bands. A small, separately reported curvature
+        # finish trades a little contour fit for smoother actual geometry.
+        # This is still bounded to the original native surface, never invents
+        # anatomy, and runs BEFORE the authoritative component/volume guard.
+        roughness_before_finish = _roughness(points, neighbors, voxel_size)
+        limited_events = 0
+        for _ in range(MICRO_FINISH_ITERATIONS):
+            proposed = []
+            for i, (p, row) in enumerate(zip(points, neighbors)):
+                if i in pinned or not row:
+                    proposed.append(original[i])
+                    continue
+                q = tuple(p[k] + MICRO_FINISH_STRENGTH * math.fsum(
+                    points[j][k] - p[k] for j in row) / len(row) for k in range(3))
+                distance = math.dist(q, original[i])
+                if distance > limit:
+                    q = tuple(original[i][k]+(q[k]-original[i][k])*limit/distance for k in range(3))
+                proposed.append(q)
+            points, limited = constrain_faces(original, proposed, triangles, limit)
+            limited_events += limited
+        micro_finish = {
+            "algorithm": "bounded-laplacian-v1", "iterations": MICRO_FINISH_ITERATIONS,
+            "strength": MICRO_FINISH_STRENGTH,
+            "roughness_before_in_voxels": roughness_before_finish,
+            "roughness_candidate_in_voxels": _roughness(points, neighbors, voxel_size),
+            "locally_limited_vertex_events": limited_events,
+        }
     volume_drifts, attenuated = [], 0
     for component, tris in zip(components, component_triangles):
         normals = [_normal(original, t) for t in tris]
@@ -172,6 +203,7 @@ def refine_native_surface(mesh: NativeMesh, *, voxel_size: float,
         "face_orientation_preserved": True,
     }
     if contour_surface is not None:
+        report["micro_finish"] = micro_finish
         report["locally_limited_vertex_count"] = locally_limited
         before = contour_surface.residual_summary(original)
         after = contour_surface.residual_summary(points)

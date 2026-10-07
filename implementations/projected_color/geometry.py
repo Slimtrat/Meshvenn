@@ -30,6 +30,8 @@ def _material_views_from_geometry(geometry: GeometrySurfaceOutput) -> tuple[Any,
         raise TypeError('GEOMETRY source material_views is not iterable.') from exc
     if not resolved:
         raise ValueError('No material projection views are available.')
+    for view in resolved:
+        view.image.validate_coverage_data()
     return resolved
 
 def _validate_geometry(geometry: GeometrySurfaceOutput) -> None:
