@@ -286,6 +286,7 @@ jobs:
             "implementations/canonical_motion/retarget.py"
             "implementations/canonical_motion/source.py"
             "implementations/glb_export/__init__.py"
+            "implementations/authored_source.py"
             "implementations/glb_export/blender_export.py"
             "implementations/glb_export/implementation.py"
             "implementations/glb_export/manifest.py"
@@ -1368,6 +1369,7 @@ jobs:
             "implementations/canonical_motion/retarget.py"
             "implementations/canonical_motion/source.py"
             "implementations/glb_export/__init__.py"
+            "implementations/authored_source.py"
             "implementations/glb_export/blender_export.py"
             "implementations/glb_export/implementation.py"
             "implementations/glb_export/manifest.py"
@@ -1857,6 +1859,7 @@ jobs:
             "blender_projection_tool/implementations/canonical_motion/retarget.py"
             "blender_projection_tool/implementations/canonical_motion/source.py"
             "blender_projection_tool/implementations/glb_export/__init__.py"
+            "blender_projection_tool/implementations/authored_source.py"
             "blender_projection_tool/implementations/glb_export/blender_export.py"
             "blender_projection_tool/implementations/glb_export/implementation.py"
             "blender_projection_tool/implementations/glb_export/face_authoring.py"
@@ -2249,6 +2252,9 @@ jobs:
             "${PACKAGE_ROOT}/implementations/glb_export/__init__.py"
 
           test -f \
+            "${PACKAGE_ROOT}/implementations/authored_source.py"
+
+          test -f \
             "${PACKAGE_ROOT}/implementations/glb_export/implementation.py"
 
           test -f \
@@ -2612,6 +2618,23 @@ jobs:
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python tests/blender_geometry_normalization_smoke.py -- \
             --package-root "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
+
+      - name: Verify packaged prepared authority and publication rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_authored_state_smoke.py -- \
+            --package-root "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool" \
+            --output "${RUNNER_TEMP}/authored-state-packaged"
+
+      - name: Upload prepared authority verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: authored-state-packaged-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/authored-state-packaged
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Upload packaged head refinement verification
         uses: actions/upload-artifact@v4

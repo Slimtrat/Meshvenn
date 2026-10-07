@@ -54,6 +54,9 @@ class GLBExportImplementation:
     def availability(self, context: PipelineContext) -> ImplementationAvailability:
         try:
             plan = build_export_plan(context)
+            if plan.modular_spec is not None:
+                from ..authored_source import require_prepared_source
+                require_prepared_source(context, plan)
         except Exception as exc:
             return ImplementationAvailability.unavailable(str(exc))
         return ImplementationAvailability.ready_state(details={
@@ -81,16 +84,9 @@ class GLBExportImplementation:
         if settings.export_modular_character:
             box.prop(settings, "export_modular_manifest_path", text="Modular Authoring JSON")
             box.label(text="Explicit regions and sockets; verification is mandatory")
-            editing = box.column(align=True)
-            editing.operator("bpt.load_modular_face_ownership", text="Load Face Ownership", icon="IMPORT")
-            editing.operator("bpt.assign_modular_faces", text="Assign Selected Faces", icon="FACESEL")
-            editing.operator("bpt.save_modular_face_ownership", text="Save Face Ownership", icon="FILE_TICK")
+            from ...operators.modular_authoring import draw_modular_authoring_controls
+            draw_modular_authoring_controls(box)
             box.operator("bpt.export_existing_modular_source", text="Export Authored Source (No Rebuild)", icon="EXPORT")
-            initial = box.operator("bpt.export_existing_modular_source", text="Initialize Old Static V2 Source (No Rebuild)", icon="FILE_REFRESH")
-            initial.initialize_static_source = True
-            initial.binding_method = "canonical-envelope-v2"
-            box.label(text="Initialization explicitly declares no clips; animated sources are refused")
-            box.label(text="JSON originals are authoritative; preview edits are not exported", icon="INFO")
         raw_path = settings.export_output_path.strip()
         if not raw_path:
             warning = box.row()
@@ -107,18 +103,20 @@ class GLBExportImplementation:
         context.metadata["glb_export_roundtrip"] = None
         try:
             plan = build_export_plan(context)
+            if plan.modular_spec is not None:
+                from ..authored_source import require_prepared_source
+                require_prepared_source(context, plan)
         except Exception as exc:
+            from ..authored_source import PreparedAuthoredSource
+            if isinstance(context.prepared_modular_source, PreparedAuthoredSource):
+                context.prepared_modular_source.discard()
             return StageExecutionResult.failed_result(
                 stage=PipelineStage.EXPORT,
                 implementation_id=IMPLEMENTATION_ID,
                 message=f"Cannot prepare GLB export: {exc}",
             )
 
-        staged_catalogue = None
         try:
-            if plan.modular_spec is not None:
-                from .modular_source import stage_authored_scene_catalogue
-                staged_catalogue = stage_authored_scene_catalogue(plan)
             fidelity_report = {}
             manifest = export_glb(plan, fidelity_report=fidelity_report)
             object_names = (
@@ -165,9 +163,8 @@ class GLBExportImplementation:
                 metadata=metadata,
                 modular_character=plan.modular_spec,
             )
-            if staged_catalogue is not None:
-                from .modular_source import commit_authored_scene_catalogue
-                metadata["authored_source_catalogue"] = commit_authored_scene_catalogue(plan, staged_catalogue)
+            if plan.prepared_modular_source is not None:
+                metadata["authored_source_catalogue"] = plan.prepared_modular_source.saved_text.name
                 output.metadata["authored_source_catalogue"] = metadata["authored_source_catalogue"]
             context.metadata["exported_glb_path"] = str(output.path)
             context.metadata["exported_glb_sha256"] = output.sha256
@@ -197,9 +194,8 @@ class GLBExportImplementation:
                 },
             )
         finally:
-            if staged_catalogue is not None:
-                from .modular_source import discard_uncommitted_catalogue
-                discard_uncommitted_catalogue(staged_catalogue)
+            if plan.prepared_modular_source is not None:
+                plan.prepared_modular_source.discard()
 
 
 __all__ = ("IMPLEMENTATION_ID", "GLBExportImplementation")

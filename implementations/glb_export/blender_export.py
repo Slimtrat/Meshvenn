@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Iterator
 from uuid import uuid4
@@ -297,12 +297,17 @@ def _export_prepared_glb(plan: GLBExportPlan, *, fidelity_report: dict | None = 
             if fidelity_report is not None:
                 fidelity_report["modular_character"] = report
         protect_source_paths(plan.path, plan.source_paths)
-        _publish_validated_glb(
-            temporary_path,
-            plan.path,
-            overwrite_existing=plan.overwrite_existing,
-        )
-        return inspect_glb(plan.path)
+        state = plan.prepared_modular_source
+        if state is not None:
+            state.commit()
+        try:
+            _publish_validated_glb(temporary_path, plan.path, overwrite_existing=plan.overwrite_existing)
+        except Exception:
+            if state is not None:
+                state.rollback()
+            raise
+        # No new validation can fail after the atomic publication commit.
+        return replace(manifest, path=plan.path)
     finally:
         temporary_path.unlink(missing_ok=True)
 

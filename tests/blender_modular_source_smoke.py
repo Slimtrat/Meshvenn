@@ -269,6 +269,10 @@ def main():
         # A real static product export persists explicit no-motion provenance.
         static_context = api.context_from_authored_scene(bpy.context.scene, output_path="//static.glb", overwrite_existing=True)
         static_context.outputs.pop(pipeline.PipelineStage.MOTION)
+        authored = importlib.import_module(f"{root.name}.implementations.authored_source")
+        stale = implementation_module.GLBExportImplementation().execute(static_context)
+        assert stale.failed and "stale" in stale.message
+        authored.prepare_authored_source(static_context, replace_existing=True)
         implementation = implementation_module.GLBExportImplementation()
         static_result = implementation.execute(static_context)
         assert static_result.success, static_result.message

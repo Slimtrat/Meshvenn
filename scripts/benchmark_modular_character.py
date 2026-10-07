@@ -124,6 +124,7 @@ def main():
         bpy.ops.wm.save_as_mainfile(filepath=str(output / "source.blend"), compress=True)
         context.metadata.update(export_modular_spec=spec, export_output_path=str(output / "character.glb"),
                                 export_overwrite_existing=True, export_validate_roundtrip=True)
+        _module("implementations.authored_source").prepare_authored_source(context)
         exported = _stage(context, stage.EXPORT, _module("implementations.glb_export").GLBExportImplementation()).payload
         metadata_module = _module("implementations.glb_export.modular_gltf")
         document, _ = metadata_module.read_glb(exported.path)

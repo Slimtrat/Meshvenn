@@ -25,6 +25,7 @@ from .modular_export import BPT_OT_ExportExistingModularSource
 from .rig_refinement import BPT_OT_RefineHeadWeights
 from .modular_authoring import (
     BPT_OT_LoadModularFaceOwnership, BPT_OT_AssignModularFaces, BPT_OT_SaveModularFaceOwnership,
+    BPT_OT_PrepareModularSource,
 )
 from .selection import (
     BPT_OT_ResetPipelineSettings,
@@ -65,6 +66,7 @@ CLASSES = (
     BPT_OT_LoadModularFaceOwnership,
     BPT_OT_AssignModularFaces,
     BPT_OT_SaveModularFaceOwnership,
+    BPT_OT_PrepareModularSource,
 )
 
 
