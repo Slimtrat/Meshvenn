@@ -1,0 +1,528 @@
+{
+  "passed": true,
+  "source_sha": "local-uncommitted",
+  "run_id": null,
+  "run_attempt": null,
+  "rendered_from_final_glb": true,
+  "pose_kind": "seven explicit native-joint probes, NOT imported animation clips",
+  "rotations": {
+    "left_arm": {
+      "upper_arm.L": [
+        [
+          0,
+          0,
+          1
+        ],
+        -0.75
+      ],
+      "forearm.L": [
+        [
+          0,
+          0,
+          1
+        ],
+        -0.8
+      ]
+    },
+    "right_arm": {
+      "upper_arm.R": [
+        [
+          0,
+          0,
+          1
+        ],
+        0.75
+      ],
+      "forearm.R": [
+        [
+          0,
+          0,
+          1
+        ],
+        0.8
+      ]
+    },
+    "chest_twist": {
+      "chest": [
+        [
+          0,
+          1,
+          0
+        ],
+        0.3
+      ]
+    },
+    "head_yaw": {
+      "head": [
+        [
+          0,
+          1,
+          0
+        ],
+        0.6
+      ]
+    },
+    "head_pitch": {
+      "head": [
+        [
+          0,
+          0,
+          1
+        ],
+        0.4
+      ]
+    },
+    "neck_pitch": {
+      "neck": [
+        [
+          0,
+          0,
+          1
+        ],
+        0.3
+      ]
+    },
+    "compound": {
+      "chest": [
+        [
+          0,
+          1,
+          0
+        ],
+        0.15
+      ],
+      "upper_arm.L": [
+        [
+          0,
+          0,
+          1
+        ],
+        -0.25
+      ],
+      "forearm.L": [
+        [
+          0,
+          0,
+          1
+        ],
+        -0.55
+      ],
+      "upper_arm.R": [
+        [
+          0,
+          0,
+          1
+        ],
+        0.18
+      ],
+      "thigh.L": [
+        [
+          1,
+          0,
+          0
+        ],
+        0.22
+      ],
+      "shin.L": [
+        [
+          1,
+          0,
+          0
+        ],
+        -0.35
+      ]
+    }
+  },
+  "baseline": {
+    "artifact_sha256": "76590fd9c335335255f2eb2a4fc0866adf3c5a6a6fad0d4938c9e7550b7dcb57",
+    "poses": [
+      {
+        "id": "left_arm",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 0.1511832826484974,
+          "mean_residual_in_heights": 0.013661457043228178
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 0.4095019410310403,
+          "max_abs_log_length_ratio": 1.722257974531452,
+          "min_length_ratio": 0.3589038748419345,
+          "max_length_ratio": 5.597152434256353,
+          "outside_20_percent_count": 428,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.3342195997789604,
+          "max_abs_log_length_ratio": 1.192686328844281,
+          "min_length_ratio": 0.3669741900629591,
+          "max_length_ratio": 3.2959232594564822,
+          "outside_20_percent_count": 235,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "right_arm",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 0.15080861947840746,
+          "mean_residual_in_heights": 0.013866147189055347
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 0.43146624959534585,
+          "max_abs_log_length_ratio": 1.7366165309798554,
+          "min_length_ratio": 0.35275613813434475,
+          "max_length_ratio": 5.678099212158054,
+          "outside_20_percent_count": 465,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.35620916189251334,
+          "max_abs_log_length_ratio": 1.221490573472738,
+          "min_length_ratio": 0.36793450544778916,
+          "max_length_ratio": 3.392240350517114,
+          "outside_20_percent_count": 242,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "chest_twist",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 0.015058009223541976,
+          "mean_residual_in_heights": 0.003414646155444954
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 0.13960483850715852,
+          "max_abs_log_length_ratio": 1.0499133056243017,
+          "min_length_ratio": 0.34996808806093693,
+          "max_length_ratio": 1.7287724102428181,
+          "outside_20_percent_count": 164,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.16285817065084748,
+          "max_abs_log_length_ratio": 0.3378713702402422,
+          "min_length_ratio": 0.7132870319372053,
+          "max_length_ratio": 1.397759793414544,
+          "outside_20_percent_count": 90,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "head_yaw",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 0.11825306874049452,
+          "mean_residual_in_heights": 0.06386938253702697
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 0.26427259462215436,
+          "max_abs_log_length_ratio": 0.8772437059194249,
+          "min_length_ratio": 0.6439801256599162,
+          "max_length_ratio": 2.404263707411168,
+          "outside_20_percent_count": 381,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.023722416850626055,
+          "max_abs_log_length_ratio": 0.4263736654556673,
+          "min_length_ratio": 0.6531075194374709,
+          "max_length_ratio": 1.5316930089807217,
+          "outside_20_percent_count": 10,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "head_pitch",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 0.06294341118098663,
+          "mean_residual_in_heights": 0.03803359161864627
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 0.2692706487125199,
+          "max_abs_log_length_ratio": 1.0507230071881826,
+          "min_length_ratio": 0.3496848330442162,
+          "max_length_ratio": 1.6514694448956426,
+          "outside_20_percent_count": 486,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.014963681124024913,
+          "max_abs_log_length_ratio": 0.23263136942789825,
+          "min_length_ratio": 0.8513690719297009,
+          "max_length_ratio": 1.26191621268135,
+          "outside_20_percent_count": 2,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "neck_pitch",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 0.052975693274433286,
+          "mean_residual_in_heights": 0.023739491585373695
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 0.25587288716670015,
+          "max_abs_log_length_ratio": 1.5775766176042687,
+          "min_length_ratio": 0.20647485994415007,
+          "max_length_ratio": 2.4441013682767836,
+          "outside_20_percent_count": 338,
+          "collapsed_fraction": 0.00037993920972644377
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.02897279719442894,
+          "max_abs_log_length_ratio": 0.19967306350060585,
+          "min_length_ratio": 0.8445369728174976,
+          "max_length_ratio": 1.2210035022872816,
+          "outside_20_percent_count": 2,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "compound",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 0.08106403713514641,
+          "mean_residual_in_heights": 0.010861401088118722
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 0.3142883749547342,
+          "max_abs_log_length_ratio": 1.203365746215274,
+          "min_length_ratio": 0.3130757568651004,
+          "max_length_ratio": 3.331310420372777,
+          "outside_20_percent_count": 438,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.2107268258439716,
+          "max_abs_log_length_ratio": 0.6009828899543432,
+          "min_length_ratio": 0.5674040438411716,
+          "max_length_ratio": 1.8239106230930473,
+          "outside_20_percent_count": 162,
+          "collapsed_fraction": 0.0
+        }
+      }
+    ],
+    "height_m": 1.8200000301003456,
+    "head_cohort": "frozen rest normalized Z >= 0.73",
+    "neck_cohort": "frozen rest normalized Z in [0.65, 0.75]"
+  },
+  "candidate": {
+    "artifact_sha256": "6de37d018a1e1089eb74403a5a1d52d0f2df628f4fd4499e84ad6258a079c4c4",
+    "poses": [
+      {
+        "id": "left_arm",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 6.5500172697272e-08,
+          "mean_residual_in_heights": 6.54996145987676e-08
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 0.0,
+          "max_abs_log_length_ratio": 0.0,
+          "min_length_ratio": 1.0,
+          "max_length_ratio": 1.0,
+          "outside_20_percent_count": 0,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.1320589228147246,
+          "max_abs_log_length_ratio": 1.192686328844281,
+          "min_length_ratio": 0.8084881353655814,
+          "max_length_ratio": 3.2959232594564822,
+          "outside_20_percent_count": 81,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "right_arm",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 6.5500172697272e-08,
+          "mean_residual_in_heights": 6.54996145987676e-08
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 0.0,
+          "max_abs_log_length_ratio": 0.0,
+          "min_length_ratio": 1.0,
+          "max_length_ratio": 1.0,
+          "outside_20_percent_count": 0,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.1476565615250428,
+          "max_abs_log_length_ratio": 1.221490573472738,
+          "min_length_ratio": 0.7609529289060344,
+          "max_length_ratio": 3.392240350517114,
+          "outside_20_percent_count": 93,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "chest_twist",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 2.6263729993920027e-07,
+          "mean_residual_in_heights": 1.1722750486962765e-07
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 5.4069882976153985e-06,
+          "max_abs_log_length_ratio": 1.7824287502369497e-05,
+          "min_length_ratio": 0.9999821758713493,
+          "max_length_ratio": 1.0000176262338263,
+          "outside_20_percent_count": 0,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.10095222603531367,
+          "max_abs_log_length_ratio": 0.3378713702402422,
+          "min_length_ratio": 0.7132870319372053,
+          "max_length_ratio": 1.397759793414544,
+          "outside_20_percent_count": 34,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "head_yaw",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 2.6250965118320845e-07,
+          "mean_residual_in_heights": 9.54004114178887e-08
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 5.32853413879601e-06,
+          "max_abs_log_length_ratio": 1.7325847548678857e-05,
+          "min_length_ratio": 0.999982674302543,
+          "max_length_ratio": 1.000015598026915,
+          "outside_20_percent_count": 0,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.14271943642802026,
+          "max_abs_log_length_ratio": 0.4474418772298396,
+          "min_length_ratio": 0.6988154875393743,
+          "max_length_ratio": 1.5643053775161464,
+          "outside_20_percent_count": 104,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "head_pitch",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 2.7006308470650715e-07,
+          "mean_residual_in_heights": 1.239357918728512e-07
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 5.144214026894595e-06,
+          "max_abs_log_length_ratio": 1.5701098728042747e-05,
+          "min_length_ratio": 0.9999842990245336,
+          "max_length_ratio": 1.0000145275853562,
+          "outside_20_percent_count": 0,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.22866341032662066,
+          "max_abs_log_length_ratio": 0.8905363597562115,
+          "min_length_ratio": 0.41043555259144365,
+          "max_length_ratio": 1.997016962957859,
+          "outside_20_percent_count": 161,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "neck_pitch",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 4.00056958483167e-07,
+          "mean_residual_in_heights": 1.6591407900585396e-07
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 5.658937299688905e-06,
+          "max_abs_log_length_ratio": 2.074367118633587e-05,
+          "min_length_ratio": 0.9999833634586012,
+          "max_length_ratio": 1.0000207438863378,
+          "outside_20_percent_count": 0,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.10108078951560305,
+          "max_abs_log_length_ratio": 0.557115362059425,
+          "min_length_ratio": 0.5728591740273746,
+          "max_length_ratio": 1.5062841072105184,
+          "outside_20_percent_count": 70,
+          "collapsed_fraction": 0.0
+        }
+      },
+      {
+        "id": "compound",
+        "head_rigid": {
+          "vertex_count": 2053,
+          "max_residual_in_heights": 1.9722242393420385e-07,
+          "mean_residual_in_heights": 4.5599010739490574e-08
+        },
+        "head_edges": {
+          "edge_count": 5264,
+          "p95_abs_log_length_ratio": 5.468949515447197e-06,
+          "max_abs_log_length_ratio": 1.4397924957634461e-05,
+          "min_length_ratio": 0.9999863013058254,
+          "max_length_ratio": 1.0000143980286083,
+          "outside_20_percent_count": 0,
+          "collapsed_fraction": 0.0
+        },
+        "neck_edges": {
+          "edge_count": 2814,
+          "p95_abs_log_length_ratio": 0.11490381760213153,
+          "max_abs_log_length_ratio": 0.6009828899543432,
+          "min_length_ratio": 0.7609026818115492,
+          "max_length_ratio": 1.8239106230930473,
+          "outside_20_percent_count": 61,
+          "collapsed_fraction": 0.0
+        }
+      }
+    ],
+    "height_m": 1.8200000301003456,
+    "head_cohort": "frozen rest normalized Z >= 0.73",
+    "neck_cohort": "frozen rest normalized Z in [0.65, 0.75]"
+  },
+  "max_head_rigid_residual_reduction": 0.9999973538280723,
+  "images": {
+    "baseline_compound.png": "103f6b959e7b6a7615940e45bb818e1f063e9a1b0b96d99868ed20225663c9ce",
+    "baseline_head_pitch.png": "ff00bbf06413f75e6452cbdf463858dd5c26704ad007f63a1b76ab2ef4e2e69a",
+    "baseline_rest.png": "22fd3ccb0aa36fa540f3adafe41a7c5eeb44b55c8e2e9d9e62b52e2ac6b22314",
+    "candidate_compound.png": "22d63d4a285bd305798b9635b3d96e3fc52b8fea59f032691bfa983ca2e352a2",
+    "candidate_head_pitch.png": "451cda06b2a9672245953b4fea823e2f1589ab36579ec7e950cb862dad74dbed",
+    "candidate_rest.png": "b5143c3ec523168982e228cede732e4d783293cead242b46cff79bb5c45542aa"
+  },
+  "neck_quality_qualified": false,
+  "full_appearance_qualified": false,
+  "limits": "Original rest head/neck pivots, two-view atlas coverage and UV overlap retained. Neck strain is reported, NOT hidden or qualified."
+}

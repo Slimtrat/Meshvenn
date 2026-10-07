@@ -109,3 +109,47 @@ def compare_reference(reference, reference_binary, candidate, candidate_binary, 
             "normal_scope": "Diagnostic against the older whole-body export representation; exact Blender source corner normals are separately gated by modular fidelity at 2e-6, unchanged.",
             "max_weight_error": weight_error, "max_inverse_bind_error": bind_error,
             "scope": "Pinned full-body GLB comparison, separate from authoring-source and consumer gates."}
+
+
+def compare_head_variant(reference, reference_binary, candidate, candidate_binary, read_accessor, envelope):
+    """Separate intentional edit proof; NEVER a relaxation of compare_reference.
+
+    Preserve exact surface/material/image/bind authority. Only the explicitly
+    observed head transition may change weights, according to convex transfer.
+    Below that transition, skin weights must remain exactly the decoded baseline.
+    """
+    from core.rig_head_envelope import HeadEnvelope, isolate_head_weights
+    profile = HeadEnvelope(envelope["start_z"], envelope["end_z"], envelope["neck_z"],
+                           envelope["contrast"], envelope["closed_section_count"])
+    old, faces, binds, images, count = _records(reference, reference_binary, read_accessor)
+    new, new_faces, new_binds, new_images, new_count = _records(candidate, candidate_binary, read_accessor)
+    if count != 14252 or count != new_count or faces != new_faces or set(old) != set(new):
+        raise ValueError("Head variant changed exact source geometry, UVs, winding or tessellation.")
+    if images != new_images or binds != new_binds:
+        raise ValueError("Head variant changed embedded atlas bytes or native inverse binds.")
+    changed, normal_delta = 0, 0.0
+    for key, rows in old.items():
+        candidates = list(new[key])
+        if len(rows) != len(candidates):
+            raise ValueError("Head variant duplicated or lost surface corners.")
+        for normal, weights, material in rows:
+            matching = [i for i, (_, _, other_material) in enumerate(candidates) if material == other_material]
+            if not matching:
+                raise ValueError("Head variant changed source material semantics.")
+            i = min(matching, key=lambda j: max(abs(a-b) for a,b in zip(normal, candidates[j][0])))
+            other_normal, actual, _ = candidates.pop(i)
+            # glTF Y is native Blender Z for this pinned source's mesh accessor.
+            expected = isolate_head_weights(weights, key[1], profile)
+            if (set(expected) != set(actual) or len(actual) > 4
+                    or max(abs(expected[n]-actual[n]) for n in expected) > 1e-6):
+                raise ValueError("Head variant changed weights outside the declared head transfer.")
+            if key[1] <= profile.start_z and weights != actual:
+                raise ValueError("Head variant changed lower-body source weights.")
+            changed += weights != actual
+            normal_delta = max(normal_delta, max(abs(a-b) for a,b in zip(normal, other_normal)))
+    if not changed:
+        raise ValueError("Head variant did not change skin weights.")
+    return {"passed": True, "intentional_head_weights_edit": True, "changed_corner_count": changed,
+            "triangle_count": count, "source_surface_uv_materials_atlas_and_inverse_binds_preserved": True,
+            "below_neck_weights_exact": True, "reference_glb_normal_delta_diagnostic": normal_delta,
+            "scope": "New selected-source weights; NOT unchanged baseline weight fidelity or artistic qualification."}

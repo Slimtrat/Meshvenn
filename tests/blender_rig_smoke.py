@@ -47,6 +47,7 @@ def _import_package(package_root: Path):
         "__init__.py", "core/canonical_rig.py", "core/rig_quality.py", "core/rig_skinning.py", "core/rig_contracts.py",
         "core/canonical_rig_v2.py",
         "core/rig_lower_body.py",
+        "core/rig_head_envelope.py",
         "implementations/canonical_rig/__init__.py",
         "implementations/canonical_rig/implementation.py",
         "implementations/canonical_rig_v2/__init__.py",
@@ -181,8 +182,8 @@ def _check_success(package_name: str, implementation, *, dense=False):
     _require(all(role and name for role, name in rig.semantic_bones.items()), "Empty semantic role")
     _require(rig.binding_method in {"blender-bone-heat", "canonical-distance", "canonical-envelope-v2"}, "Unknown binding method")
     if rig.implementation_id == "canonical-biped-v2":
-        _require(result.metadata["skinning_algorithm"] == "regional-fitted-v2-leg-root-transfer",
-                 "V2 did not identify the leg-root-transfer skinning revision")
+        _require(result.metadata["skinning_algorithm"] == "regional-fitted-v2-head-isolation",
+                 "V2 did not identify the head isolation skinning revision")
     _require(any(
         modifier.type == "ARMATURE" and modifier.object is armature
         for modifier in obj.modifiers

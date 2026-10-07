@@ -17,6 +17,7 @@ from ...core.pipeline_contracts import (
 )
 from ...core.rig_contracts import RigOutput
 from ...core.rig_quality import assess_biped_geometry
+from ...core.rig_head_envelope import ALGORITHM, observe_head_envelope
 from ..canonical_rig.binding import (
     _remove_new_binding,
     bind_mesh_deterministic,
@@ -48,7 +49,8 @@ def _prepare(context: PipelineContext):
             "Existing vertex groups conflict with Canonical Biped V2 bones: "
             + ", ".join(sorted(conflicts))
         )
-    return geometry, mesh, bounds, bones, quality, fit
+    head_envelope = observe_head_envelope(vertices, triangles, bounds)
+    return geometry, mesh, bounds, bones, quality, fit, head_envelope
 
 
 class CanonicalRigV2Implementation:
@@ -74,7 +76,7 @@ class CanonicalRigV2Implementation:
 
     def availability(self, context: PipelineContext) -> ImplementationAvailability:
         try:
-            geometry, mesh, bounds, _, quality, fit = _prepare(context)
+            geometry, mesh, bounds, _, quality, fit, head_envelope = _prepare(context)
         except Exception as exc:
             return ImplementationAvailability.unavailable(str(exc))
         return ImplementationAvailability.ready_state(details={
@@ -84,11 +86,12 @@ class CanonicalRigV2Implementation:
             "preset": IMPLEMENTATION_ID,
             "rig_quality": quality.as_dict(),
             "rig_fit": fit.as_dict(),
+            "head_isolation": head_envelope.as_dict() if head_envelope else None,
         })
 
     def execute(self, context: PipelineContext) -> StageExecutionResult:
         try:
-            geometry, mesh, bounds, bones, quality, fit = _prepare(context)
+            geometry, mesh, bounds, bones, quality, fit, head_envelope = _prepare(context)
         except Exception as exc:
             return StageExecutionResult.failed_result(
                 stage=PipelineStage.RIG,
@@ -105,12 +108,13 @@ class CanonicalRigV2Implementation:
             "meshvenn_rig_implementation", "meshvenn_rig_semantics",
             "meshvenn_rig_quality", "meshvenn_rig_fit",
             "meshvenn_rig_skinning_algorithm",
+            "meshvenn_head_isolation",
         )
         original_metadata = {key: mesh[key] for key in rig_properties if key in mesh}
         try:
             armature = create_armature(mesh, bones)
             binding_method, max_influences = bind_mesh_deterministic(
-                mesh, armature, bones, bounds
+                mesh, armature, bones, bounds, head_envelope=head_envelope
             )
             semantic_bones = {spec.name: spec.name for spec in bones}
             metrics = {
@@ -134,11 +138,15 @@ class CanonicalRigV2Implementation:
             mesh["meshvenn_rig_semantics"] = json.dumps(semantic_bones, sort_keys=True)
             mesh["meshvenn_rig_quality"] = json.dumps(quality.as_dict(), sort_keys=True)
             mesh["meshvenn_rig_fit"] = json.dumps(fit.as_dict(), sort_keys=True)
-            mesh["meshvenn_rig_skinning_algorithm"] = "regional-fitted-v2-leg-root-transfer"
+            head_evidence = ({"applied": True, **head_envelope.as_dict()} if head_envelope else
+                             {"applied": False, "fallback_reason": "persistent-closed-neck-cue-unavailable"})
+            mesh["meshvenn_rig_skinning_algorithm"] = ALGORITHM
+            mesh["meshvenn_head_isolation"] = json.dumps(head_evidence, sort_keys=True)
             armature["meshvenn_rig_implementation"] = IMPLEMENTATION_ID
             context.metadata["rig_object_name"] = armature.name
             context.metadata["rig_binding_method"] = binding_method
-            context.metadata["rig_skinning_algorithm"] = "regional-fitted-v2-leg-root-transfer"
+            context.metadata["rig_skinning_algorithm"] = ALGORITHM
+            context.metadata["head_isolation"] = head_evidence
             context.metadata["rig_quality"] = quality.as_dict()
             context.metadata["rig_fit"] = fit.as_dict()
             return StageExecutionResult.succeeded(
@@ -155,7 +163,8 @@ class CanonicalRigV2Implementation:
                     "mesh_name": mesh.name,
                     "geometry_implementation": geometry.implementation_id,
                     "binding_method": binding_method,
-                    "skinning_algorithm": "regional-fitted-v2-leg-root-transfer",
+                    "skinning_algorithm": ALGORITHM,
+                    "head_isolation": head_evidence,
                     "rig_quality": quality.as_dict(),
                     "rig_fit": fit.as_dict(),
                 },
@@ -186,4 +195,6 @@ class CanonicalRigV2Implementation:
         box.label(text="Envelope-guided A/T-pose fit")
         box.label(text="Closed-section leg cues with safe fallbacks")
         box.label(text="Fitted-joint regional skinning")
+        box.label(text="Closed neck cue isolates head weights")
+        box.operator("bpt.refine_head_weights", icon="MOD_VERTEX_WEIGHT")
         box.label(text="Best for upright biped characters", icon="INFO")
