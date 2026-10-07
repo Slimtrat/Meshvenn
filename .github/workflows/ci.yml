@@ -2081,6 +2081,8 @@ jobs:
 
           test -f \
             "${PACKAGE_ROOT}/core/geometry_contracts/surface.py"
+
+          test -f \
             "${PACKAGE_ROOT}/core/geometry_contracts/normalization.py"
 
           test -f \
