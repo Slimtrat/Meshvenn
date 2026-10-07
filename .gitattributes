@@ -1,3 +1,5 @@
 # Captured, hash-pinned consumer matrices must keep the original bytes on all OSes.
 example/v2/poses/StytchDoll/factory-hall-pose.json -text
 example/v2/poses/StytchDoll/complete/** -text
+# Preserve the generated report bytes bound by the authored-skin manifest.
+example/v2/modular/StytchDollAuthoredSkin/pose-quality.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
