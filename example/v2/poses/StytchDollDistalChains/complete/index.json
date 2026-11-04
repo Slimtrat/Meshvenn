@@ -1,0 +1,660 @@
+{
+  "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+  "case_count": 23,
+  "cases": [
+    {
+      "capture_filename": "meshvenn-elbow-left-45.png",
+      "capture_sha256": "5b20454247d03937720038bdf78b864597aad55ecd0ecadd89da2f9e3cf62ecd",
+      "context": {
+        "Consumer": "selected-factory-common-presenter",
+        "Pose": "native-local-elbow"
+      },
+      "elbow_excitation": {
+        "both_arms_visible": true,
+        "joint": "forearm.L",
+        "measured_degrees": 44.999995,
+        "opposite_degrees": 7e-06,
+        "opposite_joint": "forearm.R",
+        "requested_degrees": 45,
+        "scope": "Captured isolated native-local excitation, not combined-run acceptance."
+      },
+      "hidden_regions": [],
+      "id": "Elbows-meshvenn-elbow-left-45",
+      "matrix_proof": "Elbows-meshvenn-elbow-left-45.matrices.json",
+      "matrix_proof_sha256": "7b2055ebf4de6ff9eedfc87e52f477a17831737667c55a8c24d8fdb15c186288",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 0.0,
+        "rest_relative_max_error": 2.78914e-07,
+        "skeleton_space_max_error": 4.449428e-06
+      },
+      "movement_classification": "native-local-elbow",
+      "probe": "Elbows-meshvenn-elbow-left-45.json",
+      "probe_sha256": "ec15adb06ba113867469c755e34a7297f7e24386ff9ce11786033d23e55158bf",
+      "source_git_blob": "85c526a10ac8889a71596a1b732e62cdb46f004e",
+      "source_json_sha256": "db437e87eb43a1acd7c0fb3a45077649fecdd6aaa57ac7f86898283d370f4ab4",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Elbows/meshvenn-elbow-left-45.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-elbow-left-90.png",
+      "capture_sha256": "18096d5bd8d42aa6c04d7e4ed6d60ac079caf89603584b9db0efe158420fffe1",
+      "context": {
+        "Consumer": "selected-factory-common-presenter",
+        "Pose": "native-local-elbow"
+      },
+      "elbow_excitation": {
+        "both_arms_visible": true,
+        "joint": "forearm.L",
+        "measured_degrees": 90.000014,
+        "opposite_degrees": 7e-06,
+        "opposite_joint": "forearm.R",
+        "requested_degrees": 90,
+        "scope": "Captured isolated native-local excitation, not combined-run acceptance."
+      },
+      "hidden_regions": [],
+      "id": "Elbows-meshvenn-elbow-left-90",
+      "matrix_proof": "Elbows-meshvenn-elbow-left-90.matrices.json",
+      "matrix_proof_sha256": "5600afc7e027788e855f034f17f02df0f0f0d31ab66e8778e08e3ee2104e46a9",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 0.0,
+        "rest_relative_max_error": 2.78914e-07,
+        "skeleton_space_max_error": 4.449428e-06
+      },
+      "movement_classification": "native-local-elbow",
+      "probe": "Elbows-meshvenn-elbow-left-90.json",
+      "probe_sha256": "ece20c4d5a69912dfa5d59284c9cce351b04ce6608a089ab1590abec9231b7e4",
+      "source_git_blob": "96d3e9ec2632db8360ab71ee8aac4a7de5c2e4f6",
+      "source_json_sha256": "288cae18d65f6806810a697f3812337c5021115e89d1c510182c6da284d5a5c1",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Elbows/meshvenn-elbow-left-90.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-elbow-right-45.png",
+      "capture_sha256": "ba688b1d9fe333ef6f4b5b39e35f828e56dcd1a7d051e4053e58ac64545720e0",
+      "context": {
+        "Consumer": "selected-factory-common-presenter",
+        "Pose": "native-local-elbow"
+      },
+      "elbow_excitation": {
+        "both_arms_visible": true,
+        "joint": "forearm.R",
+        "measured_degrees": 44.999997,
+        "opposite_degrees": 5e-06,
+        "opposite_joint": "forearm.L",
+        "requested_degrees": 45,
+        "scope": "Captured isolated native-local excitation, not combined-run acceptance."
+      },
+      "hidden_regions": [],
+      "id": "Elbows-meshvenn-elbow-right-45",
+      "matrix_proof": "Elbows-meshvenn-elbow-right-45.matrices.json",
+      "matrix_proof_sha256": "65ca23ad7962034bf713e582e3ec2f9ef4bdb2eb80498a62bb032a2afbcd51f6",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 0.0,
+        "rest_relative_max_error": 2.78914e-07,
+        "skeleton_space_max_error": 4.802813e-06
+      },
+      "movement_classification": "native-local-elbow",
+      "probe": "Elbows-meshvenn-elbow-right-45.json",
+      "probe_sha256": "b959114adedbb9b4bb6255f723fbf78e08d043f82e5838bb102c3289d4f0bc35",
+      "source_git_blob": "774138d2366cf86602678241fd97d9764db5faf6",
+      "source_json_sha256": "01f869cbb565aa05a4a763c0e85405d37fb3a15f19fdf39e7d4812315769cb9d",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Elbows/meshvenn-elbow-right-45.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-elbow-right-90.png",
+      "capture_sha256": "ef986aa1f77babe2410cd16cca99106d0ebf474ab366261831a4dda4d53e8f60",
+      "context": {
+        "Consumer": "selected-factory-common-presenter",
+        "Pose": "native-local-elbow"
+      },
+      "elbow_excitation": {
+        "both_arms_visible": true,
+        "joint": "forearm.R",
+        "measured_degrees": 90.00002,
+        "opposite_degrees": 5e-06,
+        "opposite_joint": "forearm.L",
+        "requested_degrees": 90,
+        "scope": "Captured isolated native-local excitation, not combined-run acceptance."
+      },
+      "hidden_regions": [],
+      "id": "Elbows-meshvenn-elbow-right-90",
+      "matrix_proof": "Elbows-meshvenn-elbow-right-90.matrices.json",
+      "matrix_proof_sha256": "83bb686dfd0ca14ed75d525fdf36d9c62a0a8cbbc65aee39dcfb1e81698cc4af",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 0.0,
+        "rest_relative_max_error": 2.78914e-07,
+        "skeleton_space_max_error": 5.309662e-06
+      },
+      "movement_classification": "native-local-elbow",
+      "probe": "Elbows-meshvenn-elbow-right-90.json",
+      "probe_sha256": "7b398aaecdb4f1d886e8025e5debaf5ef36558c9c2fa59d44b5505c81fc0c29d",
+      "source_git_blob": "46a08a16db41455e60eb35d1ede1d55e7509973a",
+      "source_json_sha256": "5dd3e87c164b867572ef074d5243333b7c56463651e769cf78b3ceb5d30f4845",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Elbows/meshvenn-elbow-right-90.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-00.png",
+      "capture_sha256": "d2d3fc4edc57328e11d485a1e9c37e31e1d8c1fa9601445f7469267ab9f9d95c",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.08272058,
+        "ElapsedSeconds": 0.35833335,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-00",
+      "matrix_proof": "Hop-meshvenn-hop-00.matrices.json",
+      "matrix_proof_sha256": "ef7ee00143eb2938186b449fdc1c197a76e302278d444362f7ba036125f94de9",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 9.0669e-08,
+        "rest_relative_max_error": 2.12193e-07,
+        "skeleton_space_max_error": 3.78408e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-00.json",
+      "probe_sha256": "aad12eb92fd982b471cbc1f13df37e566fd50f2907ee0577db6b213bed9427c2",
+      "source_git_blob": "210871bbb560b2bf018fca2fc25b27273e7b6698",
+      "source_json_sha256": "eeabd2c04319e1945fbdedbffd572948ba913495e65bcb06e997ea7b833bf900",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-00.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-01.png",
+      "capture_sha256": "37a19050ca0a8a2f7dded5a0945ecc94eca46e110fedab9952967595d635eaa7",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.23661943,
+        "ElapsedSeconds": 1.0250005,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-01",
+      "matrix_proof": "Hop-meshvenn-hop-01.matrices.json",
+      "matrix_proof_sha256": "ff7aaa0140ebd87df3301e3864e76e25edd295586bd2f354761c8297bd228d1c",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 6.8813e-08,
+        "rest_relative_max_error": 1.858786e-06,
+        "skeleton_space_max_error": 3.032933e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-01.json",
+      "probe_sha256": "3a2ddda829d27f48b3b136ed0cdc0cdc00120a19a93acff216bf1df14e24a910",
+      "source_git_blob": "25912bc5de7ee42136ca2d0b8b16c21deebf6136",
+      "source_json_sha256": "f10685bf44cf57bcdc8c81feda84f787643a5f55da6a981f582683f2fe979da9",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-01.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-02.png",
+      "capture_sha256": "e35900e9ad5731ff97b8db783b92e37a88984708a2363983a7a8c50066c29d31",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.39051804,
+        "ElapsedSeconds": 1.6916665,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-02",
+      "matrix_proof": "Hop-meshvenn-hop-02.matrices.json",
+      "matrix_proof_sha256": "df121747d642a4a511ea25c1b3684e2bb886bd0046fbec74dd57b569dea90081",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 9.072e-08,
+        "rest_relative_max_error": 3.32122e-07,
+        "skeleton_space_max_error": 5.784068e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-02.json",
+      "probe_sha256": "c0b11d688695c28a4a51bb4c41cbf3cde61b85053e3cea2a7b54e51eaf31d67e",
+      "source_git_blob": "22bf83159a6840f653a4aa6ce2a614d32ef1a48f",
+      "source_json_sha256": "7c643cb2e0d8e09cebb7d5d86102be3658cb1497e8df5f20134ad3d448456956",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-02.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-03.png",
+      "capture_sha256": "22b516cc3af6a366799f3b4557d923af616c7dd1647e60fe356f9106341b51f6",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.54441667,
+        "ElapsedSeconds": 2.3583326,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-03",
+      "matrix_proof": "Hop-meshvenn-hop-03.matrices.json",
+      "matrix_proof_sha256": "0d0d0bfa6ed548dff74a9d17d247a6aa0052a4825d5fb452263a659aec613d31",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 4.8058e-08,
+        "rest_relative_max_error": 2.92209e-07,
+        "skeleton_space_max_error": 2.476777e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-03.json",
+      "probe_sha256": "86d4614d93ce4d72bf72b9a0d519a1b158ac5ef82f3cbd36e03a9e5ee16463cb",
+      "source_git_blob": "1c14b25daeb8b02f57101eabeb30813e96a1e480",
+      "source_json_sha256": "ad41e12d52a8e1f4ad30c9138632a55ba0d788455ba18bddd08e491a58b06734",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-03.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-04.png",
+      "capture_sha256": "028e9e72b8af8e3785651aff0402688f0cee9e27c60d79678de3e2d7242445ca",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.69831526,
+        "ElapsedSeconds": 3.0249987,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-04",
+      "matrix_proof": "Hop-meshvenn-hop-04.matrices.json",
+      "matrix_proof_sha256": "04f0fa07e59a96218f23163b969268cdfd7f1b9c3c6b8cdb8b4a3ccf2bed2a84",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 4.1675e-08,
+        "rest_relative_max_error": 1.8026e-06,
+        "skeleton_space_max_error": 4.148931e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-04.json",
+      "probe_sha256": "2c9ce57d6e05c27bf48f74c442dc349a09cc2fa4f075f64abac24724525f138d",
+      "source_git_blob": "17d39a93d39353eab7b33c72da94bb8277cfb291",
+      "source_json_sha256": "8ecc3a2dfa7f1e33f76eeb2ee8552cc7fdaecc8a655880a02b41bb0d743861a1",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-04.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-05.png",
+      "capture_sha256": "67a8879bc1b9cfa42d411142a0245cadc2588ef37c41977740d477596da8dee8",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.85221386,
+        "ElapsedSeconds": 3.6916647,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-05",
+      "matrix_proof": "Hop-meshvenn-hop-05.matrices.json",
+      "matrix_proof_sha256": "007851a9721f4a28263c0a6b5d1c7e92f4bbee48c38b6c334ef413a30eaafa37",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 3.014e-08,
+        "rest_relative_max_error": 7.45332e-07,
+        "skeleton_space_max_error": 2.774468e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-05.json",
+      "probe_sha256": "85454a024462e3b79d9501889c60ec7b27ae40f5503274e7d315221d80eb7fbc",
+      "source_git_blob": "310f79e325d908cdc372e3e04d7ce31ec55a4d54",
+      "source_json_sha256": "28926bf9501f1f048b1c6eb19254200be00bdfc6895e450d7fdc137e1fa99b5b",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-05.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-06.png",
+      "capture_sha256": "48c646f02f7b2725378eb089dc12bbebc0f05c37279f7797d558b15ce482735a",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.0061124563,
+        "ElapsedSeconds": 4.3583307,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-06",
+      "matrix_proof": "Hop-meshvenn-hop-06.matrices.json",
+      "matrix_proof_sha256": "1972d999cec3f1dc2bcc39a5f62b7de3afcb7ffbd290177d428ee9253983f1c3",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 9.3725e-08,
+        "rest_relative_max_error": 6.35337e-07,
+        "skeleton_space_max_error": 4.873733e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-06.json",
+      "probe_sha256": "cfebfa1fe846030cbedd524478ab89f1e9fd3221ffc405d69012d03ef88c51b6",
+      "source_git_blob": "fb6a75ad04bf8926d73c3db53493eb59d76abf1e",
+      "source_json_sha256": "404c6fd4fbfa2a0bff5564099cffe14d914b0f572c5b6e902c1d9ae411f8586c",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-06.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-07.png",
+      "capture_sha256": "1048c53a619ec53fdf0c1806bab35b4e0e0bdbe2595942a255949a42b75fc500",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.16001105,
+        "ElapsedSeconds": 5.0249968,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-07",
+      "matrix_proof": "Hop-meshvenn-hop-07.matrices.json",
+      "matrix_proof_sha256": "40b28808457805e2b65452968ead5e6b4c6553e740e11b2678d6e74914661835",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 4.3676e-08,
+        "rest_relative_max_error": 4.76091e-07,
+        "skeleton_space_max_error": 6.933928e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-07.json",
+      "probe_sha256": "371c511ca488dc5513d99ad55cc53b0b8b00003d4eaaaa08ff45e18befd1a75c",
+      "source_git_blob": "92ca4c97b8671e16209f3d5aa16c7fdbf93580cc",
+      "source_json_sha256": "750650d1de642c1f5751277ed203b1ee6e66829471f827832f65c5bb8c479593",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-07.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-08.png",
+      "capture_sha256": "3f046bcba2f690ff107db63f1d2a4dfa630d98053c4dce797a77967bf5f761f8",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.31390965,
+        "ElapsedSeconds": 5.691663,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-08",
+      "matrix_proof": "Hop-meshvenn-hop-08.matrices.json",
+      "matrix_proof_sha256": "9796708aa8d6bea0bf89ab301627113b2c3b6367d0dcaa07beee4b78581ad244",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 3.6687e-08,
+        "rest_relative_max_error": 6.98844e-07,
+        "skeleton_space_max_error": 3.634265e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-08.json",
+      "probe_sha256": "6e18123ca88e2001f4fdd76a540df3922243d5844e3048f53234e2f122d8c915",
+      "source_git_blob": "c1296f39e9798aaaa8cf365a3fd7e9065393a11e",
+      "source_json_sha256": "34e245f45fd01c663fc0a7ed6fa5fce1a3331919a325ad835e0ba935097b8b41",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-08.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-09.png",
+      "capture_sha256": "6e28486c43e9e194bb31f5056e7786f3c535215a59b940ab4fcc4295d2abd2cc",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.46780825,
+        "ElapsedSeconds": 6.358329,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-09",
+      "matrix_proof": "Hop-meshvenn-hop-09.matrices.json",
+      "matrix_proof_sha256": "d8aac9f28bd04332d36725d4a56607fa135d88624190a654fb8487e8e74ef5ad",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 7.3722e-08,
+        "rest_relative_max_error": 1.93403e-07,
+        "skeleton_space_max_error": 4.069032e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-09.json",
+      "probe_sha256": "6819d29c3d0902055a7e2eb4ca46c8e2ba6d3c05fc556301a5b36063ba0dec90",
+      "source_git_blob": "fa518a87eaf38c9dc8b831e2403f1dc47aa488b8",
+      "source_json_sha256": "bdb45675ade35e3ea2447ef664239c5148ccd7e0664cafcbbc4637a1312b99c5",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-09.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-10.png",
+      "capture_sha256": "c37fab0f098fc1f787764bd2b0365c56c0ffac6f9c1fb0ac862ba6c1e45d9f35",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.62170684,
+        "ElapsedSeconds": 7.024995,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-10",
+      "matrix_proof": "Hop-meshvenn-hop-10.matrices.json",
+      "matrix_proof_sha256": "37a8f64f6894fef3aac727c0570a9ea9e048a7131c57fc4d00b355de3038501f",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 4.5397e-08,
+        "rest_relative_max_error": 2.80231e-07,
+        "skeleton_space_max_error": 6.154148e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-10.json",
+      "probe_sha256": "2ceb460c6aef5f6fdcf6ce0d3fb7507d9d69796fc4449aa0d458d871514fc80a",
+      "source_git_blob": "221367c5086f031cc6842acabb656bf1aacf9d87",
+      "source_json_sha256": "87472d0cc51c720f8e96f01a4e16082df1be6fe9cdced99ef24ca5f84f328ecc",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-10.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-hop-11.png",
+      "capture_sha256": "d142f9dc30e6e4df3f8084a3af77d40665dd74b61717071f221618b6366a691f",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.77560544,
+        "ElapsedSeconds": 7.691661,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "id": "Hop-meshvenn-hop-11",
+      "matrix_proof": "Hop-meshvenn-hop-11.matrices.json",
+      "matrix_proof_sha256": "7aa3fb33d6ccbc376b6d0ebbbcf64aec51f1613fa0ef3cd99bd227d44b19a81d",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 5.0177e-08,
+        "rest_relative_max_error": 2.57845e-07,
+        "skeleton_space_max_error": 6.317768e-06
+      },
+      "movement_classification": "Hop",
+      "probe": "Hop-meshvenn-hop-11.json",
+      "probe_sha256": "5b58e99e6acb8aac62dbae4dccaac76098387f02d803f8c4d43bcf13c6e69a00",
+      "source_git_blob": "e2869f9227710a8419565efac8717750b97d3b7c",
+      "source_json_sha256": "4a084f2bdc3055232930685234201455f2c10336e535420513704942f674cbac",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Hop/meshvenn-hop-11.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-walk-00.png",
+      "capture_sha256": "55cef641474f2dc65d952937b8fe4359f10ceef9d14e485b076a9d1d6db24178",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.081356004,
+        "ElapsedSeconds": 0.35833335,
+        "Pose": "Walk",
+        "Preset": "Standard Stable"
+      },
+      "hidden_regions": [],
+      "id": "Walk-meshvenn-walk-00",
+      "matrix_proof": "Walk-meshvenn-walk-00.matrices.json",
+      "matrix_proof_sha256": "ef58399d73a4656c594804ca352db0df5ca97d3927799cb360554cb1cac6be1e",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 2.78e-08,
+        "rest_relative_max_error": 6.75864e-07,
+        "skeleton_space_max_error": 4.190425e-06
+      },
+      "movement_classification": "Walk",
+      "probe": "Walk-meshvenn-walk-00.json",
+      "probe_sha256": "e2ff232c146b500497237da0b18ae9c9dfc8143a044380fc93b99e1bb9c6d666",
+      "source_git_blob": "0a96eca147bf6bcce6ce63099d1f2f8937955b9c",
+      "source_json_sha256": "fd231564b3f5dade4102413824530221741891fddcec817316e977a0fa2d7114",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Walk/meshvenn-walk-00.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-walk-01.png",
+      "capture_sha256": "f7915a1cb69a4814a1ac26f3648507355d71db82d75ebcb25c3b74ce741d84b7",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.23271611,
+        "ElapsedSeconds": 1.0250005,
+        "Pose": "Walk",
+        "Preset": "Standard Stable"
+      },
+      "hidden_regions": [],
+      "id": "Walk-meshvenn-walk-01",
+      "matrix_proof": "Walk-meshvenn-walk-01.matrices.json",
+      "matrix_proof_sha256": "e325cc99891af18eb5a0859aa09379114fb8be740d0632d2644f54c9d18d3138",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 3.051e-08,
+        "rest_relative_max_error": 1.73179e-06,
+        "skeleton_space_max_error": 5.155238e-06
+      },
+      "movement_classification": "Walk",
+      "probe": "Walk-meshvenn-walk-01.json",
+      "probe_sha256": "40d9a4d74ca6fc4de8e655e87567167db6c0d5b11a9d52eae1804352e5027457",
+      "source_git_blob": "578572d0e9d0c75293b033cd7fd8d0f72d80ab01",
+      "source_json_sha256": "0df318a164acc5fa0ce5f554eaafd7dc4b7fbff1259eb0b7a62e0c8b05788b7d",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Walk/meshvenn-walk-01.pose.json"
+    },
+    {
+      "capture_filename": "meshvenn-walk-02.png",
+      "capture_sha256": "a8cea9a3d67e955b7fc1f2ec5aad58410eecfdd1896e2a492cc15132892a73fc",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.38407597,
+        "ElapsedSeconds": 1.6916665,
+        "Pose": "Walk",
+        "Preset": "Standard Stable"
+      },
+      "hidden_regions": [],
+      "id": "Walk-meshvenn-walk-02",
+      "matrix_proof": "Walk-meshvenn-walk-02.matrices.json",
+      "matrix_proof_sha256": "254390ba2f42ac29efc7d183a52708874871e630384c2f1bb05553549a35eb0a",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 6.172e-08,
+        "rest_relative_max_error": 4.11738e-07,
+        "skeleton_space_max_error": 5.108258e-06
+      },
+      "movement_classification": "Walk",
+      "probe": "Walk-meshvenn-walk-02.json",
+      "probe_sha256": "573a6aa6db650d88e6f92cd87043adcc5237f0bbe3d5abb692a258dd4a3bf28d",
+      "source_git_blob": "91b92558cabeb56505b35aa20ac3b47e2ee991dc",
+      "source_json_sha256": "a42626fd027c72f495c08f2ea3df056c5ac3bd535b007366658ab7a35d2a7c10",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/Walk/meshvenn-walk-02.pose.json"
+    },
+    {
+      "capture_filename": "03-one-leg-hop.png",
+      "capture_sha256": "1a6d451614828a2f0fd57a06a3d531934a19e06760d57f357c86c9745e827159",
+      "context": {
+        "BodyVariant": "OneLeg",
+        "Consumer": "world-storyboard",
+        "InTransit": true,
+        "Sample": "03-one-leg-hop",
+        "WorldMode": "Run"
+      },
+      "hidden_regions": [
+        "right-arm",
+        "right-leg"
+      ],
+      "id": "World-03-one-leg-hop",
+      "matrix_proof": "World-03-one-leg-hop.matrices.json",
+      "matrix_proof_sha256": "641fc65cc5bb06a5f5f54f3c8ae0acc31c23cb8ff847920ee3e1663fe13fc4dc",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 2.52571e-07,
+        "rest_relative_max_error": 1.944499e-06,
+        "skeleton_space_max_error": 4.575358e-06
+      },
+      "movement_classification": "walk-approach, not explicit hop",
+      "probe": "World-03-one-leg-hop.json",
+      "probe_sha256": "41c639642eeb8ed27c2729afd42d393126dbbb610a74b57a4abe21523ce0e3ac",
+      "source_git_blob": "b9ee0fe4eb67e021d3fd0a046c934f7cfc68e571",
+      "source_json_sha256": "bd4421d3f1e4f1faf7a4b107f3b8d63185979f87f3e90d84ca38a112ccbcb114",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/World/03-one-leg-hop.pose.json"
+    },
+    {
+      "capture_filename": "factory-hall.png",
+      "capture_sha256": "02ab40de00542339e1b7a99d92889b3c02a2e3837a8a1b2433e86e54306efa34",
+      "context": {
+        "AnatomyMask": 0,
+        "Consumer": "selected-factory",
+        "ElapsedSeconds": 1.2,
+        "Pose": "presence"
+      },
+      "hidden_regions": [],
+      "id": "factory-hall",
+      "matrix_proof": "factory-hall.matrices.json",
+      "matrix_proof_sha256": "f2efa4d39bc1bb97fcde9f8877f7d0f9daf6f0f1932b732ac4ac2c0d1c76c89e",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 0.0,
+        "rest_relative_max_error": 9.17442e-07,
+        "skeleton_space_max_error": 2.339317e-06
+      },
+      "movement_classification": "presence",
+      "probe": "factory-hall.json",
+      "probe_sha256": "db39bc38779fd8ce2e3a6f7c49bfef76f3b332f8bc555f8be9a90debe2425657",
+      "source_git_blob": "7933a1c5f83f8b870471db6c85cbd4b6bec491e0",
+      "source_json_sha256": "b7afc10ab0c06bae87924880d580da75d545b59d232de6acc7ac427578a3ee01",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/factory-hall.pose.json"
+    },
+    {
+      "capture_filename": "factory-held.png",
+      "capture_sha256": "3810927990910ef212be1cdc6a6ba19e089a846c1683595e63662c8812f6ec74",
+      "context": {
+        "AnatomyMask": 0,
+        "Consumer": "selected-factory",
+        "Lift": 0.75,
+        "Pose": "held",
+        "Wobble": 0.4
+      },
+      "hidden_regions": [],
+      "id": "factory-held",
+      "matrix_proof": "factory-held.matrices.json",
+      "matrix_proof_sha256": "c9a50b81eb1ef3e179efe9008a67aa1cb610bed68f845918a8860922e919a43c",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 0.0,
+        "rest_relative_max_error": 4.82719e-07,
+        "skeleton_space_max_error": 3.056104e-06
+      },
+      "movement_classification": "held",
+      "probe": "factory-held.json",
+      "probe_sha256": "63328b2f864dd19a57ce0cbec8594aaca6c5f71c373834e89069f90322383d80",
+      "source_git_blob": "f82ccbd389e3885f44e229d14b4c2d040c28bcc3",
+      "source_json_sha256": "4e3c4380022b5261dd352304776117c8102f53c52f2abb2ccd4781ee9b1fe9f5",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/factory-held.pose.json"
+    },
+    {
+      "capture_filename": "factory-one-leg.png",
+      "capture_sha256": "c6908cf3b0fbe3fd94acddc78294173af191961e8fffd6ef69eb1c85fa70a287",
+      "context": {
+        "AnatomyMask": 4,
+        "Consumer": "selected-factory",
+        "ElapsedSeconds": 1.2,
+        "Pose": "presence"
+      },
+      "hidden_regions": [
+        "left-leg"
+      ],
+      "id": "factory-one-leg",
+      "matrix_proof": "factory-one-leg.matrices.json",
+      "matrix_proof_sha256": "f2efa4d39bc1bb97fcde9f8877f7d0f9daf6f0f1932b732ac4ac2c0d1c76c89e",
+      "matrix_recomposition": {
+        "ancestor_chain_max_error": 0.0,
+        "rest_relative_max_error": 9.17442e-07,
+        "skeleton_space_max_error": 2.339317e-06
+      },
+      "movement_classification": "presence",
+      "probe": "factory-one-leg.json",
+      "probe_sha256": "db39bc38779fd8ce2e3a6f7c49bfef76f3b332f8bc555f8be9a90debe2425657",
+      "source_git_blob": "4359737fe09859654b982b361e700bc18afad30f",
+      "source_json_sha256": "30777896be50c25430bc034847eb701976373ea124c854253ad903970fc48288",
+      "source_path": "godot/Stytch.GodotHost/Assets/Embodiment/Candidates/MeshVennDollDistalChainsV1/Evidence/Factory/factory-one-leg.pose.json"
+    }
+  ],
+  "publication": "Owner explicitly authorized publication of matrices and provenance. Private PNGs, control/loadout data, node names and world telemetry are excluded.",
+  "schema_version": 1,
+  "scope": "Exact nineteen selected-asset production snapshots and four visible isolated native-local elbow captures. Rotation excitation is not combined-pose, artistic or physical-contact acceptance.",
+  "source_repository": "Stytch0/Stytch",
+  "source_revision": "1503d4854c991335027255f79c42788954abcfbf"
+}
