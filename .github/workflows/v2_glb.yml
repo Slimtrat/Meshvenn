@@ -188,6 +188,7 @@ jobs:
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python scripts/replay_stytch_pose_series.py -- \
             --profile shoulder-aligned \
+            --review-views \
             --render-cases factory-hall factory-held Walk-meshvenn-walk-02 Hop-meshvenn-hop-11 \
             --output "${RUNNER_TEMP}/head-isolation/fresh-shoulder-consumer-replay" \
             --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \

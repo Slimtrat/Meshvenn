@@ -17,6 +17,7 @@ from scripts.author_stytch_doll import digest, module, source_snapshot
 from scripts.head_isolation_metrics import masked_edge_summary
 from scripts.native_pose_replay import AXES, accumulated, apply_probe, matrix_error
 from scripts.render_v2_pipeline_preview import _camera, _import, _joint_world, _positions, _render
+from scripts.render_turntable import create_camera, look_at
 
 
 def hausdorff(a, b):
@@ -56,6 +57,30 @@ def decoded_lbs(document, binary, probe, reader):
     return points, rest_error
 
 
+def render_review_views(meshes, output):
+    """Frame evaluated visible skin only; no UI, pose edits or material overlays."""
+    visible = [obj for obj in meshes if not obj.hide_render]
+    points = [p for rows in _positions(visible).values() for p in rows]
+    if not points:
+        raise ValueError("A pose review needs visible evaluated source geometry.")
+    lower = Vector(tuple(min(p[i] for p in points) for i in range(3)))
+    upper = Vector(tuple(max(p[i] for p in points) for i in range(3)))
+    target, dimensions = (lower+upper)*.5, upper-lower
+    radius = dimensions.length
+    camera = create_camera(target=target, model_size=dimensions)
+    camera.data.ortho_scale = radius*1.15
+    for label, direction in (("front", Vector((1.5,-2.6,.35))),
+                             ("back", Vector((-1.5,2.6,.35)))):
+        camera.location = target+direction*radius
+        look_at(camera,target)
+        _render(output / ("review_"+label+".png"))
+    return {"evaluated_visible_geometry_only": True,
+            "visible_meshes": sorted(obj.name for obj in visible),
+            "world_bounds": [list(lower),list(upper)],
+            "views": ["front-three-quarter", "back-three-quarter"],
+            "pose_or_material_edits": False}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--pose", type=Path, required=True)
@@ -64,6 +89,7 @@ def main(argv=None):
     parser.add_argument("--hidden-region", choices=("left-arm", "right-arm", "left-leg", "right-leg"))
     parser.add_argument("--hidden-regions", nargs="+", choices=("left-arm", "right-arm", "left-leg", "right-leg"))
     parser.add_argument("--no-render", action="store_true", help="Run all numerical replay gates without rendering PNGs.")
+    parser.add_argument("--review-views", action="store_true", help="Add front/back views framed on evaluated visible skin.")
     parser.add_argument("--source-sha", default="local-uncommitted")
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--run-attempt", default=None)
@@ -123,6 +149,9 @@ def main(argv=None):
         hidden.hide_render = True
     if hidden_regions and not args.no_render:
         _render(output / ("glb_pose_hidden_"+"_".join(hidden_regions)+".png"))
+    review_framing = render_review_views(meshes, output) if args.review_views and not args.no_render else None
+    if review_framing is not None and _positions(meshes) != imported_by_mesh:
+        raise ValueError("Review cameras must not change any posed mesh position.")
     import_raw_error = hausdorff(raw, imported)
     # Independently verify source skin, raw glTF LBS and Blender reimport. These
     # are diagnostic replay gates, not changes to existing export tolerances.
@@ -140,6 +169,7 @@ def main(argv=None):
               "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
               "torso_edges": torso_edges, "source_authority_unchanged": True,
               "images": {p.name: digest(p) for p in output.glob("*.png")},
+              "review_framing": review_framing,
               "visual_qualification": False, "consumer_capture_pixel_equality_claimed": False,
               "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."}
     (output / "replay.json").write_text(json.dumps(report, indent=2, allow_nan=False)+"\n", encoding="utf-8", newline="\n")

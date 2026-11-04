@@ -24,6 +24,7 @@ def main():
     parser.add_argument("--dataset", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--render-cases", nargs="*", default=DEFAULT_RENDERS)
+    parser.add_argument("--review-views", action="store_true")
     parser.add_argument("--source-sha", default="local-uncommitted")
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--run-attempt", default=None)
@@ -71,6 +72,8 @@ def main():
             argv += ["--hidden-regions", *case["hidden_regions"]]
         if case["id"] not in args.render_cases:
             argv.append("--no-render")
+        elif args.review_views:
+            argv.append("--review-views")
         for flag, value in (("--run-id", args.run_id), ("--run-attempt", args.run_attempt)):
             if value is not None:
                 argv += [flag, value]
