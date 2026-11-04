@@ -237,6 +237,16 @@ or visual acceptance. Select and replay its distinct GLB fingerprint in Stytch
 before qualifying #60/#63; legacy joint fit, atlas coverage and absent-limb seams
 remain documented limitations.
 
+[Fresh selected-artifact Stytch captures](../example/v2/poses/StytchDollShoulderAligned/README.md)
+from Stytch PR #225 now replay all nineteen poses directly on this delivered rig,
+not by deriving old matrices. The immutable original and derived sets remain
+separate. `replay_stytch_pose_series.py --profile shoulder-aligned --review-views`
+adds strict source/raw/reimport checks and evaluated-visible front/back views.
+The clean rear view distinguishes the folded remaining leg from front occlusion;
+captured external squash is separately recorded, not compensated in source skin.
+This provides technical replay evidence, not artistic acceptance or permission
+to resume engine/rig/format expansion. #60/#63 remain open.
+
 [Captured Hall matrices and their provenance](../example/v2/poses/StytchDoll/README.md)
 provide an independent native-source / decoded-GLB / reimport replay for #60.
 They reproduce the upstream skin collapse before partitioning, with sub-micrometre

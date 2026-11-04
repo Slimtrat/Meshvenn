@@ -1,0 +1,68 @@
+{
+  "passed": true,
+  "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+  "input_pose_sha256": "ea1dd35b2e93df3b121de4dd6838b5363d163557476c7eb9359b0068d0684c70",
+  "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+  "run_id": null,
+  "run_attempt": null,
+  "hidden_region": "right-leg",
+  "hidden_regions": [
+    "right-leg"
+  ],
+  "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+  "native_rest_error_in_heights": 1.6028117164254222e-07,
+  "glb_rest_world_max_error": 1.4901161193847656e-07,
+  "native_applied_delta_error": 7.927417755126953e-06,
+  "imported_applied_delta_error": 1.2159347534179688e-05,
+  "native_vs_decoded_glb_max_error_m": 7.190099609033496e-07,
+  "decoded_vs_reimport_max_error_m": 7.344020218624792e-07,
+  "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+  "torso_edges": {
+    "edge_count": 2599,
+    "p95_abs_log_length_ratio": 0.34425645169284214,
+    "max_abs_log_length_ratio": 1.288142402463217,
+    "min_length_ratio": 0.2757826006467086,
+    "max_length_ratio": 1.9527354444568514,
+    "outside_20_percent_count": 267,
+    "collapsed_fraction": 0.0
+  },
+  "source_authority_unchanged": true,
+  "images": {
+    "glb_pose.png": "972d782dc5a31b55d266882e99d84d94b18fc954a0726c014c2a9a301b1cf7fd",
+    "glb_pose_hidden_right-leg.png": "ee4abd494a0a6358aa1fa62aef707e8efbda1ddd4c909ce02b7a8834ae475a75",
+    "native_pose.png": "c7abdfba8ef8c4cdb95dbde6c5286ba1afc627856ef2808bb02825e5930c6f72",
+    "native_rest.png": "7ed58b78c3c46bef312e41a2d86baaaaff0a2d91273865cc7d2d5f5f91304d6f",
+    "review_back.png": "16145a12b52fa0e88341f02beaccfaccad6c5287040006d5522d94b5514c665f",
+    "review_front.png": "3970418becc593ba64d8cfae449cfcd6e355a929e32b285d67e204adf0c08ac6"
+  },
+  "review_framing": {
+    "evaluated_visible_geometry_only": true,
+    "visible_meshes": [
+      "Doll_body_core",
+      "Doll_left_arm",
+      "Doll_left_leg",
+      "Doll_right_arm"
+    ],
+    "world_bounds": [
+      [
+        -0.29817578196525574,
+        -0.5621824860572815,
+        0.7080948352813721
+      ],
+      [
+        0.7085604667663574,
+        0.6794120073318481,
+        1.9069997072219849
+      ]
+    ],
+    "views": [
+      "front-three-quarter",
+      "back-three-quarter"
+    ],
+    "lighting": "same neutral light rig rotated with the rear camera",
+    "pose_or_material_edits": false
+  },
+  "visual_qualification": false,
+  "consumer_capture_pixel_equality_claimed": false,
+  "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+}

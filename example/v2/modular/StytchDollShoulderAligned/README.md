@@ -46,8 +46,11 @@ collapse, and legacy elbow/hip/head placement remains unqualified.
 
 `pose-quality.json` fingerprints fourteen **own Blender renders** and all derived
 probes. Private consumer screenshots, code, controls, loadouts and telemetry are
-not included. Visual qualification and consumer acceptance remain false; #60
-and #63 still require actual selected-artifact consumer replay. The original
+not included. The generation-time manifest retains its original failed acceptance
+flags. A subsequent [fresh Stytch consumer replay](../../poses/StytchDollShoulderAligned/README.md)
+now provides actual selected-artifact matrices and separate native/raw/reimport
+proofs; technical fidelity does not establish artistic acceptance. #60 and #63
+remain open for visual qualification. The original
 atlas's 56% neutral fallback, reported UV overlap, and open absent-limb seams are
 unchanged. Expansion into new engines/rigs/formats remains paused.
 

@@ -1,6 +1,7 @@
 """Actual selected-asset captures stay distinct from old and derived evidence."""
 import hashlib
 import json
+import math
 from pathlib import Path
 import tempfile
 import unittest
@@ -10,6 +11,8 @@ from core.native_pose_capture import CONVENTION, CONTEXT_KEYS, LAYOUT, validate_
 from core.native_pose_probe import NativePoseProbe
 from scripts.extract_stytch_pose_series import capture_profile, encoded, main as extract, verify_source_blob
 from scripts import shoulder_consumer_capture as selected
+from scripts.shoulder_pose_derivation import inverse
+from core.native_pose_capture import multiply
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "example/v2/poses/StytchDollShoulderAligned/complete"
@@ -98,6 +101,63 @@ class ShoulderConsumerCaptureTests(unittest.TestCase):
             verify_source_blob("factory-hall.pose.json", raw+b" ", expected)
         with self.assertRaises(ValueError):
             verify_source_blob("factory-hall.pose.json", raw, selected.SOURCE_BLOBS)
+
+    def test_pinned_native_raw_reimport_review_has_only_own_fingerprinted_renders(self):
+        output = FIXTURE.parent / "replay"
+        self.assertEqual(digest(output / "series.json"),
+                         "a1ad994cf8156d3f44e74782ade513094310b0fd4ec50fe488240f69cfd2cbdc")
+        report, index = load(output / "series.json"), load(FIXTURE / "index.json")
+        self.assertTrue(report["passed"] and report["replay_is_actual_consumer_capture"])
+        self.assertEqual(report["asset_sha256"], selected.ASSET_SHA)
+        self.assertEqual(report["consumer_revision"], selected.REVISION)
+        self.assertEqual(report["source_sha"], "5871fbae8be4ae2d735468f466931e47f442da10")
+        self.assertEqual(report["dataset_sha256"], selected.INDEX_SHA256)
+        self.assertEqual(report["capture_profile"], "shoulder-aligned")
+        self.assertFalse(report["visual_qualification"] or report["private_captures_published"])
+        expected = {case["id"]: case for case in index["cases"]}
+        self.assertEqual(len(report["cases"]), 19)
+        seen = set()
+        for case in report["cases"]:
+            self.assertTrue(case["passed"] and case["source_authority_unchanged"])
+            self.assertEqual(case["input_pose_sha256"], expected[case["id"]]["probe_sha256"])
+            self.assertEqual(case["hidden_regions"], expected[case["id"]]["hidden_regions"])
+            self.assertFalse(case["visual_qualification"] or case["consumer_capture_pixel_equality_claimed"])
+            self.assertLess(case["native_rest_error_in_heights"], 2e-6)
+            self.assertLess(case["glb_rest_world_max_error"], 2e-6)
+            for key in ("native_vs_decoded_glb_max_error_m", "decoded_vs_reimport_max_error_m"):
+                self.assertLess(case[key], 2e-5 * 1.82)
+            for key, value in load(output / case["id"] / "replay.json").items():
+                self.assertEqual(case[key], value)
+            for name, sha in case["images"].items():
+                self.assertEqual(Path(name).name, name)
+                path = output / case["id"] / name
+                self.assertEqual(digest(path), sha)
+                self.assertNotEqual(sha, expected[case["id"]]["capture_sha256"])
+                seen.add(path)
+            if case["id"] in report["rendered_cases"]:
+                framing = case["review_framing"]
+                self.assertTrue(framing["evaluated_visible_geometry_only"])
+                self.assertFalse(framing["pose_or_material_edits"])
+                visible = {"Doll_"+r.replace("-", "_") for r in
+                           {"body-core", "left-arm", "right-arm", "left-leg", "right-leg"}-set(case["hidden_regions"])}
+                self.assertEqual(set(framing["visible_meshes"]), visible)
+                self.assertTrue({"review_front.png", "review_back.png"} <= case["images"].keys())
+            else:
+                self.assertIsNone(case["review_framing"])
+        self.assertEqual(len(seen), 21)
+        self.assertEqual(seen, set(output.rglob("*.png")))
+
+    def test_consumer_ancestor_squash_is_not_mislabeled_as_local_skin_scale(self):
+        proof = load(FIXTURE / "Hop-meshvenn-hop-11.matrices.json")
+        lengths = [[math.sqrt(sum(a["Local"][c*3+r]**2 for r in range(3)))
+                    for c in range(3)] for a in proof["ancestors"]]
+        self.assertTrue(any(max(row)-min(row) > .1 for row in lengths))
+        for case in ("factory-hall", "factory-held", "Hop-meshvenn-hop-11"):
+            probe = NativePoseProbe.from_dict(load(FIXTURE / (case+".json")))
+            for bone in probe.bones:
+                delta = multiply(inverse(bone.rest), bone.pose)
+                for c in range(3):
+                    self.assertAlmostEqual(sum(delta[r][c]**2 for r in range(3)), 1, delta=2e-6)
 
     def test_incomplete_input_fails_before_any_publication(self):
         with tempfile.TemporaryDirectory() as folder:

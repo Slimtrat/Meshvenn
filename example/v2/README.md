@@ -211,6 +211,10 @@ shoulder improvements and strict fidelity; they are not captures of that new rig
 Its editable source, portable authoring bytes, GLB and own paired renders are
 pinned separately. Stytch selected-artifact replay and visual acceptance are
 still required, with no replacement of prior candidates or expansion of scope.
+The subsequent [actual consumer capture review](poses/StytchDollShoulderAligned/README.md)
+now supplies nineteen fresh selected-asset probes, strict source/raw/reimport
+evidence and clean front/back own renders. These are separate from the earlier
+derived poses; technical replay passes without claiming artistic acceptance.
 
 Its geometry uses the unchanged neutral silhouettes; a separate calibrated
 source-color/emission path feeds UV Bake V2 (512², 2 samples/axis). The packed
