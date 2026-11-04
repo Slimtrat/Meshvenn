@@ -69,15 +69,21 @@ def render_review_views(meshes, output):
     radius = dimensions.length
     camera = create_camera(target=target, model_size=dimensions)
     camera.data.ortho_scale = radius*1.15
+    lights = [(obj, obj.location.copy()-target) for obj in bpy.context.scene.objects if obj.type == "LIGHT"]
     for label, direction in (("front", Vector((1.5,-2.6,.35))),
                              ("back", Vector((-1.5,2.6,.35)))):
         camera.location = target+direction*radius
         look_at(camera,target)
+        sign = 1 if label == "front" else -1
+        for light, offset in lights:
+            light.location = target+Vector((sign*offset.x,sign*offset.y,offset.z))
+            look_at(light,target)
         _render(output / ("review_"+label+".png"))
     return {"evaluated_visible_geometry_only": True,
             "visible_meshes": sorted(obj.name for obj in visible),
             "world_bounds": [list(lower),list(upper)],
             "views": ["front-three-quarter", "back-three-quarter"],
+            "lighting": "same neutral light rig rotated with the rear camera",
             "pose_or_material_edits": False}
 
 
