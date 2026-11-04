@@ -180,6 +180,19 @@ jobs:
             --variant "${RUNNER_TEMP}/head-isolation/shoulder-aligned" \
             --output "${RUNNER_TEMP}/head-isolation/shoulder-api-and-relocation"
 
+      - name: Replay fresh captured poses of the exact delivered shoulder-aligned doll
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_shoulder_consumer_captures -v
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/replay_stytch_pose_series.py -- \
+            --profile shoulder-aligned \
+            --render-cases factory-hall factory-held Walk-meshvenn-walk-02 Hop-meshvenn-hop-11 \
+            --output "${RUNNER_TEMP}/head-isolation/fresh-shoulder-consumer-replay" \
+            --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
+
       - name: Verify explicit contracts and behavior-preserving Stytch consolidation
         shell: bash
         run: |

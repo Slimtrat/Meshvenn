@@ -41,28 +41,45 @@ def encoded(value):
     return (json.dumps(value, sort_keys=True, indent=2, allow_nan=False)+"\n").encode("utf-8")
 
 
-def verify_source_blob(name, raw):
+def capture_profile(name):
+    if name == "original":
+        module, fixture = sys.modules[__name__], "StytchDoll"
+    elif name == "shoulder-aligned":
+        from scripts import shoulder_consumer_capture as module
+        fixture = "StytchDollShoulderAligned"
+    else:
+        raise ValueError("Unknown explicitly qualified capture profile.")
+    return {"revision": module.REVISION, "source_base": module.SOURCE_BASE,
+            "asset_sha256": module.ASSET_SHA, "index_sha256": module.INDEX_SHA256,
+            "source_blobs": module.SOURCE_BLOBS, "fixture": ROOT / "example/v2/modular" / fixture,
+            "dataset": ROOT / "example/v2/poses" / fixture / "complete"}
+
+
+def verify_source_blob(name, raw, source_blobs=None):
     blob = hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\0"+raw).hexdigest()
-    if SOURCE_BLOBS.get(name) != blob:
+    if (SOURCE_BLOBS if source_blobs is None else source_blobs).get(name) != blob:
         raise ValueError("Input JSON bytes differ from the pinned Stytch revision.")
     return blob
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args()
+    parser.add_argument("--profile", choices=("original", "shoulder-aligned"), default="original")
+    args = parser.parse_args(argv)
+    profile = capture_profile(args.profile)
     source, output = args.input.resolve(strict=True), args.output.resolve()
     files = {p.relative_to(source).as_posix(): p for p in source.rglob("*.pose.json")}
-    if set(files) != set(SOURCE_BLOBS) or output == source or (output.exists() and any(output.iterdir())):
+    if (set(files) != set(profile["source_blobs"]) or output == source or source in output.parents
+            or (output.exists() and any(output.iterdir()))):
         raise ValueError("Require all nineteen captured pairs and a separate empty output directory.")
     prepared, entries = [], []
     for name, path in sorted(files.items()):
         raw = path.read_bytes()
-        blob = verify_source_blob(name, raw)
+        blob = verify_source_blob(name, raw, profile["source_blobs"])
         document, proof, metadata = project_capture(strict_json_loads(raw.decode("utf-8")))
-        if document["AssetSha256"].lower() != ASSET_SHA:
+        if document["AssetSha256"].lower() != profile["asset_sha256"]:
             raise ValueError("Capture targets a different native GLB fingerprint.")
         png = path.with_name(metadata["capture_filename"])
         if digest(png.read_bytes()) != metadata["capture_sha256"]:
@@ -73,17 +90,17 @@ def main():
         prepared.extend(((probe_file, probe_bytes), (proof_file, proof_bytes)))
         entries.append({"id": case_id, "probe": probe_file, "probe_sha256": digest(probe_bytes),
                         "matrix_proof": proof_file, "matrix_proof_sha256": digest(proof_bytes),
-                        "source_path": SOURCE_BASE+name, "source_json_sha256": digest(raw),
+                        "source_path": profile["source_base"]+name, "source_json_sha256": digest(raw),
                         "source_git_blob": blob,
                         "movement_classification": "walk-approach, not explicit hop" if name.startswith("World/") else metadata["context"].get("Pose"),
                         **metadata})
-    index = {"schema_version": 1, "source_repository": "Stytch0/Stytch", "source_revision": REVISION,
-             "asset_sha256": ASSET_SHA, "case_count": len(entries), "cases": entries,
+    index = {"schema_version": 1, "source_repository": "Stytch0/Stytch", "source_revision": profile["revision"],
+             "asset_sha256": profile["asset_sha256"], "case_count": len(entries), "cases": entries,
              "publication": "Owner explicitly authorized publication of matrices and provenance. Private PNGs, control/loadout data, node names and world telemetry are excluded.",
              "scope": "Exact nineteen synchronized source poses and visibility; no consumer repair or full visual/physical-contact qualification."}
     # All validation precedes publication; bytes are mechanically projected,
     # never replaced with invented pose targets or unchecked private fields.
-    if digest(encoded(index)) != INDEX_SHA256:
+    if digest(encoded(index)) != profile["index_sha256"]:
         raise ValueError(f"Projected dataset changed ({digest(encoded(index))}); update its explicit qualification pin first.")
     output.mkdir(parents=True, exist_ok=True)
     for name, data in prepared:

@@ -142,7 +142,7 @@ def main(argv=None):
               "images": {p.name: digest(p) for p in output.glob("*.png")},
               "visual_qualification": False, "consumer_capture_pixel_equality_claimed": False,
               "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."}
-    (output / "replay.json").write_text(json.dumps(report, indent=2, allow_nan=False)+"\n", "utf-8")
+    (output / "replay.json").write_text(json.dumps(report, indent=2, allow_nan=False)+"\n", encoding="utf-8", newline="\n")
     assert passed, "Native source / decoded GLB / reimport pose replay disagreement."
     print(f"Native consumer pose replay PASS: source/raw {raw_native_error:.6g}m; raw/reimport {import_raw_error:.6g}m; torso quality remains unqualified.")
 
