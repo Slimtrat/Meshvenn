@@ -147,6 +147,54 @@ def compare_owned_variant(reference, reference_binary, candidate, candidate_bina
             "scope": "Before/after source weight edit. New-source skin fidelity is separately gated by export; old weights are intentionally not retained."}
 
 
+def compare_limb_variant(reference, reference_binary, candidate, candidate_binary, read_accessor, edited_positions):
+    """Separate declared distal skin proof; never relax ordinary old-weight fidelity."""
+    old, faces, binds, images, count = _records(reference, reference_binary, read_accessor)
+    new, new_faces, new_binds, new_images, new_count = _records(candidate, candidate_binary, read_accessor)
+    allowed = {tuple(p) for p in edited_positions}
+    if not allowed or any(len(p) != 3 or any(not math.isfinite(v) for v in p) for p in allowed):
+        raise ValueError("Distal proof requires explicit finite source-edited positions.")
+    if count != 14252 or new_count != count or faces != new_faces or set(old) != set(new):
+        raise ValueError("Distal skin changed source positions/UV/topology/tessellation.")
+    if binds != new_binds or images != new_images:
+        raise ValueError("Distal skin changed native inverse binds or embedded atlas.")
+    positions = {key[:3] for key in old}
+    tolerance = (max(p[1] for p in positions)-min(p[1] for p in positions))*1e-7
+    mapped, projection_error = set(), 0.
+    for point in allowed:
+        matches = [p for p in positions if math.dist(p,point) <= tolerance]
+        if len(matches) != 1:
+            raise ValueError("Source edit does not map uniquely to an original float32 glTF position.")
+        mapped.add(matches[0])
+        projection_error = max(projection_error,math.dist(point,matches[0]))
+    changed = 0
+    for key, rows in old.items():
+        matches = list(new[key])
+        if len(rows) != len(matches):
+            raise ValueError("Distal skin lost or duplicated a source corner.")
+        for normal, weights, material in rows:
+            choices = [i for i, (_, _, other) in enumerate(matches) if material == other]
+            if not choices:
+                raise ValueError("Distal skin changed source material semantics.")
+            index = min(choices, key=lambda i: max(abs(a-b) for a, b in zip(normal, matches[i][0])))
+            other_normal, other_weights, _ = matches.pop(index)
+            if max(abs(a-b) for a, b in zip(normal, other_normal)) > 2e-6:
+                raise ValueError("Distal skin changed source corner normals.")
+            if weights != other_weights:
+                if key[:3] not in mapped:
+                    raise ValueError("Distal skin changed weights outside the declared source edit.")
+                changed += 1
+    if not changed:
+        raise ValueError("No intentional distal weights changed.")
+    return {"passed": True, "changed_corner_count": changed, "triangle_count": count,
+            "native_inverse_binds_exact": True, "surface_uv_material_atlas_preserved": True,
+            "weights_outside_declared_positions_exact": True,
+            "source_edit_projection_tolerance_m": tolerance,
+            "source_edit_projection_max_error_m": projection_error,
+            "declared_edited_position_count": len(mapped),
+            "scope": "Distinct distal skin edit; ordinary unchanged-source weight gates remain strict."}
+
+
 def compare_shoulder_variant(reference, reference_binary, candidate, candidate_binary, read_accessor):
     """Two explicitly changed inverse binds; all old skin/surface gates retained."""
     old,faces,binds,images,count = _records(reference,reference_binary,read_accessor)

@@ -7,3 +7,4 @@ example/v2/modular/StytchDollAuthoredSkin/pose-quality.json -text whitespace=bla
 # New shoulder delivery declares portable LF byte fingerprints, including authoring.
 example/v2/modular/StytchDollShoulderAligned/*.json text eol=lf
 example/v2/modular/StytchDollShoulderAligned/derived-poses/*.json text eol=lf
+example/v2/modular/StytchDollDistalChains/*.json text eol=lf

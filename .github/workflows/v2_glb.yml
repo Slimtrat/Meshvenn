@@ -194,6 +194,21 @@ jobs:
             --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
             --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
 
+      - name: Gate distal native-chain skin on isolated joints and nineteen captured poses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_rig_limb_chain tests.test_distal_chains_doll_fixture -v
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python scripts/refine_workshop_limbs.py -- \
+            --output "${RUNNER_TEMP}/head-isolation/distal-chains" \
+            --source-sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${GITHUB_RUN_ID}" --run-attempt "${GITHUB_RUN_ATTEMPT}"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_limb_refinement_smoke.py -- \
+            --variant "${RUNNER_TEMP}/head-isolation/distal-chains" \
+            --output "${RUNNER_TEMP}/head-isolation/distal-api-and-relocation"
+
       - name: Verify explicit contracts and behavior-preserving Stytch consolidation
         shell: bash
         run: |

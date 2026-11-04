@@ -4,6 +4,7 @@ import bpy
 from ..implementations.canonical_rig_v2.head_refinement import refine_head_weights
 from ..implementations.canonical_rig_v2.owned_refinement import refine_owned_skin
 from ..implementations.canonical_rig_v2.shoulder_alignment import align_authored_shoulders
+from ..implementations.canonical_rig_v2.limb_refinement import refine_authored_distal_limbs
 from ..implementations.glb_export.face_authoring import _read
 
 
@@ -110,4 +111,38 @@ class BPT_OT_AlignAuthoredShoulders(bpy.types.Operator):
         except Exception as exc:
             self.report({"WARNING"},f"Native rests corrected; preview/runtime refresh failed: {exc}")
         self.report({"INFO"},f"Aligned {len(result['changed_native_rest_origins'])} shoulder pivots; export as a distinct artifact")
+        return {"FINISHED"}
+
+
+class BPT_OT_RefineDistalLimbs(bpy.types.Operator):
+    bl_idname = "bpt.refine_distal_limb_skin"
+    bl_label = "Isolate Distal Limb Skin"
+    bl_description = "Remove foreign native influence beyond the authored limb collars; retain body, interfaces, rig and textures"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        mesh = context.active_object
+        return bool(mesh and mesh.type == "MESH" and mesh.mode == "OBJECT"
+                    and "meshvenn_owned_skin_refinement" in mesh
+                    and "meshvenn_distal_limb_refinement" not in mesh
+                    and "meshvenn_source_mesh" not in mesh)
+
+    def execute(self, context):
+        try:
+            path = context.scene.bpt_settings.export_modular_manifest_path
+            if not path:
+                raise ValueError("Select the exact authored modular declaration first.")
+            with refine_authored_distal_limbs(context.active_object, _read(bpy.path.abspath(path))) as result:
+                pass
+        except Exception as exc:
+            self.report({"ERROR"}, str(exc))
+            return {"CANCELLED"}
+        try:
+            from .runtime import clear_pipeline_runtime_state
+            clear_pipeline_runtime_state(context.scene)
+            _show_authority(context)
+        except Exception as exc:
+            self.report({"WARNING"}, f"Distal skin edited; preview/runtime refresh failed: {exc}")
+        self.report({"INFO"}, f"Distal limb skin isolated: {result['changed_vertex_count']} vertices; body and rig unchanged")
         return {"FINISHED"}
