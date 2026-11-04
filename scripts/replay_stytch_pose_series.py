@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT))
 from core.modular_character.json_io import strict_json_loads
 from core.native_pose_capture import REGIONS, validate_matrix_proof
 from core.native_pose_probe import NativePoseProbe
-from scripts.extract_stytch_pose_series import INDEX_SHA256
+from scripts.extract_stytch_pose_series import capture_profile
 from scripts.replay_stytch_doll_pose import main as replay
 
 DEFAULT_RENDERS = ("factory-held", "Walk-meshvenn-walk-02", "Hop-meshvenn-hop-11")
@@ -20,20 +20,25 @@ DEFAULT_RENDERS = ("factory-held", "Walk-meshvenn-walk-02", "Hop-meshvenn-hop-11
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--dataset", type=Path, default=ROOT / "example/v2/poses/StytchDoll/complete")
+    parser.add_argument("--profile", choices=("original", "shoulder-aligned"), default="original")
+    parser.add_argument("--dataset", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--render-cases", nargs="*", default=DEFAULT_RENDERS)
+    parser.add_argument("--review-views", action="store_true")
     parser.add_argument("--source-sha", default="local-uncommitted")
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--run-attempt", default=None)
     args = parser.parse_args(sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else [])
-    dataset, output = args.dataset.resolve(strict=True), args.output.resolve()
+    profile = capture_profile(args.profile)
+    dataset, output = (args.dataset or profile["dataset"]).resolve(strict=True), args.output.resolve()
     if output.exists() and any(output.iterdir()):
         raise ValueError("Choose an empty series output directory.")
     index_path = dataset / "index.json"
-    if hashlib.sha256(index_path.read_bytes()).hexdigest() != INDEX_SHA256:
+    if hashlib.sha256(index_path.read_bytes()).hexdigest() != profile["index_sha256"]:
         raise ValueError("Series index differs from the explicitly qualified capture revision.")
     index = strict_json_loads(index_path.read_text("utf-8"))
+    if index["asset_sha256"] != profile["asset_sha256"] or index["source_revision"] != profile["revision"]:
+        raise ValueError("Series lineage differs from the selected immutable asset/profile.")
     cases = index["cases"]
     if index["case_count"] != 19 or len(cases) != 19 or len({c["id"] for c in cases}) != 19:
         raise ValueError("Series requires nineteen unique captured poses.")
@@ -62,11 +67,13 @@ def main():
     summaries = []
     for case, path in prepared:
         case_dir = output / case["id"]
-        argv = ["--pose", str(path), "--output", str(case_dir), "--source-sha", args.source_sha]
+        argv = ["--fixture", str(profile["fixture"]), "--pose", str(path), "--output", str(case_dir), "--source-sha", args.source_sha]
         if case["hidden_regions"]:
             argv += ["--hidden-regions", *case["hidden_regions"]]
         if case["id"] not in args.render_cases:
             argv.append("--no-render")
+        elif args.review_views:
+            argv.append("--review-views")
         for flag, value in (("--run-id", args.run_id), ("--run-attempt", args.run_attempt)):
             if value is not None:
                 argv += [flag, value]
@@ -80,9 +87,11 @@ def main():
               "asset_sha256": index["asset_sha256"], "consumer_revision": index["source_revision"],
               "source_sha": args.source_sha, "run_id": args.run_id, "run_attempt": args.run_attempt,
               "cases": summaries, "rendered_cases": sorted(args.render_cases), "visual_qualification": False,
+              "capture_profile": args.profile, "dataset_sha256": profile["index_sha256"],
+              "replay_is_actual_consumer_capture": True,
               "private_captures_published": False,
               "scope": "Actual synchronized native poses. Ancestor chains validated; skin comparison is before external facing/world transforms, retaining asset normalization once. No physical-contact or consumer repair claim."}
-    (output / "series.json").write_text(json.dumps(report, indent=2, allow_nan=False)+"\n", "utf-8")
+    (output / "series.json").write_text(json.dumps(report, indent=2, allow_nan=False)+"\n", encoding="utf-8", newline="\n")
     assert report["passed"]
     print("Nineteen native/raw-GLB/reimport poses PASS; visual acceptance remains unqualified.")
 

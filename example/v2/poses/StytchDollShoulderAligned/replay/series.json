@@ -1,0 +1,980 @@
+{
+  "passed": true,
+  "case_count": 19,
+  "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+  "consumer_revision": "a760e57a08d526088632b8cd269c391deeb3ecfb",
+  "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+  "run_id": null,
+  "run_attempt": null,
+  "cases": [
+    {
+      "id": "Hop-meshvenn-hop-00",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.08272058,
+        "ElapsedSeconds": 0.35833335,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "a8abdd8ab5f1528f95e01f7e37c4d2d23f626f69296d4df09b7aef619330579f",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.52587890625e-05,
+      "native_vs_decoded_glb_max_error_m": 6.251387958400301e-07,
+      "decoded_vs_reimport_max_error_m": 8.719407560420223e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.3413401484093378,
+        "max_abs_log_length_ratio": 1.140123930704732,
+        "min_length_ratio": 0.31977938887546337,
+        "max_length_ratio": 1.878471139583706,
+        "outside_20_percent_count": 243,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-01",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.23661943,
+        "ElapsedSeconds": 1.0250005,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "43f7a7903fffae01084c1852d9b9b60630d4ea7e973241229937c7f853b9c673",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1563301086425781e-05,
+      "imported_applied_delta_error": 1.71661376953125e-05,
+      "native_vs_decoded_glb_max_error_m": 1.085741587303346e-06,
+      "decoded_vs_reimport_max_error_m": 6.849673468423134e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2901080771073976,
+        "max_abs_log_length_ratio": 0.7323846063353024,
+        "min_length_ratio": 0.4807611959219131,
+        "max_length_ratio": 1.7854537342045638,
+        "outside_20_percent_count": 204,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-02",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.39051804,
+        "ElapsedSeconds": 1.6916665,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "2f1b731295ec91a3e58b31452e7cd32dfce05e9dedd7137e9f7368007ad86f78",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.33514404296875e-05,
+      "native_vs_decoded_glb_max_error_m": 7.43417103876709e-07,
+      "decoded_vs_reimport_max_error_m": 7.609287422383204e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.3191730666796998,
+        "max_abs_log_length_ratio": 1.0063912516084135,
+        "min_length_ratio": 0.3655357287073916,
+        "max_length_ratio": 1.804690631258236,
+        "outside_20_percent_count": 230,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-03",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.54441667,
+        "ElapsedSeconds": 2.3583326,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "c21e03439b55292666111bf96b40c0753b88b5831626f5bebed0a4190cb38fd7",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.52587890625e-05,
+      "imported_applied_delta_error": 1.52587890625e-05,
+      "native_vs_decoded_glb_max_error_m": 7.202056622190867e-07,
+      "decoded_vs_reimport_max_error_m": 6.854534149169922e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.29066541410424035,
+        "max_abs_log_length_ratio": 0.7883940403960541,
+        "min_length_ratio": 0.45457423726043983,
+        "max_length_ratio": 1.7450771437024042,
+        "outside_20_percent_count": 207,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-04",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.69831526,
+        "ElapsedSeconds": 3.0249987,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "9d45fd27fc7b48c8c1a8886a2a65603be88a0862e26a0137884a0751813f2387",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 2.09808349609375e-05,
+      "imported_applied_delta_error": 1.0132789611816406e-05,
+      "native_vs_decoded_glb_max_error_m": 7.834122470740112e-07,
+      "decoded_vs_reimport_max_error_m": 6.643248866566864e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.29638742053856854,
+        "max_abs_log_length_ratio": 1.0031093295875322,
+        "min_length_ratio": 0.36673735921510286,
+        "max_length_ratio": 1.8518402439205184,
+        "outside_20_percent_count": 210,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-05",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.85221386,
+        "ElapsedSeconds": 3.6916647,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "3c5b4b53167e9af28127561aac84655d1532ac3b0f400ed0d52595ee361b39d8",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.52587890625e-05,
+      "native_vs_decoded_glb_max_error_m": 9.642386658015312e-07,
+      "decoded_vs_reimport_max_error_m": 7.43417103876709e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.36662417359814187,
+        "max_abs_log_length_ratio": 1.1385512726227065,
+        "min_length_ratio": 0.32028268817096367,
+        "max_length_ratio": 1.9659416216674486,
+        "outside_20_percent_count": 293,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-06",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.0061124563,
+        "ElapsedSeconds": 4.3583307,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "9518ea6e002eb001ed384f657ec27a73e2a35e61dd09934df2d30abaa058254c",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.9073486328125e-05,
+      "native_vs_decoded_glb_max_error_m": 6.288572649282287e-07,
+      "decoded_vs_reimport_max_error_m": 6.662752412012196e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.3816834430506741,
+        "max_abs_log_length_ratio": 1.2207484269998983,
+        "min_length_ratio": 0.29500929136083154,
+        "max_length_ratio": 2.0775358835271374,
+        "outside_20_percent_count": 286,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-07",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.16001105,
+        "ElapsedSeconds": 5.0249968,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "a6cef10d489c0a8a1a063c1d68c61b8b0da0cc9a71754ed0dfe340996705a4dd",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.621246337890625e-05,
+      "native_vs_decoded_glb_max_error_m": 7.260780989781779e-07,
+      "decoded_vs_reimport_max_error_m": 7.410238254124124e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.29880922737140375,
+        "max_abs_log_length_ratio": 0.8061157151134966,
+        "min_length_ratio": 0.4465893819712147,
+        "max_length_ratio": 1.7852411530598202,
+        "outside_20_percent_count": 209,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-08",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.31390965,
+        "ElapsedSeconds": 5.691663,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "a9764680297851339b8c104f098f9c432709f257cf0f15a3d3a1f92fa014bea9",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1622440069913864e-05,
+      "imported_applied_delta_error": 2.002716064453125e-05,
+      "native_vs_decoded_glb_max_error_m": 6.295630328168045e-07,
+      "decoded_vs_reimport_max_error_m": 8.242915328082745e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2938864122962805,
+        "max_abs_log_length_ratio": 0.7510397503416628,
+        "min_length_ratio": 0.4718756647011399,
+        "max_length_ratio": 1.728244138578286,
+        "outside_20_percent_count": 220,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-09",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.46780825,
+        "ElapsedSeconds": 6.358329,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "3fadbe8963dc4e5e90aabf76b4f7cbfe0e59965bb547453b22fc8d0dac80232e",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 9.5367431640625e-06,
+      "imported_applied_delta_error": 1.71661376953125e-05,
+      "native_vs_decoded_glb_max_error_m": 7.197913873824291e-07,
+      "decoded_vs_reimport_max_error_m": 6.052880507922964e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.3135052675326946,
+        "max_abs_log_length_ratio": 1.1875972160004176,
+        "min_length_ratio": 0.3049531209472308,
+        "max_length_ratio": 1.8884922387086955,
+        "outside_20_percent_count": 215,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-10",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.62170684,
+        "ElapsedSeconds": 7.024995,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "10dfcc9d4932b48516a8188b8747b935ed5278e0967e806ae5bf1fa439e939d1",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.33514404296875e-05,
+      "native_vs_decoded_glb_max_error_m": 7.228215395116422e-07,
+      "decoded_vs_reimport_max_error_m": 7.039911906758789e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2832176408773295,
+        "max_abs_log_length_ratio": 0.708944290304487,
+        "min_length_ratio": 0.4921635050777787,
+        "max_length_ratio": 1.715227885809317,
+        "outside_20_percent_count": 199,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-11",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.77560544,
+        "ElapsedSeconds": 7.691661,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "ea1dd35b2e93df3b121de4dd6838b5363d163557476c7eb9359b0068d0684c70",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 7.927417755126953e-06,
+      "imported_applied_delta_error": 1.2159347534179688e-05,
+      "native_vs_decoded_glb_max_error_m": 7.190099609033496e-07,
+      "decoded_vs_reimport_max_error_m": 7.344020218624792e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.34425645169284214,
+        "max_abs_log_length_ratio": 1.288142402463217,
+        "min_length_ratio": 0.2757826006467086,
+        "max_length_ratio": 1.9527354444568514,
+        "outside_20_percent_count": 267,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "972d782dc5a31b55d266882e99d84d94b18fc954a0726c014c2a9a301b1cf7fd",
+        "glb_pose_hidden_right-leg.png": "ee4abd494a0a6358aa1fa62aef707e8efbda1ddd4c909ce02b7a8834ae475a75",
+        "native_pose.png": "c7abdfba8ef8c4cdb95dbde6c5286ba1afc627856ef2808bb02825e5930c6f72",
+        "native_rest.png": "7ed58b78c3c46bef312e41a2d86baaaaff0a2d91273865cc7d2d5f5f91304d6f",
+        "review_back.png": "16145a12b52fa0e88341f02beaccfaccad6c5287040006d5522d94b5514c665f",
+        "review_front.png": "3970418becc593ba64d8cfae449cfcd6e355a929e32b285d67e204adf0c08ac6"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm"
+        ],
+        "world_bounds": [
+          [
+            -0.29817578196525574,
+            -0.5621824860572815,
+            0.7080948352813721
+          ],
+          [
+            0.7085604667663574,
+            0.6794120073318481,
+            1.9069997072219849
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Walk-meshvenn-walk-00",
+      "movement_classification": "Walk",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.081356004,
+        "ElapsedSeconds": 0.35833335,
+        "Pose": "Walk",
+        "Preset": "Standard Stable"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "51162e0adcdc093012c072bd722018e0e5a323e500b477375e601153c37ccafa",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.239776611328125e-05,
+      "imported_applied_delta_error": 1.33514404296875e-05,
+      "native_vs_decoded_glb_max_error_m": 6.230485496416804e-07,
+      "decoded_vs_reimport_max_error_m": 7.37908464998327e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.0949487903663016,
+        "max_abs_log_length_ratio": 0.2974903970696881,
+        "min_length_ratio": 0.7426797150880868,
+        "max_length_ratio": 1.3200352841186167,
+        "outside_20_percent_count": 15,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Walk-meshvenn-walk-01",
+      "movement_classification": "Walk",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.15703605,
+        "ElapsedSeconds": 0.69166684,
+        "Pose": "Walk",
+        "Preset": "Standard Stable"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "fc41b460a2ec441c6de3ed6878ec45caa194f8822ed26921518efa5abfab11a5",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.621246337890625e-05,
+      "native_vs_decoded_glb_max_error_m": 8.456983096039039e-07,
+      "decoded_vs_reimport_max_error_m": 7.228215395116422e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.09680122288198344,
+        "max_abs_log_length_ratio": 0.29440067579596196,
+        "min_length_ratio": 0.7624372961943197,
+        "max_length_ratio": 1.342321631720696,
+        "outside_20_percent_count": 20,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Walk-meshvenn-walk-02",
+      "movement_classification": "Walk",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.23271611,
+        "ElapsedSeconds": 1.0250005,
+        "Pose": "Walk",
+        "Preset": "Standard Stable"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "237c1d66a19cc26ee18404a5ba2c552b97b5da20123ebf415e61156d7b20a160",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.5437602996826172e-05,
+      "imported_applied_delta_error": 1.9073486328125e-05,
+      "native_vs_decoded_glb_max_error_m": 7.177349630183016e-07,
+      "decoded_vs_reimport_max_error_m": 6.067993467695487e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.07474999440449892,
+        "max_abs_log_length_ratio": 0.2378222079410017,
+        "min_length_ratio": 0.8098915976457067,
+        "max_length_ratio": 1.2684836464560192,
+        "outside_20_percent_count": 4,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "15433a427c01da62251bb0780e6b091935df5c0ce2c9fd951ff6939ad025a641",
+        "native_pose.png": "675587df7a3c369127beb81d27a789afe5e38a5a77b1a9a6a4c084b239780218",
+        "native_rest.png": "5bfef0f47b036dd4b6de988b5f3263b7f087e39acfbae503b18d4a74a4da6abf",
+        "review_back.png": "b29aeef581555efcdcec6ac44c00edc0887b331f05d3d11118b101db0e31db8a",
+        "review_front.png": "d217bf9652a0e1d36d39df0e371d97d871c84d638fbcdfc6f11c1ddcc52910c7"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm",
+          "Doll_right_leg"
+        ],
+        "world_bounds": [
+          [
+            -0.9753065705299377,
+            -0.7371951937675476,
+            -2.1480593204614706e-05
+          ],
+          [
+            0.6500705480575562,
+            0.5474265217781067,
+            1.9025670289993286
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "World-03-one-leg-hop",
+      "movement_classification": "walk-approach, not explicit hop",
+      "context": {
+        "BodyVariant": "OneLeg",
+        "Consumer": "world-storyboard",
+        "InTransit": true,
+        "Sample": "03-one-leg-hop",
+        "WorldMode": "Run"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "3c895abee4cea3bb2220794044be4b52854b1ab68a50c17c2ba5bcb873435ab0",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [
+        "right-arm",
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.33514404296875e-05,
+      "imported_applied_delta_error": 1.621246337890625e-05,
+      "native_vs_decoded_glb_max_error_m": 8.5239980762708e-07,
+      "decoded_vs_reimport_max_error_m": 6.982907621022605e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.28888198173361046,
+        "max_abs_log_length_ratio": 1.1627929432074615,
+        "min_length_ratio": 0.3126118533250343,
+        "max_length_ratio": 1.9796123371182777,
+        "outside_20_percent_count": 222,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "factory-hall",
+      "movement_classification": "presence",
+      "context": {
+        "AnatomyMask": 0,
+        "Consumer": "selected-factory",
+        "ElapsedSeconds": 1.2,
+        "Pose": "presence"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "0ec9c1c627e0bdaa7df358ca3df8d715489214da650cd1160652063a1af328f5",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.1444091796875e-05,
+      "native_vs_decoded_glb_max_error_m": 8.416028549618204e-07,
+      "decoded_vs_reimport_max_error_m": 6.246502266549214e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2198198259382243,
+        "max_abs_log_length_ratio": 0.540212215458489,
+        "min_length_ratio": 0.5826245973076508,
+        "max_length_ratio": 1.5564942924054384,
+        "outside_20_percent_count": 159,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "cbc48b2f54aafb8d64d9c5b54db63f4bbccf1e3c261ca87b3a01bf602e75d743",
+        "native_pose.png": "04bebb0ded95f0c7878c5d53babeb2ebeced5d601a3584636a2f805c6c087013",
+        "native_rest.png": "48be7e70b194452c19dfcfafc08762cb72a43ab5d9c032f19d3e3188be1232ab",
+        "review_back.png": "9eba99d325b0885669e97329db887178621d7d9abab2dd99ee36abe3b59eb112",
+        "review_front.png": "9288ef477fec2f7bf34df217d9199b0ea2c68f289b30ad4f1023bb28197caa60"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm",
+          "Doll_right_leg"
+        ],
+        "world_bounds": [
+          [
+            -0.47885459661483765,
+            -0.42943066358566284,
+            0.11096575856208801
+          ],
+          [
+            0.4819469749927521,
+            0.21004892885684967,
+            1.9331027269363403
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "factory-held",
+      "movement_classification": "held",
+      "context": {
+        "AnatomyMask": 0,
+        "Consumer": "selected-factory",
+        "Lift": 0.75,
+        "Pose": "held",
+        "Wobble": 0.4
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "d33fd09f9fb6ab12e8cf2dedc9ee49d6d6eda30241e0da417bad173701aadf20",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 8.07642936706543e-06,
+      "imported_applied_delta_error": 2.288818359375e-05,
+      "native_vs_decoded_glb_max_error_m": 7.214378570097324e-07,
+      "decoded_vs_reimport_max_error_m": 6.605854423469282e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.27109050011090524,
+        "max_abs_log_length_ratio": 0.6946048886834553,
+        "min_length_ratio": 0.49927167690845714,
+        "max_length_ratio": 1.6347998891201487,
+        "outside_20_percent_count": 215,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "29362cd27a85f6e36d753986257990ff1c9ab5952fdcaad606065ef5bb5967dc",
+        "native_pose.png": "2bb6fc6694688fde64b19a48103fcd9727e163c505cb299205c9e631539e52a6",
+        "native_rest.png": "d93f66f328375e26f79b399c99c446b624629798f8e3972bca84fd26f7db0b35",
+        "review_back.png": "5578c9489ef51412e500233a61182aee6d48a50a9045d003d4e36eecb1ee553a",
+        "review_front.png": "7863605777f220e55bacac7e567f9d9cf03ddf7695e41a4483afd17fe9db46f5"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm",
+          "Doll_right_leg"
+        ],
+        "world_bounds": [
+          [
+            -0.34625574946403503,
+            -0.4755414128303528,
+            0.06849014014005661
+          ],
+          [
+            0.439127117395401,
+            0.097666434943676,
+            1.920120358467102
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "factory-one-leg",
+      "movement_classification": "presence",
+      "context": {
+        "AnatomyMask": 4,
+        "Consumer": "selected-factory",
+        "ElapsedSeconds": 1.2,
+        "Pose": "presence"
+      },
+      "passed": true,
+      "asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+      "input_pose_sha256": "0ec9c1c627e0bdaa7df358ca3df8d715489214da650cd1160652063a1af328f5",
+      "source_sha": "5871fbae8be4ae2d735468f466931e47f442da10",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "left-leg",
+      "hidden_regions": [
+        "left-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.1444091796875e-05,
+      "native_vs_decoded_glb_max_error_m": 8.416028549618204e-07,
+      "decoded_vs_reimport_max_error_m": 6.246502266549214e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2198198259382243,
+        "max_abs_log_length_ratio": 0.540212215458489,
+        "min_length_ratio": 0.5826245973076508,
+        "max_length_ratio": 1.5564942924054384,
+        "outside_20_percent_count": 159,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    }
+  ],
+  "rendered_cases": [
+    "Hop-meshvenn-hop-11",
+    "Walk-meshvenn-walk-02",
+    "factory-hall",
+    "factory-held"
+  ],
+  "visual_qualification": false,
+  "capture_profile": "shoulder-aligned",
+  "dataset_sha256": "e2285869ae4e5237791ada40bc1b0cc6253d324c120aad1b97e1fb9b7d2ead32",
+  "replay_is_actual_consumer_capture": true,
+  "private_captures_published": false,
+  "scope": "Actual synchronized native poses. Ancestor chains validated; skin comparison is before external facing/world transforms, retaining asset normalization once. No physical-contact or consumer repair claim."
+}
