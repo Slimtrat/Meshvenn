@@ -224,6 +224,12 @@ the remaining tradeoff, and all nineteen unchanged captured matrices retain
 source/raw/reimport fidelity. It is not a new consumer capture or a full fold fix;
 its source, GLB and sixteen own comparison renders are pinned separately.
 
+The [captured articulation inventory](poses/StytchDollShoulderAligned/ARTICULATION.md)
+then records which joints actually rotate while present. Both elbows remain
+unexercised in the nineteen captured poses; inherited shoulder movement and
+hidden-leg rotations do not earn joint credit. CI and future replay summaries
+publish this gap separately from successful transport and artistic acceptance.
+
 Its geometry uses the unchanged neutral silhouettes; a separate calibrated
 source-color/emission path feeds UV Bake V2 (512², 2 samples/axis). The packed
 source retains those color images and truthful stage selections. Re-export with

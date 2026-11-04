@@ -87,3 +87,9 @@ active motor, physics handoff or mobile qualification is implied.
 
 `visual_qualification=false`. #60 and #63 remain open and capability expansion
 remains paused; transport success is not full consumer/visual acceptance.
+
+The subsequent [articulation coverage review](ARTICULATION.md) makes another
+limit explicit: these nineteen captures leave both forearms at their local rest
+rotation. Shoulder movement does not qualify elbow flexion, and hidden right-leg
+rotation cannot qualify that absent limb. The separate pinned inventory and future
+CI replay reports expose those gaps without changing this historical evidence.

@@ -175,5 +175,32 @@ class NativePoseCoverageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'immutable'):main(['--output',str(output)])
             self.assertEqual(output.read_bytes(),b'USER EVIDENCE')
 
+    def test_pinned_inventory_hash_lineage_and_generator_are_immutable(self):
+        path=capture_profile('shoulder-aligned')['dataset'].parent/'articulation-coverage.json'
+        raw=path.read_bytes();report=json.loads(raw)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),'d4ba40a81a76d51d16781bfd235207ce3882dd6eb6e3c2853f229c7c1ee6fa61')
+        self.assertNotIn(b'\r',raw)
+        self.assertEqual(report['source_sha'],'b7ad38be0633454c3ddcc140b84ca6ec09514b33')
+        profile,index,_=load_capture_cases('shoulder-aligned')
+        self.assertEqual(report['consumer_revision'],profile['revision'])
+        self.assertEqual(report['dataset_sha256'],profile['index_sha256'])
+        self.assertEqual(report['joint_motion_coverage']['captured_asset_sha256'],profile['asset_sha256'])
+        expected=[{k:c[k] for k in ('id','probe_sha256','matrix_proof_sha256','hidden_regions')} for c in index['cases']]
+        self.assertEqual(report['case_fingerprints'],expected)
+        self.assertNotIn('Context',report)
+
+    def test_pinned_inventory_recomputes_without_changing_acceptance_or_old_captures(self):
+        profile=capture_profile('shoulder-aligned')
+        path=profile['dataset'].parent/'articulation-coverage.json'
+        report=json.loads(path.read_text('utf-8'))
+        self.assertEqual(report,coverage_report('shoulder-aligned',source_sha=report['source_sha']))
+        coverage=report['joint_motion_coverage']
+        self.assertFalse(coverage['visible_rotation_excitation_complete'])
+        self.assertFalse(coverage['visual_qualification'] or coverage['consumer_acceptance'])
+        self.assertEqual(hashlib.sha256((profile['dataset']/'index.json').read_bytes()).hexdigest(),profile['index_sha256'])
+        fixture=Path(__file__).resolve().parents[1]/'example/v2/modular/StytchDollDistalChains/character.glb'
+        self.assertEqual(hashlib.sha256(fixture.read_bytes()).hexdigest(),'58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b')
+        self.assertNotEqual(coverage['captured_asset_sha256'],hashlib.sha256(fixture.read_bytes()).hexdigest())
+
 
 if __name__=='__main__':unittest.main()
