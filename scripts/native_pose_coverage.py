@@ -6,7 +6,7 @@ import re
 
 from core.native_pose_capture import REGIONS, multiply
 from core.native_pose_probe import NativePoseProbe, PARENTS
-from scripts.shoulder_pose_derivation import inverse
+from scripts.shoulder_pose_derivation import components,inverse
 
 REQUIRED_JOINTS = tuple(f'{part}.{side}' for part in ('forearm','thigh','shin') for side in ('L','R'))
 RIGID_TOLERANCE = 2e-5  # Measurement eligibility, never a transport/proof tolerance.
@@ -27,6 +27,7 @@ def local_motion(rest,pose):
     atan2 avoids acos(trace) inventing ~0.03 degree rotations from float32 rest
     roundoff. Nonrigid deltas remain explicit and cannot earn excitation credit.
     """
+    components(pose)  # Refuse malformed, nonfinite, singular or mirrored input.
     delta=multiply(inverse(rest),pose)
     error=max(abs(sum(delta[k][i]*delta[k][j] for k in range(3))-(i==j))
               for i in range(3) for j in range(3))

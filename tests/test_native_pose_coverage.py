@@ -45,6 +45,13 @@ class NativePoseCoverageTests(unittest.TestCase):
         self.assertGreater(math.degrees(math.acos((3*.9999999-1)/2)),.03)
         self.assertEqual(local_motion(IDENTITY,perturbed)['rotation_degrees'],0)
 
+    def test_invalid_pose_never_becomes_rotation_credit(self):
+        for value in (-1.,0.,math.nan,math.inf,True):
+            pose=[list(row) for row in IDENTITY];pose[0][0]=value
+            with self.assertRaises(ValueError):local_motion(IDENTITY,pose)
+        pose=[list(row) for row in IDENTITY];pose[3][0]=.01
+        with self.assertRaises(ValueError):local_motion(IDENTITY,pose)
+
     def test_parent_rotation_never_counts_as_child_articulation(self):
         report=summarize_joint_motion([case(angles={'upper_arm.L':90})])
         self.assertEqual(report['joints']['upper_arm.L']['visible_excited_cases'],['pose'])
