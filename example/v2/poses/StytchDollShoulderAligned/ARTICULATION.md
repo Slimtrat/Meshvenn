@@ -61,6 +61,12 @@ capture-index and pinned replay bytes remain immutable.
 
 ## Required next evidence
 
+The request below is historical. The subsequent
+[selected distal-skin capture set](../StytchDollDistalChains/README.md) now supplies
+the exact delivered asset's nineteen production poses and four visible elbow
+excitations. Its context summaries still expose unexercised Walk/held forearms.
+This older pinned inventory and its captured target remain unchanged.
+
 Select the exact [distal-chain candidate](../../modular/StytchDollDistalChains/README.md)
 in Stytch before capturing a new successor series. The existing captures still
 target `6654f85a...`; they do not qualify candidate `58bb85ca...` merely because
