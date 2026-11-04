@@ -1,18 +1,15 @@
 """Replay nineteen exact consumer poses; fidelity success is not visual acceptance."""
 from __future__ import annotations
 import argparse
-import hashlib
 import json
 from pathlib import Path
-import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from core.modular_character.json_io import strict_json_loads
-from core.native_pose_capture import REGIONS, validate_matrix_proof
-from core.native_pose_probe import NativePoseProbe
-from scripts.extract_stytch_pose_series import capture_profile
+from scripts.native_pose_coverage import summarize_joint_motion
+from scripts.report_stytch_pose_coverage import load_capture_cases
 from scripts.replay_stytch_doll_pose import main as replay
 
 DEFAULT_RENDERS = ("factory-held", "Walk-meshvenn-walk-02", "Hop-meshvenn-hop-11")
@@ -29,43 +26,18 @@ def main():
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--run-attempt", default=None)
     args = parser.parse_args(sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else [])
-    profile = capture_profile(args.profile)
-    dataset, output = (args.dataset or profile["dataset"]).resolve(strict=True), args.output.resolve()
+    output = args.output.resolve()
     if output.exists() and any(output.iterdir()):
         raise ValueError("Choose an empty series output directory.")
-    index_path = dataset / "index.json"
-    if hashlib.sha256(index_path.read_bytes()).hexdigest() != profile["index_sha256"]:
-        raise ValueError("Series index differs from the explicitly qualified capture revision.")
-    index = strict_json_loads(index_path.read_text("utf-8"))
-    if index["asset_sha256"] != profile["asset_sha256"] or index["source_revision"] != profile["revision"]:
-        raise ValueError("Series lineage differs from the selected immutable asset/profile.")
+    profile,index,prepared = load_capture_cases(args.profile,args.dataset)
     cases = index["cases"]
-    if index["case_count"] != 19 or len(cases) != 19 or len({c["id"] for c in cases}) != 19:
-        raise ValueError("Series requires nineteen unique captured poses.")
     if not set(args.render_cases) <= {c["id"] for c in cases}:
         raise ValueError("Unknown requested render case.")
-    prepared = []
-    for case in cases:
-        if not isinstance(case["id"], str) or re.fullmatch(r"[A-Za-z0-9_-]{1,80}", case["id"]) is None:
-            raise ValueError("Unsafe capture case identifier.")
-        paths = []
-        for key in ("probe", "matrix_proof"):
-            path = (dataset / case[key]).resolve(strict=True)
-            if path.parent != dataset or hashlib.sha256(path.read_bytes()).hexdigest() != case[key+"_sha256"]:
-                raise ValueError("Unsafe or mismatched captured matrix file.")
-            paths.append(path)
-        probe = NativePoseProbe.from_dict(strict_json_loads(paths[0].read_text("utf-8")))
-        if probe.asset_sha256 != index["asset_sha256"]:
-            raise ValueError("Pose series targets a different native asset.")
-        validate_matrix_proof(probe, strict_json_loads(paths[1].read_text("utf-8")))
-        if (not isinstance(case["hidden_regions"], list)
-                or any(not isinstance(r, str) or r not in REGIONS-{"body-core"} for r in case["hidden_regions"])
-                or case["hidden_regions"] != sorted(set(case["hidden_regions"]))):
-            raise ValueError("Duplicate or unsorted hidden region provenance.")
-        prepared.append((case, paths[0]))
+    coverage = summarize_joint_motion([{"id":case["id"],"probe":probe,"hidden_regions":case["hidden_regions"]}
+                                      for case,_,probe in prepared])
     output.mkdir(parents=True, exist_ok=True)
     summaries = []
-    for case, path in prepared:
+    for case, path, _ in prepared:
         case_dir = output / case["id"]
         argv = ["--fixture", str(profile["fixture"]), "--pose", str(path), "--output", str(case_dir), "--source-sha", args.source_sha]
         if case["hidden_regions"]:
@@ -89,6 +61,7 @@ def main():
               "cases": summaries, "rendered_cases": sorted(args.render_cases), "visual_qualification": False,
               "capture_profile": args.profile, "dataset_sha256": profile["index_sha256"],
               "replay_is_actual_consumer_capture": True,
+              "joint_motion_coverage": coverage,
               "private_captures_published": False,
               "scope": "Actual synchronized native poses. Ancestor chains validated; skin comparison is before external facing/world transforms, retaining asset normalization once. No physical-contact or consumer repair claim."}
     (output / "series.json").write_text(json.dumps(report, indent=2, allow_nan=False)+"\n", encoding="utf-8", newline="\n")
