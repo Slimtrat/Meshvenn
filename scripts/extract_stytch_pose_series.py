@@ -31,6 +31,7 @@ SOURCE_BLOBS = {
         "420a99a444e72b839f82c54c586eab76b26aa772", "3949012bcd4bbf9e242358cb9f4a5cdcfd348b1b"))},
 }
 INDEX_SHA256 = "151b15b934db6cdf97e4299e5fc096ecb429f098577b403268b13ccf4b12636e"
+CAPTURE_PROFILES = ('original','shoulder-aligned','distal-chains')
 
 
 def digest(data):
@@ -47,11 +48,16 @@ def capture_profile(name):
     elif name == "shoulder-aligned":
         from scripts import shoulder_consumer_capture as module
         fixture = "StytchDollShoulderAligned"
+    elif name == "distal-chains":
+        from scripts import distal_consumer_capture as module
+        fixture = "StytchDollDistalChains"
     else:
         raise ValueError("Unknown explicitly qualified capture profile.")
     return {"revision": module.REVISION, "source_base": module.SOURCE_BASE,
             "asset_sha256": module.ASSET_SHA, "index_sha256": module.INDEX_SHA256,
             "source_blobs": module.SOURCE_BLOBS, "fixture": ROOT / "example/v2/modular" / fixture,
+            "case_count": getattr(module,'CASE_COUNT',19),
+            "scope": getattr(module,'SCOPE',"Exact nineteen synchronized source poses and visibility; no consumer repair or full visual/physical-contact qualification."),
             "dataset": ROOT / "example/v2/poses" / fixture / "complete"}
 
 
@@ -66,19 +72,20 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--profile", choices=("original", "shoulder-aligned"), default="original")
+    parser.add_argument("--profile", choices=CAPTURE_PROFILES, default="original")
     args = parser.parse_args(argv)
     profile = capture_profile(args.profile)
     source, output = args.input.resolve(strict=True), args.output.resolve()
     files = {p.relative_to(source).as_posix(): p for p in source.rglob("*.pose.json")}
     if (set(files) != set(profile["source_blobs"]) or output == source or source in output.parents
             or (output.exists() and any(output.iterdir()))):
-        raise ValueError("Require all nineteen captured pairs and a separate empty output directory.")
+        raise ValueError(f"Require all {profile['case_count']} captured pairs and a separate empty output directory.")
     prepared, entries = [], []
     for name, path in sorted(files.items()):
         raw = path.read_bytes()
         blob = verify_source_blob(name, raw, profile["source_blobs"])
-        document, proof, metadata = project_capture(strict_json_loads(raw.decode("utf-8")))
+        source_document = strict_json_loads(raw.decode("utf-8"))
+        document, proof, metadata = project_capture(source_document)
         if document["AssetSha256"].lower() != profile["asset_sha256"]:
             raise ValueError("Capture targets a different native GLB fingerprint.")
         png = path.with_name(metadata["capture_filename"])
@@ -94,10 +101,14 @@ def main(argv=None):
                         "source_git_blob": blob,
                         "movement_classification": "walk-approach, not explicit hop" if name.startswith("World/") else metadata["context"].get("Pose"),
                         **metadata})
+        if args.profile == 'distal-chains':
+            from scripts.distal_consumer_capture import elbow_excitation
+            excitation = elbow_excitation(name,source_document,document,metadata)
+            if excitation is not None:entries[-1]['elbow_excitation']=excitation
     index = {"schema_version": 1, "source_repository": "Stytch0/Stytch", "source_revision": profile["revision"],
              "asset_sha256": profile["asset_sha256"], "case_count": len(entries), "cases": entries,
              "publication": "Owner explicitly authorized publication of matrices and provenance. Private PNGs, control/loadout data, node names and world telemetry are excluded.",
-             "scope": "Exact nineteen synchronized source poses and visibility; no consumer repair or full visual/physical-contact qualification."}
+             "scope": profile['scope']}
     # All validation precedes publication; bytes are mechanically projected,
     # never replaced with invented pose targets or unchecked private fields.
     if digest(encoded(index)) != profile["index_sha256"]:
@@ -106,7 +117,7 @@ def main(argv=None):
     for name, data in prepared:
         (output / name).write_bytes(data)
     (output / "index.json").write_bytes(encoded(index))
-    print("Projected nineteen validated matrix pairs; no private PNG, code or telemetry published.")
+    print(f"Projected {len(entries)} validated matrix pairs; no private PNG, code or telemetry published.")
 
 
 if __name__ == "__main__":

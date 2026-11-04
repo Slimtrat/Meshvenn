@@ -1,0 +1,66 @@
+{
+  "passed": true,
+  "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+  "input_pose_sha256": "ec15adb06ba113867469c755e34a7297f7e24386ff9ce11786033d23e55158bf",
+  "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+  "run_id": null,
+  "run_attempt": null,
+  "hidden_region": null,
+  "hidden_regions": [],
+  "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+  "native_rest_error_in_heights": 1.6028117164254222e-07,
+  "glb_rest_world_max_error": 1.4901161193847656e-07,
+  "native_applied_delta_error": 1.0013580322265625e-05,
+  "imported_applied_delta_error": 7.482252840418369e-06,
+  "native_vs_decoded_glb_max_error_m": 7.373399171228812e-07,
+  "decoded_vs_reimport_max_error_m": 7.079227657413867e-07,
+  "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+  "torso_edges": {
+    "edge_count": 2599,
+    "p95_abs_log_length_ratio": 4.421762981937076e-06,
+    "max_abs_log_length_ratio": 1.0328992287249688e-05,
+    "min_length_ratio": 0.9999935965618347,
+    "max_length_ratio": 1.0000103290456315,
+    "outside_20_percent_count": 0,
+    "collapsed_fraction": 0.0
+  },
+  "source_authority_unchanged": true,
+  "images": {
+    "glb_pose.png": "d2fddf5d16e5c69396243827a665c6eb1edb4dc0df4509d684a86ce4bf36124e",
+    "native_pose.png": "40eb72b496166c52bec39d64d49eb2213a42e550eb468be07606b26b6967e929",
+    "native_rest.png": "850beb5e85ec13dc1b859024a7dd5ec2092fffb645b1b338a69d2df7a78040b2",
+    "review_back.png": "685fdc62deccdf732a52caa1d5bd6e7ad6cb56a0a0ca5ef0a37c5c665e83005f",
+    "review_front.png": "bfda23897ded1919c65cd589c3257e4e74922e0781701f3266f4a4395a8df7dd"
+  },
+  "review_framing": {
+    "evaluated_visible_geometry_only": true,
+    "visible_meshes": [
+      "Doll_body_core",
+      "Doll_left_arm",
+      "Doll_left_leg",
+      "Doll_right_arm",
+      "Doll_right_leg"
+    ],
+    "world_bounds": [
+      [
+        -0.8352242708206177,
+        -0.42222005128860474,
+        0.10912951827049255
+      ],
+      [
+        0.8377974033355713,
+        0.20253786444664001,
+        1.9291294813156128
+      ]
+    ],
+    "views": [
+      "front-three-quarter",
+      "back-three-quarter"
+    ],
+    "lighting": "same neutral light rig rotated with the rear camera",
+    "pose_or_material_edits": false
+  },
+  "visual_qualification": false,
+  "consumer_capture_pixel_equality_claimed": false,
+  "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+}

@@ -1,0 +1,3231 @@
+{
+  "passed": true,
+  "case_count": 23,
+  "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+  "consumer_revision": "1503d4854c991335027255f79c42788954abcfbf",
+  "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+  "run_id": null,
+  "run_attempt": null,
+  "cases": [
+    {
+      "id": "Elbows-meshvenn-elbow-left-45",
+      "movement_classification": "native-local-elbow",
+      "context": {
+        "Consumer": "selected-factory-common-presenter",
+        "Pose": "native-local-elbow"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "ec15adb06ba113867469c755e34a7297f7e24386ff9ce11786033d23e55158bf",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.0013580322265625e-05,
+      "imported_applied_delta_error": 7.482252840418369e-06,
+      "native_vs_decoded_glb_max_error_m": 7.373399171228812e-07,
+      "decoded_vs_reimport_max_error_m": 7.079227657413867e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 4.421762981937076e-06,
+        "max_abs_log_length_ratio": 1.0328992287249688e-05,
+        "min_length_ratio": 0.9999935965618347,
+        "max_length_ratio": 1.0000103290456315,
+        "outside_20_percent_count": 0,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "d2fddf5d16e5c69396243827a665c6eb1edb4dc0df4509d684a86ce4bf36124e",
+        "native_pose.png": "40eb72b496166c52bec39d64d49eb2213a42e550eb468be07606b26b6967e929",
+        "native_rest.png": "850beb5e85ec13dc1b859024a7dd5ec2092fffb645b1b338a69d2df7a78040b2",
+        "review_back.png": "685fdc62deccdf732a52caa1d5bd6e7ad6cb56a0a0ca5ef0a37c5c665e83005f",
+        "review_front.png": "bfda23897ded1919c65cd589c3257e4e74922e0781701f3266f4a4395a8df7dd"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm",
+          "Doll_right_leg"
+        ],
+        "world_bounds": [
+          [
+            -0.8352242708206177,
+            -0.42222005128860474,
+            0.10912951827049255
+          ],
+          [
+            0.8377974033355713,
+            0.20253786444664001,
+            1.9291294813156128
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Elbows-meshvenn-elbow-left-90",
+      "movement_classification": "native-local-elbow",
+      "context": {
+        "Consumer": "selected-factory-common-presenter",
+        "Pose": "native-local-elbow"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "ece20c4d5a69912dfa5d59284c9cce351b04ce6608a089ab1590abec9231b7e4",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.0132789611816406e-05,
+      "imported_applied_delta_error": 7.62939453125e-06,
+      "native_vs_decoded_glb_max_error_m": 6.426530489989091e-07,
+      "decoded_vs_reimport_max_error_m": 7.079227657413867e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 4.421762981937076e-06,
+        "max_abs_log_length_ratio": 1.0328992287249688e-05,
+        "min_length_ratio": 0.9999935965618347,
+        "max_length_ratio": 1.0000103290456315,
+        "outside_20_percent_count": 0,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "dba97afc72e5471ea0f48c4445e0e781d35440e92d0ffe5cd5e21dba5a57383d",
+        "native_pose.png": "446e291fc8a5f026a91922955eb066049bc983d35a782c4ab8b8d92a1bcd470b",
+        "native_rest.png": "b8b1253302a1b1aba0c4af7ef4ece5630c86baa2ac49ac2c1570f1511b255a23",
+        "review_back.png": "d67bb51adba0bc339a9bd3583c0682a7ded967e71e13db5aa8de46f6484e5293",
+        "review_front.png": "87f50f1fdcf87cc8baf851a81b10622943478e509436eaf2086cd03649d29e08"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm",
+          "Doll_right_leg"
+        ],
+        "world_bounds": [
+          [
+            -0.8352242708206177,
+            -0.42222005128860474,
+            0.10912951827049255
+          ],
+          [
+            0.8377974033355713,
+            0.20253786444664001,
+            1.9291294813156128
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Elbows-meshvenn-elbow-right-45",
+      "movement_classification": "native-local-elbow",
+      "context": {
+        "Consumer": "selected-factory-common-presenter",
+        "Pose": "native-local-elbow"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "b959114adedbb9b4bb6255f723fbf78e08d043f82e5838bb102c3289d4f0bc35",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.0013580322265625e-05,
+      "imported_applied_delta_error": 7.62939453125e-06,
+      "native_vs_decoded_glb_max_error_m": 6.476436169577937e-07,
+      "decoded_vs_reimport_max_error_m": 7.079227657413867e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 4.421762981937076e-06,
+        "max_abs_log_length_ratio": 1.0328992287249688e-05,
+        "min_length_ratio": 0.9999935965618347,
+        "max_length_ratio": 1.0000103290456315,
+        "outside_20_percent_count": 0,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "7ff45d1ece62076cb471cf7b08f72d8acd0651415ce39f65fddf357c32dea0df",
+        "native_pose.png": "e2cedd451d99c3f190a83c2cfc1d8a5988901f074eb3f25776c59c0fdadf5471",
+        "native_rest.png": "173bf84ca09810fbd7e46beedaf190f61a2d2b8e993615c4c9501ff41a3cd035",
+        "review_back.png": "1c47776722f6274df9ccdedc1a03c0950e404916ba2fe5c31da0ae65534c5195",
+        "review_front.png": "5facb3d2a650bdc6ebe91292b6aa493349107f7ad874d7b1766d294f92842a37"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm",
+          "Doll_right_leg"
+        ],
+        "world_bounds": [
+          [
+            -0.8352240920066833,
+            -0.42222005128860474,
+            0.10912951827049255
+          ],
+          [
+            0.8377974629402161,
+            0.20253786444664001,
+            1.9291294813156128
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Elbows-meshvenn-elbow-right-90",
+      "movement_classification": "native-local-elbow",
+      "context": {
+        "Consumer": "selected-factory-common-presenter",
+        "Pose": "native-local-elbow"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "7b398aaecdb4f1d886e8025e5debaf5ef36558c9c2fa59d44b5505c81fc0c29d",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.0013580322265625e-05,
+      "imported_applied_delta_error": 1.1444091796875e-05,
+      "native_vs_decoded_glb_max_error_m": 6.476436169577937e-07,
+      "decoded_vs_reimport_max_error_m": 7.079227657413867e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 4.421762981937076e-06,
+        "max_abs_log_length_ratio": 1.0328992287249688e-05,
+        "min_length_ratio": 0.9999935965618347,
+        "max_length_ratio": 1.0000103290456315,
+        "outside_20_percent_count": 0,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "699a96efbb37e382dd4c02f1afde45dc15bb568290996d0fae78301be44dafd4",
+        "native_pose.png": "706db8d473d8f762199bf8dde062d3dac5a907fb21288ee3295245f489ca8ace",
+        "native_rest.png": "defc50ac748a5836b111490242bef8004943e8146bf9fbedbfb92f105e680d08",
+        "review_back.png": "cbc5b585089e5b38f6d91027c059b04eb5280314af1492b41ad3a0f3cc3f2588",
+        "review_front.png": "2dccedd48dabae316fa2383a6ecaf516b3dfaa976c2f3879708a7300b5164d07"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm",
+          "Doll_right_leg"
+        ],
+        "world_bounds": [
+          [
+            -0.8352241516113281,
+            -0.42222005128860474,
+            0.10912951827049255
+          ],
+          [
+            0.8377974629402161,
+            0.20253786444664001,
+            1.9291294813156128
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-00",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.08272058,
+        "ElapsedSeconds": 0.35833335,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "aad12eb92fd982b471cbc1f13df37e566fd50f2907ee0577db6b213bed9427c2",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.9073486328125e-05,
+      "native_vs_decoded_glb_max_error_m": 6.551429123646813e-07,
+      "decoded_vs_reimport_max_error_m": 5.497296911016747e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.23405650415324994,
+        "max_abs_log_length_ratio": 0.6797721822855796,
+        "min_length_ratio": 0.5067324218388171,
+        "max_length_ratio": 1.5980967073323533,
+        "outside_20_percent_count": 178,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-01",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.23661943,
+        "ElapsedSeconds": 1.0250005,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "3a2ddda829d27f48b3b136ed0cdc0cdc00120a19a93acff216bf1df14e24a910",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.52587890625e-05,
+      "imported_applied_delta_error": 1.71661376953125e-05,
+      "native_vs_decoded_glb_max_error_m": 1.085741587303346e-06,
+      "decoded_vs_reimport_max_error_m": 6.849673468423134e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.225008511020622,
+        "max_abs_log_length_ratio": 0.595511061538513,
+        "min_length_ratio": 0.5512807554716922,
+        "max_length_ratio": 1.5571092377738502,
+        "outside_20_percent_count": 159,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-02",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.39051804,
+        "ElapsedSeconds": 1.6916665,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "c0b11d688695c28a4a51bb4c41cbf3cde61b85053e3cea2a7b54e51eaf31d67e",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.33514404296875e-05,
+      "imported_applied_delta_error": 2.288818359375e-05,
+      "native_vs_decoded_glb_max_error_m": 6.039107915967179e-07,
+      "decoded_vs_reimport_max_error_m": 6.585234473277524e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.22064833106438148,
+        "max_abs_log_length_ratio": 0.5199831381438464,
+        "min_length_ratio": 0.5945305727746727,
+        "max_length_ratio": 1.555762200968382,
+        "outside_20_percent_count": 162,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-03",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.54441667,
+        "ElapsedSeconds": 2.3583326,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "86d4614d93ce4d72bf72b9a0d519a1b158ac5ef82f3cbd36e03a9e5ee16463cb",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.52587890625e-05,
+      "imported_applied_delta_error": 1.52587890625e-05,
+      "native_vs_decoded_glb_max_error_m": 6.053912215975288e-07,
+      "decoded_vs_reimport_max_error_m": 6.379715955517895e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.22398093949439757,
+        "max_abs_log_length_ratio": 0.5411628449245464,
+        "min_length_ratio": 0.5820710003722702,
+        "max_length_ratio": 1.5563180289323464,
+        "outside_20_percent_count": 163,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-04",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.69831526,
+        "ElapsedSeconds": 3.0249987,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "2c9ce57d6e05c27bf48f74c442dc349a09cc2fa4f075f64abac24724525f138d",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.52587890625e-05,
+      "imported_applied_delta_error": 1.1444091796875e-05,
+      "native_vs_decoded_glb_max_error_m": 7.362139058386674e-07,
+      "decoded_vs_reimport_max_error_m": 6.539980290654057e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.22499632642458223,
+        "max_abs_log_length_ratio": 0.5955130466754985,
+        "min_length_ratio": 0.5512796611049613,
+        "max_length_ratio": 1.5571108558055637,
+        "outside_20_percent_count": 159,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-05",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.85221386,
+        "ElapsedSeconds": 3.6916647,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "85454a024462e3b79d9501889c60ec7b27ae40f5503274e7d315221d80eb7fbc",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 9.5367431640625e-06,
+      "imported_applied_delta_error": 1.1444091796875e-05,
+      "native_vs_decoded_glb_max_error_m": 9.642386658015312e-07,
+      "decoded_vs_reimport_max_error_m": 7.269949833244027e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2395335737699434,
+        "max_abs_log_length_ratio": 0.6701092073644919,
+        "min_length_ratio": 0.5116526984926453,
+        "max_length_ratio": 1.6127640628996094,
+        "outside_20_percent_count": 192,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-06",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.0061124563,
+        "ElapsedSeconds": 4.3583307,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "cfebfa1fe846030cbedd524478ab89f1e9fd3221ffc405d69012d03ef88c51b6",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.239776611328125e-05,
+      "imported_applied_delta_error": 2.288818359375e-05,
+      "native_vs_decoded_glb_max_error_m": 6.288572649282287e-07,
+      "decoded_vs_reimport_max_error_m": 6.662752412012196e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.22340975241500907,
+        "max_abs_log_length_ratio": 0.6449106073618943,
+        "min_length_ratio": 0.5247094451717101,
+        "max_length_ratio": 1.5801678681994478,
+        "outside_20_percent_count": 160,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "4982fd54f805da4d91331d10493cb24b62ef54f2ef662188fbdc857990a8feb3",
+        "glb_pose_hidden_right-leg.png": "1fd46250dfb74822699148647e2d9e0cbff381f4bdd0eb4192d6a88122aa65ac",
+        "native_pose.png": "9c75e558c03af82951583cbff6232b896f261a90b2b431fcd839da191a8f3f29",
+        "native_rest.png": "2efffd5fd17d644f573238ba2c5bf068b97fd7fb247480aa225e0c8fb1018b28",
+        "review_back.png": "76bf9dcec48ac2fc8a4e3dc412c91ad373d94768e11b191f2a1694b3d4cb589d",
+        "review_front.png": "e2920e8220bc456f4748cc41246149062247f1d09a75c36bc3a72a83f8722bd3"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm"
+        ],
+        "world_bounds": [
+          [
+            -0.39695996046066284,
+            -0.3931165635585785,
+            0.13307726383209229
+          ],
+          [
+            0.8598157167434692,
+            0.46112060546875,
+            1.8352575302124023
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-07",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.16001105,
+        "ElapsedSeconds": 5.0249968,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "371c511ca488dc5513d99ad55cc53b0b8b00003d4eaaaa08ff45e18befd1a75c",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 9.5367431640625e-06,
+      "imported_applied_delta_error": 1.52587890625e-05,
+      "native_vs_decoded_glb_max_error_m": 7.260780989781779e-07,
+      "decoded_vs_reimport_max_error_m": 7.410238254124124e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2224957163240665,
+        "max_abs_log_length_ratio": 0.569743670373548,
+        "min_length_ratio": 0.5656704182044654,
+        "max_length_ratio": 1.556208017279037,
+        "outside_20_percent_count": 157,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-08",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.31390965,
+        "ElapsedSeconds": 5.691663,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "6e18123ca88e2001f4fdd76a540df3922243d5844e3048f53234e2f122d8c915",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.239776611328125e-05,
+      "imported_applied_delta_error": 1.6629695892333984e-05,
+      "native_vs_decoded_glb_max_error_m": 7.27567396552331e-07,
+      "decoded_vs_reimport_max_error_m": 7.183534194155072e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.22569164639917577,
+        "max_abs_log_length_ratio": 0.598696026396471,
+        "min_length_ratio": 0.5495277387688267,
+        "max_length_ratio": 1.5572631769604066,
+        "outside_20_percent_count": 159,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-09",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.46780825,
+        "ElapsedSeconds": 6.358329,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "6819d29c3d0902055a7e2eb4ca46c8e2ba6d3c05fc556301a5b36063ba0dec90",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 9.059906005859375e-06,
+      "imported_applied_delta_error": 1.52587890625e-05,
+      "native_vs_decoded_glb_max_error_m": 7.249782356666401e-07,
+      "decoded_vs_reimport_max_error_m": 6.052880507922964e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.22500385558424968,
+        "max_abs_log_length_ratio": 0.5955164711073234,
+        "min_length_ratio": 0.5512777732885777,
+        "max_length_ratio": 1.55710986142323,
+        "outside_20_percent_count": 159,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-10",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.62170684,
+        "ElapsedSeconds": 7.024995,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "2ceb460c6aef5f6fdcf6ce0d3fb7507d9d69796fc4449aa0d458d871514fc80a",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 7.718801498413086e-06,
+      "imported_applied_delta_error": 2.288818359375e-05,
+      "native_vs_decoded_glb_max_error_m": 7.228215395116422e-07,
+      "decoded_vs_reimport_max_error_m": 7.039911906758789e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2272395205840224,
+        "max_abs_log_length_ratio": 0.6715066060582651,
+        "min_length_ratio": 0.5109382150055176,
+        "max_length_ratio": 1.574051894994704,
+        "outside_20_percent_count": 167,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Hop-meshvenn-hop-11",
+      "movement_classification": "Hop",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.77560544,
+        "ElapsedSeconds": 7.691661,
+        "Pose": "Hop",
+        "Preset": "Mono Leg"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "5b58e99e6acb8aac62dbae4dccaac76098387f02d803f8c4d43bcf13c6e69a00",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "right-leg",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 7.927417755126953e-06,
+      "imported_applied_delta_error": 2.09808349609375e-05,
+      "native_vs_decoded_glb_max_error_m": 7.190099609033496e-07,
+      "decoded_vs_reimport_max_error_m": 7.158763537518098e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2234046391386932,
+        "max_abs_log_length_ratio": 0.6063229784661747,
+        "min_length_ratio": 0.5453524596110557,
+        "max_length_ratio": 1.5603739488834858,
+        "outside_20_percent_count": 158,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Walk-meshvenn-walk-00",
+      "movement_classification": "Walk",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.081356004,
+        "ElapsedSeconds": 0.35833335,
+        "Pose": "Walk",
+        "Preset": "Standard Stable"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "e2ff232c146b500497237da0b18ae9c9dfc8143a044380fc93b99e1bb9c6d666",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.239776611328125e-05,
+      "imported_applied_delta_error": 1.33514404296875e-05,
+      "native_vs_decoded_glb_max_error_m": 6.027146923770488e-07,
+      "decoded_vs_reimport_max_error_m": 7.161113444453804e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.0949487903663016,
+        "max_abs_log_length_ratio": 0.2974903970696881,
+        "min_length_ratio": 0.7426797150880868,
+        "max_length_ratio": 1.3200352841186167,
+        "outside_20_percent_count": 15,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Walk-meshvenn-walk-01",
+      "movement_classification": "Walk",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.23271611,
+        "ElapsedSeconds": 1.0250005,
+        "Pose": "Walk",
+        "Preset": "Standard Stable"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "40d9a4d74ca6fc4de8e655e87567167db6c0d5b11a9d52eae1804352e5027457",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.5437602996826172e-05,
+      "imported_applied_delta_error": 1.9073486328125e-05,
+      "native_vs_decoded_glb_max_error_m": 7.177349630183016e-07,
+      "decoded_vs_reimport_max_error_m": 6.474721772065095e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.07474999440449892,
+        "max_abs_log_length_ratio": 0.2378222079410017,
+        "min_length_ratio": 0.8098915976457067,
+        "max_length_ratio": 1.2684836464560192,
+        "outside_20_percent_count": 4,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "Walk-meshvenn-walk-02",
+      "movement_classification": "Walk",
+      "context": {
+        "Consumer": "animation-workbench",
+        "CyclePhase": 0.38407597,
+        "ElapsedSeconds": 1.6916665,
+        "Pose": "Walk",
+        "Preset": "Standard Stable"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "573a6aa6db650d88e6f92cd87043adcc5237f0bbe3d5abb692a258dd4a3bf28d",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.52587890625e-05,
+      "native_vs_decoded_glb_max_error_m": 7.199454898909607e-07,
+      "decoded_vs_reimport_max_error_m": 6.720406986460148e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.08669612680301259,
+        "max_abs_log_length_ratio": 0.27046004423720044,
+        "min_length_ratio": 0.7630283867683857,
+        "max_length_ratio": 1.2279200675194148,
+        "outside_20_percent_count": 8,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "7a9f806b0ecccc49fd5e74f91049849e5ced4d7aee728e6ba93b5db4c99be2cd",
+        "native_pose.png": "1b109a27eb3a65abd90782fd11ea49ece605d3a2dbecd73ed0cf2c0d915444e8",
+        "native_rest.png": "313272ebe8599e9219ffd535a843087ec64710056103a5b7aca69350cbfd6d97",
+        "review_back.png": "488f80302dbbc203ee6812dd93ec0599c47ba161604d663705793df87525c436",
+        "review_front.png": "c899018d2a85afcd0526357dd94fff57f62e9af0af7a1495b68511f2d369afe6"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm",
+          "Doll_right_leg"
+        ],
+        "world_bounds": [
+          [
+            -0.634246826171875,
+            -0.5781955122947693,
+            0.032392535358667374
+          ],
+          [
+            0.9906396865844727,
+            0.39650067687034607,
+            1.9098907709121704
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "World-03-one-leg-hop",
+      "movement_classification": "walk-approach, not explicit hop",
+      "context": {
+        "BodyVariant": "OneLeg",
+        "Consumer": "world-storyboard",
+        "InTransit": true,
+        "Sample": "03-one-leg-hop",
+        "WorldMode": "Run"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "41c639642eeb8ed27c2729afd42d393126dbbb610a74b57a4abe21523ce0e3ac",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [
+        "right-arm",
+        "right-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.71661376953125e-05,
+      "imported_applied_delta_error": 2.09808349609375e-05,
+      "native_vs_decoded_glb_max_error_m": 8.5239980762708e-07,
+      "decoded_vs_reimport_max_error_m": 9.098254167838604e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.29697856509614295,
+        "max_abs_log_length_ratio": 1.2380050927106583,
+        "min_length_ratio": 0.28996208883262276,
+        "max_length_ratio": 1.957098060920826,
+        "outside_20_percent_count": 214,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "factory-hall",
+      "movement_classification": "presence",
+      "context": {
+        "AnatomyMask": 0,
+        "Consumer": "selected-factory",
+        "ElapsedSeconds": 1.2,
+        "Pose": "presence"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "db39bc38779fd8ce2e3a6f7c49bfef76f3b332f8bc555f8be9a90debe2425657",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.52587890625e-05,
+      "native_vs_decoded_glb_max_error_m": 8.416028549618204e-07,
+      "decoded_vs_reimport_max_error_m": 6.246502266549214e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2198198259382243,
+        "max_abs_log_length_ratio": 0.540212215458489,
+        "min_length_ratio": 0.5826245973076508,
+        "max_length_ratio": 1.5564942924054384,
+        "outside_20_percent_count": 159,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "2b77da43f92523078b404c9c91c0370af23498882a16bd6ad8a633ff3cc124cb",
+        "native_pose.png": "04d0c901420de31fbbe655ee2709d1c389dd7fe83101d9c1868e5385e3d9a4c3",
+        "native_rest.png": "f5d3f73943b33960de4e076db8feb81782d320e1a0b1bafede5c7050958b68ac",
+        "review_back.png": "b5ed80f6f5d3e8ec92e94e401c926269f7c2ff97c57eba9b828e17d84f9796ec",
+        "review_front.png": "eb1300994414d46f91e4737bacdfc3d8fc5a3b67d33925e2c52dcd90cbcbbb47"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm",
+          "Doll_right_leg"
+        ],
+        "world_bounds": [
+          [
+            -0.47885456681251526,
+            -0.42943066358566284,
+            0.11096575856208801
+          ],
+          [
+            0.48194706439971924,
+            0.21004892885684967,
+            1.9331027269363403
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "factory-held",
+      "movement_classification": "held",
+      "context": {
+        "AnatomyMask": 0,
+        "Consumer": "selected-factory",
+        "Lift": 0.75,
+        "Pose": "held",
+        "Wobble": 0.4
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "63328b2f864dd19a57ce0cbec8594aaca6c5f71c373834e89069f90322383d80",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": null,
+      "hidden_regions": [],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 8.07642936706543e-06,
+      "imported_applied_delta_error": 2.288818359375e-05,
+      "native_vs_decoded_glb_max_error_m": 7.214378570097324e-07,
+      "decoded_vs_reimport_max_error_m": 6.605854423469282e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.27109050011090524,
+        "max_abs_log_length_ratio": 0.6946048886834553,
+        "min_length_ratio": 0.49927167690845714,
+        "max_length_ratio": 1.6347998891201487,
+        "outside_20_percent_count": 215,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {
+        "glb_pose.png": "43d7531153aa5e49d6c3ad31f8dd71f83c50c5a791355fee621cc15a023c1722",
+        "native_pose.png": "1c5fb92e27b9d14448683b6d2bd6ff374eb7167e0a240cfafc6756def8ac0f5f",
+        "native_rest.png": "344974bc26366cb759d138998b189de4e28595f9f1838192efbb79c9a18b9195",
+        "review_back.png": "1d3de51cdea9112592c41aeace50ef432191b95eb77beee600d2f801859ea61b",
+        "review_front.png": "f0bc93ed7f91c84a08f2e10e0da6fea0287650b9d70af0110454bf1a1a257ce1"
+      },
+      "review_framing": {
+        "evaluated_visible_geometry_only": true,
+        "visible_meshes": [
+          "Doll_body_core",
+          "Doll_left_arm",
+          "Doll_left_leg",
+          "Doll_right_arm",
+          "Doll_right_leg"
+        ],
+        "world_bounds": [
+          [
+            -0.34625571966171265,
+            -0.4755414128303528,
+            0.06849014014005661
+          ],
+          [
+            0.43912720680236816,
+            0.097666434943676,
+            1.920120358467102
+          ]
+        ],
+        "views": [
+          "front-three-quarter",
+          "back-three-quarter"
+        ],
+        "lighting": "same neutral light rig rotated with the rear camera",
+        "pose_or_material_edits": false
+      },
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    },
+    {
+      "id": "factory-one-leg",
+      "movement_classification": "presence",
+      "context": {
+        "AnatomyMask": 4,
+        "Consumer": "selected-factory",
+        "ElapsedSeconds": 1.2,
+        "Pose": "presence"
+      },
+      "passed": true,
+      "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "input_pose_sha256": "db39bc38779fd8ce2e3a6f7c49bfef76f3b332f8bc555f8be9a90debe2425657",
+      "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+      "run_id": null,
+      "run_attempt": null,
+      "hidden_region": "left-leg",
+      "hidden_regions": [
+        "left-leg"
+      ],
+      "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+      "native_rest_error_in_heights": 1.6028117164254222e-07,
+      "glb_rest_world_max_error": 1.4901161193847656e-07,
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "imported_applied_delta_error": 1.52587890625e-05,
+      "native_vs_decoded_glb_max_error_m": 8.416028549618204e-07,
+      "decoded_vs_reimport_max_error_m": 6.246502266549214e-07,
+      "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+      "torso_edges": {
+        "edge_count": 2599,
+        "p95_abs_log_length_ratio": 0.2198198259382243,
+        "max_abs_log_length_ratio": 0.540212215458489,
+        "min_length_ratio": 0.5826245973076508,
+        "max_length_ratio": 1.5564942924054384,
+        "outside_20_percent_count": 159,
+        "collapsed_fraction": 0.0
+      },
+      "source_authority_unchanged": true,
+      "images": {},
+      "review_framing": null,
+      "visual_qualification": false,
+      "consumer_capture_pixel_equality_claimed": false,
+      "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+    }
+  ],
+  "rendered_cases": [
+    "Elbows-meshvenn-elbow-left-45",
+    "Elbows-meshvenn-elbow-left-90",
+    "Elbows-meshvenn-elbow-right-45",
+    "Elbows-meshvenn-elbow-right-90",
+    "Hop-meshvenn-hop-06",
+    "Walk-meshvenn-walk-02",
+    "factory-hall",
+    "factory-held"
+  ],
+  "visual_qualification": false,
+  "capture_profile": "distal-chains",
+  "dataset_sha256": "c6a753c04cab1818f420df283af833c9dc19e27251350cd3ab4cec8b83b5d000",
+  "replay_is_actual_consumer_capture": true,
+  "joint_motion_coverage": {
+    "schema_version": 1,
+    "captured_asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+    "case_count": 23,
+    "excitation_threshold_degrees": 5.0,
+    "rigid_delta_eligibility_tolerance": 2e-05,
+    "required_joints": [
+      "forearm.L",
+      "forearm.R",
+      "thigh.L",
+      "thigh.R",
+      "shin.L",
+      "shin.R"
+    ],
+    "joints": {
+      "root": {
+        "region": "body-core",
+        "visible_case_count": 23,
+        "max_local_rotation_degrees": 0.0,
+        "max_visible_local_rotation_degrees": 0.0,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 0.0,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "pelvis": {
+        "region": "body-core",
+        "visible_case_count": 23,
+        "max_local_rotation_degrees": 17.031856693,
+        "max_visible_local_rotation_degrees": 17.031856693,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "World-03-one-leg-hop",
+          "factory-held"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 3.6484e-07,
+        "max_relative_translation_in_capture_units": 11.129249972545
+      },
+      "spine": {
+        "region": "body-core",
+        "visible_case_count": 23,
+        "max_local_rotation_degrees": 2.25e-07,
+        "max_visible_local_rotation_degrees": 2.25e-07,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 3.02457e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "chest": {
+        "region": "body-core",
+        "visible_case_count": 23,
+        "max_local_rotation_degrees": 7.656e-06,
+        "max_visible_local_rotation_degrees": 7.656e-06,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 6.28642e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "neck": {
+        "region": "body-core",
+        "visible_case_count": 23,
+        "max_local_rotation_degrees": 5.84e-07,
+        "max_visible_local_rotation_degrees": 5.84e-07,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 2.59199e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "head": {
+        "region": "body-core",
+        "visible_case_count": 23,
+        "max_local_rotation_degrees": 16.89657525,
+        "max_visible_local_rotation_degrees": 16.89657525,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "World-03-one-leg-hop",
+          "factory-held"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 7.41627e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "upper_arm.L": {
+        "region": "left-arm",
+        "visible_case_count": 23,
+        "max_local_rotation_degrees": 122.045707964,
+        "max_visible_local_rotation_degrees": 122.045707964,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "World-03-one-leg-hop",
+          "factory-hall",
+          "factory-held",
+          "factory-one-leg"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 1.061623e-06,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "forearm.L": {
+        "region": "left-arm",
+        "visible_case_count": 23,
+        "max_local_rotation_degrees": 90.000014152,
+        "max_visible_local_rotation_degrees": 90.000014152,
+        "visible_excited_cases": [
+          "Elbows-meshvenn-elbow-left-45",
+          "Elbows-meshvenn-elbow-left-90",
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 1.203487e-06,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "hand.L": {
+        "region": "left-arm",
+        "visible_case_count": 23,
+        "max_local_rotation_degrees": 16.000018847,
+        "max_visible_local_rotation_degrees": 16.000018847,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 7.44206e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "thigh.L": {
+        "region": "left-leg",
+        "visible_case_count": 22,
+        "max_local_rotation_degrees": 97.471337708,
+        "max_visible_local_rotation_degrees": 97.471337708,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "World-03-one-leg-hop",
+          "factory-held"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 9.97268e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "shin.L": {
+        "region": "left-leg",
+        "visible_case_count": 22,
+        "max_local_rotation_degrees": 92.000007441,
+        "max_visible_local_rotation_degrees": 92.000007441,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "World-03-one-leg-hop"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 6.05562e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "foot.L": {
+        "region": "left-leg",
+        "visible_case_count": 22,
+        "max_local_rotation_degrees": 46.000012332,
+        "max_visible_local_rotation_degrees": 46.000012332,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "World-03-one-leg-hop"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 1.214224e-06,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "upper_arm.R": {
+        "region": "right-arm",
+        "visible_case_count": 22,
+        "max_local_rotation_degrees": 85.089174515,
+        "max_visible_local_rotation_degrees": 85.089174515,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "factory-hall",
+          "factory-held",
+          "factory-one-leg"
+        ],
+        "hidden_excited_cases": [
+          "World-03-one-leg-hop"
+        ],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 1.269204e-06,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "forearm.R": {
+        "region": "right-arm",
+        "visible_case_count": 22,
+        "max_local_rotation_degrees": 90.000019768,
+        "max_visible_local_rotation_degrees": 90.000019768,
+        "visible_excited_cases": [
+          "Elbows-meshvenn-elbow-right-45",
+          "Elbows-meshvenn-elbow-right-90",
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 7.39293e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "hand.R": {
+        "region": "right-arm",
+        "visible_case_count": 22,
+        "max_local_rotation_degrees": 16.000013861,
+        "max_visible_local_rotation_degrees": 16.000013861,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 6.01065e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "thigh.R": {
+        "region": "right-leg",
+        "visible_case_count": 10,
+        "max_local_rotation_degrees": 107.489685177,
+        "max_visible_local_rotation_degrees": 33.633915385,
+        "visible_excited_cases": [
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02"
+        ],
+        "hidden_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "World-03-one-leg-hop"
+        ],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 2.049781e-06,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "shin.R": {
+        "region": "right-leg",
+        "visible_case_count": 10,
+        "max_local_rotation_degrees": 37.686837876,
+        "max_visible_local_rotation_degrees": 12.354586085,
+        "visible_excited_cases": [
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02"
+        ],
+        "hidden_excited_cases": [
+          "World-03-one-leg-hop"
+        ],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 7.93e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "foot.R": {
+        "region": "right-leg",
+        "visible_case_count": 10,
+        "max_local_rotation_degrees": 44.248733186,
+        "max_visible_local_rotation_degrees": 13.944459524,
+        "visible_excited_cases": [
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02"
+        ],
+        "hidden_excited_cases": [
+          "World-03-one-leg-hop"
+        ],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 9.76521e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      }
+    },
+    "missing_visible_rotation_excitation": [],
+    "visible_rotation_excitation_complete": true,
+    "visual_qualification": false,
+    "consumer_acceptance": false,
+    "scope": "Rest-relative native-local rotation amplitude and recorded presence only. Parent/world motion and hidden limbs cannot earn visible joint credit. One excited pose is not a qualified articulation range, deformation quality, contact or consumer acceptance."
+  },
+  "private_captures_published": false,
+  "scope": "Actual synchronized native poses. Ancestor chains validated; skin comparison is before external facing/world transforms, retaining asset normalization once. No physical-contact or consumer repair claim.",
+  "motion_context_coverage": {
+    "production": {
+      "schema_version": 1,
+      "captured_asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "case_count": 19,
+      "excitation_threshold_degrees": 5.0,
+      "rigid_delta_eligibility_tolerance": 2e-05,
+      "required_joints": [
+        "forearm.L",
+        "forearm.R",
+        "thigh.L",
+        "thigh.R",
+        "shin.L",
+        "shin.R"
+      ],
+      "joints": {
+        "root": {
+          "region": "body-core",
+          "visible_case_count": 19,
+          "max_local_rotation_degrees": 0.0,
+          "max_visible_local_rotation_degrees": 0.0,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 0.0,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "pelvis": {
+          "region": "body-core",
+          "visible_case_count": 19,
+          "max_local_rotation_degrees": 17.031856693,
+          "max_visible_local_rotation_degrees": 17.031856693,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02",
+            "World-03-one-leg-hop",
+            "factory-held"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.6484e-07,
+          "max_relative_translation_in_capture_units": 11.129249972545
+        },
+        "spine": {
+          "region": "body-core",
+          "visible_case_count": 19,
+          "max_local_rotation_degrees": 2.25e-07,
+          "max_visible_local_rotation_degrees": 2.25e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.02457e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "chest": {
+          "region": "body-core",
+          "visible_case_count": 19,
+          "max_local_rotation_degrees": 7.656e-06,
+          "max_visible_local_rotation_degrees": 7.656e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.28642e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "neck": {
+          "region": "body-core",
+          "visible_case_count": 19,
+          "max_local_rotation_degrees": 5.84e-07,
+          "max_visible_local_rotation_degrees": 5.84e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.59199e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "head": {
+          "region": "body-core",
+          "visible_case_count": 19,
+          "max_local_rotation_degrees": 16.89657525,
+          "max_visible_local_rotation_degrees": 16.89657525,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11",
+            "Walk-meshvenn-walk-00",
+            "World-03-one-leg-hop",
+            "factory-held"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 7.41627e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "upper_arm.L": {
+          "region": "left-arm",
+          "visible_case_count": 19,
+          "max_local_rotation_degrees": 122.045707964,
+          "max_visible_local_rotation_degrees": 122.045707964,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11",
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02",
+            "World-03-one-leg-hop",
+            "factory-hall",
+            "factory-held",
+            "factory-one-leg"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 1.061623e-06,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "forearm.L": {
+          "region": "left-arm",
+          "visible_case_count": 19,
+          "max_local_rotation_degrees": 75.999844157,
+          "max_visible_local_rotation_degrees": 75.999844157,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 8.49922e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "hand.L": {
+          "region": "left-arm",
+          "visible_case_count": 19,
+          "max_local_rotation_degrees": 16.000018847,
+          "max_visible_local_rotation_degrees": 16.000018847,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 7.44206e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "thigh.L": {
+          "region": "left-leg",
+          "visible_case_count": 18,
+          "max_local_rotation_degrees": 97.471337708,
+          "max_visible_local_rotation_degrees": 97.471337708,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11",
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02",
+            "World-03-one-leg-hop",
+            "factory-held"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 9.97268e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "shin.L": {
+          "region": "left-leg",
+          "visible_case_count": 18,
+          "max_local_rotation_degrees": 92.000007441,
+          "max_visible_local_rotation_degrees": 92.000007441,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11",
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02",
+            "World-03-one-leg-hop"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.05562e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "foot.L": {
+          "region": "left-leg",
+          "visible_case_count": 18,
+          "max_local_rotation_degrees": 46.000012332,
+          "max_visible_local_rotation_degrees": 46.000012332,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11",
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02",
+            "World-03-one-leg-hop"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 1.214224e-06,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "upper_arm.R": {
+          "region": "right-arm",
+          "visible_case_count": 18,
+          "max_local_rotation_degrees": 85.089174515,
+          "max_visible_local_rotation_degrees": 85.089174515,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11",
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02",
+            "factory-hall",
+            "factory-held",
+            "factory-one-leg"
+          ],
+          "hidden_excited_cases": [
+            "World-03-one-leg-hop"
+          ],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 1.269204e-06,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "forearm.R": {
+          "region": "right-arm",
+          "visible_case_count": 18,
+          "max_local_rotation_degrees": 76.271947751,
+          "max_visible_local_rotation_degrees": 76.271947751,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 7.06568e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "hand.R": {
+          "region": "right-arm",
+          "visible_case_count": 18,
+          "max_local_rotation_degrees": 16.000013861,
+          "max_visible_local_rotation_degrees": 16.000013861,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.01065e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "thigh.R": {
+          "region": "right-leg",
+          "visible_case_count": 6,
+          "max_local_rotation_degrees": 107.489685177,
+          "max_visible_local_rotation_degrees": 33.633915385,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11",
+            "World-03-one-leg-hop"
+          ],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.049781e-06,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "shin.R": {
+          "region": "right-leg",
+          "visible_case_count": 6,
+          "max_local_rotation_degrees": 37.686837876,
+          "max_visible_local_rotation_degrees": 12.354586085,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [
+            "World-03-one-leg-hop"
+          ],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 7.93e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "foot.R": {
+          "region": "right-leg",
+          "visible_case_count": 6,
+          "max_local_rotation_degrees": 44.248733186,
+          "max_visible_local_rotation_degrees": 13.944459524,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [
+            "World-03-one-leg-hop"
+          ],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 9.76521e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        }
+      },
+      "missing_visible_rotation_excitation": [],
+      "visible_rotation_excitation_complete": true,
+      "visual_qualification": false,
+      "consumer_acceptance": false,
+      "scope": "Rest-relative native-local rotation amplitude and recorded presence only. Parent/world motion and hidden limbs cannot earn visible joint credit. One excited pose is not a qualified articulation range, deformation quality, contact or consumer acceptance."
+    },
+    "isolated-elbows": {
+      "schema_version": 1,
+      "captured_asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "case_count": 4,
+      "excitation_threshold_degrees": 5.0,
+      "rigid_delta_eligibility_tolerance": 2e-05,
+      "required_joints": [
+        "forearm.L",
+        "forearm.R",
+        "thigh.L",
+        "thigh.R",
+        "shin.L",
+        "shin.R"
+      ],
+      "joints": {
+        "root": {
+          "region": "body-core",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 0.0,
+          "max_visible_local_rotation_degrees": 0.0,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 0.0,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "pelvis": {
+          "region": "body-core",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 8.5e-07,
+          "max_visible_local_rotation_degrees": 8.5e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 9.888e-09,
+          "max_relative_translation_in_capture_units": 2.056061e-06
+        },
+        "spine": {
+          "region": "body-core",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 2.25e-07,
+          "max_visible_local_rotation_degrees": 2.25e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.02457e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "chest": {
+          "region": "body-core",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 5.089e-06,
+          "max_visible_local_rotation_degrees": 5.089e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.56522e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "neck": {
+          "region": "body-core",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 5.84e-07,
+          "max_visible_local_rotation_degrees": 5.84e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.59199e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "head": {
+          "region": "body-core",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 2.917e-06,
+          "max_visible_local_rotation_degrees": 2.917e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 5.39419e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "upper_arm.L": {
+          "region": "left-arm",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 6.64e-06,
+          "max_visible_local_rotation_degrees": 6.64e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.26271e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "forearm.L": {
+          "region": "left-arm",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 90.000014152,
+          "max_visible_local_rotation_degrees": 90.000014152,
+          "visible_excited_cases": [
+            "Elbows-meshvenn-elbow-left-45",
+            "Elbows-meshvenn-elbow-left-90"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 1.203487e-06,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "hand.L": {
+          "region": "left-arm",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 7.348e-06,
+          "max_visible_local_rotation_degrees": 7.348e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.11693e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "thigh.L": {
+          "region": "left-leg",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 8.45e-07,
+          "max_visible_local_rotation_degrees": 8.45e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 1.99348e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "shin.L": {
+          "region": "left-leg",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 1.223e-06,
+          "max_visible_local_rotation_degrees": 1.223e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.19643e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "foot.L": {
+          "region": "left-leg",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 3.137e-06,
+          "max_visible_local_rotation_degrees": 3.137e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 9.0802e-08,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "upper_arm.R": {
+          "region": "right-arm",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 5.949e-06,
+          "max_visible_local_rotation_degrees": 5.949e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.07963e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "forearm.R": {
+          "region": "right-arm",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 90.000019768,
+          "max_visible_local_rotation_degrees": 90.000019768,
+          "visible_excited_cases": [
+            "Elbows-meshvenn-elbow-right-45",
+            "Elbows-meshvenn-elbow-right-90"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 7.39293e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "hand.R": {
+          "region": "right-arm",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 1.1109e-05,
+          "max_visible_local_rotation_degrees": 1.1109e-05,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 5.00576e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "thigh.R": {
+          "region": "right-leg",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 5.1e-07,
+          "max_visible_local_rotation_degrees": 5.1e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 5.21118e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "shin.R": {
+          "region": "right-leg",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 1.276e-06,
+          "max_visible_local_rotation_degrees": 1.276e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 4.01485e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "foot.R": {
+          "region": "right-leg",
+          "visible_case_count": 4,
+          "max_local_rotation_degrees": 1.1612e-05,
+          "max_visible_local_rotation_degrees": 1.1612e-05,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.60186e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        }
+      },
+      "missing_visible_rotation_excitation": [
+        "thigh.L",
+        "thigh.R",
+        "shin.L",
+        "shin.R"
+      ],
+      "visible_rotation_excitation_complete": false,
+      "visual_qualification": false,
+      "consumer_acceptance": false,
+      "scope": "Rest-relative native-local rotation amplitude and recorded presence only. Parent/world motion and hidden limbs cannot earn visible joint credit. One excited pose is not a qualified articulation range, deformation quality, contact or consumer acceptance."
+    },
+    "walk": {
+      "schema_version": 1,
+      "captured_asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "case_count": 3,
+      "excitation_threshold_degrees": 5.0,
+      "rigid_delta_eligibility_tolerance": 2e-05,
+      "required_joints": [
+        "forearm.L",
+        "forearm.R",
+        "thigh.L",
+        "thigh.R",
+        "shin.L",
+        "shin.R"
+      ],
+      "joints": {
+        "root": {
+          "region": "body-core",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 0.0,
+          "max_visible_local_rotation_degrees": 0.0,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 0.0,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "pelvis": {
+          "region": "body-core",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 7.044036961,
+          "max_visible_local_rotation_degrees": 7.044036961,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.6484e-07,
+          "max_relative_translation_in_capture_units": 5.269240078109
+        },
+        "spine": {
+          "region": "body-core",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 2.25e-07,
+          "max_visible_local_rotation_degrees": 2.25e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.02457e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "chest": {
+          "region": "body-core",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 3.271e-06,
+          "max_visible_local_rotation_degrees": 3.271e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 5.31957e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "neck": {
+          "region": "body-core",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 5.84e-07,
+          "max_visible_local_rotation_degrees": 5.84e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.59199e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "head": {
+          "region": "body-core",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 6.126771966,
+          "max_visible_local_rotation_degrees": 6.126771966,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 5.21922e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "upper_arm.L": {
+          "region": "left-arm",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 33.680555303,
+          "max_visible_local_rotation_degrees": 33.680555303,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 4.41001e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "forearm.L": {
+          "region": "left-arm",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 1.548e-05,
+          "max_visible_local_rotation_degrees": 1.548e-05,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 5.41009e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "hand.L": {
+          "region": "left-arm",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 4.911e-06,
+          "max_visible_local_rotation_degrees": 4.911e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.02473e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "thigh.L": {
+          "region": "left-leg",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 38.473799083,
+          "max_visible_local_rotation_degrees": 38.473799083,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 9.97268e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "shin.L": {
+          "region": "left-leg",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 11.36790388,
+          "max_visible_local_rotation_degrees": 11.36790388,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.05562e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "foot.L": {
+          "region": "left-leg",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 12.764423186,
+          "max_visible_local_rotation_degrees": 12.764423186,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.97006e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "upper_arm.R": {
+          "region": "right-arm",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 31.263028011,
+          "max_visible_local_rotation_degrees": 31.263028011,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 5.85825e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "forearm.R": {
+          "region": "right-arm",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 1.2025e-05,
+          "max_visible_local_rotation_degrees": 1.2025e-05,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 7.06568e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "hand.R": {
+          "region": "right-arm",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 1.1794e-05,
+          "max_visible_local_rotation_degrees": 1.1794e-05,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 5.19813e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "thigh.R": {
+          "region": "right-leg",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 33.633915385,
+          "max_visible_local_rotation_degrees": 33.633915385,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 1.066031e-06,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "shin.R": {
+          "region": "right-leg",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 12.354586085,
+          "max_visible_local_rotation_degrees": 12.354586085,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 7.93e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "foot.R": {
+          "region": "right-leg",
+          "visible_case_count": 3,
+          "max_local_rotation_degrees": 13.944459524,
+          "max_visible_local_rotation_degrees": 13.944459524,
+          "visible_excited_cases": [
+            "Walk-meshvenn-walk-00",
+            "Walk-meshvenn-walk-01",
+            "Walk-meshvenn-walk-02"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 9.76521e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        }
+      },
+      "missing_visible_rotation_excitation": [
+        "forearm.L",
+        "forearm.R"
+      ],
+      "visible_rotation_excitation_complete": false,
+      "visual_qualification": false,
+      "consumer_acceptance": false,
+      "scope": "Rest-relative native-local rotation amplitude and recorded presence only. Parent/world motion and hidden limbs cannot earn visible joint credit. One excited pose is not a qualified articulation range, deformation quality, contact or consumer acceptance."
+    },
+    "held": {
+      "schema_version": 1,
+      "captured_asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "case_count": 1,
+      "excitation_threshold_degrees": 5.0,
+      "rigid_delta_eligibility_tolerance": 2e-05,
+      "required_joints": [
+        "forearm.L",
+        "forearm.R",
+        "thigh.L",
+        "thigh.R",
+        "shin.L",
+        "shin.R"
+      ],
+      "joints": {
+        "root": {
+          "region": "body-core",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 0.0,
+          "max_visible_local_rotation_degrees": 0.0,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 0.0,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "pelvis": {
+          "region": "body-core",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 6.387741344,
+          "max_visible_local_rotation_degrees": 6.387741344,
+          "visible_excited_cases": [
+            "factory-held"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.41052e-07,
+          "max_relative_translation_in_capture_units": 3.863706446942
+        },
+        "spine": {
+          "region": "body-core",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 2.25e-07,
+          "max_visible_local_rotation_degrees": 2.25e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.02457e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "chest": {
+          "region": "body-core",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 7.656e-06,
+          "max_visible_local_rotation_degrees": 7.656e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 4.02917e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "neck": {
+          "region": "body-core",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 5.84e-07,
+          "max_visible_local_rotation_degrees": 5.84e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.59199e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "head": {
+          "region": "body-core",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 12.557247306,
+          "max_visible_local_rotation_degrees": 12.557247306,
+          "visible_excited_cases": [
+            "factory-held"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.5239e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "upper_arm.L": {
+          "region": "left-arm",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 81.117503739,
+          "max_visible_local_rotation_degrees": 81.117503739,
+          "visible_excited_cases": [
+            "factory-held"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 4.74509e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "forearm.L": {
+          "region": "left-arm",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 4.237e-06,
+          "max_visible_local_rotation_degrees": 4.237e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.40544e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "hand.L": {
+          "region": "left-arm",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 4.033e-06,
+          "max_visible_local_rotation_degrees": 4.033e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.25886e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "thigh.L": {
+          "region": "left-leg",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 5.145465297,
+          "max_visible_local_rotation_degrees": 5.145465297,
+          "visible_excited_cases": [
+            "factory-held"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.71785e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "shin.L": {
+          "region": "left-leg",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 2.898e-06,
+          "max_visible_local_rotation_degrees": 2.898e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 4.03358e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "foot.L": {
+          "region": "left-leg",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 1.362e-06,
+          "max_visible_local_rotation_degrees": 1.362e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.14639e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "upper_arm.R": {
+          "region": "right-arm",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 85.089174515,
+          "max_visible_local_rotation_degrees": 85.089174515,
+          "visible_excited_cases": [
+            "factory-held"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.28155e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "forearm.R": {
+          "region": "right-arm",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 3.404e-06,
+          "max_visible_local_rotation_degrees": 3.404e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 4.55805e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "hand.R": {
+          "region": "right-arm",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 4.183e-06,
+          "max_visible_local_rotation_degrees": 4.183e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 4.82715e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "thigh.R": {
+          "region": "right-leg",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 1.213564465,
+          "max_visible_local_rotation_degrees": 1.213564465,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 5.9243e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "shin.R": {
+          "region": "right-leg",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 4.086e-06,
+          "max_visible_local_rotation_degrees": 4.086e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.75544e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "foot.R": {
+          "region": "right-leg",
+          "visible_case_count": 1,
+          "max_local_rotation_degrees": 1.1597e-05,
+          "max_visible_local_rotation_degrees": 1.1597e-05,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 4.80205e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        }
+      },
+      "missing_visible_rotation_excitation": [
+        "forearm.L",
+        "forearm.R",
+        "thigh.R",
+        "shin.L",
+        "shin.R"
+      ],
+      "visible_rotation_excitation_complete": false,
+      "visual_qualification": false,
+      "consumer_acceptance": false,
+      "scope": "Rest-relative native-local rotation amplitude and recorded presence only. Parent/world motion and hidden limbs cannot earn visible joint credit. One excited pose is not a qualified articulation range, deformation quality, contact or consumer acceptance."
+    },
+    "hop": {
+      "schema_version": 1,
+      "captured_asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+      "case_count": 12,
+      "excitation_threshold_degrees": 5.0,
+      "rigid_delta_eligibility_tolerance": 2e-05,
+      "required_joints": [
+        "forearm.L",
+        "forearm.R",
+        "thigh.L",
+        "thigh.R",
+        "shin.L",
+        "shin.R"
+      ],
+      "joints": {
+        "root": {
+          "region": "body-core",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 0.0,
+          "max_visible_local_rotation_degrees": 0.0,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 0.0,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "pelvis": {
+          "region": "body-core",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 17.031856693,
+          "max_visible_local_rotation_degrees": 17.031856693,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.25988e-07,
+          "max_relative_translation_in_capture_units": 11.129249972545
+        },
+        "spine": {
+          "region": "body-core",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 2.25e-07,
+          "max_visible_local_rotation_degrees": 2.25e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.02457e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "chest": {
+          "region": "body-core",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 5.226e-06,
+          "max_visible_local_rotation_degrees": 5.226e-06,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.28642e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "neck": {
+          "region": "body-core",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 5.84e-07,
+          "max_visible_local_rotation_degrees": 5.84e-07,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 2.59199e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "head": {
+          "region": "body-core",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 15.057807565,
+          "max_visible_local_rotation_degrees": 15.057807565,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 7.41627e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "upper_arm.L": {
+          "region": "left-arm",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 76.704801119,
+          "max_visible_local_rotation_degrees": 76.704801119,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 1.061623e-06,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "forearm.L": {
+          "region": "left-arm",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 75.999844157,
+          "max_visible_local_rotation_degrees": 75.999844157,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 8.49922e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "hand.L": {
+          "region": "left-arm",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 16.000018847,
+          "max_visible_local_rotation_degrees": 16.000018847,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 7.44206e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "thigh.L": {
+          "region": "left-leg",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 45.012510112,
+          "max_visible_local_rotation_degrees": 45.012510112,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 8.65622e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "shin.L": {
+          "region": "left-leg",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 92.000007441,
+          "max_visible_local_rotation_degrees": 92.000007441,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 5.47443e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "foot.L": {
+          "region": "left-leg",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 46.000012332,
+          "max_visible_local_rotation_degrees": 46.000012332,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 1.214224e-06,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "upper_arm.R": {
+          "region": "right-arm",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 77.172892136,
+          "max_visible_local_rotation_degrees": 77.172892136,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 1.269204e-06,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "forearm.R": {
+          "region": "right-arm",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 76.271947751,
+          "max_visible_local_rotation_degrees": 76.271947751,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.1355e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "hand.R": {
+          "region": "right-arm",
+          "visible_case_count": 12,
+          "max_local_rotation_degrees": 16.000013861,
+          "max_visible_local_rotation_degrees": 16.000013861,
+          "visible_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.01065e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "thigh.R": {
+          "region": "right-leg",
+          "visible_case_count": 0,
+          "max_local_rotation_degrees": 17.031862313,
+          "max_visible_local_rotation_degrees": null,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [
+            "Hop-meshvenn-hop-00",
+            "Hop-meshvenn-hop-01",
+            "Hop-meshvenn-hop-02",
+            "Hop-meshvenn-hop-03",
+            "Hop-meshvenn-hop-04",
+            "Hop-meshvenn-hop-05",
+            "Hop-meshvenn-hop-06",
+            "Hop-meshvenn-hop-07",
+            "Hop-meshvenn-hop-08",
+            "Hop-meshvenn-hop-09",
+            "Hop-meshvenn-hop-10",
+            "Hop-meshvenn-hop-11"
+          ],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 6.8318e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "shin.R": {
+          "region": "right-leg",
+          "visible_case_count": 0,
+          "max_local_rotation_degrees": 6.711e-06,
+          "max_visible_local_rotation_degrees": null,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 3.997e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        },
+        "foot.R": {
+          "region": "right-leg",
+          "visible_case_count": 0,
+          "max_local_rotation_degrees": 1.3171e-05,
+          "max_visible_local_rotation_degrees": null,
+          "visible_excited_cases": [],
+          "hidden_excited_cases": [],
+          "nonrigid_cases": [],
+          "max_basis_orthogonality_error": 4.50739e-07,
+          "max_relative_translation_in_capture_units": 0.0
+        }
+      },
+      "missing_visible_rotation_excitation": [
+        "thigh.R",
+        "shin.R"
+      ],
+      "visible_rotation_excitation_complete": false,
+      "visual_qualification": false,
+      "consumer_acceptance": false,
+      "scope": "Rest-relative native-local rotation amplitude and recorded presence only. Parent/world motion and hidden limbs cannot earn visible joint credit. One excited pose is not a qualified articulation range, deformation quality, contact or consumer acceptance."
+    }
+  }
+}
