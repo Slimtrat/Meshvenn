@@ -209,6 +209,31 @@ jobs:
             --variant "${RUNNER_TEMP}/head-isolation/distal-chains" \
             --output "${RUNNER_TEMP}/head-isolation/distal-api-and-relocation"
 
+      - name: Report visible native articulation excitation separately from transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest tests.test_native_pose_coverage -v
+          for profile in original shoulder-aligned; do
+            python scripts/report_stytch_pose_coverage.py \
+              --profile "${profile}" \
+              --output "${RUNNER_TEMP}/head-isolation/native-coverage/${profile}.json" \
+              --source-sha "${{ github.event.pull_request.head.sha || github.sha }}"
+          done
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / 'head-isolation/native-coverage'
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as summary:
+              summary.write('\n### Captured joint rotation excitation\n\n')
+              for path in sorted(root.glob('*.json')):
+                  report = json.loads(path.read_text('utf-8'))
+                  coverage = report['joint_motion_coverage']
+                  missing = ', '.join(coverage['missing_visible_rotation_excitation']) or 'none'
+                  summary.write(f"- {report['capture_profile']}: {coverage['case_count']} captured poses, asset `{coverage['captured_asset_sha256']}`; joints without visible local rotation >= 5 degrees: **{missing}**.\n")
+              summary.write('\nParent motion, hidden limbs and nonrigid deltas cannot earn local joint rotation credit. One excited pose is not a qualified articulation range or artistic acceptance. These captures target their recorded old assets, not a newly generated skin candidate.\n')
+          PY
+
       - name: Verify explicit contracts and behavior-preserving Stytch consolidation
         shell: bash
         run: |

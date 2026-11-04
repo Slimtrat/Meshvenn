@@ -1,0 +1,525 @@
+{
+  "source_sha": "b7ad38be0633454c3ddcc140b84ca6ec09514b33",
+  "capture_profile": "shoulder-aligned",
+  "consumer_revision": "a760e57a08d526088632b8cd269c391deeb3ecfb",
+  "dataset_sha256": "e2285869ae4e5237791ada40bc1b0cc6253d324c120aad1b97e1fb9b7d2ead32",
+  "matrices_validated": true,
+  "case_fingerprints": [
+    {
+      "id": "Hop-meshvenn-hop-00",
+      "probe_sha256": "a8abdd8ab5f1528f95e01f7e37c4d2d23f626f69296d4df09b7aef619330579f",
+      "matrix_proof_sha256": "7a13e596e828c6e5edf4f16392e33089fdb5f4f7a7ea3c05cdb53c51738bfa5b",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Hop-meshvenn-hop-01",
+      "probe_sha256": "43f7a7903fffae01084c1852d9b9b60630d4ea7e973241229937c7f853b9c673",
+      "matrix_proof_sha256": "22b4eab835839db4d90f21a2601408226728d81093405844433845fb71a2b1b2",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Hop-meshvenn-hop-02",
+      "probe_sha256": "2f1b731295ec91a3e58b31452e7cd32dfce05e9dedd7137e9f7368007ad86f78",
+      "matrix_proof_sha256": "15d5a8067277bee14e55b817f4f0e053d2c7b7e0f188380946ae64af5d7a29bd",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Hop-meshvenn-hop-03",
+      "probe_sha256": "c21e03439b55292666111bf96b40c0753b88b5831626f5bebed0a4190cb38fd7",
+      "matrix_proof_sha256": "c6ce0c8bb8fe1e2915e83be26e67a85ba70ff985f2ea2bf64e608ba0eb5c5741",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Hop-meshvenn-hop-04",
+      "probe_sha256": "9d45fd27fc7b48c8c1a8886a2a65603be88a0862e26a0137884a0751813f2387",
+      "matrix_proof_sha256": "5fcc64b7d12c387fec7acdf4bfe8abd744c89081902e0dc1c2b9781e19ed57b5",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Hop-meshvenn-hop-05",
+      "probe_sha256": "3c5b4b53167e9af28127561aac84655d1532ac3b0f400ed0d52595ee361b39d8",
+      "matrix_proof_sha256": "f6378a82461e238db8b81160b960f1d6f4f6b12d23e473e694b25eb7346cc122",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Hop-meshvenn-hop-06",
+      "probe_sha256": "9518ea6e002eb001ed384f657ec27a73e2a35e61dd09934df2d30abaa058254c",
+      "matrix_proof_sha256": "745325e58ad96c31efef35c54bd10517d8ceba04b9c253fd66ba6b3da7c33ceb",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Hop-meshvenn-hop-07",
+      "probe_sha256": "a6cef10d489c0a8a1a063c1d68c61b8b0da0cc9a71754ed0dfe340996705a4dd",
+      "matrix_proof_sha256": "0f079056b8e8e32f7c6866bae9e65d49ae302a3f57a0672b9f15cf60498eed32",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Hop-meshvenn-hop-08",
+      "probe_sha256": "a9764680297851339b8c104f098f9c432709f257cf0f15a3d3a1f92fa014bea9",
+      "matrix_proof_sha256": "b49322b3539537a0fac2b7d3f9f9582f2c1417586030f538a5e26bd3826c7340",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Hop-meshvenn-hop-09",
+      "probe_sha256": "3fadbe8963dc4e5e90aabf76b4f7cbfe0e59965bb547453b22fc8d0dac80232e",
+      "matrix_proof_sha256": "ee2df5d9d7780c33124c1043a8bd4f5df198f8c568e1ecbde39dd0f685ef0fb4",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Hop-meshvenn-hop-10",
+      "probe_sha256": "10dfcc9d4932b48516a8188b8747b935ed5278e0967e806ae5bf1fa439e939d1",
+      "matrix_proof_sha256": "ab4808c2e38fcf0b5fd412980b5bf41f1b023d230a45261bc26fc5b3b8bec436",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Hop-meshvenn-hop-11",
+      "probe_sha256": "ea1dd35b2e93df3b121de4dd6838b5363d163557476c7eb9359b0068d0684c70",
+      "matrix_proof_sha256": "2cfa829a5ce4b7402e576ca8067977d4aaa284d3dfe644b071fc631ce66d803d",
+      "hidden_regions": [
+        "right-leg"
+      ]
+    },
+    {
+      "id": "Walk-meshvenn-walk-00",
+      "probe_sha256": "51162e0adcdc093012c072bd722018e0e5a323e500b477375e601153c37ccafa",
+      "matrix_proof_sha256": "ccb2118cbb460fe9896e7c6936a8f1be972fb08267e723f000c09fb8fe9da640",
+      "hidden_regions": []
+    },
+    {
+      "id": "Walk-meshvenn-walk-01",
+      "probe_sha256": "fc41b460a2ec441c6de3ed6878ec45caa194f8822ed26921518efa5abfab11a5",
+      "matrix_proof_sha256": "13b90ce9cf7b162ace6041a52a86e7cfe5653c8875e65dbe42638259af3eab59",
+      "hidden_regions": []
+    },
+    {
+      "id": "Walk-meshvenn-walk-02",
+      "probe_sha256": "237c1d66a19cc26ee18404a5ba2c552b97b5da20123ebf415e61156d7b20a160",
+      "matrix_proof_sha256": "bc1212816b208246b8b7cf0d469bbab2459a8bd0170765f90c0bc5cc25cf7b3f",
+      "hidden_regions": []
+    },
+    {
+      "id": "World-03-one-leg-hop",
+      "probe_sha256": "3c895abee4cea3bb2220794044be4b52854b1ab68a50c17c2ba5bcb873435ab0",
+      "matrix_proof_sha256": "75c2bc9554c3ae227285a8ab1308d23d8490c57feb9b320ed409c707cb2e3a27",
+      "hidden_regions": [
+        "right-arm",
+        "right-leg"
+      ]
+    },
+    {
+      "id": "factory-hall",
+      "probe_sha256": "0ec9c1c627e0bdaa7df358ca3df8d715489214da650cd1160652063a1af328f5",
+      "matrix_proof_sha256": "7827d18c18221e224f3ff5644a1ae520aba3564e9d5a339b644af45ef11e34a0",
+      "hidden_regions": []
+    },
+    {
+      "id": "factory-held",
+      "probe_sha256": "d33fd09f9fb6ab12e8cf2dedc9ee49d6d6eda30241e0da417bad173701aadf20",
+      "matrix_proof_sha256": "3226a47233847d341a958c050e40214ba5668e15302a9c52159890420cb9fc2e",
+      "hidden_regions": []
+    },
+    {
+      "id": "factory-one-leg",
+      "probe_sha256": "0ec9c1c627e0bdaa7df358ca3df8d715489214da650cd1160652063a1af328f5",
+      "matrix_proof_sha256": "7827d18c18221e224f3ff5644a1ae520aba3564e9d5a339b644af45ef11e34a0",
+      "hidden_regions": [
+        "left-leg"
+      ]
+    }
+  ],
+  "joint_motion_coverage": {
+    "schema_version": 1,
+    "captured_asset_sha256": "6654f85acb539e471ccc525f4ffc029409e96e98aeb524df1be95211e860d3f8",
+    "case_count": 19,
+    "excitation_threshold_degrees": 5.0,
+    "rigid_delta_eligibility_tolerance": 2e-05,
+    "required_joints": [
+      "forearm.L",
+      "forearm.R",
+      "thigh.L",
+      "thigh.R",
+      "shin.L",
+      "shin.R"
+    ],
+    "joints": {
+      "root": {
+        "region": "body-core",
+        "visible_case_count": 19,
+        "max_local_rotation_degrees": 0.0,
+        "max_visible_local_rotation_degrees": 0.0,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 0.0,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "pelvis": {
+        "region": "body-core",
+        "visible_case_count": 19,
+        "max_local_rotation_degrees": 17.031856693,
+        "max_visible_local_rotation_degrees": 17.031856693,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "World-03-one-leg-hop",
+          "factory-held"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 3.6484e-07,
+        "max_relative_translation_in_capture_units": 11.129249972545
+      },
+      "spine": {
+        "region": "body-core",
+        "visible_case_count": 19,
+        "max_local_rotation_degrees": 2.25e-07,
+        "max_visible_local_rotation_degrees": 2.25e-07,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 3.02457e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "chest": {
+        "region": "body-core",
+        "visible_case_count": 19,
+        "max_local_rotation_degrees": 7.656e-06,
+        "max_visible_local_rotation_degrees": 7.656e-06,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 6.28642e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "neck": {
+        "region": "body-core",
+        "visible_case_count": 19,
+        "max_local_rotation_degrees": 5.84e-07,
+        "max_visible_local_rotation_degrees": 5.84e-07,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 2.59199e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "head": {
+        "region": "body-core",
+        "visible_case_count": 19,
+        "max_local_rotation_degrees": 16.89657525,
+        "max_visible_local_rotation_degrees": 16.89657525,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "World-03-one-leg-hop",
+          "factory-held"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 7.41627e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "upper_arm.L": {
+        "region": "left-arm",
+        "visible_case_count": 19,
+        "max_local_rotation_degrees": 124.880100148,
+        "max_visible_local_rotation_degrees": 124.880100148,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "World-03-one-leg-hop",
+          "factory-hall",
+          "factory-held",
+          "factory-one-leg"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 1.066119e-06,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "forearm.L": {
+        "region": "left-arm",
+        "visible_case_count": 19,
+        "max_local_rotation_degrees": 9.37e-07,
+        "max_visible_local_rotation_degrees": 9.37e-07,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 2.177e-09,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "hand.L": {
+        "region": "left-arm",
+        "visible_case_count": 19,
+        "max_local_rotation_degrees": 1.8109e-05,
+        "max_visible_local_rotation_degrees": 1.8109e-05,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 8.57588e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "thigh.L": {
+        "region": "left-leg",
+        "visible_case_count": 18,
+        "max_local_rotation_degrees": 120.741642666,
+        "max_visible_local_rotation_degrees": 120.741642666,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "World-03-one-leg-hop",
+          "factory-held"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 9.97268e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "shin.L": {
+        "region": "left-leg",
+        "visible_case_count": 18,
+        "max_local_rotation_degrees": 67.409261022,
+        "max_visible_local_rotation_degrees": 67.409261022,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "World-03-one-leg-hop"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 5.82083e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "foot.L": {
+        "region": "left-leg",
+        "visible_case_count": 18,
+        "max_local_rotation_degrees": 26.626198018,
+        "max_visible_local_rotation_degrees": 26.626198018,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "World-03-one-leg-hop"
+        ],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 7.05993e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "upper_arm.R": {
+        "region": "right-arm",
+        "visible_case_count": 18,
+        "max_local_rotation_degrees": 92.915942178,
+        "max_visible_local_rotation_degrees": 92.915942178,
+        "visible_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02",
+          "factory-hall",
+          "factory-held",
+          "factory-one-leg"
+        ],
+        "hidden_excited_cases": [
+          "World-03-one-leg-hop"
+        ],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 8.10385e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "forearm.R": {
+        "region": "right-arm",
+        "visible_case_count": 18,
+        "max_local_rotation_degrees": 2.86e-07,
+        "max_visible_local_rotation_degrees": 2.86e-07,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 9.976e-09,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "hand.R": {
+        "region": "right-arm",
+        "visible_case_count": 18,
+        "max_local_rotation_degrees": 1.913e-05,
+        "max_visible_local_rotation_degrees": 1.913e-05,
+        "visible_excited_cases": [],
+        "hidden_excited_cases": [],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 9.7456e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "thigh.R": {
+        "region": "right-leg",
+        "visible_case_count": 6,
+        "max_local_rotation_degrees": 119.576426789,
+        "max_visible_local_rotation_degrees": 40.065633755,
+        "visible_excited_cases": [
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-01",
+          "Walk-meshvenn-walk-02"
+        ],
+        "hidden_excited_cases": [
+          "Hop-meshvenn-hop-00",
+          "Hop-meshvenn-hop-01",
+          "Hop-meshvenn-hop-02",
+          "Hop-meshvenn-hop-03",
+          "Hop-meshvenn-hop-04",
+          "Hop-meshvenn-hop-05",
+          "Hop-meshvenn-hop-06",
+          "Hop-meshvenn-hop-07",
+          "Hop-meshvenn-hop-08",
+          "Hop-meshvenn-hop-09",
+          "Hop-meshvenn-hop-10",
+          "Hop-meshvenn-hop-11",
+          "World-03-one-leg-hop"
+        ],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 1.670286e-06,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "shin.R": {
+        "region": "right-leg",
+        "visible_case_count": 6,
+        "max_local_rotation_degrees": 45.201550126,
+        "max_visible_local_rotation_degrees": 12.354586085,
+        "visible_excited_cases": [
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-02"
+        ],
+        "hidden_excited_cases": [
+          "World-03-one-leg-hop"
+        ],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 8.41579e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      },
+      "foot.R": {
+        "region": "right-leg",
+        "visible_case_count": 6,
+        "max_local_rotation_degrees": 52.867004211,
+        "max_visible_local_rotation_degrees": 13.944459524,
+        "visible_excited_cases": [
+          "Walk-meshvenn-walk-00",
+          "Walk-meshvenn-walk-02"
+        ],
+        "hidden_excited_cases": [
+          "World-03-one-leg-hop"
+        ],
+        "nonrigid_cases": [],
+        "max_basis_orthogonality_error": 9.76521e-07,
+        "max_relative_translation_in_capture_units": 0.0
+      }
+    },
+    "missing_visible_rotation_excitation": [
+      "forearm.L",
+      "forearm.R"
+    ],
+    "visible_rotation_excitation_complete": false,
+    "visual_qualification": false,
+    "consumer_acceptance": false,
+    "scope": "Rest-relative native-local rotation amplitude and recorded presence only. Parent/world motion and hidden limbs cannot earn visible joint credit. One excited pose is not a qualified articulation range, deformation quality, contact or consumer acceptance."
+  }
+}
