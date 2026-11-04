@@ -216,6 +216,14 @@ now supplies nineteen fresh selected-asset probes, strict source/raw/reimport
 evidence and clean front/back own renders. These are separate from the earlier
 derived poses; technical replay passes without claiming artistic acceptance.
 
+A separately selectable [distal-chain candidate](modular/StytchDollDistalChains/README.md)
+then removes small foreign influences from 597 distant limb vertices, preserving
+body/interfaces, rest joints, surface and atlas. Eight isolated root rotations
+eliminate up to 15.50 mm of unintended leg drift; 32 articulation controls bound
+the remaining tradeoff, and all nineteen unchanged captured matrices retain
+source/raw/reimport fidelity. It is not a new consumer capture or a full fold fix;
+its source, GLB and sixteen own comparison renders are pinned separately.
+
 Its geometry uses the unchanged neutral silhouettes; a separate calibrated
 source-color/emission path feeds UV Bake V2 (512², 2 samples/axis). The packed
 source retains those color images and truthful stage selections. Re-export with

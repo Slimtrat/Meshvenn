@@ -199,4 +199,5 @@ class CanonicalRigV2Implementation:
         box.operator("bpt.refine_head_weights", icon="MOD_VERTEX_WEIGHT")
         box.operator("bpt.refine_owned_skin", icon="MOD_VERTEX_WEIGHT")
         box.operator("bpt.align_authored_shoulders", icon="ARMATURE_DATA")
+        box.operator("bpt.refine_distal_limb_skin", icon="MOD_VERTEX_WEIGHT")
         box.label(text="Best for upright biped characters", icon="INFO")

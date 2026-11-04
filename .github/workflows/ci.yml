@@ -139,6 +139,7 @@ jobs:
             "core/rig_head_envelope.py"
             "core/rig_owned_skin.py"
             "core/rig_shoulder_alignment.py"
+            "core/rig_limb_chain.py"
             "core/rig_skinning.py"
             "core/rig_contracts.py"
             "core/motion_contracts.py"
@@ -300,6 +301,7 @@ jobs:
             "implementations/canonical_rig_v2/head_refinement.py"
             "implementations/canonical_rig_v2/owned_refinement.py"
             "implementations/canonical_rig_v2/shoulder_alignment.py"
+            "implementations/canonical_rig_v2/limb_refinement.py"
             "implementations/glb_export/fidelity_samples.py"
             "implementations/glb_input/__init__.py"
             "implementations/glb_input/implementation.py"
@@ -1209,6 +1211,7 @@ jobs:
             "core/rig_head_envelope.py"
             "core/rig_owned_skin.py"
             "core/rig_shoulder_alignment.py"
+            "core/rig_limb_chain.py"
             "core/rig_quality.py"
             "core/rig_skinning.py"
             "core/rig_contracts.py"
@@ -1387,6 +1390,7 @@ jobs:
             "implementations/canonical_rig_v2/head_refinement.py"
             "implementations/canonical_rig_v2/owned_refinement.py"
             "implementations/canonical_rig_v2/shoulder_alignment.py"
+            "implementations/canonical_rig_v2/limb_refinement.py"
             "implementations/glb_export/fidelity.py"
             "implementations/glb_export/fidelity_samples.py"
             "implementations/glb_input/implementation.py"
@@ -1742,6 +1746,7 @@ jobs:
             "blender_projection_tool/core/rig_head_envelope.py"
             "blender_projection_tool/core/rig_owned_skin.py"
             "blender_projection_tool/core/rig_shoulder_alignment.py"
+            "blender_projection_tool/core/rig_limb_chain.py"
             "blender_projection_tool/core/geometry_contracts/validation.py"
             "blender_projection_tool/core/canonical_rig.py"
             "blender_projection_tool/core/rig_quality.py"
@@ -1878,6 +1883,7 @@ jobs:
             "blender_projection_tool/implementations/canonical_rig_v2/head_refinement.py"
             "blender_projection_tool/implementations/canonical_rig_v2/owned_refinement.py"
             "blender_projection_tool/implementations/canonical_rig_v2/shoulder_alignment.py"
+            "blender_projection_tool/implementations/canonical_rig_v2/limb_refinement.py"
             "blender_projection_tool/implementations/glb_export/manifest.py"
             "blender_projection_tool/implementations/glb_export/planning.py"
             "blender_projection_tool/implementations/glb_export/fidelity.py"
@@ -2282,6 +2288,8 @@ jobs:
           test -f "${PACKAGE_ROOT}/implementations/canonical_rig_v2/owned_refinement.py"
           test -f "${PACKAGE_ROOT}/core/rig_shoulder_alignment.py"
           test -f "${PACKAGE_ROOT}/implementations/canonical_rig_v2/shoulder_alignment.py"
+          test -f "${PACKAGE_ROOT}/core/rig_limb_chain.py"
+          test -f "${PACKAGE_ROOT}/implementations/canonical_rig_v2/limb_refinement.py"
 
           test -f \
             "${PACKAGE_ROOT}/implementations/glb_export/blender_export.py"
@@ -2666,6 +2674,11 @@ jobs:
             --package-root "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool" \
             --variant example/v2/modular/StytchDollShoulderAligned \
             --output "${RUNNER_TEMP}/body-refinement-packaged/shoulders"
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_limb_refinement_smoke.py -- \
+            --package-root "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool" \
+            --variant example/v2/modular/StytchDollDistalChains \
+            --output "${RUNNER_TEMP}/body-refinement-packaged/distal-chains"
 
       - name: Upload packaged body refinement verification
         uses: actions/upload-artifact@v4
