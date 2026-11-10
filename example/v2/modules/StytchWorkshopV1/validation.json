@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "modules": [
+    {
+      "id": "workshop-headguard",
+      "triangles": 1100,
+      "primitives": 3,
+      "pose_probes": 4,
+      "max_source_raw_error_m": 5.057621592641226e-07,
+      "reimport_error_m": 7.372687491624674e-07
+    },
+    {
+      "id": "shoulder-shell-l",
+      "triangles": 260,
+      "primitives": 2,
+      "pose_probes": 4,
+      "max_source_raw_error_m": 2.8361179715830076e-07,
+      "reimport_error_m": 4.178307904112444e-07
+    },
+    {
+      "id": "grip-arm-l",
+      "triangles": 1540,
+      "primitives": 3,
+      "pose_probes": 12,
+      "max_source_raw_error_m": 6.322027275018627e-07,
+      "reimport_error_m": 4.924151539853483e-07
+    },
+    {
+      "id": "shoulder-shell-r",
+      "triangles": 260,
+      "primitives": 2,
+      "pose_probes": 4,
+      "max_source_raw_error_m": 4.702727096628223e-07,
+      "reimport_error_m": 2.0624116814360605e-07
+    },
+    {
+      "id": "grip-arm-r",
+      "triangles": 1540,
+      "primitives": 3,
+      "pose_probes": 12,
+      "max_source_raw_error_m": 5.338276309885259e-07,
+      "reimport_error_m": 4.308471659442148e-07
+    },
+    {
+      "id": "spring-leg-l",
+      "triangles": 2688,
+      "primitives": 3,
+      "pose_probes": 12,
+      "max_source_raw_error_m": 2.568260129010014e-07,
+      "reimport_error_m": 2.174752893324694e-07
+    },
+    {
+      "id": "spring-leg-r",
+      "triangles": 2688,
+      "primitives": 3,
+      "pose_probes": 12,
+      "max_source_raw_error_m": 3.022998953383649e-07,
+      "reimport_error_m": 3.95653188434153e-07
+    },
+    {
+      "id": "curled-horns",
+      "triangles": 792,
+      "primitives": 2,
+      "pose_probes": 4,
+      "max_source_raw_error_m": 5.274180807646189e-07,
+      "reimport_error_m": 7.298622222151607e-07
+    },
+    {
+      "id": "tatter-wings",
+      "triangles": 392,
+      "primitives": 2,
+      "pose_probes": 4,
+      "max_source_raw_error_m": 5.266248308544164e-07,
+      "reimport_error_m": 7.306128964046366e-07
+    },
+    {
+      "id": "field-backpack",
+      "triangles": 1160,
+      "primitives": 4,
+      "pose_probes": 4,
+      "max_source_raw_error_m": 3.6256091107134125e-07,
+      "reimport_error_m": 3.769728778024728e-07
+    }
+  ],
+  "total_triangles": 12420,
+  "target_character_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+  "source_preserved": true
+}

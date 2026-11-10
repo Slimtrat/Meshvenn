@@ -5,6 +5,9 @@ on:
     paths:
       - 'extensions/meshvenn_sketch/**'
       - 'scripts/build_meshvenn_sketch.py'
+      - 'scripts/build_stytch_workshop_pack.py'
+      - 'scripts/prepare_workshop_godot.py'
+      - 'example/v2/modules/StytchWorkshopV1/**'
       - 'blender_manifest.toml'
       - '.github/workflows/sketch_extension.yml'
   push:
@@ -12,6 +15,9 @@ on:
     paths:
       - 'extensions/meshvenn_sketch/**'
       - 'scripts/build_meshvenn_sketch.py'
+      - 'scripts/build_stytch_workshop_pack.py'
+      - 'scripts/prepare_workshop_godot.py'
+      - 'example/v2/modules/StytchWorkshopV1/**'
       - 'blender_manifest.toml'
       - '.github/workflows/sketch_extension.yml'
   workflow_dispatch:
@@ -81,4 +87,90 @@ jobs:
           path: |
             dist/meshvenn_sketch-*.zip
             ${{ runner.temp }}/sketch-evidence/
+          if-no-files-found: error
+
+  workshop:
+    name: Workshop module assets and native Godot binding
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify committed module files and complete delivery
+        run: python -m unittest discover -s extensions/meshvenn_sketch/tests -p 'test_workshop_pack.py' -v
+      - uses: actions/cache@v4
+        id: blender
+        with:
+          path: .blender
+          key: blender-linux-x64-5.2.1
+      - name: Download Blender
+        if: steps.blender.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .blender
+          curl --fail --show-error --location --retry 5 --retry-all-errors \
+            --output "${RUNNER_TEMP}/blender-workshop.tar.xz" \
+            https://download.blender.org/release/Blender5.2/blender-5.2.1-linux-x64.tar.xz
+          tar -xJf "${RUNNER_TEMP}/blender-workshop.tar.xz" -C .blender --strip-components=1
+      - name: Regenerate, compare and deform the actual modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python extensions/meshvenn_sketch/tests/blender_workshop_smoke.py -- \
+            --pack example/v2/modules/StytchWorkshopV1
+          .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python extensions/meshvenn_sketch/examples/stytch_workshop/author.py -- \
+            --output "${RUNNER_TEMP}/workshop-pack"
+          .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python extensions/meshvenn_sketch/tests/blender_workshop_smoke.py -- \
+            --pack "${RUNNER_TEMP}/workshop-pack" --compare-pack example/v2/modules/StytchWorkshopV1
+          .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python extensions/meshvenn_sketch/examples/stytch_workshop/render.py -- \
+            --pack "${RUNNER_TEMP}/workshop-pack"
+      - uses: actions/cache@v4
+        id: godot
+        with:
+          path: .godot-bin
+          key: godot-linux-x64-4.7.1
+      - name: Download Godot
+        if: steps.godot.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --location --retry 5 --retry-all-errors \
+            --output "${RUNNER_TEMP}/godot-workshop.zip" \
+            https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+          python -m zipfile -e "${RUNNER_TEMP}/godot-workshop.zip" .godot-bin
+          chmod +x .godot-bin/Godot_v4.7.1-stable_linux.x86_64
+      - name: Import all sixteen GLBs and bind on the existing native skeleton
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/prepare_workshop_godot.py --pack "${RUNNER_TEMP}/workshop-pack" --output "${RUNNER_TEMP}/workshop-godot"
+          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 --headless --path "${RUNNER_TEMP}/workshop-godot" --editor --import
+          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 --headless --path "${RUNNER_TEMP}/workshop-godot" --script check.gd 2>&1 | tee "${RUNNER_TEMP}/workshop-godot.log"
+          if grep -E '(^ERROR:|^SCRIPT ERROR:)' "${RUNNER_TEMP}/workshop-godot.log"; then exit 1; fi
+          cp "${RUNNER_TEMP}/workshop-godot/godot-validation.json" "${RUNNER_TEMP}/workshop-pack/"
+          python scripts/build_stytch_workshop_pack.py --pack "${RUNNER_TEMP}/workshop-pack" --output dist/stytch-workshop-modules-v1.zip
+      - name: Re-export the unpacked editable delivery without the original checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m zipfile -e dist/stytch-workshop-modules-v1.zip "${RUNNER_TEMP}/workshop-portable"
+          .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python extensions/meshvenn_sketch/tests/blender_workshop_portable.py -- \
+            --delivery "${RUNNER_TEMP}/workshop-portable" --output "${RUNNER_TEMP}/workshop-reexport"
+          .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python extensions/meshvenn_sketch/tests/blender_workshop_smoke.py -- \
+            --pack "${RUNNER_TEMP}/workshop-reexport" --compare-pack "${RUNNER_TEMP}/workshop-pack"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stytch-workshop-modules-v1
+          path: dist/stytch-workshop-modules-v1.zip
           if-no-files-found: error
