@@ -1,0 +1,17 @@
+schema_version = "1.0.0"
+id = "meshvenn_sketch"
+version = "0.1.0"
+name = "Meshvenn Sketch"
+tagline = "Draw 3D pieces on reference views and bind them to a rig"
+maintainer = "Slimtrat"
+type = "add-on"
+website = "https://github.com/Slimtrat/Meshvenn"
+tags = ["Mesh", "Modeling", "Rigging"]
+blender_version_min = "5.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+files = "Load reference images and export the selected piece as GLB"
+
+[build]
+paths_exclude_pattern = ["/tests/", "__pycache__/", "*.pyc", "*.zip", "*.blend", "*.blend1"]
