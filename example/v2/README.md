@@ -230,6 +230,12 @@ unexercised in the nineteen captured poses; inherited shoulder movement and
 hidden-leg rotations do not earn joint credit. CI and future replay summaries
 publish this gap separately from successful transport and artistic acceptance.
 
+The subsequent [actual distal-skin replay](poses/StytchDollDistalChains/README.md)
+now binds nineteen production captures and four visible 45/90-degree elbow probes
+to the exact selected distal-chain GLB. Strict transport and frozen source-edge
+measurements accompany own Blender views. Separate Hop/Walk/held inventories
+retain the remaining action-family gaps; visual acceptance is still unqualified.
+
 Its geometry uses the unchanged neutral silhouettes; a separate calibrated
 source-color/emission path feeds UV Bake V2 (512², 2 samples/axis). The packed
 source retains those color images and truthful stage selections. Re-export with

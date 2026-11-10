@@ -9,7 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from core.modular_character.json_io import strict_json_loads
 from scripts.native_pose_coverage import summarize_joint_motion
-from scripts.report_stytch_pose_coverage import load_capture_cases
+from scripts.extract_stytch_pose_series import CAPTURE_PROFILES
+from scripts.report_stytch_pose_coverage import context_motion_coverage,load_capture_cases
 from scripts.replay_stytch_doll_pose import main as replay
 
 DEFAULT_RENDERS = ("factory-held", "Walk-meshvenn-walk-02", "Hop-meshvenn-hop-11")
@@ -17,7 +18,7 @@ DEFAULT_RENDERS = ("factory-held", "Walk-meshvenn-walk-02", "Hop-meshvenn-hop-11
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--profile", choices=("original", "shoulder-aligned"), default="original")
+    parser.add_argument("--profile", choices=CAPTURE_PROFILES, default="original")
     parser.add_argument("--dataset", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--render-cases", nargs="*", default=DEFAULT_RENDERS)
@@ -64,9 +65,10 @@ def main():
               "joint_motion_coverage": coverage,
               "private_captures_published": False,
               "scope": "Actual synchronized native poses. Ancestor chains validated; skin comparison is before external facing/world transforms, retaining asset normalization once. No physical-contact or consumer repair claim."}
+    report.update(context_motion_coverage(args.profile,prepared))
     (output / "series.json").write_text(json.dumps(report, indent=2, allow_nan=False)+"\n", encoding="utf-8", newline="\n")
     assert report["passed"]
-    print("Nineteen native/raw-GLB/reimport poses PASS; visual acceptance remains unqualified.")
+    print(f"{len(summaries)} native/raw-GLB/reimport poses PASS; visual acceptance remains unqualified.")
 
 
 if __name__ == "__main__":

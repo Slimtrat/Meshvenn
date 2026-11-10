@@ -12,7 +12,7 @@ sys.path.insert(0,str(ROOT))
 from core.modular_character.json_io import strict_json_loads
 from core.native_pose_capture import REGIONS,validate_matrix_proof
 from core.native_pose_probe import NativePoseProbe
-from scripts.extract_stytch_pose_series import capture_profile
+from scripts.extract_stytch_pose_series import CAPTURE_PROFILES,capture_profile
 from scripts.native_pose_coverage import summarize_joint_motion
 
 
@@ -27,8 +27,9 @@ def load_capture_cases(profile_name,dataset=None):
     if index['asset_sha256']!=profile['asset_sha256'] or index['source_revision']!=profile['revision']:
         raise ValueError('Series lineage differs from the selected immutable asset/profile.')
     cases=index['cases']
-    if index['case_count']!=19 or len(cases)!=19 or len({c['id'] for c in cases})!=19:
-        raise ValueError('Series requires nineteen unique captured poses.')
+    count=profile['case_count']
+    if index['case_count']!=count or len(cases)!=count or len({c['id'] for c in cases})!=count:
+        raise ValueError(f'Series requires {count} unique captured poses from the pinned profile.')
     prepared=[]
     for case in cases:
         if not isinstance(case['id'],str) or re.fullmatch(r'[A-Za-z0-9_-]{1,80}',case['id']) is None:
@@ -47,6 +48,9 @@ def load_capture_cases(profile_name,dataset=None):
         if (not isinstance(hidden,list) or any(not isinstance(r,str) or r not in REGIONS-{'body-core'} for r in hidden)
                 or hidden!=sorted(set(hidden))):
             raise ValueError('Duplicate or unsorted hidden region provenance.')
+        if profile_name=='distal-chains':
+            from scripts.distal_consumer_capture import validate_projected_excitation
+            validate_projected_excitation(case,probe)
         prepared.append((case,paths[0],probe))
     return profile,index,prepared
 
@@ -55,15 +59,31 @@ def coverage_report(profile_name, *, dataset=None,source_sha='local-uncommitted'
     profile,index,prepared=load_capture_cases(profile_name,dataset)
     coverage=summarize_joint_motion([{'id':case['id'],'probe':probe,'hidden_regions':case['hidden_regions']}
                                      for case,_,probe in prepared])
-    return {'source_sha':source_sha,'capture_profile':profile_name,'consumer_revision':index['source_revision'],
+    report={'source_sha':source_sha,'capture_profile':profile_name,'consumer_revision':index['source_revision'],
             'dataset_sha256':profile['index_sha256'],'matrices_validated':True,
             'case_fingerprints':[{k:case[k] for k in ('id','probe_sha256','matrix_proof_sha256','hidden_regions')} for case,_,_ in prepared],
             'joint_motion_coverage':coverage}
+    report.update(context_motion_coverage(profile_name,prepared))
+    return report
+
+
+def context_motion_coverage(profile_name,prepared):
+    """Isolated tests and Hop must not disguise missing held/walk articulation."""
+    if profile_name!='distal-chains':return {}
+    groups={'production':lambda c:'elbow_excitation' not in c,
+            'isolated-elbows':lambda c:'elbow_excitation' in c,
+            'walk':lambda c:c['id'].startswith('Walk-'),
+            'held':lambda c:c['id']=='factory-held',
+            'hop':lambda c:c['id'].startswith('Hop-')}
+    return {'motion_context_coverage':{
+        name:summarize_joint_motion([{'id':c['id'],'probe':probe,'hidden_regions':c['hidden_regions']}
+                                    for c,_,probe in prepared if include(c)])
+        for name,include in groups.items()}}
 
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--profile',choices=('original','shoulder-aligned'),default='shoulder-aligned')
+    parser.add_argument('--profile',choices=CAPTURE_PROFILES,default='shoulder-aligned')
     parser.add_argument('--dataset',type=Path)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--source-sha',default='local-uncommitted')

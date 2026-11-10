@@ -1,0 +1,2594 @@
+{
+  "schema_version": 1,
+  "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+  "capture_profile": "distal-chains",
+  "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+  "editable_source_sha256": "c02f6e29fc215366f891e75f4179e519aeaaa665f5b4feac6c7a41d8d237ae33",
+  "source_authority_sha256": "7867eecfe112bf2087a7a04e94984d2bf529c7545ac93ad26b97c22fa6d4b843",
+  "consumer_revision": "1503d4854c991335027255f79c42788954abcfbf",
+  "dataset_sha256": "c6a753c04cab1818f420df283af833c9dc19e27251350cd3ab4cec8b83b5d000",
+  "case_count": 23,
+  "cases": [
+    {
+      "id": "Elbows-meshvenn-elbow-left-45",
+      "probe_sha256": "ec15adb06ba113867469c755e34a7297f7e24386ff9ce11786033d23e55158bf",
+      "matrix_proof_sha256": "7b2055ebf4de6ff9eedfc87e52f477a17831737667c55a8c24d8fdb15c186288",
+      "hidden_regions": [],
+      "native_applied_delta_error": 1.0013580322265625e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.217213311892328,
+          "max_abs_log_length_ratio": 0.4667335602868131,
+          "min_length_ratio": 0.8249126068032079,
+          "max_length_ratio": 1.5947764350293405,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 3.771555028946975e-06,
+          "max_abs_log_length_ratio": 1.0161584190167618e-05,
+          "min_length_ratio": 0.9999905840046668,
+          "max_length_ratio": 1.0000101616358192,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 2.5084423226239456e-06,
+          "max_abs_log_length_ratio": 6.404164616413504e-06,
+          "min_length_ratio": 0.9999935958558902,
+          "max_length_ratio": 1.000006132942008,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 2.5532616314098776e-06,
+          "max_abs_log_length_ratio": 9.444740326225221e-06,
+          "min_length_ratio": 0.9999944851943322,
+          "max_length_ratio": 1.000009444784928,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 2.1639400073718713e-06,
+          "max_abs_log_length_ratio": 4.31404153824108e-06,
+          "min_length_ratio": 0.9999956859677672,
+          "max_length_ratio": 1.0000029498890624,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 2.2744697822822003e-06,
+          "max_abs_log_length_ratio": 5.899125336202532e-06,
+          "min_length_ratio": 0.9999946291920598,
+          "max_length_ratio": 1.000005899142736,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.217213311892328,
+          "max_abs_log_length_ratio": 0.4667335602868131,
+          "min_length_ratio": 0.8249126068032079,
+          "max_length_ratio": 1.5947764350293405,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 3.771555028946975e-06,
+          "max_abs_log_length_ratio": 1.0161584190167618e-05,
+          "min_length_ratio": 0.9999905840046668,
+          "max_length_ratio": 1.0000101616358192,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 2.5084423226239456e-06,
+          "max_abs_log_length_ratio": 6.404164616413504e-06,
+          "min_length_ratio": 0.9999935958558902,
+          "max_length_ratio": 1.000006132942008,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 2.5532616314098776e-06,
+          "max_abs_log_length_ratio": 9.444740326225221e-06,
+          "min_length_ratio": 0.9999944851943322,
+          "max_length_ratio": 1.000009444784928,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 2.138086022471416e-06,
+          "max_abs_log_length_ratio": 4.31404153824108e-06,
+          "min_length_ratio": 0.9999956859677672,
+          "max_length_ratio": 1.0000029498890624,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1208,
+          "p95_abs_log_length_ratio": 2.2920424945179768e-06,
+          "max_abs_log_length_ratio": 5.899125336202532e-06,
+          "min_length_ratio": 0.9999946291920598,
+          "max_length_ratio": 1.000005899142736,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "elbow_excitation": {
+        "both_arms_visible": true,
+        "joint": "forearm.L",
+        "measured_degrees": 44.999995,
+        "opposite_degrees": 7e-06,
+        "opposite_joint": "forearm.R",
+        "requested_degrees": 45,
+        "scope": "Captured isolated native-local excitation, not combined-run acceptance."
+      }
+    },
+    {
+      "id": "Elbows-meshvenn-elbow-left-90",
+      "probe_sha256": "ece20c4d5a69912dfa5d59284c9cce351b04ce6608a089ab1590abec9231b7e4",
+      "matrix_proof_sha256": "5600afc7e027788e855f034f17f02df0f0f0d31ab66e8778e08e3ee2104e46a9",
+      "hidden_regions": [],
+      "native_applied_delta_error": 1.0132789611816406e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.48857009384723815,
+          "max_abs_log_length_ratio": 0.8139391385314952,
+          "min_length_ratio": 0.5827545246747409,
+          "max_length_ratio": 2.256780270747607,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.01289134438305709
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 3.771555028946975e-06,
+          "max_abs_log_length_ratio": 1.0161584190167618e-05,
+          "min_length_ratio": 0.9999905840046668,
+          "max_length_ratio": 1.0000101616358192,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 2.5084423226239456e-06,
+          "max_abs_log_length_ratio": 6.404164616413504e-06,
+          "min_length_ratio": 0.9999935958558902,
+          "max_length_ratio": 1.000006132942008,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 2.5532616314098776e-06,
+          "max_abs_log_length_ratio": 9.444740326225221e-06,
+          "min_length_ratio": 0.9999944851943322,
+          "max_length_ratio": 1.000009444784928,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 2.1639400073718713e-06,
+          "max_abs_log_length_ratio": 4.31404153824108e-06,
+          "min_length_ratio": 0.9999956859677672,
+          "max_length_ratio": 1.0000029498890624,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 2.2744697822822003e-06,
+          "max_abs_log_length_ratio": 5.899125336202532e-06,
+          "min_length_ratio": 0.9999946291920598,
+          "max_length_ratio": 1.000005899142736,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.48857009384723815,
+          "max_abs_log_length_ratio": 0.8139391385314952,
+          "min_length_ratio": 0.5827545246747409,
+          "max_length_ratio": 2.256780270747607,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.01289134438305709
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 3.771555028946975e-06,
+          "max_abs_log_length_ratio": 1.0161584190167618e-05,
+          "min_length_ratio": 0.9999905840046668,
+          "max_length_ratio": 1.0000101616358192,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 2.5084423226239456e-06,
+          "max_abs_log_length_ratio": 6.404164616413504e-06,
+          "min_length_ratio": 0.9999935958558902,
+          "max_length_ratio": 1.000006132942008,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 2.5532616314098776e-06,
+          "max_abs_log_length_ratio": 9.444740326225221e-06,
+          "min_length_ratio": 0.9999944851943322,
+          "max_length_ratio": 1.000009444784928,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 2.138086022471416e-06,
+          "max_abs_log_length_ratio": 4.31404153824108e-06,
+          "min_length_ratio": 0.9999956859677672,
+          "max_length_ratio": 1.0000029498890624,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1208,
+          "p95_abs_log_length_ratio": 2.2920424945179768e-06,
+          "max_abs_log_length_ratio": 5.899125336202532e-06,
+          "min_length_ratio": 0.9999946291920598,
+          "max_length_ratio": 1.000005899142736,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "elbow_excitation": {
+        "both_arms_visible": true,
+        "joint": "forearm.L",
+        "measured_degrees": 90.000014,
+        "opposite_degrees": 7e-06,
+        "opposite_joint": "forearm.R",
+        "requested_degrees": 90,
+        "scope": "Captured isolated native-local excitation, not combined-run acceptance."
+      }
+    },
+    {
+      "id": "Elbows-meshvenn-elbow-right-45",
+      "probe_sha256": "b959114adedbb9b4bb6255f723fbf78e08d043f82e5838bb102c3289d4f0bc35",
+      "matrix_proof_sha256": "65ca23ad7962034bf713e582e3ec2f9ef4bdb2eb80498a62bb032a2afbcd51f6",
+      "hidden_regions": [],
+      "native_applied_delta_error": 1.0013580322265625e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 2.47997033867061e-06,
+          "max_abs_log_length_ratio": 9.715126396060801e-06,
+          "min_length_ratio": 0.9999939914024678,
+          "max_length_ratio": 1.000009715173588,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.23709636227109707,
+          "max_abs_log_length_ratio": 0.47229566967895953,
+          "min_length_ratio": 0.7093798998302364,
+          "max_length_ratio": 1.603671470665442,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 2.5084423226239456e-06,
+          "max_abs_log_length_ratio": 6.404164616413504e-06,
+          "min_length_ratio": 0.9999935958558902,
+          "max_length_ratio": 1.000006132942008,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 2.5532616314098776e-06,
+          "max_abs_log_length_ratio": 9.444740326225221e-06,
+          "min_length_ratio": 0.9999944851943322,
+          "max_length_ratio": 1.000009444784928,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 2.1639400073718713e-06,
+          "max_abs_log_length_ratio": 4.31404153824108e-06,
+          "min_length_ratio": 0.9999956859677672,
+          "max_length_ratio": 1.0000029498890624,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 2.2744697822822003e-06,
+          "max_abs_log_length_ratio": 5.899125336202532e-06,
+          "min_length_ratio": 0.9999946291920598,
+          "max_length_ratio": 1.000005899142736,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 2.47997033867061e-06,
+          "max_abs_log_length_ratio": 9.715126396060801e-06,
+          "min_length_ratio": 0.9999939914024678,
+          "max_length_ratio": 1.000009715173588,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.23709636227109707,
+          "max_abs_log_length_ratio": 0.47229566967895953,
+          "min_length_ratio": 0.7093798998302364,
+          "max_length_ratio": 1.603671470665442,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 2.5084423226239456e-06,
+          "max_abs_log_length_ratio": 6.404164616413504e-06,
+          "min_length_ratio": 0.9999935958558902,
+          "max_length_ratio": 1.000006132942008,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 2.5532616314098776e-06,
+          "max_abs_log_length_ratio": 9.444740326225221e-06,
+          "min_length_ratio": 0.9999944851943322,
+          "max_length_ratio": 1.000009444784928,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 2.138086022471416e-06,
+          "max_abs_log_length_ratio": 4.31404153824108e-06,
+          "min_length_ratio": 0.9999956859677672,
+          "max_length_ratio": 1.0000029498890624,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1208,
+          "p95_abs_log_length_ratio": 2.2920424945179768e-06,
+          "max_abs_log_length_ratio": 5.899125336202532e-06,
+          "min_length_ratio": 0.9999946291920598,
+          "max_length_ratio": 1.000005899142736,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "elbow_excitation": {
+        "both_arms_visible": true,
+        "joint": "forearm.R",
+        "measured_degrees": 44.999997,
+        "opposite_degrees": 5e-06,
+        "opposite_joint": "forearm.L",
+        "requested_degrees": 45,
+        "scope": "Captured isolated native-local excitation, not combined-run acceptance."
+      }
+    },
+    {
+      "id": "Elbows-meshvenn-elbow-right-90",
+      "probe_sha256": "7b398aaecdb4f1d886e8025e5debaf5ef36558c9c2fa59d44b5505c81fc0c29d",
+      "matrix_proof_sha256": "83bb686dfd0ca14ed75d525fdf36d9c62a0a8cbbc65aee39dcfb1e81698cc4af",
+      "hidden_regions": [],
+      "native_applied_delta_error": 1.0013580322265625e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 2.47997033867061e-06,
+          "max_abs_log_length_ratio": 9.715126396060801e-06,
+          "min_length_ratio": 0.9999939914024678,
+          "max_length_ratio": 1.000009715173588,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.41917900086307747,
+          "max_abs_log_length_ratio": 0.8273949136364886,
+          "min_length_ratio": 0.5805310041321023,
+          "max_length_ratio": 2.28735222190884,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.012773722627737226
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 2.5084423226239456e-06,
+          "max_abs_log_length_ratio": 6.404164616413504e-06,
+          "min_length_ratio": 0.9999935958558902,
+          "max_length_ratio": 1.000006132942008,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 2.5532616314098776e-06,
+          "max_abs_log_length_ratio": 9.444740326225221e-06,
+          "min_length_ratio": 0.9999944851943322,
+          "max_length_ratio": 1.000009444784928,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 2.1639400073718713e-06,
+          "max_abs_log_length_ratio": 4.31404153824108e-06,
+          "min_length_ratio": 0.9999956859677672,
+          "max_length_ratio": 1.0000029498890624,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 2.2744697822822003e-06,
+          "max_abs_log_length_ratio": 5.899125336202532e-06,
+          "min_length_ratio": 0.9999946291920598,
+          "max_length_ratio": 1.000005899142736,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 2.47997033867061e-06,
+          "max_abs_log_length_ratio": 9.715126396060801e-06,
+          "min_length_ratio": 0.9999939914024678,
+          "max_length_ratio": 1.000009715173588,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.41917900086307747,
+          "max_abs_log_length_ratio": 0.8273949136364886,
+          "min_length_ratio": 0.5805310041321023,
+          "max_length_ratio": 2.28735222190884,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.012773722627737226
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 2.5084423226239456e-06,
+          "max_abs_log_length_ratio": 6.404164616413504e-06,
+          "min_length_ratio": 0.9999935958558902,
+          "max_length_ratio": 1.000006132942008,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 2.5532616314098776e-06,
+          "max_abs_log_length_ratio": 9.444740326225221e-06,
+          "min_length_ratio": 0.9999944851943322,
+          "max_length_ratio": 1.000009444784928,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 2.138086022471416e-06,
+          "max_abs_log_length_ratio": 4.31404153824108e-06,
+          "min_length_ratio": 0.9999956859677672,
+          "max_length_ratio": 1.0000029498890624,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1208,
+          "p95_abs_log_length_ratio": 2.2920424945179768e-06,
+          "max_abs_log_length_ratio": 5.899125336202532e-06,
+          "min_length_ratio": 0.9999946291920598,
+          "max_length_ratio": 1.000005899142736,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "elbow_excitation": {
+        "both_arms_visible": true,
+        "joint": "forearm.R",
+        "measured_degrees": 90.00002,
+        "opposite_degrees": 5e-06,
+        "opposite_joint": "forearm.L",
+        "requested_degrees": 90,
+        "scope": "Captured isolated native-local excitation, not combined-run acceptance."
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-00",
+      "probe_sha256": "aad12eb92fd982b471cbc1f13df37e566fd50f2907ee0577db6b213bed9427c2",
+      "matrix_proof_sha256": "ef7ee00143eb2938186b449fdc1c197a76e302278d444362f7ba036125f94de9",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.40784292901247315,
+          "max_abs_log_length_ratio": 0.8252283278843263,
+          "min_length_ratio": 0.4381349426188015,
+          "max_length_ratio": 2.0318668856011115,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0027624309392265192
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.4223124661721323,
+          "max_abs_log_length_ratio": 0.8250120000126461,
+          "min_length_ratio": 0.43822973367105056,
+          "max_length_ratio": 2.0570824982996663,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0036496350364963502
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.0688862095941224,
+          "max_abs_log_length_ratio": 0.17118654968028013,
+          "min_length_ratio": 0.8946440252751034,
+          "max_length_ratio": 1.1867121091382846,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.06425473875628138,
+          "max_abs_log_length_ratio": 0.17118654968028013,
+          "min_length_ratio": 0.8699237657515155,
+          "max_length_ratio": 1.1867121091382846,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.07733562171058546,
+          "max_abs_log_length_ratio": 0.1445850147312553,
+          "min_length_ratio": 0.8653813391137664,
+          "max_length_ratio": 1.1327306945056417,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.0501546917196796,
+          "max_abs_log_length_ratio": 0.11400241951901317,
+          "min_length_ratio": 0.8922557970499311,
+          "max_length_ratio": 1.1170762441702624,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.40784292901247315,
+          "max_abs_log_length_ratio": 0.8252283278843263,
+          "min_length_ratio": 0.4381349426188015,
+          "max_length_ratio": 2.0318668856011115,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0027624309392265192
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.4223124661721323,
+          "max_abs_log_length_ratio": 0.8250120000126461,
+          "min_length_ratio": 0.43822973367105056,
+          "max_length_ratio": 2.0570824982996663,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0036496350364963502
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.0688862095941224,
+          "max_abs_log_length_ratio": 0.17118654968028013,
+          "min_length_ratio": 0.8946440252751034,
+          "max_length_ratio": 1.1867121091382846,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.07883156667877578,
+          "max_abs_log_length_ratio": 0.1445850147312553,
+          "min_length_ratio": 0.8653813391137664,
+          "max_length_ratio": 1.1327306945056417,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-01",
+      "probe_sha256": "3a2ddda829d27f48b3b136ed0cdc0cdc00120a19a93acff216bf1df14e24a910",
+      "matrix_proof_sha256": "ff7aaa0140ebd87df3301e3864e76e25edd295586bd2f354761c8297bd228d1c",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 1.52587890625e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.4555851269117008,
+          "max_abs_log_length_ratio": 1.126620323836714,
+          "min_length_ratio": 0.3241268511760538,
+          "max_length_ratio": 2.2914874699809378,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.007366482504604052
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.45856856848547467,
+          "max_abs_log_length_ratio": 1.1633623590683728,
+          "min_length_ratio": 0.3124338978475861,
+          "max_length_ratio": 2.3024484722060214,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.009124087591240875
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.398020588544036,
+          "max_abs_log_length_ratio": 1.002894221775577,
+          "min_length_ratio": 0.3668162557713344,
+          "max_length_ratio": 1.8989167005622738,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.14579168907415788,
+          "max_abs_log_length_ratio": 0.6412835659719391,
+          "min_length_ratio": 0.5383278374064979,
+          "max_length_ratio": 1.8989167005622738,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.5188176679911928,
+          "max_abs_log_length_ratio": 1.6819723851262018,
+          "min_length_ratio": 0.18600673706855658,
+          "max_length_ratio": 1.856191130545851,
+          "collapsed_fraction": 0.0015444015444015444,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.25050316054634975,
+          "max_abs_log_length_ratio": 1.6819723851262018,
+          "min_length_ratio": 0.18600673706855658,
+          "max_length_ratio": 1.5621767245945943,
+          "collapsed_fraction": 0.0007429420505200594,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.4555851269117008,
+          "max_abs_log_length_ratio": 1.126620323836714,
+          "min_length_ratio": 0.3241268511760538,
+          "max_length_ratio": 2.2914874699809378,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.007366482504604052
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.45856856848547467,
+          "max_abs_log_length_ratio": 1.1633623590683728,
+          "min_length_ratio": 0.3124338978475861,
+          "max_length_ratio": 2.3024484722060214,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.009124087591240875
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.398020588544036,
+          "max_abs_log_length_ratio": 1.002894221775577,
+          "min_length_ratio": 0.3668162557713344,
+          "max_length_ratio": 1.8989167005622738,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.5267611292139238,
+          "max_abs_log_length_ratio": 1.6819723851262018,
+          "min_length_ratio": 0.18600673706855658,
+          "max_length_ratio": 1.856191130545851,
+          "collapsed_fraction": 0.0016611295681063123,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-02",
+      "probe_sha256": "c0b11d688695c28a4a51bb4c41cbf3cde61b85053e3cea2a7b54e51eaf31d67e",
+      "matrix_proof_sha256": "df121747d642a4a511ea25c1b3684e2bb886bd0046fbec74dd57b569dea90081",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 1.33514404296875e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.3844798978158236,
+          "max_abs_log_length_ratio": 0.6551341820813398,
+          "min_length_ratio": 0.6077301247357099,
+          "max_length_ratio": 1.925400854337928,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.386832907784084,
+          "max_abs_log_length_ratio": 0.6672754369463885,
+          "min_length_ratio": 0.5959204639572873,
+          "max_length_ratio": 1.9489201246412604,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.20681519231192766,
+          "max_abs_log_length_ratio": 0.369395182769091,
+          "min_length_ratio": 0.7125671838014312,
+          "max_length_ratio": 1.4468592645626885,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.07272139334411284,
+          "max_abs_log_length_ratio": 0.369395182769091,
+          "min_length_ratio": 0.7859716007198962,
+          "max_length_ratio": 1.4468592645626885,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.25368706742669755,
+          "max_abs_log_length_ratio": 0.7069084196535768,
+          "min_length_ratio": 0.4931665069578266,
+          "max_length_ratio": 1.4512779899004908,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.07272139334411284,
+          "max_abs_log_length_ratio": 0.5553347830342691,
+          "min_length_ratio": 0.5738801037102709,
+          "max_length_ratio": 1.3089658014973486,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.3844798978158236,
+          "max_abs_log_length_ratio": 0.6551341820813398,
+          "min_length_ratio": 0.6077301247357099,
+          "max_length_ratio": 1.925400854337928,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.386832907784084,
+          "max_abs_log_length_ratio": 0.6672754369463885,
+          "min_length_ratio": 0.5959204639572873,
+          "max_length_ratio": 1.9489201246412604,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.20681519231192766,
+          "max_abs_log_length_ratio": 0.369395182769091,
+          "min_length_ratio": 0.7125671838014312,
+          "max_length_ratio": 1.4468592645626885,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.2625686849117497,
+          "max_abs_log_length_ratio": 0.7069084196535768,
+          "min_length_ratio": 0.4931665069578266,
+          "max_length_ratio": 1.4512779899004908,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-03",
+      "probe_sha256": "86d4614d93ce4d72bf72b9a0d519a1b158ac5ef82f3cbd36e03a9e5ee16463cb",
+      "matrix_proof_sha256": "0d0d0bfa6ed548dff74a9d17d247a6aa0052a4825d5fb452263a659aec613d31",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 1.52587890625e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.39265616977496415,
+          "max_abs_log_length_ratio": 0.6827805020161926,
+          "min_length_ratio": 0.6049966078439812,
+          "max_length_ratio": 1.979373740534827,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.39113119693214127,
+          "max_abs_log_length_ratio": 0.695026662018903,
+          "min_length_ratio": 0.6091556879993029,
+          "max_length_ratio": 2.0037624975825685,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0009124087591240876
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.21249296595309047,
+          "max_abs_log_length_ratio": 0.385619365970871,
+          "min_length_ratio": 0.7009978100183631,
+          "max_length_ratio": 1.4705248324828202,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.09580486539216791,
+          "max_abs_log_length_ratio": 0.385619365970871,
+          "min_length_ratio": 0.7831367715063929,
+          "max_length_ratio": 1.4705248324828202,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.2988244663638995,
+          "max_abs_log_length_ratio": 0.8852074027605314,
+          "min_length_ratio": 0.4126285840962243,
+          "max_length_ratio": 1.5399520659787094,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.09850786860389307,
+          "max_abs_log_length_ratio": 0.7384442956612748,
+          "min_length_ratio": 0.4778567413683569,
+          "max_length_ratio": 1.3678339564036979,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.39265616977496415,
+          "max_abs_log_length_ratio": 0.6827805020161926,
+          "min_length_ratio": 0.6049966078439812,
+          "max_length_ratio": 1.979373740534827,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.39113119693214127,
+          "max_abs_log_length_ratio": 0.695026662018903,
+          "min_length_ratio": 0.6091556879993029,
+          "max_length_ratio": 2.0037624975825685,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0009124087591240876
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.21249296595309047,
+          "max_abs_log_length_ratio": 0.385619365970871,
+          "min_length_ratio": 0.7009978100183631,
+          "max_length_ratio": 1.4705248324828202,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.3039447238679083,
+          "max_abs_log_length_ratio": 0.8852074027605314,
+          "min_length_ratio": 0.4126285840962243,
+          "max_length_ratio": 1.5399520659787094,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-04",
+      "probe_sha256": "2c9ce57d6e05c27bf48f74c442dc349a09cc2fa4f075f64abac24724525f138d",
+      "matrix_proof_sha256": "04f0fa07e59a96218f23163b969268cdfd7f1b9c3c6b8cdb8b4a3ccf2bed2a84",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 1.52587890625e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.45557654453956753,
+          "max_abs_log_length_ratio": 1.1266211943642443,
+          "min_length_ratio": 0.3241265690148293,
+          "max_length_ratio": 2.2914929003345748,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.007366482504604052
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.45856919943399505,
+          "max_abs_log_length_ratio": 1.1633682274061434,
+          "min_length_ratio": 0.31243206438532223,
+          "max_length_ratio": 2.302440764782977,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.009124087591240875
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.38605895440549937,
+          "max_abs_log_length_ratio": 0.9425420072484915,
+          "min_length_ratio": 0.3896361175804908,
+          "max_length_ratio": 1.877048265407104,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.15251889549259784,
+          "max_abs_log_length_ratio": 0.629700471395828,
+          "min_length_ratio": 0.5580643658708708,
+          "max_length_ratio": 1.877048265407104,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.5173147516057809,
+          "max_abs_log_length_ratio": 1.6835134136891778,
+          "min_length_ratio": 0.18572031612193982,
+          "max_length_ratio": 1.856191681436769,
+          "collapsed_fraction": 0.0015444015444015444,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.2486222232843524,
+          "max_abs_log_length_ratio": 1.6835134136891778,
+          "min_length_ratio": 0.18572031612193982,
+          "max_length_ratio": 1.5622119873836202,
+          "collapsed_fraction": 0.0007429420505200594,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.45557654453956753,
+          "max_abs_log_length_ratio": 1.1266211943642443,
+          "min_length_ratio": 0.3241265690148293,
+          "max_length_ratio": 2.2914929003345748,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.007366482504604052
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.45856919943399505,
+          "max_abs_log_length_ratio": 1.1633682274061434,
+          "min_length_ratio": 0.31243206438532223,
+          "max_length_ratio": 2.302440764782977,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.009124087591240875
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.38605895440549937,
+          "max_abs_log_length_ratio": 0.9425420072484915,
+          "min_length_ratio": 0.3896361175804908,
+          "max_length_ratio": 1.877048265407104,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.5250827810726741,
+          "max_abs_log_length_ratio": 1.6835134136891778,
+          "min_length_ratio": 0.18572031612193982,
+          "max_length_ratio": 1.856191681436769,
+          "collapsed_fraction": 0.0016611295681063123,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-05",
+      "probe_sha256": "85454a024462e3b79d9501889c60ec7b27ae40f5503274e7d315221d80eb7fbc",
+      "matrix_proof_sha256": "007851a9721f4a28263c0a6b5d1c7e92f4bbee48c38b6c334ef413a30eaafa37",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 9.5367431640625e-06,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.40959818209825705,
+          "max_abs_log_length_ratio": 0.8411478511610888,
+          "min_length_ratio": 0.43121526829747375,
+          "max_length_ratio": 2.0493824571644677,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.003683241252302026
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.42565651323768827,
+          "max_abs_log_length_ratio": 0.8422541645274364,
+          "min_length_ratio": 0.43073847287358863,
+          "max_length_ratio": 2.074878744588292,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0036496350364963502
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.06978232142126427,
+          "max_abs_log_length_ratio": 0.1738439703548497,
+          "min_length_ratio": 0.8921654469255447,
+          "max_length_ratio": 1.1898698963580654,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.059701891189752776,
+          "max_abs_log_length_ratio": 0.1738439703548497,
+          "min_length_ratio": 0.8898629198937801,
+          "max_length_ratio": 1.1898698963580654,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.05748135048263213,
+          "max_abs_log_length_ratio": 0.1251558394434317,
+          "min_length_ratio": 0.901928852855846,
+          "max_length_ratio": 1.1333250560515757,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.04507947700462105,
+          "max_abs_log_length_ratio": 0.10623272412235933,
+          "min_length_ratio": 0.900904328230984,
+          "max_length_ratio": 1.1120806543877204,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.40959818209825705,
+          "max_abs_log_length_ratio": 0.8411478511610888,
+          "min_length_ratio": 0.43121526829747375,
+          "max_length_ratio": 2.0493824571644677,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.003683241252302026
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.42565651323768827,
+          "max_abs_log_length_ratio": 0.8422541645274364,
+          "min_length_ratio": 0.43073847287358863,
+          "max_length_ratio": 2.074878744588292,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0036496350364963502
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.06978232142126427,
+          "max_abs_log_length_ratio": 0.1738439703548497,
+          "min_length_ratio": 0.8921654469255447,
+          "max_length_ratio": 1.1898698963580654,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.05938838483987305,
+          "max_abs_log_length_ratio": 0.1251558394434317,
+          "min_length_ratio": 0.901928852855846,
+          "max_length_ratio": 1.1333250560515757,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-06",
+      "probe_sha256": "cfebfa1fe846030cbedd524478ab89f1e9fd3221ffc405d69012d03ef88c51b6",
+      "matrix_proof_sha256": "1972d999cec3f1dc2bcc39a5f62b7de3afcb7ffbd290177d428ee9253983f1c3",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 1.239776611328125e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.45651026546849843,
+          "max_abs_log_length_ratio": 0.8739465447230139,
+          "min_length_ratio": 0.4173013965642294,
+          "max_length_ratio": 2.263380945220091,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.007366482504604052
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.45149355948650466,
+          "max_abs_log_length_ratio": 0.9148168532183928,
+          "min_length_ratio": 0.4005899861394909,
+          "max_length_ratio": 2.2753620587362304,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.009124087591240875
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.36081142714072323,
+          "max_abs_log_length_ratio": 0.8082178224693708,
+          "min_length_ratio": 0.44565158916222963,
+          "max_length_ratio": 1.8125810900743942,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.1679159286526344,
+          "max_abs_log_length_ratio": 0.5947518460973077,
+          "min_length_ratio": 0.5993633040873491,
+          "max_length_ratio": 1.8125810900743942,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.5134721840882335,
+          "max_abs_log_length_ratio": 1.687323586382205,
+          "min_length_ratio": 0.1850140360239298,
+          "max_length_ratio": 1.8561919568824674,
+          "collapsed_fraction": 0.0015444015444015444,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.24850165389412132,
+          "max_abs_log_length_ratio": 1.687323586382205,
+          "min_length_ratio": 0.1850140360239298,
+          "max_length_ratio": 1.5622983232739192,
+          "collapsed_fraction": 0.0007429420505200594,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.45651026546849843,
+          "max_abs_log_length_ratio": 0.8739465447230139,
+          "min_length_ratio": 0.4173013965642294,
+          "max_length_ratio": 2.263380945220091,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.007366482504604052
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.45149355948650466,
+          "max_abs_log_length_ratio": 0.9148168532183928,
+          "min_length_ratio": 0.4005899861394909,
+          "max_length_ratio": 2.2753620587362304,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.009124087591240875
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.36081142714072323,
+          "max_abs_log_length_ratio": 0.8082178224693708,
+          "min_length_ratio": 0.44565158916222963,
+          "max_length_ratio": 1.8125810900743942,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.5188167375860747,
+          "max_abs_log_length_ratio": 1.687323586382205,
+          "min_length_ratio": 0.1850140360239298,
+          "max_length_ratio": 1.8561919568824674,
+          "collapsed_fraction": 0.0016611295681063123,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-07",
+      "probe_sha256": "371c511ca488dc5513d99ad55cc53b0b8b00003d4eaaaa08ff45e18befd1a75c",
+      "matrix_proof_sha256": "40b28808457805e2b65452968ead5e6b4c6553e740e11b2678d6e74914661835",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 9.5367431640625e-06,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.4290607358612136,
+          "max_abs_log_length_ratio": 0.7848009338925361,
+          "min_length_ratio": 0.5559584050622861,
+          "max_length_ratio": 2.1919705502542652,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0055248618784530384
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.42849108891507376,
+          "max_abs_log_length_ratio": 0.7938109554663432,
+          "min_length_ratio": 0.5444708665638116,
+          "max_length_ratio": 2.211809492639581,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.005474452554744526
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.38250197097208727,
+          "max_abs_log_length_ratio": 0.9407164640429652,
+          "min_length_ratio": 0.3903480647950476,
+          "max_length_ratio": 1.847881247258348,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.1264908250079704,
+          "max_abs_log_length_ratio": 0.6275723950021181,
+          "min_length_ratio": 0.5338862941481295,
+          "max_length_ratio": 1.847881247258348,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.49711076889493583,
+          "max_abs_log_length_ratio": 1.6845345675122214,
+          "min_length_ratio": 0.1855307639085701,
+          "max_length_ratio": 1.8307165299812165,
+          "collapsed_fraction": 0.0023166023166023165,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.22293399753198795,
+          "max_abs_log_length_ratio": 1.6845345675122214,
+          "min_length_ratio": 0.1855307639085701,
+          "max_length_ratio": 1.548341119700795,
+          "collapsed_fraction": 0.0007429420505200594,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.4290607358612136,
+          "max_abs_log_length_ratio": 0.7848009338925361,
+          "min_length_ratio": 0.5559584050622861,
+          "max_length_ratio": 2.1919705502542652,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0055248618784530384
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.42849108891507376,
+          "max_abs_log_length_ratio": 0.7938109554663432,
+          "min_length_ratio": 0.5444708665638116,
+          "max_length_ratio": 2.211809492639581,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.005474452554744526
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.38250197097208727,
+          "max_abs_log_length_ratio": 0.9407164640429652,
+          "min_length_ratio": 0.3903480647950476,
+          "max_length_ratio": 1.847881247258348,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.5079527863004508,
+          "max_abs_log_length_ratio": 1.6845345675122214,
+          "min_length_ratio": 0.1855307639085701,
+          "max_length_ratio": 1.8307165299812165,
+          "collapsed_fraction": 0.0024916943521594683,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-08",
+      "probe_sha256": "6e18123ca88e2001f4fdd76a540df3922243d5844e3048f53234e2f122d8c915",
+      "matrix_proof_sha256": "9796708aa8d6bea0bf89ab301627113b2c3b6367d0dcaa07beee4b78581ad244",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 1.239776611328125e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.3871202875718425,
+          "max_abs_log_length_ratio": 0.6636735882466565,
+          "min_length_ratio": 0.5939341611153268,
+          "max_length_ratio": 1.9419130360363583,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.39762261275509736,
+          "max_abs_log_length_ratio": 0.6758458994921627,
+          "min_length_ratio": 0.5817749961125991,
+          "max_length_ratio": 1.965695053342906,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.14910985522939116,
+          "max_abs_log_length_ratio": 0.30199549074962917,
+          "min_length_ratio": 0.7806084687988736,
+          "max_length_ratio": 1.3525551276860202,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.06594839940046858,
+          "max_abs_log_length_ratio": 0.30199549074962917,
+          "min_length_ratio": 0.863187685618109,
+          "max_length_ratio": 1.3525551276860202,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.1841738602819621,
+          "max_abs_log_length_ratio": 0.4619039494590399,
+          "min_length_ratio": 0.6300828568347743,
+          "max_length_ratio": 1.3271564369385584,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.06009231730696159,
+          "max_abs_log_length_ratio": 0.35303084584699934,
+          "min_length_ratio": 0.7025555221228652,
+          "max_length_ratio": 1.2249797764115569,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.3871202875718425,
+          "max_abs_log_length_ratio": 0.6636735882466565,
+          "min_length_ratio": 0.5939341611153268,
+          "max_length_ratio": 1.9419130360363583,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.39762261275509736,
+          "max_abs_log_length_ratio": 0.6758458994921627,
+          "min_length_ratio": 0.5817749961125991,
+          "max_length_ratio": 1.965695053342906,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.14910985522939116,
+          "max_abs_log_length_ratio": 0.30199549074962917,
+          "min_length_ratio": 0.7806084687988736,
+          "max_length_ratio": 1.3525551276860202,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.19188144266036936,
+          "max_abs_log_length_ratio": 0.4619039494590399,
+          "min_length_ratio": 0.6300828568347743,
+          "max_length_ratio": 1.3271564369385584,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-09",
+      "probe_sha256": "6819d29c3d0902055a7e2eb4ca46c8e2ba6d3c05fc556301a5b36063ba0dec90",
+      "matrix_proof_sha256": "d8aac9f28bd04332d36725d4a56607fa135d88624190a654fb8487e8e74ef5ad",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 9.059906005859375e-06,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.4555818587676898,
+          "max_abs_log_length_ratio": 1.1266239958580198,
+          "min_length_ratio": 0.3241256609775357,
+          "max_length_ratio": 2.29149323345517,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.007366482504604052
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.45857080214344353,
+          "max_abs_log_length_ratio": 1.1633626555727972,
+          "min_length_ratio": 0.3124338052095668,
+          "max_length_ratio": 2.3024429273902554,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.009124087591240875
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.3953390043188637,
+          "max_abs_log_length_ratio": 0.9917904048934736,
+          "min_length_ratio": 0.37091201349464265,
+          "max_length_ratio": 1.8949973769270683,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.14756859862652985,
+          "max_abs_log_length_ratio": 0.6392174543260798,
+          "min_length_ratio": 0.5418373315022432,
+          "max_length_ratio": 1.8949973769270683,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.5188170842221111,
+          "max_abs_log_length_ratio": 1.682247664355856,
+          "min_length_ratio": 0.18595554032428935,
+          "max_length_ratio": 1.8561922349166744,
+          "collapsed_fraction": 0.0015444015444015444,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.2487438874482601,
+          "max_abs_log_length_ratio": 1.682247664355856,
+          "min_length_ratio": 0.18595554032428935,
+          "max_length_ratio": 1.562180526971267,
+          "collapsed_fraction": 0.0007429420505200594,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.4555818587676898,
+          "max_abs_log_length_ratio": 1.1266239958580198,
+          "min_length_ratio": 0.3241256609775357,
+          "max_length_ratio": 2.29149323345517,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.007366482504604052
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.45857080214344353,
+          "max_abs_log_length_ratio": 1.1633626555727972,
+          "min_length_ratio": 0.3124338052095668,
+          "max_length_ratio": 2.3024429273902554,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.009124087591240875
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.3953390043188637,
+          "max_abs_log_length_ratio": 0.9917904048934736,
+          "min_length_ratio": 0.37091201349464265,
+          "max_length_ratio": 1.8949973769270683,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.5267571658746323,
+          "max_abs_log_length_ratio": 1.682247664355856,
+          "min_length_ratio": 0.18595554032428935,
+          "max_length_ratio": 1.8561922349166744,
+          "collapsed_fraction": 0.0016611295681063123,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-10",
+      "probe_sha256": "2ceb460c6aef5f6fdcf6ce0d3fb7507d9d69796fc4449aa0d458d871514fc80a",
+      "matrix_proof_sha256": "37a8f64f6894fef3aac727c0570a9ea9e048a7131c57fc4d00b355de3038501f",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 7.718801498413086e-06,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.39497917242647435,
+          "max_abs_log_length_ratio": 0.7331385356588059,
+          "min_length_ratio": 0.48039887255897123,
+          "max_length_ratio": 1.9978760433328493,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.40353676864228205,
+          "max_abs_log_length_ratio": 0.731155403334456,
+          "min_length_ratio": 0.48135251237615717,
+          "max_length_ratio": 2.0225482979931217,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.002737226277372263
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.0723393193664874,
+          "max_abs_log_length_ratio": 0.1723729844480802,
+          "min_length_ratio": 0.8865907725602974,
+          "max_length_ratio": 1.1881209011986216,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.086275523214148,
+          "max_abs_log_length_ratio": 0.1725626515497695,
+          "min_length_ratio": 0.8415055655323727,
+          "max_length_ratio": 1.1881209011986216,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.10473520582265525,
+          "max_abs_log_length_ratio": 0.2592219864203823,
+          "min_length_ratio": 0.7716517078291785,
+          "max_length_ratio": 1.203636072596484,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.07114437761544602,
+          "max_abs_log_length_ratio": 0.20011292405044215,
+          "min_length_ratio": 0.8186383039050885,
+          "max_length_ratio": 1.1404896184700475,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.39497917242647435,
+          "max_abs_log_length_ratio": 0.7331385356588059,
+          "min_length_ratio": 0.48039887255897123,
+          "max_length_ratio": 1.9978760433328493,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.40353676864228205,
+          "max_abs_log_length_ratio": 0.731155403334456,
+          "min_length_ratio": 0.48135251237615717,
+          "max_length_ratio": 2.0225482979931217,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.002737226277372263
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.0723393193664874,
+          "max_abs_log_length_ratio": 0.1723729844480802,
+          "min_length_ratio": 0.8865907725602974,
+          "max_length_ratio": 1.1881209011986216,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.10690309969912831,
+          "max_abs_log_length_ratio": 0.2592219864203823,
+          "min_length_ratio": 0.7716517078291785,
+          "max_length_ratio": 1.203636072596484,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Hop-meshvenn-hop-11",
+      "probe_sha256": "5b58e99e6acb8aac62dbae4dccaac76098387f02d803f8c4d43bcf13c6e69a00",
+      "matrix_proof_sha256": "7aa3fb33d6ccbc376b6d0ebbbcf64aec51f1613fa0ef3cd99bd227d44b19a81d",
+      "hidden_regions": [
+        "right-leg"
+      ],
+      "native_applied_delta_error": 7.927417755126953e-06,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.41505770481725995,
+          "max_abs_log_length_ratio": 0.7685389406280109,
+          "min_length_ratio": 0.5630731416994466,
+          "max_length_ratio": 2.156613011156798,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0055248618784530384
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.41360344574273006,
+          "max_abs_log_length_ratio": 0.7786520487761709,
+          "min_length_ratio": 0.5642930848784437,
+          "max_length_ratio": 2.17853372823556,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.005474452554744526
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.37141711270916894,
+          "max_abs_log_length_ratio": 0.8668009112083013,
+          "min_length_ratio": 0.42029395855151075,
+          "max_length_ratio": 1.8068177708313027,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.11633961899656736,
+          "max_abs_log_length_ratio": 0.5983576086801732,
+          "min_length_ratio": 0.5497137401625314,
+          "max_length_ratio": 1.8068177708313027,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.4806380404482425,
+          "max_abs_log_length_ratio": 1.592553159511414,
+          "min_length_ratio": 0.20340562121083713,
+          "max_length_ratio": 1.8038285878842506,
+          "collapsed_fraction": 0.0023166023166023165,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.20452477706466188,
+          "max_abs_log_length_ratio": 1.592553159511414,
+          "min_length_ratio": 0.20340562121083713,
+          "max_length_ratio": 1.533094540923308,
+          "collapsed_fraction": 0.0007429420505200594,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.41505770481725995,
+          "max_abs_log_length_ratio": 0.7685389406280109,
+          "min_length_ratio": 0.5630731416994466,
+          "max_length_ratio": 2.156613011156798,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0055248618784530384
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.41360344574273006,
+          "max_abs_log_length_ratio": 0.7786520487761709,
+          "min_length_ratio": 0.5642930848784437,
+          "max_length_ratio": 2.17853372823556,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.005474452554744526
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.37141711270916894,
+          "max_abs_log_length_ratio": 0.8668009112083013,
+          "min_length_ratio": 0.42029395855151075,
+          "max_length_ratio": 1.8068177708313027,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.4863455295115896,
+          "max_abs_log_length_ratio": 1.592553159511414,
+          "min_length_ratio": 0.20340562121083713,
+          "max_length_ratio": 1.8038285878842506,
+          "collapsed_fraction": 0.0024916943521594683,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Walk-meshvenn-walk-00",
+      "probe_sha256": "e2ff232c146b500497237da0b18ae9c9dfc8143a044380fc93b99e1bb9c6d666",
+      "matrix_proof_sha256": "ef58399d73a4656c594804ca352db0df5ca97d3927799cb360554cb1cac6be1e",
+      "hidden_regions": [],
+      "native_applied_delta_error": 1.239776611328125e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.1294236522343374,
+          "max_abs_log_length_ratio": 0.2909897610955032,
+          "min_length_ratio": 0.7755954444828554,
+          "max_length_ratio": 1.337750886776343,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.12981201724830496,
+          "max_abs_log_length_ratio": 0.2926789666984959,
+          "min_length_ratio": 0.775254918454576,
+          "max_length_ratio": 1.3400125327244132,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.2368823827564622,
+          "max_abs_log_length_ratio": 0.4465213797986828,
+          "min_length_ratio": 0.6398500801731136,
+          "max_length_ratio": 1.4010408236410365,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.21001060085914638,
+          "max_abs_log_length_ratio": 0.4465213797986828,
+          "min_length_ratio": 0.6398500801731136,
+          "max_length_ratio": 1.3473469808623282,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.1562848296794597,
+          "max_abs_log_length_ratio": 0.3350150259156019,
+          "min_length_ratio": 0.715327337823601,
+          "max_length_ratio": 1.3910335338373045,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.13190239804874584,
+          "max_abs_log_length_ratio": 0.2981374595512281,
+          "min_length_ratio": 0.7510367306313479,
+          "max_length_ratio": 1.3473469808623282,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.1294236522343374,
+          "max_abs_log_length_ratio": 0.2909897610955032,
+          "min_length_ratio": 0.7755954444828554,
+          "max_length_ratio": 1.337750886776343,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.12981201724830496,
+          "max_abs_log_length_ratio": 0.2926789666984959,
+          "min_length_ratio": 0.775254918454576,
+          "max_length_ratio": 1.3400125327244132,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.2368823827564622,
+          "max_abs_log_length_ratio": 0.4465213797986828,
+          "min_length_ratio": 0.6398500801731136,
+          "max_length_ratio": 1.4010408236410365,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.21001060085914638,
+          "max_abs_log_length_ratio": 0.4465213797986828,
+          "min_length_ratio": 0.6398500801731136,
+          "max_length_ratio": 1.3473469808623282,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.16136197604879257,
+          "max_abs_log_length_ratio": 0.3350150259156019,
+          "min_length_ratio": 0.715327337823601,
+          "max_length_ratio": 1.3910335338373045,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1208,
+          "p95_abs_log_length_ratio": 0.13839457453703802,
+          "max_abs_log_length_ratio": 0.2981374595512281,
+          "min_length_ratio": 0.7510367306313479,
+          "max_length_ratio": 1.3473469808623282,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Walk-meshvenn-walk-01",
+      "probe_sha256": "40d9a4d74ca6fc4de8e655e87567167db6c0d5b11a9d52eae1804352e5027457",
+      "matrix_proof_sha256": "e325cc99891af18eb5a0859aa09379114fb8be740d0632d2644f54c9d18d3138",
+      "hidden_regions": [],
+      "native_applied_delta_error": 1.5437602996826172e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.07873138627142816,
+          "max_abs_log_length_ratio": 0.198423328397429,
+          "min_length_ratio": 0.8512834156695441,
+          "max_length_ratio": 1.219478524457015,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.12250012870894884,
+          "max_abs_log_length_ratio": 0.26255045275079325,
+          "min_length_ratio": 0.8122793480774245,
+          "max_length_ratio": 1.3002420673026414,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.35146086492293344,
+          "max_abs_log_length_ratio": 0.8855630463535129,
+          "min_length_ratio": 0.4124818614760359,
+          "max_length_ratio": 1.6864441675967243,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.32513412069862163,
+          "max_abs_log_length_ratio": 0.8230182528193567,
+          "min_length_ratio": 0.43910432453940745,
+          "max_length_ratio": 1.531261290017604,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.24481314333899795,
+          "max_abs_log_length_ratio": 0.5226222694848952,
+          "min_length_ratio": 0.6218089083625089,
+          "max_length_ratio": 1.6864441675967243,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.178603184735664,
+          "max_abs_log_length_ratio": 0.42609176835644,
+          "min_length_ratio": 0.6540181181527742,
+          "max_length_ratio": 1.531261290017604,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.07873138627142816,
+          "max_abs_log_length_ratio": 0.198423328397429,
+          "min_length_ratio": 0.8512834156695441,
+          "max_length_ratio": 1.219478524457015,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.12250012870894884,
+          "max_abs_log_length_ratio": 0.26255045275079325,
+          "min_length_ratio": 0.8122793480774245,
+          "max_length_ratio": 1.3002420673026414,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.35146086492293344,
+          "max_abs_log_length_ratio": 0.8855630463535129,
+          "min_length_ratio": 0.4124818614760359,
+          "max_length_ratio": 1.6864441675967243,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.32513412069862163,
+          "max_abs_log_length_ratio": 0.8230182528193567,
+          "min_length_ratio": 0.43910432453940745,
+          "max_length_ratio": 1.531261290017604,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.25310008890432734,
+          "max_abs_log_length_ratio": 0.5226222694848952,
+          "min_length_ratio": 0.6218089083625089,
+          "max_length_ratio": 1.6864441675967243,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1208,
+          "p95_abs_log_length_ratio": 0.18709371592534577,
+          "max_abs_log_length_ratio": 0.42609176835644,
+          "min_length_ratio": 0.6540181181527742,
+          "max_length_ratio": 1.531261290017604,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "Walk-meshvenn-walk-02",
+      "probe_sha256": "573a6aa6db650d88e6f92cd87043adcc5237f0bbe3d5abb692a258dd4a3bf28d",
+      "matrix_proof_sha256": "254390ba2f42ac29efc7d183a52708874871e630384c2f1bb05553549a35eb0a",
+      "hidden_regions": [],
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.11716702059907355,
+          "max_abs_log_length_ratio": 0.23606148637707997,
+          "min_length_ratio": 0.8015475730251551,
+          "max_length_ratio": 1.266252165031446,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.0714026578574462,
+          "max_abs_log_length_ratio": 0.17705768941000882,
+          "min_length_ratio": 0.8377314548955747,
+          "max_length_ratio": 1.1728220022101992,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.22034300257502348,
+          "max_abs_log_length_ratio": 0.4578643291002334,
+          "min_length_ratio": 0.6326333003143908,
+          "max_length_ratio": 1.2985668451758479,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.23812396480610093,
+          "max_abs_log_length_ratio": 0.48898963580612137,
+          "min_length_ratio": 0.6132456827581426,
+          "max_length_ratio": 1.422279178422085,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.11682055970243223,
+          "max_abs_log_length_ratio": 0.2885695209626267,
+          "min_length_ratio": 0.7493347088663419,
+          "max_length_ratio": 1.2985668451758479,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.15276132766738823,
+          "max_abs_log_length_ratio": 0.34560081711091656,
+          "min_length_ratio": 0.7181480810712816,
+          "max_length_ratio": 1.4128385222737927,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.11716702059907355,
+          "max_abs_log_length_ratio": 0.23606148637707997,
+          "min_length_ratio": 0.8015475730251551,
+          "max_length_ratio": 1.266252165031446,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.0714026578574462,
+          "max_abs_log_length_ratio": 0.17705768941000882,
+          "min_length_ratio": 0.8377314548955747,
+          "max_length_ratio": 1.1728220022101992,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.22034300257502348,
+          "max_abs_log_length_ratio": 0.4578643291002334,
+          "min_length_ratio": 0.6326333003143908,
+          "max_length_ratio": 1.2985668451758479,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.23812396480610093,
+          "max_abs_log_length_ratio": 0.48898963580612137,
+          "min_length_ratio": 0.6132456827581426,
+          "max_length_ratio": 1.422279178422085,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.11794980463367388,
+          "max_abs_log_length_ratio": 0.2885695209626267,
+          "min_length_ratio": 0.7493347088663419,
+          "max_length_ratio": 1.2985668451758479,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1208,
+          "p95_abs_log_length_ratio": 0.16132296221565334,
+          "max_abs_log_length_ratio": 0.34560081711091656,
+          "min_length_ratio": 0.7181480810712816,
+          "max_length_ratio": 1.4128385222737927,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "World-03-one-leg-hop",
+      "probe_sha256": "41c639642eeb8ed27c2729afd42d393126dbbb610a74b57a4abe21523ce0e3ac",
+      "matrix_proof_sha256": "641fc65cc5bb06a5f5f54f3c8ae0acc31c23cb8ff847920ee3e1663fe13fc4dc",
+      "hidden_regions": [
+        "right-arm",
+        "right-leg"
+      ],
+      "native_applied_delta_error": 1.71661376953125e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.5277398840080808,
+          "max_abs_log_length_ratio": 1.4888633462361087,
+          "min_length_ratio": 0.22562897186049502,
+          "max_length_ratio": 2.1948083729903014,
+          "collapsed_fraction": 0.001841620626151013,
+          "stretched_fraction": 0.004604051565377533
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.23251208477141697,
+          "max_abs_log_length_ratio": 0.8460343293857624,
+          "min_length_ratio": 0.42911328411130717,
+          "max_length_ratio": 1.6556226357163146,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.5598548237536384,
+          "max_abs_log_length_ratio": 1.8637430861728594,
+          "min_length_ratio": 0.1550910234791855,
+          "max_length_ratio": 2.508040264476445,
+          "collapsed_fraction": 0.0014825796886582653,
+          "stretched_fraction": 0.01630837657524092
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.7126957542241898,
+          "max_abs_log_length_ratio": 1.3671082837250792,
+          "min_length_ratio": 0.2548428282322489,
+          "max_length_ratio": 2.9329845507948407,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.038941954445260836
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.5447365666378503,
+          "max_abs_log_length_ratio": 0.9416082815157526,
+          "min_length_ratio": 0.39000010075366304,
+          "max_length_ratio": 2.508040264476445,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.016216216216216217
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.5974200548722113,
+          "max_abs_log_length_ratio": 1.07602052260839,
+          "min_length_ratio": 0.3868367485237866,
+          "max_length_ratio": 2.9329845507948407,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.036404160475482915
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.5277398840080808,
+          "max_abs_log_length_ratio": 1.4888633462361087,
+          "min_length_ratio": 0.22562897186049502,
+          "max_length_ratio": 2.1948083729903014,
+          "collapsed_fraction": 0.001841620626151013,
+          "stretched_fraction": 0.004604051565377533
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.5598548237536384,
+          "max_abs_log_length_ratio": 1.8637430861728594,
+          "min_length_ratio": 0.1550910234791855,
+          "max_length_ratio": 2.508040264476445,
+          "collapsed_fraction": 0.0014825796886582653,
+          "stretched_fraction": 0.01630837657524092
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.5540519810206518,
+          "max_abs_log_length_ratio": 0.9416082815157526,
+          "min_length_ratio": 0.39000010075366304,
+          "max_length_ratio": 2.508040264476445,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.01744186046511628
+        }
+      }
+    },
+    {
+      "id": "factory-hall",
+      "probe_sha256": "db39bc38779fd8ce2e3a6f7c49bfef76f3b332f8bc555f8be9a90debe2425657",
+      "matrix_proof_sha256": "f2efa4d39bc1bb97fcde9f8877f7d0f9daf6f0f1932b732ac4ac2c0d1c76c89e",
+      "hidden_regions": [],
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.24515527171248497,
+          "max_abs_log_length_ratio": 0.47849111898062435,
+          "min_length_ratio": 0.6197177670744196,
+          "max_length_ratio": 1.5369579366717596,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.24671755651416716,
+          "max_abs_log_length_ratio": 0.49051399569238835,
+          "min_length_ratio": 0.6123115877682636,
+          "max_length_ratio": 1.5279995648808706,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.010459096041931673,
+          "max_abs_log_length_ratio": 0.02657130161826876,
+          "min_length_ratio": 0.973778609369486,
+          "max_length_ratio": 1.0239071959812134,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.010460973674681883,
+          "max_abs_log_length_ratio": 0.02657130161826876,
+          "min_length_ratio": 0.973778609369486,
+          "max_length_ratio": 1.0239071959812134,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.003779690130638205,
+          "max_abs_log_length_ratio": 0.01047621422755644,
+          "min_length_ratio": 0.990818267136892,
+          "max_length_ratio": 1.0105312818920453,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.0037760963938108685,
+          "max_abs_log_length_ratio": 0.011812073474423672,
+          "min_length_ratio": 0.9893331673996708,
+          "max_length_ratio": 1.011882111507444,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.24515527171248497,
+          "max_abs_log_length_ratio": 0.47849111898062435,
+          "min_length_ratio": 0.6197177670744196,
+          "max_length_ratio": 1.5369579366717596,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.24671755651416716,
+          "max_abs_log_length_ratio": 0.49051399569238835,
+          "min_length_ratio": 0.6123115877682636,
+          "max_length_ratio": 1.5279995648808706,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.010459096041931673,
+          "max_abs_log_length_ratio": 0.02657130161826876,
+          "min_length_ratio": 0.973778609369486,
+          "max_length_ratio": 1.0239071959812134,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.010460973674681883,
+          "max_abs_log_length_ratio": 0.02657130161826876,
+          "min_length_ratio": 0.973778609369486,
+          "max_length_ratio": 1.0239071959812134,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.003891819839615006,
+          "max_abs_log_length_ratio": 0.01047621422755644,
+          "min_length_ratio": 0.990818267136892,
+          "max_length_ratio": 1.0105312818920453,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1208,
+          "p95_abs_log_length_ratio": 0.00409393128718685,
+          "max_abs_log_length_ratio": 0.011812073474423672,
+          "min_length_ratio": 0.9893331673996708,
+          "max_length_ratio": 1.011882111507444,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "factory-held",
+      "probe_sha256": "63328b2f864dd19a57ce0cbec8594aaca6c5f71c373834e89069f90322383d80",
+      "matrix_proof_sha256": "c9a50b81eb1ef3e179efe9008a67aa1cb610bed68f845918a8860922e919a43c",
+      "hidden_regions": [],
+      "native_applied_delta_error": 8.07642936706543e-06,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.25493665693232054,
+          "max_abs_log_length_ratio": 0.6155187436660234,
+          "min_length_ratio": 0.5403605139985835,
+          "max_length_ratio": 1.6739985686488927,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.2926189101014558,
+          "max_abs_log_length_ratio": 0.6586680157973724,
+          "min_length_ratio": 0.5175402310021314,
+          "max_length_ratio": 1.692454055491098,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.03951438200744317,
+          "max_abs_log_length_ratio": 0.08919487803044363,
+          "min_length_ratio": 0.9395404018493712,
+          "max_length_ratio": 1.0932936944893057,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.014786869950436972,
+          "max_abs_log_length_ratio": 0.08919487803044363,
+          "min_length_ratio": 0.9843272918903886,
+          "max_length_ratio": 1.0932936944893057,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.024624452419943186,
+          "max_abs_log_length_ratio": 0.0759127174760145,
+          "min_length_ratio": 0.9395404018493712,
+          "max_length_ratio": 1.0788684036903033,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.0048422131452502595,
+          "max_abs_log_length_ratio": 0.024067854235828794,
+          "min_length_ratio": 0.9843272918903886,
+          "max_length_ratio": 1.0243598226854795,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.25493665693232054,
+          "max_abs_log_length_ratio": 0.6155187436660234,
+          "min_length_ratio": 0.5403605139985835,
+          "max_length_ratio": 1.6739985686488927,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.2926189101014558,
+          "max_abs_log_length_ratio": 0.6586680157973724,
+          "min_length_ratio": 0.5175402310021314,
+          "max_length_ratio": 1.692454055491098,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.03951438200744317,
+          "max_abs_log_length_ratio": 0.08919487803044363,
+          "min_length_ratio": 0.9395404018493712,
+          "max_length_ratio": 1.0932936944893057,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.014786869950436972,
+          "max_abs_log_length_ratio": 0.08919487803044363,
+          "min_length_ratio": 0.9843272918903886,
+          "max_length_ratio": 1.0932936944893057,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1204,
+          "p95_abs_log_length_ratio": 0.02647063285418474,
+          "max_abs_log_length_ratio": 0.0759127174760145,
+          "min_length_ratio": 0.9395404018493712,
+          "max_length_ratio": 1.0788684036903033,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1208,
+          "p95_abs_log_length_ratio": 0.0049960926716290585,
+          "max_abs_log_length_ratio": 0.01579682352381625,
+          "min_length_ratio": 0.9843272918903886,
+          "max_length_ratio": 1.0120604770725559,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    },
+    {
+      "id": "factory-one-leg",
+      "probe_sha256": "db39bc38779fd8ce2e3a6f7c49bfef76f3b332f8bc555f8be9a90debe2425657",
+      "matrix_proof_sha256": "f2efa4d39bc1bb97fcde9f8877f7d0f9daf6f0f1932b732ac4ac2c0d1c76c89e",
+      "hidden_regions": [
+        "left-leg"
+      ],
+      "native_applied_delta_error": 1.1444091796875e-05,
+      "full_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.24515527171248497,
+          "max_abs_log_length_ratio": 0.47849111898062435,
+          "min_length_ratio": 0.6197177670744196,
+          "max_length_ratio": 1.5369579366717596,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.24671755651416716,
+          "max_abs_log_length_ratio": 0.49051399569238835,
+          "min_length_ratio": 0.6123115877682636,
+          "max_length_ratio": 1.5279995648808706,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.L": {
+          "edge_count": 1349,
+          "p95_abs_log_length_ratio": 0.010459096041931673,
+          "max_abs_log_length_ratio": 0.02657130161826876,
+          "min_length_ratio": 0.973778609369486,
+          "max_length_ratio": 1.0239071959812134,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.010460973674681883,
+          "max_abs_log_length_ratio": 0.02657130161826876,
+          "min_length_ratio": 0.973778609369486,
+          "max_length_ratio": 1.0239071959812134,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.L": {
+          "edge_count": 1295,
+          "p95_abs_log_length_ratio": 0.003779690130638205,
+          "max_abs_log_length_ratio": 0.01047621422755644,
+          "min_length_ratio": 0.990818267136892,
+          "max_length_ratio": 1.0105312818920453,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1346,
+          "p95_abs_log_length_ratio": 0.0037760963938108685,
+          "max_abs_log_length_ratio": 0.011812073474423672,
+          "min_length_ratio": 0.9893331673996708,
+          "max_length_ratio": 1.011882111507444,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      },
+      "present_owned_joint_edges": {
+        "forearm.L": {
+          "edge_count": 1086,
+          "p95_abs_log_length_ratio": 0.24515527171248497,
+          "max_abs_log_length_ratio": 0.47849111898062435,
+          "min_length_ratio": 0.6197177670744196,
+          "max_length_ratio": 1.5369579366717596,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "forearm.R": {
+          "edge_count": 1096,
+          "p95_abs_log_length_ratio": 0.24671755651416716,
+          "max_abs_log_length_ratio": 0.49051399569238835,
+          "min_length_ratio": 0.6123115877682636,
+          "max_length_ratio": 1.5279995648808706,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "thigh.R": {
+          "edge_count": 1361,
+          "p95_abs_log_length_ratio": 0.010460973674681883,
+          "max_abs_log_length_ratio": 0.02657130161826876,
+          "min_length_ratio": 0.973778609369486,
+          "max_length_ratio": 1.0239071959812134,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        },
+        "shin.R": {
+          "edge_count": 1208,
+          "p95_abs_log_length_ratio": 0.00409393128718685,
+          "max_abs_log_length_ratio": 0.011812073474423672,
+          "min_length_ratio": 0.9893331673996708,
+          "max_length_ratio": 1.011882111507444,
+          "collapsed_fraction": 0.0,
+          "stretched_fraction": 0.0
+        }
+      }
+    }
+  ],
+  "source_authority_unchanged": true,
+  "pose_state_restored": true,
+  "native_rest_centres_m": {
+    "forearm.L": [
+      0.43584808707237244,
+      -0.03789803013205528,
+      1.3351480960845947
+    ],
+    "forearm.R": [
+      -0.4317939877510071,
+      -0.03789300099015236,
+      1.3353520631790161
+    ],
+    "thigh.L": [
+      0.13778667151927948,
+      -0.05671542137861252,
+      0.8808098435401917
+    ],
+    "thigh.R": [
+      -0.13521334528923035,
+      -0.05684513598680496,
+      0.8808098435401917
+    ],
+    "shin.L": [
+      0.1468866765499115,
+      -0.03862214460968971,
+      0.5532098412513733
+    ],
+    "shin.R": [
+      -0.13259011507034302,
+      -0.03044924885034561,
+      0.5368298292160034
+    ]
+  },
+  "joint_radius_in_heights": 0.12,
+  "cohort_policy": "Frozen source-rest joint balls, either edge endpoint within 0.12 heights. Full mesh diagnostic is separate from body+owned-limb triangles, reported only when that limb is present. No hidden-joint quality credit.",
+  "measurements_completed": true,
+  "visual_qualification": false,
+  "consumer_acceptance": false,
+  "scope": "Source-only edge-length distortion on actual selected-asset matrices. This is not an anatomy, volume, self-intersection, contact or artistic certificate. Strict source/raw/reimport transport is separately reported by series replay."
+}

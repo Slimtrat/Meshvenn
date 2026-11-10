@@ -40,8 +40,11 @@ all six visible joint-ball measurements are retained too, including neighboring
 geometry near a hidden joint. A hidden limb's location is not represented as
 quality evidence for that absent limb.
 
-These matrices target the **preceding GLB**, not this new candidate. The candidate
-has not been selected, captured or artistically accepted in Stytch. Own Blender
+The generation-time matrices target the **preceding GLB**, not this new candidate.
+Their report and acceptance flags remain historical. Stytch subsequently selected
+this exact bundle and supplied [fresh selected-asset captures and replay](../../poses/StytchDollDistalChains/README.md),
+including actual visible 45/90-degree elbow controls. Artistic acceptance remains
+false. Own Blender
 front/back comparisons of Hall, held, Walk-02 and Hop-11 are the sixteen pinned
 PNGs; no private application screenshots are published. The Hop rear view makes
 the folded leg visible without claiming that its shape is resolved. In the World

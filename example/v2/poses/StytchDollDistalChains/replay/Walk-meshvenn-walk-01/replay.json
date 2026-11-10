@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "asset_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b",
+  "input_pose_sha256": "40d9a4d74ca6fc4de8e655e87567167db6c0d5b11a9d52eae1804352e5027457",
+  "source_sha": "7f94f38d8c18a7b0aff429e19066f4d5d18939a7",
+  "run_id": null,
+  "run_attempt": null,
+  "hidden_region": null,
+  "hidden_regions": [],
+  "coordinate_conversion": "Basis columns + Origin -> parent accumulation; A:(x,y,z)->(x,z,-y); D_native=A^-1 P_godot R_godot^-1 A; retain ancestor normalization once",
+  "native_rest_error_in_heights": 1.6028117164254222e-07,
+  "glb_rest_world_max_error": 1.4901161193847656e-07,
+  "native_applied_delta_error": 1.5437602996826172e-05,
+  "imported_applied_delta_error": 1.9073486328125e-05,
+  "native_vs_decoded_glb_max_error_m": 7.177349630183016e-07,
+  "decoded_vs_reimport_max_error_m": 6.474721772065095e-07,
+  "torso_cohort": "frozen source rest Z/h in [0.45,0.67], abs lateral/h <= 0.14",
+  "torso_edges": {
+    "edge_count": 2599,
+    "p95_abs_log_length_ratio": 0.07474999440449892,
+    "max_abs_log_length_ratio": 0.2378222079410017,
+    "min_length_ratio": 0.8098915976457067,
+    "max_length_ratio": 1.2684836464560192,
+    "outside_20_percent_count": 4,
+    "collapsed_fraction": 0.0
+  },
+  "source_authority_unchanged": true,
+  "images": {},
+  "review_framing": null,
+  "visual_qualification": false,
+  "consumer_capture_pixel_equality_claimed": false,
+  "scope": "Exact provided matrices only. No fabricated held/walk/hop snapshots; no consumer resource/code changes."
+}
