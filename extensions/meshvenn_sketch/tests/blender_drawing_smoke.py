@@ -144,4 +144,5 @@ def tick():
         traceback.print_exc();sys.stdout.flush();sys.stderr.flush();os._exit(1)
 
 
-bpy.app.timers.register(tick,first_interval=1.)
+# This driver deliberately reloads a file; an ordinary timer disappears on load.
+bpy.app.timers.register(tick,first_interval=1.,persistent=True)

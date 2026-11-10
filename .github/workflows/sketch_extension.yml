@@ -70,7 +70,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          timeout 120s xvfb-run -a -s '-screen 0 1600x1000x24' \
+          timeout --kill-after=15s 120s xvfb-run -a -s '-screen 0 1600x1000x24' \
             .blender/blender --factory-startup --enable-event-simulate \
             --python-exit-code 1 --python extensions/meshvenn_sketch/tests/blender_drawing_smoke.py -- \
             --package-root "${RUNNER_TEMP}/isolated/meshvenn_sketch" \
