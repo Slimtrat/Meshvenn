@@ -40,6 +40,7 @@ paths_exclude_pattern = [
     "/dist/",
     "/example/",
     "/scripts/",
+    "/extensions/",
     "__pycache__/",
     "*.pyc",
     "*.zip",

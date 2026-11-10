@@ -44,6 +44,10 @@ LEFT ──▶│  3D VOLUME  │◀── RIGHT
 
 The resulting volume is converted into an actual Blender mesh that can then be remeshed, sculpted, retopologized, rigged and textured.
 
+For drawing accessories on reference views and editing their skin weights, see
+[Meshvenn Sketch](https://github.com/Slimtrat/Meshvenn/tree/main/extensions/meshvenn_sketch), an independently
+installable Blender extension. The reconstruction engine has no dependency on it.
+
 MeshVenn is particularly suited for:
 
 * characters

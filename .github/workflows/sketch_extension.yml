@@ -1,0 +1,84 @@
+name: Meshvenn Sketch Extension
+
+on:
+  pull_request:
+    paths:
+      - 'extensions/meshvenn_sketch/**'
+      - 'scripts/build_meshvenn_sketch.py'
+      - 'blender_manifest.toml'
+      - '.github/workflows/sketch_extension.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'extensions/meshvenn_sketch/**'
+      - 'scripts/build_meshvenn_sketch.py'
+      - 'blender_manifest.toml'
+      - '.github/workflows/sketch_extension.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sketch-extension-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  standalone:
+    name: Independent extension and Blender authoring
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Geometry, public projection parity and engine boundary
+        run: python -m unittest discover -s extensions/meshvenn_sketch/tests -p 'test_*.py' -v
+      - name: Build standalone ZIP
+        run: python scripts/build_meshvenn_sketch.py
+      - uses: actions/cache@v4
+        id: blender
+        with:
+          path: .blender
+          key: blender-linux-x64-5.2.1
+      - name: Download Blender
+        if: steps.blender.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .blender
+          curl --fail --show-error --location --retry 5 --retry-all-errors \
+            --connect-timeout 20 --max-time 600 \
+            --output "${RUNNER_TEMP}/blender.tar.xz" \
+            https://download.blender.org/release/Blender5.2/blender-5.2.1-linux-x64.tar.xz
+          xz --test "${RUNNER_TEMP}/blender.tar.xz"
+          tar -xJf "${RUNNER_TEMP}/blender.tar.xz" -C .blender --strip-components=1
+      - name: Validate installable extension and exercise extracted package
+        shell: bash
+        run: |
+          set -euo pipefail
+          .blender/blender --command extension validate dist/meshvenn_sketch-0.1.0.zip
+          python -m zipfile -e dist/meshvenn_sketch-0.1.0.zip "${RUNNER_TEMP}/isolated/meshvenn_sketch"
+          .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python extensions/meshvenn_sketch/tests/blender_smoke.py -- \
+            --package-root "${RUNNER_TEMP}/isolated/meshvenn_sketch" \
+            --output "${RUNNER_TEMP}/sketch-evidence"
+      - name: Exercise Image Editor drawing in a virtual display
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 120s xvfb-run -a -s '-screen 0 1600x1000x24' \
+            .blender/blender --factory-startup --no-splash --enable-event-simulate \
+            --python-exit-code 1 --python extensions/meshvenn_sketch/tests/blender_drawing_smoke.py -- \
+            --package-root "${RUNNER_TEMP}/isolated/meshvenn_sketch" \
+            --output "${RUNNER_TEMP}/sketch-evidence/ui"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meshvenn-sketch-extension
+          path: |
+            dist/meshvenn_sketch-*.zip
+            ${{ runner.temp }}/sketch-evidence/
+          if-no-files-found: error
