@@ -25,6 +25,7 @@ class PackageTests(unittest.TestCase):
                 names=set(archive.namelist())
                 self.assertTrue({'__init__.py','blender_manifest.toml','README.md','LICENSE'}<=names)
                 self.assertTrue(all('/' not in name for name in names))
+                self.assertTrue(all(b'\r\n' not in archive.read(name) for name in names))
                 self.assertEqual({n for n in names if n.endswith('.py')},
                                  {p.name for p in builder.SOURCE.glob('*.py')})
                 manifest=tomllib.loads(archive.read('blender_manifest.toml').decode())

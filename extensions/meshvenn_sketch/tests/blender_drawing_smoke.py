@@ -1,6 +1,6 @@
 """Actual Image Editor event-loop acceptance, run on Linux CI under Xvfb.
 
-blender --factory-startup --no-splash --enable-event-simulate --python this.py -- ...
+blender --factory-startup --enable-event-simulate --python this.py -- ...
 Only Blender's own test-event API is used; no desktop or user preferences change.
 """
 import argparse
@@ -79,6 +79,16 @@ def key(name):
     bpy.context.window.event_simulate(type=name,value='RELEASE')
 
 
+def stroke():
+    area=state['area'];region=next(r for r in area.regions if r.type=='WINDOW')
+    window=bpy.context.window
+    for i,uv in enumerate(points):
+        x,y=region.view2d.view_to_region(*uv,clip=False);x+=region.x;y+=region.y
+        window.event_simulate(type='MOUSEMOVE',value='NOTHING',x=x,y=y)
+        if i==0:window.event_simulate(type='LEFTMOUSE',value='PRESS',x=x,y=y)
+    window.event_simulate(type='LEFTMOUSE',value='RELEASE',x=x,y=y)
+
+
 def accepted():
     settings=bpy.context.scene.mvsketch
     assert not drawing.SESSIONS,'Enter did not finish the drawing operator'
@@ -103,17 +113,26 @@ def cancelled():
     bpy.ops.wm.save_as_mainfile(filepath=str(args.output/'drawing.blend'))
 
 
+def reloaded():
+    # Loading another file during an active tool must remove its old overlay.
+    assert drawing.SESSIONS
+    bpy.ops.wm.open_mainfile(filepath=str(args.output/'drawing.blend'),use_scripts=False)
+    assert not drawing.SESSIONS
+    state['piece']=bpy.context.scene.mvsketch.piece
+
+
 def finish():
     extension.unregister()
     assert not drawing.SESSIONS and not hasattr(bpy.types.Scene,'mvsketch')
     assert 'mvsketch_recipe' in state['piece']
-    print('SKETCH DRAWING PASS: split view, non-square image UVs, actual clicks, GPU overlay, Enter, Esc, creation and clean disable.',flush=True)
+    print('SKETCH DRAWING PASS: split view, non-square image UVs, clicks, freehand stroke, GPU overlay, Enter, Esc, creation, reload and clean disable.',flush=True)
     (args.output/'drawing-pass.txt').write_text('Image Editor drawing acceptance passed\n',encoding='utf-8')
     bpy.ops.wm.quit_blender()
 
 
 steps=iter((setup,start,begin,*(lambda uv=uv:click(uv) for uv in points),lambda:key('RET'),accepted,
-            begin,lambda:click((.3,.3)),lambda:key('ESC'),cancelled,finish))
+            begin,lambda:click((.3,.3)),lambda:key('ESC'),cancelled,
+            begin,stroke,lambda:key('RET'),accepted,begin,reloaded,finish))
 
 
 def tick():
