@@ -1096,6 +1096,12 @@
             ]
           ]
         }
+      },
+      "runtime_scene": {
+        "file": "runtime/workshop-headguard.scn",
+        "sha256": "02aff93108ff2bbca4cd9ca645f2e3c9574dbe724aa691e5148184cc84708557",
+        "source_sha256": "4935281585c8aa5f4f39e94ef267e46e4ffb50b563d4d993d97282a9ce5e75ed",
+        "godot_version": "4.7.1-stable (official)"
       }
     },
     {
@@ -1150,6 +1156,12 @@
             ]
           ]
         }
+      },
+      "runtime_scene": {
+        "file": "runtime/shoulder-shell-l.scn",
+        "sha256": "6d7a4cd240f7214d23eb0f6b3e81b391d565d634eea556e9cc9ca30eb076dc04",
+        "source_sha256": "80c6d6587dff567b223bb56876564793ebbc18d6f625bff631cc8508abee42a5",
+        "godot_version": "4.7.1-stable (official)"
       }
     },
     {
@@ -1169,6 +1181,12 @@
           "hand.L",
           "upper_arm.L"
         ]
+      },
+      "runtime_scene": {
+        "file": "runtime/grip-arm-l.scn",
+        "sha256": "0406fabe1257305b6a9269a53f95f5f5c204bbbc1b843e5fba44bad85eb0ff55",
+        "source_sha256": "d5ab37510401bb587c19a8afba9c595703b8d2567a4987de95367fe42a1f3795",
+        "godot_version": "4.7.1-stable (official)"
       }
     },
     {
@@ -1223,6 +1241,12 @@
             ]
           ]
         }
+      },
+      "runtime_scene": {
+        "file": "runtime/shoulder-shell-r.scn",
+        "sha256": "f441e7063772a3e2aa39a5dbabb88d482c9e43e51f93968924eee5cc1258b43f",
+        "source_sha256": "cc6ad748edb4c9e9363cf4d3582ecf2128e51018bb3f4ff304702a351dddd7c4",
+        "godot_version": "4.7.1-stable (official)"
       }
     },
     {
@@ -1242,6 +1266,12 @@
           "hand.R",
           "upper_arm.R"
         ]
+      },
+      "runtime_scene": {
+        "file": "runtime/grip-arm-r.scn",
+        "sha256": "d2e50857374b5d3c1c3b5f6f04b036ff6c18fc700bdfaa992693c5e4868449f5",
+        "source_sha256": "c6aeece98d6a07430c8610979c327c7b8612226a7ed620c867174bdba5be0f9f",
+        "godot_version": "4.7.1-stable (official)"
       }
     },
     {
@@ -1261,6 +1291,12 @@
           "shin.L",
           "thigh.L"
         ]
+      },
+      "runtime_scene": {
+        "file": "runtime/spring-leg-l.scn",
+        "sha256": "040dc1b7b7f477a2bc3d0e8ba56d45bbd24efe1e38041f40c73783dbbe6d06e4",
+        "source_sha256": "7a5516798c4550f74fa4e97c23f2a78af85135bb779deb64ab6b8d65ea69a696",
+        "godot_version": "4.7.1-stable (official)"
       }
     },
     {
@@ -1280,6 +1316,12 @@
           "shin.R",
           "thigh.R"
         ]
+      },
+      "runtime_scene": {
+        "file": "runtime/spring-leg-r.scn",
+        "sha256": "d493025324052239a428b2d8867f9dd4cefaf4544e0643ccec978bbc83cf9c0c",
+        "source_sha256": "8cfe9831f1188460f0c3bef38b6eebe50c7e70cddad5279c42a2a5b6f38b0555",
+        "godot_version": "4.7.1-stable (official)"
       }
     },
     {
@@ -1334,6 +1376,12 @@
             ]
           ]
         }
+      },
+      "runtime_scene": {
+        "file": "runtime/curled-horns.scn",
+        "sha256": "a7ed7420017f649fe463f979f0b68cd7f203f3a699df97b3167df81cf6445071",
+        "source_sha256": "d08fd482cde79d78eb46626a044f97b736b8ea1bd45c9dd258a62ea71a6daf57",
+        "godot_version": "4.7.1-stable (official)"
       }
     },
     {
@@ -1388,6 +1436,12 @@
             ]
           ]
         }
+      },
+      "runtime_scene": {
+        "file": "runtime/tatter-wings.scn",
+        "sha256": "63fa242282dbdbcaf546fee09beef347bb268728aa3c72443513dcca8d8e4133",
+        "source_sha256": "7a2699eaf510f6fffc76fd02ec0767f7cbdeb0960e5f778065a5acc20aa6b306",
+        "godot_version": "4.7.1-stable (official)"
       }
     },
     {
@@ -1442,6 +1496,12 @@
             ]
           ]
         }
+      },
+      "runtime_scene": {
+        "file": "runtime/field-backpack.scn",
+        "sha256": "558f99be2f7743d0887ed8ce6cb79c161b8cbf3f4ab3ac054efc0c4f0a59bc3a",
+        "source_sha256": "434d9b4d912e1d0c2c999d5bb22fd9f19cf0cf6a2a44449468ca71deda08081b",
+        "godot_version": "4.7.1-stable (official)"
       }
     }
   ]

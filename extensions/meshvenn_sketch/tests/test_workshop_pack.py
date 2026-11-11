@@ -62,6 +62,17 @@ class WorkshopPackTests(unittest.TestCase):
         native=json.loads((PACK/'godot-validation.json').read_text())
         self.assertEqual((native['skinned_modules'],native['static_attachments'],native['native_skeletons'],native['owner_presence_checks']),(10,6,1,160))
         self.assertTrue(native['native_rests_preserved'])
+        self.assertTrue(native['source_free_pck']);self.assertFalse(native['source_glbs_available'])
+        self.assertEqual(native['runtime_modules'],10)
+        self.assertEqual(native['runtime_owner_presence_checks'],160)
+        self.assertTrue(native['runtime_native_rests_preserved'])
+        self.assertEqual(native['runtime_cache_rejections'],9)
+        self.assertTrue(native['stale_import_rejected']);self.assertTrue(native['runtime_failure_exit_verified'])
+        self.assertTrue(native['tampered_import_rejected'])
+        for module in DOC['modules']:
+            scene=module['runtime_scene']
+            self.assertEqual(scene['source_sha256'],module['skinned']['sha256'])
+            self.assertEqual(hashlib.sha256((PACK/scene['file']).read_bytes()).hexdigest(),scene['sha256'])
 
     def test_delivery_zip_is_complete_reproducible_and_never_overwrites(self):
         spec=importlib.util.spec_from_file_location('build_workshop',ROOT/'scripts/build_stytch_workshop_pack.py')
@@ -74,6 +85,7 @@ class WorkshopPackTests(unittest.TestCase):
                 names=set(archive.namelist())
                 self.assertTrue({'README.md','LICENSE','source.blend','pack.json','validation.json','godot-validation.json','godot_module_adapter.gd','Source/author.py','Source/glb.py'}<=names)
                 self.assertEqual(len([p for p in names if p.endswith('.glb')]),16)
+                self.assertEqual(len([p for p in names if p.startswith('runtime/') and p.endswith('.scn')]),10)
                 self.assertEqual(len([p for p in names if p.startswith('previews/')]),6)
                 self.assertFalse(any('core/' in p or p.endswith(('.dll','.pyd')) for p in names))
 
