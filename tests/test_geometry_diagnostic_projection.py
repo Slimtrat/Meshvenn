@@ -122,6 +122,16 @@ class GeometryProjectionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "count consistent"):
             reproject_volume(NativeVolume(1, 1, 1, b"\x01", 0, None), camera(), width=3, height=3)
 
+    def test_checkerboard_cancellation_is_checked_during_run_projection(self):
+        checkerboard = volume(64, 64, 64, lambda x, y, z: (x + y + z) % 2)
+        checks = []
+        def cancel():
+            checks.append(True)
+            return len(checks) == 10
+        with self.assertRaises(InterruptedError):
+            reproject_volume(checkerboard, camera(31, 23), width=256, height=256, cancel=cancel)
+        self.assertEqual(len(checks), 10)
+
     @unittest.skipUnless(os.environ.get("MESHVENN_TEST_NATIVE_DLL"), "Set MESHVENN_TEST_NATIVE_DLL to audit real native sampler.")
     def test_all_centres_match_real_native_cardinal_oblique_elevated_and_flipped(self):
         native = NativeCore(Path(os.environ["MESHVENN_TEST_NATIVE_DLL"]))
@@ -211,6 +221,16 @@ class GeometryMetricTests(unittest.TestCase):
             compare_masks(source, source, cancel=lambda: True)
         with self.assertRaises(TimeoutError):
             compare_masks(source, source, deadline=time.monotonic() - 1)
+
+    def test_cancellation_is_checked_during_distance_transform(self):
+        source = mask(128, 128, lambda x, y: 20 < x < 100 and 20 < y < 100)
+        checks = []
+        def cancel():
+            checks.append(True)
+            return len(checks) == 5
+        with self.assertRaises(InterruptedError):
+            compare_masks(source, source, cancel=cancel)
+        self.assertEqual(len(checks), 5)
 
 
 if __name__ == "__main__":
