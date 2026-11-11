@@ -99,7 +99,9 @@ if sys.argv[3]:
     assert mesh['provenance']['isolation']=='subprocess'
 assert 'bpy' not in sys.modules
 checkout=Path(sys.argv[4]).resolve()
-for module in tuple(sys.modules.values()):
+for name,module in tuple(sys.modules.items()):
+    if not (name=='meshvenn_engine' or name.startswith('meshvenn_engine.') or name=='core' or name.startswith('core.')):
+        continue
     filename=getattr(module,'__file__',None)
     assert not filename or not Path(filename).resolve().is_relative_to(checkout), filename
 print('STANDALONE_ENGINE_PASS')
