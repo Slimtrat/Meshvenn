@@ -6,6 +6,9 @@ on:
       - "core/diagnostic_contracts/**"
       - "core/diagnostics_preflight/**"
       - "core/projection_alignment.py"
+      - "core/projection_frame.py"
+      - "core/projection_math/**"
+      - "core/image_mask.py"
       - "scripts/diagnostic_corpus/**"
       - "scripts/qualify_diagnostics.py"
       - "tests/fixtures/diagnostics/**"
@@ -16,6 +19,10 @@ on:
     paths:
       - "core/diagnostic_contracts/**"
       - "core/diagnostics_preflight/**"
+      - "core/projection_alignment.py"
+      - "core/projection_frame.py"
+      - "core/projection_math/**"
+      - "core/image_mask.py"
       - "scripts/diagnostic_corpus/**"
       - "scripts/qualify_diagnostics.py"
       - "tests/fixtures/diagnostics/**"
@@ -26,15 +33,23 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: diagnostic-corpus-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   qualify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: ${{ matrix.python-version }}
       - name: Contract, provenance, scoring and real preflight regression tests
         run: python -m unittest discover -s tests -p "test_diagnostic_corpus.py" -v
       - name: Evaluate frozen calibration and heldout matrix offline
@@ -43,6 +58,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: diagnostic-corpus-v1
+          name: diagnostic-corpus-v1-python-${{ matrix.python-version }}
           path: tmp/diagnostic-qualification
           if-no-files-found: error
