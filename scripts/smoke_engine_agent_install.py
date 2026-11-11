@@ -19,6 +19,16 @@ def encoded(value):
     return json.dumps(value, sort_keys=True, allow_nan=False, separators=(",", ":")).encode()
 
 
+def installed_source_hash(module):
+    root = Path(module.__file__).resolve().parent
+    digest = hashlib.sha256()
+    for path in sorted(root.rglob("*.py")):
+        name, content = path.relative_to(root).as_posix().encode(), path.read_bytes()
+        digest.update(len(name).to_bytes(4, "big") + name)
+        digest.update(len(content).to_bytes(8, "big") + content)
+    return digest.hexdigest()
+
+
 def cube_png():
     def chunk(kind, data):
         return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
@@ -109,6 +119,23 @@ async def protocol(args, arguments, volume, library_sha):
                 assert type(result.structured_content) is dict
                 return result.structured_content
 
+            async def read_result(reference):
+                raw = bytearray()
+                while True:
+                    part = await call("meshvenn_artifact_read", {"sha256": reference["sha256"],
+                        "offset": len(raw), "limit": 65536})
+                    assert part["status"] == "completed"
+                    chunk = base64.b64decode(part["data_base64"], validate=True)
+                    assert part["offset"] == len(raw) and part["bytes"] == len(chunk)
+                    assert part["total_bytes"] == reference["bytes"]
+                    raw.extend(chunk)
+                    if part["eof"]:
+                        break
+                    assert chunk
+                assert len(raw) == reference["bytes"]
+                assert hashlib.sha256(raw).hexdigest() == reference["sha256"]
+                return json.loads(raw)
+
             caps = await call("meshvenn_capabilities", {})
             assert caps["status"] == "completed"
             invalid = await call("meshvenn_diagnose", {"arguments": {"native_library": "not-an-agent-option"}})
@@ -119,22 +146,10 @@ async def protocol(args, arguments, volume, library_sha):
             diagnostic = await call("meshvenn_diagnose", {"arguments": dict(arguments,
                 policy={"resolution": 16, "reprojection_size": 64, "max_seconds": 15})})
             # Exercise the remote chunk API rather than trusting an inline copy.
-            raw, reference = bytearray(), diagnostic["artifact"]
-            while True:
-                part = await call("meshvenn_artifact_read", {"sha256": reference["sha256"],
-                    "offset": len(raw), "limit": 65536})
-                assert part["status"] == "completed"
-                chunk = base64.b64decode(part["data_base64"], validate=True)
-                assert part["offset"] == len(raw) and part["bytes"] == len(chunk)
-                raw.extend(chunk)
-                if part["eof"]:
-                    break
-                assert chunk
-            assert len(raw) == reference["bytes"] and hashlib.sha256(raw).hexdigest() == reference["sha256"]
-            restored = check_diagnostic(json.loads(raw), diagnostic)
+            restored = check_diagnostic(await read_result(diagnostic["artifact"]), diagnostic)
             assert restored.volume.sha256 == volume["sha256"]
             mesh = await call("meshvenn_mesh", {"arguments": {"volume": volume, "mesh_mode": "surface-nets"}})
-            assert mesh["status"] == "completed" and mesh["verification_status"] == "unknown"
+            check_mesh(await read_result(mesh["artifact"]), mesh, volume, library_sha)
             return {"protocol_version": client.protocol_version, "tools": sorted(names),
                     "capabilities": caps, "preflight": preflight, "diagnostic": diagnostic, "mesh": mesh,
                     "native_library_sha256": library_sha}
@@ -179,6 +194,9 @@ def main():
     assert "bpy" not in sys.modules and "mcp" not in sys.modules
     evidence = {"schema_version": 1, "engine_version": importlib.metadata.version("meshvenn-engine"),
         "agent_version": importlib.metadata.version("meshvenn-agent"), "python": sys.version,
+        "mcp_version": importlib.metadata.version("mcp"),
+        "engine_source_sha256": installed_source_hash(meshvenn_engine),
+        "agent_source_sha256": installed_source_hash(meshvenn_agent),
         "native_library_sha256": library_sha, "engine_path": meshvenn_engine.__file__,
         "agent_path": meshvenn_agent.__file__, "request_sha256": hashlib.sha256(encoded(arguments)).hexdigest(),
         "direct": {"catalogue": catalogue, "preflight": preflight, "diagnostic": diagnostic, "mesh": mesh},
