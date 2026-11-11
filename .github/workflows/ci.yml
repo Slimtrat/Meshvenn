@@ -499,6 +499,7 @@ jobs:
 
             "tests/blender_smoke_test.py"
             "tests/blender_preflight_input_smoke.py"
+            "tests/blender_geometry_diagnostics_smoke.py"
             "tests/blender_uv_bake_smoke.py"
             "tests/blender_rig_smoke.py"
             "tests/blender_glb_export_smoke.py"
@@ -601,12 +602,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          sudo apt-get update
-
-          sudo apt-get install -y \
-            cmake \
-            ninja-build \
-            g++
+          if ! command -v cmake >/dev/null || ! command -v ninja >/dev/null || ! command -v g++ >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y cmake ninja-build g++
+          fi
+          cmake --version
+          ninja --version
+          g++ --version
 
 
       - name: Configure native core - Linux
@@ -994,6 +996,7 @@ jobs:
           cp -R \
             core/diagnostic_contracts \
             core/diagnostics_preflight \
+            core/geometry_diagnostics \
             core/geometry_contracts \
             core/modular_character \
             core/native_bridge \
@@ -2654,6 +2657,16 @@ jobs:
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python tests/blender_preflight_input_smoke.py -- \
             --package-root "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
+
+      - name: Verify packaged isolated native geometry diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_geometry_diagnostics_smoke.py -- \
+            --package-root "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool" \
+            --python-executable "$(command -v python)" \
+            --native-library "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool/native/bin/libbpt_core.so"
 
       - name: Verify packaged prepared authority and publication rollback
         shell: bash

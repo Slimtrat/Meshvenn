@@ -1,0 +1,391 @@
+{
+  "case_id": "real_native_rejection",
+  "elapsed_seconds": 0.20808800000031624,
+  "native_probe": {
+    "dll_api_executed": true,
+    "elapsed_seconds": 0.10863919999974314,
+    "geometry_quality_evaluated": false,
+    "hard_timeout_seconds": 5,
+    "message": "Native core error 2: Invalid resolution",
+    "mocked": false,
+    "native_error_code": 2,
+    "returncode": 0,
+    "state": "native_rejected",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "worker_stdout_sha256": "ceafcd4ae294d7b76e2d2f2552fdcc7dcd84dc4f75b7c429aff82a7cf1d88406"
+  },
+  "order": "canonical",
+  "path": "runs/20e9916edf691421-1/real_native_rejection/r64-v32-canonical",
+  "raster_resolution": 64,
+  "report": {
+    "assumptions": [],
+    "completion": "failed",
+    "engines": [
+      {
+        "engine_id": "geometry-corpus",
+        "version": "geometry-v1"
+      },
+      {
+        "engine_id": "native-api-probe",
+        "version": "1"
+      }
+    ],
+    "findings": [
+      {
+        "category": "appearance",
+        "code": "appearance.identity_drift",
+        "evidence": [],
+        "finding_id": "deferred-appearance-identity_drift",
+        "interpretations": [],
+        "message": "Later-stage acceptance remains unknown.",
+        "proposed_actions": [],
+        "reason": "No D4 appearance or identity evaluation ran.",
+        "regions": [],
+        "required": true,
+        "severity": "info",
+        "status": "unknown",
+        "view_ids": []
+      },
+      {
+        "category": "quality",
+        "code": "correction.plan_available",
+        "evidence": [],
+        "finding_id": "deferred-correction-plan_available",
+        "interpretations": [],
+        "message": "Later-stage acceptance remains unknown.",
+        "proposed_actions": [],
+        "reason": "No D5 generative correction planning/execution was qualified.",
+        "regions": [],
+        "required": true,
+        "severity": "info",
+        "status": "unknown",
+        "view_ids": []
+      },
+      {
+        "category": "quality",
+        "code": "iteration.acceptance",
+        "evidence": [],
+        "finding_id": "deferred-iteration-acceptance",
+        "interpretations": [],
+        "message": "Later-stage acceptance remains unknown.",
+        "proposed_actions": [],
+        "reason": "No D6 accepted iteration or promotion was qualified.",
+        "regions": [],
+        "required": true,
+        "severity": "info",
+        "status": "unknown",
+        "view_ids": []
+      },
+      {
+        "category": "quality",
+        "code": "qualification.human_review",
+        "evidence": [],
+        "finding_id": "deferred-qualification-human_review",
+        "interpretations": [],
+        "message": "Later-stage acceptance remains unknown.",
+        "proposed_actions": [],
+        "reason": "D7 human/provider/end-to-end acceptance remains open, including issue #84.",
+        "regions": [],
+        "required": true,
+        "severity": "info",
+        "status": "unknown",
+        "view_ids": []
+      },
+      {
+        "category": "quality",
+        "code": "quality.export_verified",
+        "evidence": [],
+        "finding_id": "deferred-quality-export_verified",
+        "interpretations": [],
+        "message": "Later-stage acceptance remains unknown.",
+        "proposed_actions": [],
+        "reason": "No D8 GLB delivery, hidden-surface or topology certification ran.",
+        "regions": [],
+        "required": true,
+        "severity": "info",
+        "status": "unknown",
+        "view_ids": []
+      },
+      {
+        "category": "engine",
+        "code": "engine.native_failure",
+        "evidence": [
+          {
+            "artifact": null,
+            "description": "Real native API failure path, not a mocked orchestration result.",
+            "evidence_id": "real-native-rejection",
+            "kind": "execution",
+            "measurements": [
+              {
+                "name": "dll_api_executed",
+                "threshold": null,
+                "unit": "boolean",
+                "value": 1.0
+              },
+              {
+                "name": "native_error_code",
+                "threshold": null,
+                "unit": "code",
+                "value": 2.0
+              },
+              {
+                "name": "elapsed_seconds",
+                "threshold": null,
+                "unit": "second",
+                "value": 0.10863919999974314
+              }
+            ],
+            "regions": [],
+            "view_ids": []
+          }
+        ],
+        "finding_id": "native-rejection-probe",
+        "interpretations": [],
+        "message": "Bounded native API rejection probe; no geometry fidelity result.",
+        "proposed_actions": [],
+        "reason": "A genuine DLL API rejection checks operational handling only; reconstruction quality was not evaluated.",
+        "regions": [],
+        "required": true,
+        "severity": "error",
+        "status": "unknown",
+        "view_ids": []
+      }
+    ],
+    "policy": {
+      "configuration_sha256": "382039cd096cd69d712cd04f27f38e459e12b28cfbe848502581e15298770564",
+      "policy_id": "meshvenn.geometry-corpus",
+      "required_checks": [
+        "appearance.identity_drift",
+        "correction.plan_available",
+        "engine.native_failure",
+        "iteration.acceptance",
+        "qualification.human_review",
+        "quality.export_verified"
+      ],
+      "version": "geometry-v1"
+    },
+    "report_id": "geometry-corpus-2307ac9095cdc7abb15d",
+    "resolution": {
+      "depth": 1,
+      "height": 64,
+      "unit": "pixel",
+      "width": 64
+    },
+    "schema_version": 1,
+    "view_set": {
+      "canonical_reference": null,
+      "input_order": [
+        "front",
+        "right",
+        "back",
+        "left"
+      ],
+      "revision": 1,
+      "schema_version": 1,
+      "view_set_id": "geometry-real_native_rejection-64",
+      "views": [
+        {
+          "alignment": {
+            "offset_u": 0.0,
+            "offset_v": 0.0,
+            "scale": 1.0
+          },
+          "camera": {
+            "azimuth_degrees": 180.0,
+            "elevation_degrees": 0.0,
+            "flip_x": false,
+            "projection": "orthographic",
+            "verification_evidence": {
+              "artifact_id": "analytic-camera-proof",
+              "media_type": "application/json",
+              "sha256": "66a2fa104e19e34a05fdad82ce5b0492a580214359a81675d7af3ab6f3fb5cd5",
+              "uri": "analytic-source.json"
+            },
+            "verified": true
+          },
+          "derived_from": [],
+          "image": {
+            "height": 64,
+            "media_type": "image/png",
+            "sha256": "ea99ad4487fa955663add807678db4b3a674af2c48012cebc80bc7e649fd5f21",
+            "width": 64
+          },
+          "mask": {
+            "height": 64,
+            "media_type": "image/png",
+            "sha256": "7f94efcfd0bb4e3b55207d1eea1540231f5202e0d7cbffd8cecd720f6d496581",
+            "width": 64
+          },
+          "origin": "rendered",
+          "origin_details": "Original analytic synthetic observation; no human/generated-image validation.",
+          "revision": 1,
+          "role": "observation",
+          "view_id": "back"
+        },
+        {
+          "alignment": {
+            "offset_u": 0.0,
+            "offset_v": 0.0,
+            "scale": 1.0
+          },
+          "camera": {
+            "azimuth_degrees": 0.0,
+            "elevation_degrees": 0.0,
+            "flip_x": false,
+            "projection": "orthographic",
+            "verification_evidence": {
+              "artifact_id": "analytic-camera-proof",
+              "media_type": "application/json",
+              "sha256": "66a2fa104e19e34a05fdad82ce5b0492a580214359a81675d7af3ab6f3fb5cd5",
+              "uri": "analytic-source.json"
+            },
+            "verified": true
+          },
+          "derived_from": [],
+          "image": {
+            "height": 64,
+            "media_type": "image/png",
+            "sha256": "e03097f530ed98024cd1c75d282b3e14a3fb189b8aac190e57d4237197728b6a",
+            "width": 64
+          },
+          "mask": {
+            "height": 64,
+            "media_type": "image/png",
+            "sha256": "0bcf1622b4922e64ab434759b1827c057cbcb0e68a311dc4b6c0a2bcd077840c",
+            "width": 64
+          },
+          "origin": "rendered",
+          "origin_details": "Original analytic synthetic observation; no human/generated-image validation.",
+          "revision": 1,
+          "role": "observation",
+          "view_id": "front"
+        },
+        {
+          "alignment": {
+            "offset_u": 0.0,
+            "offset_v": 0.0,
+            "scale": 1.0
+          },
+          "camera": {
+            "azimuth_degrees": 270.0,
+            "elevation_degrees": 0.0,
+            "flip_x": false,
+            "projection": "orthographic",
+            "verification_evidence": {
+              "artifact_id": "analytic-camera-proof",
+              "media_type": "application/json",
+              "sha256": "66a2fa104e19e34a05fdad82ce5b0492a580214359a81675d7af3ab6f3fb5cd5",
+              "uri": "analytic-source.json"
+            },
+            "verified": true
+          },
+          "derived_from": [],
+          "image": {
+            "height": 64,
+            "media_type": "image/png",
+            "sha256": "c44789bdac31f2b1142b94f0a73454227b697b9375315eec8a7fea6553e3b027",
+            "width": 64
+          },
+          "mask": {
+            "height": 64,
+            "media_type": "image/png",
+            "sha256": "d1bb97e5eafc7d55421d1420b8c0ecd90e8c7bd664ffee2cb3c52860f95f0bec",
+            "width": 64
+          },
+          "origin": "rendered",
+          "origin_details": "Original analytic synthetic observation; no human/generated-image validation.",
+          "revision": 1,
+          "role": "observation",
+          "view_id": "left"
+        },
+        {
+          "alignment": {
+            "offset_u": 0.0,
+            "offset_v": 0.0,
+            "scale": 1.0
+          },
+          "camera": {
+            "azimuth_degrees": 90.0,
+            "elevation_degrees": 0.0,
+            "flip_x": false,
+            "projection": "orthographic",
+            "verification_evidence": {
+              "artifact_id": "analytic-camera-proof",
+              "media_type": "application/json",
+              "sha256": "66a2fa104e19e34a05fdad82ce5b0492a580214359a81675d7af3ab6f3fb5cd5",
+              "uri": "analytic-source.json"
+            },
+            "verified": true
+          },
+          "derived_from": [],
+          "image": {
+            "height": 64,
+            "media_type": "image/png",
+            "sha256": "0806967a202832f3c739f2c945fd47439f70cdc3b9cb7cb16a786daacd45f552",
+            "width": 64
+          },
+          "mask": {
+            "height": 64,
+            "media_type": "image/png",
+            "sha256": "096dee28499d32748b715cd3c973636d6a175fe667d5c0b81dbdf9e5ff220b6a",
+            "width": 64
+          },
+          "origin": "rendered",
+          "origin_details": "Original analytic synthetic observation; no human/generated-image validation.",
+          "revision": 1,
+          "role": "observation",
+          "view_id": "right"
+        }
+      ]
+    }
+  },
+  "score": {
+    "abstentions": [
+      {
+        "code": "appearance.identity_drift",
+        "reason": "No D4 appearance or identity evaluation ran.",
+        "view_ids": []
+      },
+      {
+        "code": "correction.plan_available",
+        "reason": "No D5 generative correction planning/execution was qualified.",
+        "view_ids": []
+      },
+      {
+        "code": "iteration.acceptance",
+        "reason": "No D6 accepted iteration or promotion was qualified.",
+        "view_ids": []
+      },
+      {
+        "code": "qualification.human_review",
+        "reason": "D7 human/provider/end-to-end acceptance remains open, including issue #84.",
+        "view_ids": []
+      },
+      {
+        "code": "quality.export_verified",
+        "reason": "No D8 GLB delivery, hidden-surface or topology certification ran.",
+        "view_ids": []
+      },
+      {
+        "code": "engine.native_failure",
+        "reason": "A genuine DLL API rejection checks operational handling only; reconstruction quality was not evaluated.",
+        "view_ids": []
+      }
+    ],
+    "assertions": [
+      {
+        "evidence_sources": [],
+        "kind": "control",
+        "name": "native_rejection",
+        "passed": true
+      }
+    ],
+    "failures": [],
+    "mean_iou": null,
+    "passed": true,
+    "unexpected_geometry_abstentions": [],
+    "unexpected_geometry_failures": []
+  },
+  "split": "heldout",
+  "voxel_resolution": 32
+}
