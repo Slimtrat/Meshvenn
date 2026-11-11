@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from ..diagnostic_contracts import DiagnosticReport
 from ..pipeline_contracts import ImplementationAvailability, PipelineContext, PipelinePlan, PipelineStage, PipelineStageSelection, StageExecutionResult
 
 
@@ -99,6 +100,10 @@ class PipelineExecutionReport:
     def result_for(self, stage: PipelineStage) -> StageExecutionResult | None:
         record = self.record_for(stage)
         return None if record is None else record.result
+
+    def diagnostic_report_for(self, stage: PipelineStage) -> DiagnosticReport | None:
+        result = self.result_for(stage)
+        return None if result is None else result.diagnostic_report
 
     def raise_for_failure(self) -> None:
         if not self.success:

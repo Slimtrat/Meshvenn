@@ -1,0 +1,1517 @@
+{
+  "corpus_version": "1.0.0",
+  "corrected": {
+    "by_split": {
+      "calibration": {
+        "abstentions": 18,
+        "evaluated_variants": 22,
+        "execution_failures": 0,
+        "failed_cases": 0,
+        "false_positive_findings": 0,
+        "missed_control_checks": 0,
+        "missed_findings": 0,
+        "passed_control_checks": 416,
+        "precision": 1.0,
+        "recall": 1.0,
+        "true_positive_findings": 44
+      },
+      "heldout": {
+        "abstentions": 8,
+        "evaluated_variants": 20,
+        "execution_failures": 0,
+        "failed_cases": 0,
+        "false_positive_findings": 0,
+        "missed_control_checks": 0,
+        "missed_findings": 0,
+        "passed_control_checks": 370,
+        "precision": 1.0,
+        "recall": 1.0,
+        "true_positive_findings": 22
+      }
+    },
+    "cases": [
+      {
+        "case_id": "healthy",
+        "latency_seconds": 1.3192621999996845,
+        "observed_signals": [],
+        "passed_control_checks": 21,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.22974659999999858,
+        "report_sha256": "1fe674b64e8c08e385b6253b16ddde452b24ac4e97fcd8d523dfcbd44c29a4f8",
+        "resolution": 128,
+        "split": "calibration"
+      },
+      {
+        "case_id": "healthy",
+        "latency_seconds": 3.845843899999636,
+        "observed_signals": [],
+        "passed_control_checks": 21,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7176908000001276,
+        "report_sha256": "3fb275296c5d5e4f58ed98d4ef4b592e2bfbc05b44f43561e81d52a6c65f5dc7",
+        "resolution": 256,
+        "split": "calibration"
+      },
+      {
+        "case_id": "bounded_shift",
+        "latency_seconds": 2.4988327999999456,
+        "observed_signals": [
+          {
+            "code": "alignment.suspected",
+            "status": "fail",
+            "view_ids": [
+              "front",
+              "ref_front"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.6063641000000644,
+        "report_sha256": "3e9e8e1be03584673bd1cb7086e5aab0e2f05ac4d439bcd1caa93343afac0466",
+        "resolution": 128,
+        "split": "calibration"
+      },
+      {
+        "case_id": "bounded_shift",
+        "latency_seconds": 5.3136130000002595,
+        "observed_signals": [
+          {
+            "code": "alignment.suspected",
+            "status": "fail",
+            "view_ids": [
+              "front",
+              "ref_front"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 1.2061841000004279,
+        "report_sha256": "5ad865db33161effb8e61e901ddcde60a5a73ff26dcd536033520f6022868736",
+        "resolution": 256,
+        "split": "calibration"
+      },
+      {
+        "case_id": "bounded_scale",
+        "latency_seconds": 2.57497979999971,
+        "observed_signals": [
+          {
+            "code": "alignment.suspected",
+            "status": "fail",
+            "view_ids": [
+              "front",
+              "ref_front"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.6337041999995563,
+        "report_sha256": "9dec2e94d2433443d24ad833c615e55213db115ffadd6480783d1f9c5f6e1882",
+        "resolution": 128,
+        "split": "calibration"
+      },
+      {
+        "case_id": "bounded_scale",
+        "latency_seconds": 5.2206515999996554,
+        "observed_signals": [
+          {
+            "code": "alignment.suspected",
+            "status": "fail",
+            "view_ids": [
+              "front",
+              "ref_front"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 1.1864071999998487,
+        "report_sha256": "9225133700fc7750793fdf4c8fadf29d343470238315ca536c06dca5b63fc632",
+        "resolution": 256,
+        "split": "calibration"
+      },
+      {
+        "case_id": "crop",
+        "latency_seconds": 1.4921064000000115,
+        "observed_signals": [
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "input.subject_truncated",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 19,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.23971810000057303,
+        "report_sha256": "08beae5059ed25d7f1b951b7ccbc48b9922c2b8ed7cb0a668b7570fbafa965a9",
+        "resolution": 128,
+        "split": "calibration"
+      },
+      {
+        "case_id": "crop",
+        "latency_seconds": 3.799906000000192,
+        "observed_signals": [
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "input.subject_truncated",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 19,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7087582999993174,
+        "report_sha256": "0ac139bc30e3ba45a423f5516ab38cd852671ca4a6b0edcbd0688c5db40cf906",
+        "resolution": 256,
+        "split": "calibration"
+      },
+      {
+        "case_id": "empty_mask",
+        "latency_seconds": 1.2871203999993668,
+        "observed_signals": [
+          {
+            "code": "input.empty_mask",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 19,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.21782799999982672,
+        "report_sha256": "37f136abf6fa6279e483611e344791832f15fad36a886bd1e7b057e3b7ca0c72",
+        "resolution": 128,
+        "split": "calibration"
+      },
+      {
+        "case_id": "empty_mask",
+        "latency_seconds": 3.8040533999992476,
+        "observed_signals": [
+          {
+            "code": "input.empty_mask",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 19,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.6947073999999702,
+        "report_sha256": "8ee6b442e9d1ba7c461b7a9d0c39aacae07f0b1a78bc6dfa4fd6b91c8de9c6d3",
+        "resolution": 256,
+        "split": "calibration"
+      },
+      {
+        "case_id": "empty_alpha",
+        "latency_seconds": 1.381111000000601,
+        "observed_signals": [
+          {
+            "code": "input.empty_alpha",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 19,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.22722520000024815,
+        "report_sha256": "c438da0393ee0d67f93f3cf264ed51afb2df05248c845e4c6699c43b645ce110",
+        "resolution": 128,
+        "split": "calibration"
+      },
+      {
+        "case_id": "empty_alpha",
+        "latency_seconds": 3.7477681000000302,
+        "observed_signals": [
+          {
+            "code": "input.empty_alpha",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 19,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7050197999997181,
+        "report_sha256": "b8a128e083ed991e7f3ee20b422f51d3f6f628ede9553db09db6479109b01130",
+        "resolution": 256,
+        "split": "calibration"
+      },
+      {
+        "case_id": "alpha_mismatch",
+        "latency_seconds": 1.3716606000007232,
+        "observed_signals": [
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "input.alpha_mask_mismatch",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 19,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.231086900000264,
+        "report_sha256": "0538d83c1ebe3b47d239e63362717de35f9a35038090301e893d01e722946cbb",
+        "resolution": 128,
+        "split": "calibration"
+      },
+      {
+        "case_id": "alpha_mismatch",
+        "latency_seconds": 3.942561300000307,
+        "observed_signals": [
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "input.alpha_mask_mismatch",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 19,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7587333999999828,
+        "report_sha256": "c4309f291629df41432bfaf415d5fc4e016eea1578c0c5b91d80502949b161df",
+        "resolution": 256,
+        "split": "calibration"
+      },
+      {
+        "case_id": "unsupported_camera",
+        "latency_seconds": 1.9621546000007584,
+        "observed_signals": [
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "camera.unsupported",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 18,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.23909679999997024,
+        "report_sha256": "0ddc41e3881736b493366f98795a82c4b6faa973659e0e3be4ea4ab8584ddece",
+        "resolution": 128,
+        "split": "calibration"
+      },
+      {
+        "case_id": "unsupported_camera",
+        "latency_seconds": 3.949265700000069,
+        "observed_signals": [
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "camera.unsupported",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 18,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7391607999998087,
+        "report_sha256": "7d0480f96b0288a8b5ee3b163353f34ce0d4dac147daa46b52b342de0fc37374",
+        "resolution": 256,
+        "split": "calibration"
+      },
+      {
+        "case_id": "ambiguous_camera",
+        "latency_seconds": 1.3580652999999074,
+        "observed_signals": [
+          {
+            "code": "camera.unverified",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 18,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.2247207000000344,
+        "report_sha256": "c5f613b156b631e2e87649e3dd501ea59625627e1348785b61f32f5096862cca",
+        "resolution": 128,
+        "split": "calibration"
+      },
+      {
+        "case_id": "ambiguous_camera",
+        "latency_seconds": 3.728294399999868,
+        "observed_signals": [
+          {
+            "code": "camera.unverified",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 18,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7122499999995853,
+        "report_sha256": "5971baa575560788344e9422724926624ae3736b63742bd01b1335845b8fbfc8",
+        "resolution": 256,
+        "split": "calibration"
+      },
+      {
+        "case_id": "duplicate_views",
+        "latency_seconds": 1.3840910999997504,
+        "observed_signals": [
+          {
+            "code": "alignment.shape_mismatch",
+            "status": "unknown",
+            "view_ids": [
+              "right",
+              "ref_right"
+            ]
+          },
+          {
+            "code": "input.duplicate",
+            "status": "unknown",
+            "view_ids": [
+              "front",
+              "right"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.24499529999957304,
+        "report_sha256": "103857b6b1e724d6622c38d2eb970c96c7a27ccbbaab7bc8aa276068eed18093",
+        "resolution": 128,
+        "split": "calibration"
+      },
+      {
+        "case_id": "duplicate_views",
+        "latency_seconds": 3.874716199999966,
+        "observed_signals": [
+          {
+            "code": "alignment.shape_mismatch",
+            "status": "unknown",
+            "view_ids": [
+              "right",
+              "ref_right"
+            ]
+          },
+          {
+            "code": "input.duplicate",
+            "status": "unknown",
+            "view_ids": [
+              "front",
+              "right"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.743939699999828,
+        "report_sha256": "639c4553390178670d88073414df0e2eaede453a06a9b9282c655e5bec17599c",
+        "resolution": 256,
+        "split": "calibration"
+      },
+      {
+        "case_id": "missing_views",
+        "latency_seconds": 0.9818884999995134,
+        "observed_signals": [
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          }
+        ],
+        "passed_control_checks": 15,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.17025680000006105,
+        "report_sha256": "d4fb3e39e5139092cf9b404ef7c6e23e790cdc658e0a47d42a6832b242634161",
+        "resolution": 128,
+        "split": "calibration"
+      },
+      {
+        "case_id": "missing_views",
+        "latency_seconds": 2.8233719999998357,
+        "observed_signals": [
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          }
+        ],
+        "passed_control_checks": 15,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.5486038999997618,
+        "report_sha256": "6d042a8faa23b6ee0bed61b13465218e64f569e5d13e4e5fe3f11a49e28f8601",
+        "resolution": 256,
+        "split": "calibration"
+      },
+      {
+        "case_id": "healthy_heldout",
+        "latency_seconds": 1.3155048999997234,
+        "observed_signals": [],
+        "passed_control_checks": 21,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.22216850000040722,
+        "report_sha256": "4aea899467f4ec85cd8ba92294ce8c713d058c4af91cd5c947b62d03fbc4cb4f",
+        "resolution": 128,
+        "split": "heldout"
+      },
+      {
+        "case_id": "healthy_heldout",
+        "latency_seconds": 3.736824099999467,
+        "observed_signals": [],
+        "passed_control_checks": 21,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7127118999997037,
+        "report_sha256": "b4cfb08a2197e64ad9f5c871c35d034c0f99432ca8a0173837e725f05e44d148",
+        "resolution": 256,
+        "split": "heldout"
+      },
+      {
+        "case_id": "shift_heldout",
+        "latency_seconds": 2.4720807000003333,
+        "observed_signals": [
+          {
+            "code": "alignment.suspected",
+            "status": "fail",
+            "view_ids": [
+              "back",
+              "ref_back"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.6011164000001372,
+        "report_sha256": "95bcd25703c7c6b0477999c44b0ec3c733f3b362fdd3660906cdec2965db0095",
+        "resolution": 128,
+        "split": "heldout"
+      },
+      {
+        "case_id": "shift_heldout",
+        "latency_seconds": 5.237825000000157,
+        "observed_signals": [
+          {
+            "code": "alignment.suspected",
+            "status": "fail",
+            "view_ids": [
+              "back",
+              "ref_back"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 1.202718399999867,
+        "report_sha256": "b06484e230576b49487b3a3b7e84daef67bec74ddeb2b4b2fc1ddb797e91288c",
+        "resolution": 256,
+        "split": "heldout"
+      },
+      {
+        "case_id": "scale_heldout",
+        "latency_seconds": 2.4353232000003118,
+        "observed_signals": [
+          {
+            "code": "alignment.suspected",
+            "status": "fail",
+            "view_ids": [
+              "left",
+              "ref_left"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.5856957999994847,
+        "report_sha256": "e5313ee443a2a4a548ee5aef520a0cc62c2e9952edb360998730d29e2b94f0a5",
+        "resolution": 128,
+        "split": "heldout"
+      },
+      {
+        "case_id": "scale_heldout",
+        "latency_seconds": 5.097008900000219,
+        "observed_signals": [
+          {
+            "code": "alignment.suspected",
+            "status": "fail",
+            "view_ids": [
+              "left",
+              "ref_left"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 1.1654263000000356,
+        "report_sha256": "c746094051b73bf6732decbf85214c1bea5145cd03c4c0b01f76ad2df45ac728",
+        "resolution": 256,
+        "split": "heldout"
+      },
+      {
+        "case_id": "local_proportion",
+        "latency_seconds": 1.3782539000003453,
+        "observed_signals": [
+          {
+            "code": "alignment.shape_mismatch",
+            "status": "unknown",
+            "view_ids": [
+              "front",
+              "ref_front"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.24166729999978998,
+        "report_sha256": "61d88d62e37b2c5a39d54dc10e3c93d8c8b544605fc459215ab6162e5691b26c",
+        "resolution": 128,
+        "split": "heldout"
+      },
+      {
+        "case_id": "local_proportion",
+        "latency_seconds": 3.8781091000000742,
+        "observed_signals": [
+          {
+            "code": "alignment.shape_mismatch",
+            "status": "unknown",
+            "view_ids": [
+              "front",
+              "ref_front"
+            ]
+          }
+        ],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7479032999999617,
+        "report_sha256": "65e52cef85c31c3b0cb631b68f72deaa20e034c4482fef9b97f63158f711beb1",
+        "resolution": 256,
+        "split": "heldout"
+      },
+      {
+        "case_id": "missing_small_part",
+        "latency_seconds": 1.31952739999997,
+        "observed_signals": [],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.23057840000001306,
+        "report_sha256": "912dbe0fdfc952d97e58c79c1ccbaa277b81e3a0c78e5cd2e202d2fb343ae585",
+        "resolution": 128,
+        "split": "heldout"
+      },
+      {
+        "case_id": "missing_small_part",
+        "latency_seconds": 3.8970224000004237,
+        "observed_signals": [],
+        "passed_control_checks": 20,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7602772999998706,
+        "report_sha256": "6fe6e2f260cced63d36e7d7f6a44234a35fa6b89514df28cf7b925a0da9a8e98",
+        "resolution": 256,
+        "split": "heldout"
+      },
+      {
+        "case_id": "intentional_asymmetry",
+        "latency_seconds": 1.3390312000001359,
+        "observed_signals": [],
+        "passed_control_checks": 21,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.2357665999998062,
+        "report_sha256": "494b6932ce7353e5201bc64128c74a0b2cfb40de4773d363027b61c15ca7eaa9",
+        "resolution": 128,
+        "split": "heldout"
+      },
+      {
+        "case_id": "intentional_asymmetry",
+        "latency_seconds": 3.816282100000535,
+        "observed_signals": [],
+        "passed_control_checks": 21,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7327822000006563,
+        "report_sha256": "9f20c6e42d4454bcc659087ba4114d7b3f5f3219bf8f286cddb39d44b389353f",
+        "resolution": 256,
+        "split": "heldout"
+      },
+      {
+        "case_id": "wrong_camera",
+        "latency_seconds": 1.4064335999992181,
+        "observed_signals": [
+          {
+            "code": "camera.unverified",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 18,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.24131690000012895,
+        "report_sha256": "b40dda386ec4af9745adf6cf4f879f5b8c9ae7b6054afbfea73861ad6389f8b2",
+        "resolution": 128,
+        "split": "heldout"
+      },
+      {
+        "case_id": "wrong_camera",
+        "latency_seconds": 3.9155799999998635,
+        "observed_signals": [
+          {
+            "code": "camera.unverified",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 18,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.72676809999939,
+        "report_sha256": "d8ee5a440bdbcce4a1afe0f4ea7df226a36dd59537eeb4f0f3c7f123f7859db6",
+        "resolution": 256,
+        "split": "heldout"
+      },
+      {
+        "case_id": "single_view",
+        "latency_seconds": 0.37147120000008726,
+        "observed_signals": [
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          }
+        ],
+        "passed_control_checks": 5,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.06016540000018722,
+        "report_sha256": "fd97d1622416af6f219a02ea57640bc56f38bf9be46fa3f843bc3bd2446a7538",
+        "resolution": 128,
+        "split": "heldout"
+      },
+      {
+        "case_id": "single_view",
+        "latency_seconds": 0.990023199999996,
+        "observed_signals": [
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          }
+        ],
+        "passed_control_checks": 5,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.19045679999999265,
+        "report_sha256": "3cd1fdbc2a6783c0f44c2b054334df3472c0ce86c001a877e2e915a852e56170",
+        "resolution": 256,
+        "split": "heldout"
+      },
+      {
+        "case_id": "empty_image_and_mask",
+        "latency_seconds": 1.3087337999995725,
+        "observed_signals": [
+          {
+            "code": "input.empty_alpha",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "input.empty_mask",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 19,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.22267379999993864,
+        "report_sha256": "96d392fafe849fdfcca5dd67bfac9da1c444c1bd3b2e8d025e5914a33ffb3683",
+        "resolution": 128,
+        "split": "heldout"
+      },
+      {
+        "case_id": "empty_image_and_mask",
+        "latency_seconds": 3.705743900000016,
+        "observed_signals": [
+          {
+            "code": "input.empty_alpha",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "input.empty_mask",
+            "status": "fail",
+            "view_ids": [
+              "front"
+            ]
+          },
+          {
+            "code": "coverage.insufficient",
+            "status": "fail",
+            "view_ids": []
+          },
+          {
+            "code": "alignment.checked",
+            "status": "unknown",
+            "view_ids": [
+              "front"
+            ]
+          }
+        ],
+        "passed_control_checks": 19,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7021391000007497,
+        "report_sha256": "0fe055a3dec5c85ceaba6beef3052443f9178645b9d71cab96447a8124453a13",
+        "resolution": 256,
+        "split": "heldout"
+      },
+      {
+        "case_id": "engine_failure_contract",
+        "latency_seconds": 1.2959461000000374,
+        "observed_signals": [],
+        "passed_control_checks": 21,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.2250770000000557,
+        "report_sha256": "13bf3177168ff1e7d8dccc499cd1b61a5a4f7914bfe82f29571f68d2fe3e37a9",
+        "resolution": 128,
+        "split": "heldout"
+      },
+      {
+        "case_id": "engine_failure_contract",
+        "latency_seconds": 3.7803842000002987,
+        "observed_signals": [],
+        "passed_control_checks": 21,
+        "passed_expectations": true,
+        "preflight_latency_seconds": 0.7348860000001878,
+        "report_sha256": "725012c5f5ce51d0f6fe36654e309c3e028feddc16cfe57ddc04cf65362b2c35",
+        "resolution": 256,
+        "split": "heldout"
+      }
+    ],
+    "external_services": {
+      "currency": "USD",
+      "network_required": false,
+      "paid_api_cost": 0.0,
+      "provider_calls": 0
+    },
+    "implementation": {
+      "python_implementation": "CPython",
+      "python_version": "3.13.6",
+      "source_sha256": {
+        "core.diagnostic_contracts": "2981b9440cf187f8dbbcdd27aa048be56afca54f8ed3a5cab7bec09e539da1b8",
+        "core.diagnostic_contracts.codec": "4dda596b7c851283774d37a2cf985e2c8fff9646b5681b2106e44b496661dcde",
+        "core.diagnostic_contracts.enums": "2d743f248df5a022629e5474afda9e4b1ec9404f2b83c3406f1aa54af5bd1046",
+        "core.diagnostic_contracts.findings": "639927eeff2da0c607fed7c1ebb78b78c720b2a8f28ec4644df05d2d98dde67b",
+        "core.diagnostic_contracts.reports": "95c0b9dce9894684d35b26f4ef6f1d509736cfe5fb0bd77cd7f73092387ce23e",
+        "core.diagnostic_contracts.sources": "486849530ad86d0860042e01dbe9ec80dad62dff2ebbbbcde0b82c59594be3ce",
+        "core.diagnostics_preflight": "4d2890538995abb61b3adb47c2bcd684962f19eb259a44cf43ded0ef84ba3207",
+        "core.diagnostics_preflight.engine": "002d2e4b22c3fa2a69e347b234b23813cd9f158cdf94a8dfd4b60b4e071d0110",
+        "core.diagnostics_preflight.rasters": "841a33de541fe6571e1629b6f3239727095263873adf842147521970a55ed114",
+        "core.diagnostics_preflight.registration": "126f965ac40617135dc7f15f068cbf95c89f5fe8fb95eb174dab7ac4547108fa",
+        "core.image_mask": "71526dcf13af04011a7dd462bd71374e887622d6e0264a13d1bb49bf71e53c29",
+        "core.projection_alignment": "91b00201ca4726c450f78edaabd92d826b58a4e925b0581e3c82fe96dd8a588d",
+        "core.projection_frame": "43e6f63d4af1e48471468d6bdd924594f1bd4e63b60b44c316e070875fe37220",
+        "core.projection_math": "76051ee9ce7caa1593ff97ebdfebd0ab96dc30a88904022893be43154e786d15",
+        "core.projection_math.coordinates": "04a0b636506c1b7382451f2eeb84372a9968ea163067f81c9537200ec93ec886",
+        "core.projection_math.models": "3938790d8c40d3eb7b30b9732e9c1c6557ce5e8c39f24d20cd161e8eb743becf",
+        "core.projection_math.projection": "2101f3c30661daca0706cd338025815218e3ecda1bdba2cc18856f15d6c71123",
+        "core.projection_math.vectors": "7af35ba86291ede65f213c22cd2acac4cd754e58ca11f3fdc015c2a010ec8468",
+        "scripts.diagnostic_corpus": "28cba2a4420450f127cd29a55f95078d37a5a92cfd9b7ce323fdacdacd77ac25",
+        "scripts.diagnostic_corpus.evidence": "8a0751f04757ebbcd2414590a050d361936513c4e9f62c49d90986db2d9b97e5",
+        "scripts.diagnostic_corpus.fixtures": "1809622cbc4c1497f1252a5059d1a79f51e1be26528707cb16aeff18accd12ad",
+        "scripts.diagnostic_corpus.runner": "9093c96ef73d521e5baa0e9370f8971dd33bcdb18b743f2d6c2964945e41da7b",
+        "scripts.diagnostic_corpus.scoring": "48dc656f06f57d2ce6b81b5198913b74a751e110f8704326ae3419c297954190",
+        "scripts.qualify_diagnostics": "d21f56eea099d7607f72ab78637eefc5500c82fc389d5b32bd772ef71a383970"
+      }
+    },
+    "implementation_sources_unchanged_during_run": true,
+    "latency": {
+      "clock": "time.perf_counter",
+      "scope": "Local hash verification, decoding, real preflight/permutations, report serialization and evidence generation; not a product SLA.",
+      "total_seconds": 114.62725210000008
+    },
+    "metrics": {
+      "abstentions": 26,
+      "evaluated_variants": 42,
+      "execution_failures": 0,
+      "failed_cases": 0,
+      "false_positive_findings": 0,
+      "missed_control_checks": 0,
+      "missed_findings": 0,
+      "passed_control_checks": 786,
+      "precision": 1.0,
+      "recall": 1.0,
+      "true_positive_findings": 66
+    },
+    "order_checks_passed": 84,
+    "policies": [
+      {
+        "configuration_sha256": "17a38c5f2b6e74d188be8cbeeae1972b24a6e33444ff18337918145c9065f3d3",
+        "policy_id": "meshvenn.preflight",
+        "required_checks": [
+          "coverage.insufficient",
+          "input.integrity"
+        ],
+        "version": "1.0.0"
+      }
+    ],
+    "proposals": [
+      {
+        "after_iou": 0.9953574744661096,
+        "alignment": {
+          "offset_u": -0.06254230947375927,
+          "offset_v": -0.00026239296445410704,
+          "scale": 0.9904788838612367
+        },
+        "before_iou": 0.6831140350877193,
+        "case_id": "bounded_shift",
+        "expected_inverse_alignment": {
+          "offset_u": -0.0625,
+          "offset_v": 0,
+          "scale": 1
+        },
+        "max_parameter_error": 0.009521116138763275,
+        "parameter_tolerance": 0.023622047244094488,
+        "resolution": 128,
+        "view_id": "front",
+        "within_analytic_tolerance": true
+      },
+      {
+        "after_iou": 0.9983674611688979,
+        "alignment": {
+          "offset_u": -0.06274729458624381,
+          "offset_v": 1.1897963068732698e-06,
+          "scale": 1.0000466766243465
+        },
+        "before_iou": 0.6801176470588235,
+        "case_id": "bounded_shift",
+        "expected_inverse_alignment": {
+          "offset_u": -0.0625,
+          "offset_v": 0,
+          "scale": 1
+        },
+        "max_parameter_error": 0.0002472945862438125,
+        "parameter_tolerance": 0.011764705882352941,
+        "resolution": 256,
+        "view_id": "front",
+        "within_analytic_tolerance": true
+      },
+      {
+        "after_iou": 0.9870298313878081,
+        "alignment": {
+          "offset_u": 0.0018857386474603437,
+          "offset_v": -0.002871776917177552,
+          "scale": 0.895795523290986
+        },
+        "before_iou": 0.7918403811792734,
+        "case_id": "bounded_scale",
+        "expected_inverse_alignment": {
+          "offset_u": 0,
+          "offset_v": 0,
+          "scale": 0.8888888888888888
+        },
+        "max_parameter_error": 0.006906634402097156,
+        "parameter_tolerance": 0.023622047244094488,
+        "resolution": 128,
+        "view_id": "front",
+        "within_analytic_tolerance": true
+      },
+      {
+        "after_iou": 0.9859128908595446,
+        "alignment": {
+          "offset_u": 5.978200878477974e-05,
+          "offset_v": -0.0009963303828489471,
+          "scale": 0.8922765360533601
+        },
+        "before_iou": 0.7759950294214393,
+        "case_id": "bounded_scale",
+        "expected_inverse_alignment": {
+          "offset_u": 0,
+          "offset_v": 0,
+          "scale": 0.8888888888888888
+        },
+        "max_parameter_error": 0.0033876471644712636,
+        "parameter_tolerance": 0.011764705882352941,
+        "resolution": 256,
+        "view_id": "front",
+        "within_analytic_tolerance": true
+      },
+      {
+        "after_iou": 1.0,
+        "alignment": {
+          "offset_u": 0.04693839740620655,
+          "offset_v": -0.00034390921723020246,
+          "scale": 0.9902941176470588
+        },
+        "before_iou": 0.7211934156378601,
+        "case_id": "shift_heldout",
+        "expected_inverse_alignment": {
+          "offset_u": 0.046875,
+          "offset_v": 0,
+          "scale": 1
+        },
+        "max_parameter_error": 0.00970588235294123,
+        "parameter_tolerance": 0.023622047244094488,
+        "resolution": 128,
+        "view_id": "back",
+        "within_analytic_tolerance": true
+      },
+      {
+        "after_iou": 1.0,
+        "alignment": {
+          "offset_u": 0.04706036128639143,
+          "offset_v": 1.7299766020689722e-06,
+          "scale": 1.0000490160037252
+        },
+        "before_iou": 0.7191456040370644,
+        "case_id": "shift_heldout",
+        "expected_inverse_alignment": {
+          "offset_u": 0.046875,
+          "offset_v": 0,
+          "scale": 1
+        },
+        "max_parameter_error": 0.00018536128639143334,
+        "parameter_tolerance": 0.011764705882352941,
+        "resolution": 256,
+        "view_id": "back",
+        "within_analytic_tolerance": true
+      },
+      {
+        "after_iou": 0.9703703703703703,
+        "alignment": {
+          "offset_u": 0.0,
+          "offset_v": 0.0031952299668835185,
+          "scale": 1.1014485514485515
+        },
+        "before_iou": 0.7685699848408287,
+        "case_id": "scale_heldout",
+        "expected_inverse_alignment": {
+          "offset_u": 0,
+          "offset_v": 0,
+          "scale": 1.103448275862069
+        },
+        "max_parameter_error": 0.0031952299668835185,
+        "parameter_tolerance": 0.023622047244094488,
+        "resolution": 128,
+        "view_id": "left",
+        "within_analytic_tolerance": true
+      },
+      {
+        "after_iou": 0.9916051895192063,
+        "alignment": {
+          "offset_u": 0.0,
+          "offset_v": -0.0004720373793933724,
+          "scale": 1.109953808531836
+        },
+        "before_iou": 0.7733700412964585,
+        "case_id": "scale_heldout",
+        "expected_inverse_alignment": {
+          "offset_u": 0,
+          "offset_v": 0,
+          "scale": 1.103448275862069
+        },
+        "max_parameter_error": 0.006505532669766945,
+        "parameter_tolerance": 0.011764705882352941,
+        "resolution": 256,
+        "view_id": "left",
+        "within_analytic_tolerance": true
+      }
+    ],
+    "qualification_identity": "079206d66670b52fd66316263564233a3d6650cb48970727e4e93040058404c9",
+    "qualification_status": "pass",
+    "report_verification_status_counts": {
+      "fail": 28,
+      "unknown": 14
+    },
+    "resolution_checks_passed": 21
+  },
+  "full_raw_artifacts": "Reproduce with scripts/qualify_diagnostics.py; CI uploads diagnostic-corpus-v1. Local full runs remain in tmp/corpus-full and tmp/corpus-qualified.",
+  "heldout_exposure": "Case definitions, labels and thresholds remained frozen. The implementation was corrected after an observed heldout failure; the corrected run is regression evidence, not a fresh statistical holdout.",
+  "initial": {
+    "by_split": {
+      "calibration": {
+        "abstentions": 18,
+        "evaluated_variants": 22,
+        "execution_failures": 0,
+        "failed_cases": 0,
+        "false_positive_findings": 0,
+        "missed_control_checks": 0,
+        "missed_findings": 0,
+        "passed_control_checks": 416,
+        "precision": 1.0,
+        "recall": 1.0,
+        "true_positive_findings": 44
+      },
+      "heldout": {
+        "abstentions": 10,
+        "evaluated_variants": 20,
+        "execution_failures": 0,
+        "failed_cases": 2,
+        "false_positive_findings": 2,
+        "missed_control_checks": 0,
+        "missed_findings": 2,
+        "passed_control_checks": 370,
+        "precision": 0.9090909090909091,
+        "recall": 0.9090909090909091,
+        "true_positive_findings": 20
+      }
+    },
+    "failures": [
+      {
+        "case_id": "scale_heldout",
+        "observed": {
+          "abstained_codes": [
+            "alignment.shape_mismatch"
+          ],
+          "false_positive_findings": 1,
+          "forbidden_codes_observed": [],
+          "localization_misses": [],
+          "matched_expected_codes": [],
+          "missed_control_checks": [],
+          "missed_expected_codes": [
+            "alignment.suspected"
+          ],
+          "missed_findings": 1,
+          "observed_signals": [
+            {
+              "code": "alignment.shape_mismatch",
+              "status": "unknown",
+              "view_ids": [
+                "left",
+                "ref_left"
+              ]
+            }
+          ],
+          "passed_control_checks": 20,
+          "passed_expectations": false,
+          "status_counts": {
+            "pass": 44,
+            "unknown": 1
+          },
+          "true_positive_findings": 0,
+          "unexpected_codes": [
+            "alignment.shape_mismatch"
+          ]
+        },
+        "resolution": 128
+      },
+      {
+        "case_id": "scale_heldout",
+        "observed": {
+          "abstained_codes": [
+            "alignment.shape_mismatch"
+          ],
+          "false_positive_findings": 1,
+          "forbidden_codes_observed": [],
+          "localization_misses": [],
+          "matched_expected_codes": [],
+          "missed_control_checks": [],
+          "missed_expected_codes": [
+            "alignment.suspected"
+          ],
+          "missed_findings": 1,
+          "observed_signals": [
+            {
+              "code": "alignment.shape_mismatch",
+              "status": "unknown",
+              "view_ids": [
+                "left",
+                "ref_left"
+              ]
+            }
+          ],
+          "passed_control_checks": 20,
+          "passed_expectations": false,
+          "status_counts": {
+            "pass": 44,
+            "unknown": 1
+          },
+          "true_positive_findings": 0,
+          "unexpected_codes": [
+            "alignment.shape_mismatch"
+          ]
+        },
+        "resolution": 256
+      }
+    ],
+    "implementation": null,
+    "implementation_limit": "This initial development run preceded source-file provenance instrumentation. Engine/policy labels alone cannot identify its exact implementation; it is retained as failure history, not final qualification proof.",
+    "metrics": {
+      "abstentions": 28,
+      "evaluated_variants": 42,
+      "execution_failures": 0,
+      "failed_cases": 2,
+      "false_positive_findings": 2,
+      "missed_control_checks": 0,
+      "missed_findings": 2,
+      "passed_control_checks": 786,
+      "precision": 0.9696969696969697,
+      "recall": 0.9696969696969697,
+      "true_positive_findings": 64
+    },
+    "qualification_status": "fail",
+    "raw_summary_sha256": "6b467d0418e377fdc919d922fd29ecd76fe21274af83027c59112cadda2bb1f3"
+  },
+  "manifest_sha256": "00267978e5164ad6a06080381dc1790ee64f0adc981bfe1915100c3f86af85b2",
+  "record_kind": "measured_development_regression_history",
+  "representative_common_reports_and_visual_evidence": [
+    {
+      "artifacts": [
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-front-before.png",
+          "phase": "before",
+          "sha256": "d5c6ac51163d40f708566b965eb66aa5b02dbccb4b95421dcd277e537c930008",
+          "view_id": "front"
+        },
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-right-before.png",
+          "phase": "before",
+          "sha256": "94d01e8a61ec0ae1d8b7c6cea9ed1d3d412905acec89f5c592f1190254477223",
+          "view_id": "right"
+        },
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-back-before.png",
+          "phase": "before",
+          "sha256": "c5906557dc210d23c9e525c5eb9e20c49edc06501d9457ed2880ff3e2dbc8af4",
+          "view_id": "back"
+        },
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-left-before.png",
+          "phase": "before",
+          "sha256": "3aac933d9e8b0f584e6a6a30a0594c105b6cd8ad1ef90fe140f9f53682dc7c54",
+          "view_id": "left"
+        }
+      ],
+      "case_id": "scale_heldout",
+      "directory": "diagnostic-corpus-evidence/initial-scale-heldout-256",
+      "report_sha256": "2e8f7bf93346851d5a4731fbbe56d07c152f9227e8c45e8a37fbba481f29534c",
+      "resolution": 256,
+      "run": "initial"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-front-before.png",
+          "phase": "before",
+          "sha256": "d5c6ac51163d40f708566b965eb66aa5b02dbccb4b95421dcd277e537c930008",
+          "view_id": "front"
+        },
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-right-before.png",
+          "phase": "before",
+          "sha256": "94d01e8a61ec0ae1d8b7c6cea9ed1d3d412905acec89f5c592f1190254477223",
+          "view_id": "right"
+        },
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-back-before.png",
+          "phase": "before",
+          "sha256": "c5906557dc210d23c9e525c5eb9e20c49edc06501d9457ed2880ff3e2dbc8af4",
+          "view_id": "back"
+        },
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-left-before.png",
+          "phase": "before",
+          "sha256": "3aac933d9e8b0f584e6a6a30a0594c105b6cd8ad1ef90fe140f9f53682dc7c54",
+          "view_id": "left"
+        },
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-left-proposed.png",
+          "phase": "proposed",
+          "sha256": "97640e4f4897ce996e338cf74c39f682dc8d2f26378c6497361b51230384fa29",
+          "view_id": "left"
+        }
+      ],
+      "case_id": "scale_heldout",
+      "directory": "diagnostic-corpus-evidence/scale-heldout-256",
+      "report_sha256": "c746094051b73bf6732decbf85214c1bea5145cd03c4c0b01f76ad2df45ac728",
+      "resolution": 256,
+      "run": "corrected"
+    },
+    {
+      "artifacts": [
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-front-before.png",
+          "phase": "before",
+          "sha256": "f2f5d4d716b7706959d2e27e684a78003c42c622f6a3039dc0e408abb9058c18",
+          "view_id": "front"
+        },
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-right-before.png",
+          "phase": "before",
+          "sha256": "bc8a3ccefb04381a078d365b369cb4fac0c879b63738f0bab0f08b237fcbaf31",
+          "view_id": "right"
+        },
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-back-before.png",
+          "phase": "before",
+          "sha256": "0871a7441ee95470dd08bc943d31d04627fbcf9bab8c939432148efacd01c6ec",
+          "view_id": "back"
+        },
+        {
+          "kind": "actual_input_vs_analytic_reference",
+          "media_type": "image/png",
+          "path": "overlay-left-before.png",
+          "phase": "before",
+          "sha256": "f28b07ff24d50bc571fdf574b7d67c14c6ea8fd944ce6aceb18e361d83f0c0ca",
+          "view_id": "left"
+        }
+      ],
+      "case_id": "missing_small_part",
+      "directory": "diagnostic-corpus-evidence/missing-small-part-256",
+      "report_sha256": "6fe6e2f260cced63d36e7d7f6a44234a35fa6b89514df28cf7b925a0da9a8e98",
+      "resolution": 256,
+      "run": "corrected"
+    }
+  ],
+  "schema_version": 1,
+  "scope": "D1/D2 analytic offline subset only; D3-D8, human/generative/provider/end-to-end acceptance UNKNOWN; #84 remains open",
+  "unevaluated": [
+    {
+      "code": "geometry.cross_view_conflict",
+      "reason": "Cross-view reconstruction, part localization and fault attribution are not implemented/evaluated by this tranche.",
+      "stage": "D3",
+      "status": "unknown"
+    },
+    {
+      "code": "appearance.identity_drift",
+      "reason": "No appearance or semantic identity evaluator ran.",
+      "stage": "D4",
+      "status": "unknown"
+    },
+    {
+      "code": "correction.plan_available",
+      "reason": "No localized correction planner ran.",
+      "stage": "D5",
+      "status": "unknown"
+    },
+    {
+      "code": "iteration.acceptance",
+      "reason": "No candidate generation, promotion or regression loop ran.",
+      "stage": "D6",
+      "status": "unknown"
+    },
+    {
+      "code": "qualification.human_review",
+      "reason": "Human-reviewed generated views, provider fidelity and end-to-end acceptance remain unqualified; issue #84 remains open.",
+      "stage": "D7",
+      "status": "unknown"
+    },
+    {
+      "code": "quality.export_verified",
+      "reason": "No GLB export/reload or accessible product acceptance ran.",
+      "stage": "D8",
+      "status": "unknown"
+    }
+  ]
+}

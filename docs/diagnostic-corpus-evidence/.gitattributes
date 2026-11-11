@@ -1,0 +1,3 @@
+# Preserve the exact measured report/source bytes identified by the baseline.
+*.json binary
+*.png binary

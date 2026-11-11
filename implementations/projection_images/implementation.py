@@ -11,7 +11,8 @@ from ...core.pipeline_contracts import (
 )
 from .context import resolve_settings
 from .models import PreparedProjectionView, ProjectionImagesOutput
-from .preparation import prepare_projection, projection_counts
+from .preparation import prepare_certified_projection, prepare_projection, projection_counts
+from .preflight import PreflightProjectionRequest
 
 IMPLEMENTATION_ID = "projection-images"
 MINIMUM_PROJECTION_COUNT = 2
@@ -53,6 +54,13 @@ class ProjectionImagesImplementation:
             return ImplementationAvailability.unavailable("Projection settings are unavailable.")
 
         enabled_count, ready_count = projection_counts(settings)
+        if isinstance(context.source, PreflightProjectionRequest):
+            try:
+                names = context.source.projection_names(tuple(settings.projections))
+            except (TypeError, ValueError) as exc:
+                return ImplementationAvailability.unavailable(str(exc))
+            ready_count += sum(p.enabled and p.image is None and str(p.name).strip() in names
+                               for p in settings.projections)
         details = {
             "enabled_projections": enabled_count,
             "ready_projections": ready_count,
@@ -80,19 +88,31 @@ class ProjectionImagesImplementation:
         if not math.isfinite(alpha_threshold) or not 0.0 <= alpha_threshold <= 1.0:
             return self._failure("Alpha threshold must be finite and inside [0, 1].")
 
+        projections = tuple(settings.projections)
+        request = context.source if isinstance(context.source, PreflightProjectionRequest) else None
+        certified = {}
+        if request is not None:
+            try:
+                certified = request.certify(projections, alpha_threshold=alpha_threshold)
+            except Exception as exc:
+                return self._failure(f"Accepted preflight binding is invalid: {exc}",
+                                     metadata={"exception_type": type(exc).__name__})
+
         prepared_views: list[PreparedProjectionView] = []
         enabled_projection_count = 0
         missing_image_names: list[str] = []
-        for projection in settings.projections:
+        for projection in projections:
             if not projection.enabled:
                 continue
             enabled_projection_count += 1
-            if projection.image is None:
+            binding = certified.get(str(projection.name).strip())
+            if projection.image is None and binding is None:
                 missing_image_names.append(str(projection.name))
                 continue
             try:
                 prepared_views.append(
-                    prepare_projection(projection, alpha_threshold=alpha_threshold)
+                    prepare_certified_projection(projection, binding) if binding is not None
+                    else prepare_projection(projection, alpha_threshold=alpha_threshold)
                 )
             except Exception as exc:
                 return self._failure(
@@ -119,6 +139,7 @@ class ProjectionImagesImplementation:
             alpha_threshold=alpha_threshold,
             enabled_projection_count=enabled_projection_count,
             missing_image_count=missing_image_count,
+            diagnostic_report=next(iter(certified.values())).report if certified else None,
         )
         context.metadata["projection_view_names"] = list(output.view_names)
         context.metadata["projection_count"] = output.projection_count
@@ -140,6 +161,7 @@ class ProjectionImagesImplementation:
                 "empty_mask_views": [view.name for view in output.views if view.empty_mask],
                 "alpha_threshold": alpha_threshold,
             },
+            diagnostic_report=output.diagnostic_report,
         )
 
     @staticmethod
@@ -153,7 +175,7 @@ class ProjectionImagesImplementation:
 
     @staticmethod
     def _view_metadata(view: PreparedProjectionView) -> dict[str, object]:
-        return {
+        result = {
             "name": view.name,
             "image": view.image_name,
             "width": view.width,
@@ -166,3 +188,6 @@ class ProjectionImagesImplementation:
             "mask_pixels": view.mask_pixels,
             "empty_mask": view.empty_mask,
         }
+        if view.preflight is not None:
+            result["preflight"] = view.preflight.metadata()
+        return result

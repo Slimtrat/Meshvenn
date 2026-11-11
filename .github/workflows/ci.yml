@@ -498,6 +498,7 @@ jobs:
             # -----------------------------------------------
 
             "tests/blender_smoke_test.py"
+            "tests/blender_preflight_input_smoke.py"
             "tests/blender_uv_bake_smoke.py"
             "tests/blender_rig_smoke.py"
             "tests/blender_glb_export_smoke.py"
@@ -974,6 +975,7 @@ jobs:
           #
           # Automatically includes:
           #
+          #   diagnostic_contracts/ and diagnostics_preflight/ (pure diagnostic packages)
           #   geometry_contracts/ (recursive package)
           #   modular_character/ (recursive package)
           #   native_bridge/ (recursive package)
@@ -990,6 +992,8 @@ jobs:
             "${PACKAGE_ROOT}/core/"
 
           cp -R \
+            core/diagnostic_contracts \
+            core/diagnostics_preflight \
             core/geometry_contracts \
             core/modular_character \
             core/native_bridge \
@@ -2641,6 +2645,14 @@ jobs:
           set -euo pipefail
           "${BLENDER_ROOT}/blender" --background --factory-startup \
             --python-exit-code 1 --python tests/blender_geometry_normalization_smoke.py -- \
+            --package-root "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
+
+      - name: Verify packaged preflight bindings and shared geometry/color inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          "${BLENDER_ROOT}/blender" --background --factory-startup \
+            --python-exit-code 1 --python tests/blender_preflight_input_smoke.py -- \
             --package-root "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool"
 
       - name: Verify packaged prepared authority and publication rollback
