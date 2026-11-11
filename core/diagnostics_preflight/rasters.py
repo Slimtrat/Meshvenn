@@ -72,7 +72,9 @@ class RasterInput:
             source = Path(path)
             if source.stat().st_size > MAX_FILE_BYTES:
                 return cls(None, None, (), "", error="File exceeds the input byte budget.")
-            return cls.from_png_bytes(source.read_bytes())
+            with source.open("rb") as stream:
+                data = stream.read(MAX_FILE_BYTES + 1)
+            return cls.from_png_bytes(data)
         except OSError as exc:
             return cls(None, None, (), "", error=f"Cannot read source: {exc.strerror or type(exc).__name__}.")
 
@@ -150,6 +152,11 @@ def _decode_png(data: bytes) -> tuple[int, int, tuple[float, ...]]:
             break
         elif kind == b"tRNS":
             raise UnsupportedRaster("PNG color-key transparency needs a qualified host decoder.")
+        elif kind in (b"acTL", b"fcTL", b"fdAT"):
+            raise UnsupportedRaster("Animated PNG needs a qualified host decoder and an explicit selected frame.")
+        elif kind == b"PLTE":
+            if header[3] in (0, 4) or not length or length % 3 or length > 768 or saw_idat:
+                raise ValueError("Invalid suggested palette for this PNG color type.")
         elif not kind[0] & 32 and kind != b"PLTE":
             raise UnsupportedRaster("PNG contains an unsupported critical chunk.")
         if saw_idat and kind != b"IDAT":

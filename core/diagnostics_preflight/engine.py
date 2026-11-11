@@ -44,7 +44,7 @@ class PreflightPolicy:
             raise ValueError("Scale policy must contain identity inside ProjectionAlignment bounds.")
         if not math.isfinite(self.max_offset) or not 0 <= self.max_offset <= 0.5:
             raise ValueError("Offset policy must be within ProjectionAlignment bounds.")
-        normalized = tuple((float(a) % 360, float(e)) for a, e in self.required_cameras)
+        normalized = tuple((round(float(a) % 360, 6), round(float(e), 6)) for a, e in self.required_cameras)
         if any(not math.isfinite(a) or not math.isfinite(e) or abs(e) > 90 for a, e in normalized):
             raise ValueError("Required orthographic camera angles must be finite and valid.")
         if len(set(normalized)) != len(normalized):
