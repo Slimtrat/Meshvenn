@@ -131,8 +131,10 @@ attempt, 24 sessions total, 220 native projection applications and 57,671,680
 potential voxel tests are accepted. Named/component regions are capped at 128,
 threads at eight and the shared deadline at 120 seconds. Defaults are 30 seconds
 and one thread. Both attempts consume one shared ledger and the same absolute
-deadline; neither resets the remaining budget. The refinement gate conservatively
-reserves enough native capacity for either acquisition order.
+deadline; neither resets the remaining budget. Every attempt conservatively
+reserves enough native capacity for either acquisition order, including a trace
+slot even when the canonical trace can be reused. Reserved capacities and actual
+completed sessions/applications remain separate observations.
 
 Projection/metric calls each have an explicit operation cap. A second aggregate
 budget reserves their conservative call capacities and bounded source passes,

@@ -262,6 +262,10 @@ class GeometryProvenance(JsonContract):
                 0 <= self.native_voxel_test_capacity <= self.native_voxel_test_budget <= 57_671_680 and
                 0 <= self.python_work_reserved <= self.python_work_budget <= 8_000_000_000):
             raise ValueError("Recorded work capacities exceed the declared aggregate budget.")
+        if not (0 <= self.completed_experiments <= self.requested_experiments and
+                self.completed_experiments <= self.native_sessions_reserved and
+                0 <= self.native_projection_applications <= self.native_applications_reserved):
+            raise ValueError("Completed native work exceeds the recorded request/capacity.")
 
 
 @dataclass(frozen=True)
@@ -312,6 +316,12 @@ class GeometryResult(JsonContract):
     attempts: tuple[GeometryAttempt, ...] = ()
     schema_version: int = 1
 
+    @classmethod
+    def from_dict(cls, data):
+        if type(data) is not dict or not data.get("attempts"):
+            raise ValueError("A serialized geometry result must preserve its attempt history.")
+        return super().from_dict(data)
+
     def __post_init__(self):
         validate_model(self)
         if self.schema_version != 1:
@@ -329,6 +339,10 @@ class GeometryResult(JsonContract):
                 raise ValueError("Requested, actual and preserved attempt resolutions disagree.")
             if any(a.report.view_set != self.report.view_set or a.report.policy != self.report.policy for a in self.attempts):
                 raise ValueError("Every preserved attempt must bind the same source revision and original policy.")
+            last = self.attempts[-1]
+            if (self.volume != last.volume or self.views != last.views or self.experiments != last.experiments or
+                    self.trace != last.trace or self.pair_comparisons != last.pair_comparisons):
+                raise ValueError("Final geometry artifacts must match the last preserved attempt.")
             for name in ("completed_experiments", "native_projection_applications", "native_sessions_reserved",
                          "native_applications_reserved", "native_voxel_test_capacity", "python_work_reserved"):
                 if getattr(self.provenance, name) != sum(getattr(a.provenance, name) for a in self.attempts):

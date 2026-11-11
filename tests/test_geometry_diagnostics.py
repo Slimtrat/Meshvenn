@@ -232,6 +232,14 @@ class GeometryNativeTests(unittest.TestCase):
         tampered["attempts"].append(tampered["attempts"][-1])
         with self.assertRaises(ValueError):
             GeometryResult.from_dict(tampered)
+        tampered = result.to_dict()
+        tampered["volume"] = result.attempts[0].volume.to_dict()
+        with self.assertRaises(ValueError):
+            GeometryResult.from_dict(tampered)
+        tampered = result.to_dict()
+        del tampered["attempts"]
+        with self.assertRaises(ValueError):
+            GeometryResult.from_dict(tampered)
 
     def test_within_uncertainty_compatibility_retains_low_raw_iou_and_unknown_physical_detail(self):
         revision, inputs = thin_sources(size=128)
@@ -254,6 +262,30 @@ class GeometryNativeTests(unittest.TestCase):
         self.assertTrue(any(f.code == "engine.refinement" and f.status == "unknown" for f in result.report.findings))
         self.assertTrue(any(f.code == "geometry.empty" and f.status == "fail" for f in result.attempts[0].report.findings))
         self.assertEqual(GeometryResult.from_json(result.to_json()), result)
+
+    def test_custom_native_capacity_boundaries_do_not_depend_on_source_order(self):
+        revision, inputs = thin_sources()
+        revision = replace(revision, views=revision.views[:2], input_order=())
+        inputs = {view.view_id: inputs[view.view_id] for view in revision.views}
+        reverse = replace(revision, input_order=tuple(reversed(revision.input_order)))
+        for policy in (GeometryPolicy(max_total_experiments=7), GeometryPolicy(max_total_native_applications=11)):
+            with self.subTest(policy=policy):
+                first = analyze_geometry(revision, inputs, backend=self.backend(), policy=policy)
+                second = analyze_geometry(reverse, inputs, backend=self.backend(), policy=policy)
+                self.assertEqual(first.actual_resolution, second.actual_resolution)
+                self.assertEqual(tuple(a.resolution for a in first.attempts), (32,))
+                self.assertEqual(first.report.verification_status, "unknown")
+                self.assertEqual(first.report.dependency_fingerprint, second.report.dependency_fingerprint)
+                self.assertEqual(first.provenance.native_sessions_reserved, second.provenance.native_sessions_reserved)
+                self.assertEqual(first.provenance.native_applications_reserved, second.provenance.native_applications_reserved)
+        with patch.object(NativeGeometryBackend, "run") as launch:
+            full_revision, full_inputs = thin_sources()
+            for forward, sources_map, limit in ((revision, inputs, 3), (full_revision, full_inputs, 5)):
+                reversed_snapshot = replace(forward, input_order=tuple(reversed(forward.input_order)))
+                for snapshot in (forward, reversed_snapshot):
+                    result = analyze_geometry(snapshot, sources_map, backend=self.backend(), policy=GeometryPolicy(max_experiments=limit))
+                    self.assertEqual(result.report.verification_status, "unknown")
+            launch.assert_not_called()
 
     def test_adaptive_can_be_disabled_and_never_retries_at_64(self):
         revision, inputs = thin_sources()

@@ -288,7 +288,9 @@ def _analyze_geometry_once(view_set: ViewSetRevision, inputs: Mapping[str, ViewI
             raise ValueError("Usable observation count exceeds the native diagnostic view budget.")
         order = tuple(v for v in view_set.input_order if v in eligible)
         requested = 1 + (len(eligible) if len(eligible) > 1 else 0) + (int(tuple(eligible) != order) if eligible else 0)
-        if requested > policy.max_experiments:
+        reserved_sessions = (len(eligible)+2 if len(eligible) > 1 else 1) if eligible else 0
+        reserved_applications = (len(eligible)**2+len(eligible) if len(eligible) > 1 else 1) if eligible else 0
+        if reserved_sessions > policy.max_experiments:
             raise ValueError("Leave-one-out/session count exceeds the declared experiment budget.")
         for view_id in eligible:
             check_budget(deadline=deadline, cancel=cancel)
@@ -377,8 +379,10 @@ def _analyze_geometry_once(view_set: ViewSetRevision, inputs: Mapping[str, ViewI
         else:
             projections = [(v, NativeProjection(native_masks[v], views[v].camera.azimuth_degrees,
                                                 views[v].camera.elevation_degrees, views[v].camera.flip_x)) for v in eligible]
-            applications = len(eligible)**2 + (len(eligible) if tuple(eligible) != order else 0)
-            work_budget.reserve_native(requested, applications, policy.resolution)
+            # Capacity includes a separate source-order trace even when the
+            # sorted full trace can be reused. Actual completed work is recorded
+            # separately; budgeting cannot change conclusions under permutation.
+            work_budget.reserve_native(reserved_sessions, reserved_applications, policy.resolution)
             batch = backend.run(projections, resolution=policy.resolution, input_order=order,
                                 timeout=deadline - time.monotonic(), thread_count=policy.thread_count, cancel=cancel)
             if batch.library_sha256:
