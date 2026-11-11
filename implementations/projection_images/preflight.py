@@ -14,7 +14,7 @@ from typing import Mapping, Sequence
 from ...core.diagnostic_contracts import DiagnosticReport, ViewRevision, ViewSetRevision
 from ...core.diagnostics_preflight import (
     AlignmentAnchor, CertifiedProjectionInput, PreflightPolicy, PreflightResult,
-    ViewInput, accept_alignment, analyze_preflight,
+    ViewInput, accept_alignments,
 )
 from ...core.projection_alignment import ProjectionAlignment
 
@@ -114,17 +114,12 @@ class PreflightProjectionRequest:
             raise ValueError("Scene and preflight alpha thresholds differ; rerun preparation with the current policy.")
         views = {v.view_id: v for v in self.view_set.views}
         proposals = {p.proposal_id: p for p in self.result.proposals}
-        reproduced = analyze_preflight(self.view_set, self.inputs, anchors=self.anchors, policy=self.policy)
-        if reproduced.report.dependency_fingerprint != self.result.report.dependency_fingerprint:
-            raise ValueError("Accepted preflight dependencies changed; analyze the current source revision.")
-        certified = {}
+        selected = []
         for binding in self.bindings:
             view = views.get(binding.view_id)
             proposal = proposals.get(binding.proposal_id)
             if view is None or proposal is None or proposal.view_id != binding.view_id:
                 raise ValueError("Accepted binding refers to an unknown or mismatched view/proposal.")
-            if proposal not in reproduced.proposals:
-                raise ValueError("Accepted proposal cannot be reproduced from the current original sources.")
             projection = next(p for p in projections if str(p.name).strip() == binding.projection_name)
             camera = view.camera
             azimuth = math.degrees(float(projection.azimuth))
@@ -141,8 +136,15 @@ class PreflightProjectionRequest:
                 float(getattr(projection, "alignment_scale", 1.0)))
             if scene_alignment != view.alignment:
                 raise ValueError("Bound scene alignment differs from the unmodified source revision.")
-            accepted = accept_alignment(proposal, reproduced, self.view_set, self.inputs,
-                                        anchors=self.anchors, policy=self.policy)
-            certified[binding.projection_name] = CertifiedProjectionBinding(
-                binding, view, accepted, reproduced.report)
-        return MappingProxyType(certified)
+            selected.append(proposal)
+        # The batch API reproduces the complete immutable source snapshot once,
+        # validates every selected proposal, then returns its freshly measured
+        # report. No caller-supplied certificate or report finding is trusted.
+        acceptance = accept_alignments(tuple(selected), self.result, self.view_set, self.inputs,
+                                       anchors=self.anchors, policy=self.policy)
+        accepted = dict(acceptance.accepted)
+        return MappingProxyType({
+            binding.projection_name: CertifiedProjectionBinding(
+                binding, views[binding.view_id], accepted[binding.proposal_id], acceptance.report)
+            for binding in self.bindings
+        })

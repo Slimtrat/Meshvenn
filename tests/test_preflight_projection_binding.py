@@ -8,10 +8,12 @@ import unittest
 from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
-from core.diagnostics_preflight import analyze_preflight
+from core.diagnostics_preflight import AlignmentAnchor, analyze_preflight
+from core.diagnostics_preflight import engine as preflight_engine
 from core.projection_alignment import ProjectionAlignment
-from tests.test_diagnostics_preflight import fixture, mask
+from tests.test_diagnostics_preflight import fixture, mask, source
 
 
 def load_binding_module():
@@ -52,6 +54,32 @@ def request_fixture():
 
 
 class PreflightProjectionBindingTests(unittest.TestCase):
+    def test_multiple_bindings_share_one_fresh_analysis_and_report(self):
+        request, projection = request_fixture()
+        inputs = dict(request.inputs)
+        inputs["secondary"] = source(ProjectionAlignment(-.06, .04, 1).align_mask(mask()))
+        template = next(v for v in request.view_set.views if v.view_id == "front")
+        secondary = replace(template, view_id="secondary", image=inputs["secondary"].image.content_reference(),
+                            mask=inputs["secondary"].mask.content_reference())
+        view_set = replace(request.view_set, views=(*request.view_set.views, secondary), input_order=())
+        anchors = (*request.anchors, AlignmentAnchor("secondary", "ref-front", "2" * 64))
+        result = analyze_preflight(view_set, inputs, anchors=anchors, policy=request.policy)
+        self.assertEqual(len(result.proposals), 2)
+        bindings = tuple(ProjectionAlignmentBinding(
+            "Front" if p.view_id == "front" else "Secondary", p.view_id, p.proposal_id, "scene-linear")
+                         for p in result.proposals)
+        multiple = replace(request, result=result, view_set=view_set, inputs=inputs, bindings=bindings, anchors=anchors)
+        second_projection = SimpleNamespace(**{**vars(projection), "name": "Secondary"})
+        with patch.object(preflight_engine, "analyze_preflight", wraps=preflight_engine.analyze_preflight) as analyze:
+            certified = multiple.certify((projection, second_projection), alpha_threshold=request.policy.alpha_threshold)
+        self.assertEqual(analyze.call_count, 1)
+        self.assertEqual(set(certified), {"Front", "Secondary"})
+        self.assertIs(certified["Front"].report, certified["Secondary"].report)
+        self.assertEqual(certified["Front"].report, result.report)
+        for entry in certified.values():
+            self.assertIs(entry.accepted.source, inputs[entry.revision.view_id])
+            self.assertEqual(entry.accepted.color_transform_sha256, entry.accepted.mask_transform_sha256)
+
     def test_immutable_explicit_binding_reproduces_acceptance(self):
         request, projection = request_fixture()
         copied = dict(request.inputs)
