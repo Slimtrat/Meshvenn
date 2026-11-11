@@ -13,5 +13,5 @@ example/v2/modular/StytchDollDistalChains/*.json text eol=lf
 docs/diagnostic-corpus-baseline.json text eol=lf
 docs/diagnostic-corpus-evidence/**/*.json text eol=lf
 docs/geometry-diagnostic-*.json text eol=lf
-docs/geometry-diagnostic-evidence/**/*.json text eol=lf
-docs/geometry-diagnostic-evidence/**/*.png binary
+docs/geometry-diagnostic-corpus-evidence/**/*.json text eol=lf
+docs/geometry-diagnostic-corpus-evidence/**/*.png binary
