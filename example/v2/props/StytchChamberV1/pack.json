@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "pack_id": "stytch-chamber-v1",
+  "coordinates": {
+    "up": "+Y",
+    "front": "+Z",
+    "units": "metres"
+  },
+  "provenance": {
+    "author": "Slimtrat / Meshvenn",
+    "method": "Authored closed geometry and deterministic painted PBR plates",
+    "external_image_dependencies": [],
+    "reference": "Stytch Chamber stone/bronze art direction; reference images are not distributed"
+  },
+  "assets": [
+    {
+      "id": "chamber-door-v1",
+      "file": "chamber-door-v1.glb",
+      "sha256": "0a128a1d6abe34c55b13cbf85fe26f69611505368a614755de3ab608e9b3b637",
+      "source": {
+        "file": "chamber-door-v1.blend",
+        "sha256": "ac22c5ebf21085a54ceea570d74db3492c04f342f94c7edf720bb37af0965cb0"
+      },
+      "dimensions": [
+        1.3,
+        1.8,
+        0.2
+      ],
+      "bounds": {
+        "min": [
+          -0.6499999761581421,
+          0.0,
+          -0.20000000298023224
+        ],
+        "max": [
+          0.6499999761581421,
+          1.7999999523162842,
+          -0.0
+        ]
+      },
+      "requiredNodes": [
+        "DoorFrame",
+        "DoorHinge",
+        "DoorLeaf",
+        "RouteSignalSocket"
+      ],
+      "animations": [
+        "door_closed",
+        "door_open"
+      ],
+      "triangles": 2988,
+      "opening": {
+        "node": "DoorHinge",
+        "axis": "+Y",
+        "angle_degrees": 90,
+        "duration_seconds": 0.6
+      },
+      "materials": 3,
+      "skins": 0,
+      "collision": "collision-spec.json"
+    },
+    {
+      "id": "chamber-loot-cache-v1",
+      "file": "chamber-loot-cache-v1.glb",
+      "sha256": "3553b24204193862a7a65e1afa0ad0b0bcde965bf3eb8d4173b22fc66f83001f",
+      "source": {
+        "file": "chamber-loot-cache-v1.blend",
+        "sha256": "c14b2e8d051301c6fa5cb0a731bea6db9f76243a59871d2d5237da80cfe1e10f"
+      },
+      "dimensions": [
+        0.85,
+        0.52,
+        0.44
+      ],
+      "bounds": {
+        "min": [
+          -0.42500001192092896,
+          0.0,
+          -0.2200000137090683
+        ],
+        "max": [
+          0.42500001192092896,
+          0.5199999809265137,
+          0.2199999988079071
+        ]
+      },
+      "requiredNodes": [
+        "ChestBody",
+        "LidHinge",
+        "ChestLid",
+        "LootSpawnSocket"
+      ],
+      "animations": [
+        "chest_closed",
+        "chest_open"
+      ],
+      "triangles": 3224,
+      "opening": {
+        "node": "LidHinge",
+        "axis": "+X",
+        "angle_degrees": -105,
+        "duration_seconds": 0.6
+      },
+      "materials": 3,
+      "skins": 0,
+      "collision": "collision-spec.json"
+    }
+  ],
+  "textures": [
+    {
+      "file": "textures/AgedBronze-basecolor.png",
+      "sha256": "b0ec056b14cd8a5932dd4e074db2ce6d306f642756da025c8f312abfc80be41b"
+    },
+    {
+      "file": "textures/ChamberStone-basecolor.png",
+      "sha256": "3ab68829de423ea60a914ea0c34c53cb82bef24b3c2450c990d48792e7399bf6"
+    },
+    {
+      "file": "textures/DarkTimber-basecolor.png",
+      "sha256": "bc3f8f178459e3a7d5e5a79a369e131c08b1622d4c564ecf27aca18dbea5edd4"
+    }
+  ]
+}

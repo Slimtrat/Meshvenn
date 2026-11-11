@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "coordinates": {
+    "up": "+Y",
+    "front": "+Z",
+    "units": "metres"
+  },
+  "authority": "Advisory only. Stytch retains its existing gameplay collision; no automatic GLB bodies.",
+  "assets": [
+    {
+      "id": "chamber-door-v1",
+      "closed_leaf": {
+        "type": "box",
+        "center": [
+          0,
+          0.73,
+          -0.11
+        ],
+        "size": [
+          0.72,
+          1.32,
+          0.075
+        ],
+        "owner": "DoorHinge"
+      },
+      "passage": {
+        "width": 0.75,
+        "spring_height": 1.02,
+        "apex_height": 1.4,
+        "threshold_height": 0.07
+      },
+      "fixed_boxes": [
+        {
+          "center": [
+            -0.51,
+            0.55,
+            -0.1
+          ],
+          "size": [
+            0.26,
+            1.04,
+            0.2
+          ]
+        },
+        {
+          "center": [
+            0.51,
+            0.55,
+            -0.1
+          ],
+          "size": [
+            0.26,
+            1.04,
+            0.2
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chamber-loot-cache-v1",
+      "body_envelope": {
+        "type": "box",
+        "center": [
+          0,
+          0.17,
+          0
+        ],
+        "size": [
+          0.85,
+          0.34,
+          0.44
+        ]
+      },
+      "lid_envelope": {
+        "type": "box",
+        "center": [
+          0,
+          0.427,
+          0
+        ],
+        "size": [
+          0.85,
+          0.185,
+          0.44
+        ],
+        "owner": "LidHinge"
+      },
+      "cavity": {
+        "min": [
+          -0.365,
+          0.075,
+          -0.17
+        ],
+        "max": [
+          0.365,
+          0.3,
+          0.17
+        ]
+      }
+    }
+  ]
+}
