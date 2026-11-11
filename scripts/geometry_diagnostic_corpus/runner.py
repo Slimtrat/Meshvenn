@@ -243,6 +243,12 @@ def preserve_attempts(destination: Path, result, manifest_hash: str, implementat
     for index, attempt in enumerate(getattr(result, "attempts", ()), 1):
         scope = f"attempt-{index:02d}-n{attempt.resolution}"
         artifacts = write_evidence(destination, attempt, prefix=scope + "-", scope=scope)
+        engine_filename = scope + "-engine-report.json"
+        engine_bytes = attempt.report.to_json().encode("utf-8")
+        (destination / engine_filename).write_bytes(engine_bytes)
+        engine_artifact = {"view_id": None, "experiment_id": scope, "path": engine_filename,
+                           "sha256": sha256(engine_bytes), "media_type": "application/json",
+                           "kind": "actual_native_attempt_engine_report", "evidence_scope": scope, "resolution": attempt.resolution}
         report = complete_report(attach_evidence(attempt.report, artifacts, scope=scope), manifest_hash, implementation)
         serialized = report.to_json()
         filename = scope + "-diagnostic-report.json"
@@ -251,10 +257,11 @@ def preserve_attempts(destination: Path, result, manifest_hash: str, implementat
                            "sha256": sha256((destination / filename).read_bytes()), "media_type": "application/json",
                            "kind": "actual_native_attempt_report", "evidence_scope": scope, "resolution": attempt.resolution}
         snapshot = jsonable(attempt)
-        snapshot.update({"attempt_index": index, "report": report.to_dict(), "artifacts": artifacts + (report_artifact,),
+        snapshot.update({"attempt_index": index, "report": report.to_dict(), "artifacts": artifacts + (engine_artifact, report_artifact),
+                         "original_engine_report_sha256": engine_artifact["sha256"],
                          "contract_roundtrip_passed": DiagnosticReport.from_json(serialized).to_json() == serialized})
         snapshots.append(snapshot)
-        all_artifacts.extend(artifacts + (report_artifact,))
+        all_artifacts.extend(artifacts + (engine_artifact, report_artifact,))
     return snapshots, tuple(all_artifacts)
 
 

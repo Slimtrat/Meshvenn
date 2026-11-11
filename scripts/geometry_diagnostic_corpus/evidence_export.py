@@ -50,7 +50,7 @@ def compact_run(summary_path: Path, *, label: str, limitations=()) -> dict:
         data["attempts"] = []
         for attempt in record.get("attempts", []):
             snapshot = {key: attempt[key] for key in ("attempt_index", "resolution", "trigger", "provenance", "volume", "trace",
-                                                      "contract_roundtrip_passed")}
+                                                      "contract_roundtrip_passed", "original_engine_report_sha256")}
             snapshot["findings"] = [{key: finding[key] for key in ("code", "status", "view_ids", "regions", "reason")}
                                     for finding in attempt["report"]["findings"]]
             snapshot["native_experiments"] = experiment_summary(attempt["experiments"])
