@@ -7,6 +7,7 @@ on:
       - 'scripts/build_meshvenn_sketch.py'
       - 'scripts/build_stytch_workshop_pack.py'
       - 'scripts/prepare_workshop_godot.py'
+      - 'scripts/run_workshop_godot.py'
       - 'example/v2/modules/StytchWorkshopV1/**'
       - 'blender_manifest.toml'
       - '.github/workflows/sketch_extension.yml'
@@ -17,6 +18,7 @@ on:
       - 'scripts/build_meshvenn_sketch.py'
       - 'scripts/build_stytch_workshop_pack.py'
       - 'scripts/prepare_workshop_godot.py'
+      - 'scripts/run_workshop_godot.py'
       - 'example/v2/modules/StytchWorkshopV1/**'
       - 'blender_manifest.toml'
       - '.github/workflows/sketch_extension.yml'
@@ -131,6 +133,9 @@ jobs:
             --python extensions/meshvenn_sketch/tests/blender_workshop_smoke.py -- \
             --pack "${RUNNER_TEMP}/workshop-pack" --compare-pack example/v2/modules/StytchWorkshopV1
           .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python extensions/meshvenn_sketch/tests/blender_workshop_texture_smoke.py -- \
+            --output "${RUNNER_TEMP}/workshop-textures"
+          .blender/blender --background --factory-startup --python-exit-code 1 \
             --python extensions/meshvenn_sketch/examples/stytch_workshop/render.py -- \
             --pack "${RUNNER_TEMP}/workshop-pack"
       - uses: actions/cache@v4
@@ -152,11 +157,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python scripts/prepare_workshop_godot.py --pack "${RUNNER_TEMP}/workshop-pack" --output "${RUNNER_TEMP}/workshop-godot"
-          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 --headless --path "${RUNNER_TEMP}/workshop-godot" --editor --import
-          .godot-bin/Godot_v4.7.1-stable_linux.x86_64 --headless --path "${RUNNER_TEMP}/workshop-godot" --script check.gd 2>&1 | tee "${RUNNER_TEMP}/workshop-godot.log"
-          if grep -E '(^ERROR:|^SCRIPT ERROR:)' "${RUNNER_TEMP}/workshop-godot.log"; then exit 1; fi
-          cp "${RUNNER_TEMP}/workshop-godot/godot-validation.json" "${RUNNER_TEMP}/workshop-pack/"
+          python scripts/run_workshop_godot.py --godot .godot-bin/Godot_v4.7.1-stable_linux.x86_64 \
+            --pack "${RUNNER_TEMP}/workshop-pack" --output "${RUNNER_TEMP}/workshop-godot"
           python scripts/build_stytch_workshop_pack.py --pack "${RUNNER_TEMP}/workshop-pack" --output dist/stytch-workshop-modules-v1.zip
       - name: Re-export the unpacked editable delivery without the original checkout
         shell: bash

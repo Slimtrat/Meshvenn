@@ -42,11 +42,27 @@ static func mount_skinned(avatar_root: Node3D, skeleton: Skeleton3D, pack_root: 
     if not filename.begins_with("skinned/") or ".." in filename or filename.contains("\\"):
         return _failure(null,"Invalid module asset path")
     var path: String = pack_root.path_join(filename)
-    if FileAccess.get_sha256(path)!=definition["skinned"]["sha256"]:
+    if FileAccess.file_exists(path) and FileAccess.get_sha256(path)!=definition["skinned"]["sha256"]:
         return _failure(null,"Module GLB fingerprint changed")
-    var resource = load(path)
+    var cached: bool = definition.has("runtime_scene")
+    if cached:
+        if not definition["runtime_scene"] is Dictionary:return _failure(null,"Invalid compiled scene declaration")
+        var scene_path: String = definition["runtime_scene"].get("file","")
+        if scene_path!="runtime/"+module_id+".scn":return _failure(null,"Invalid compiled scene path")
+        path=pack_root.path_join(scene_path)
+        if definition["runtime_scene"].get("source_sha256")!=definition["skinned"]["sha256"]:
+            return _failure(null,"Compiled source fingerprint changed")
+        if not FileAccess.file_exists(path) or definition["runtime_scene"].get("sha256","").length()!=64 or FileAccess.get_sha256(path)!=definition["runtime_scene"]["sha256"]:
+            return _failure(null,"Compiled module fingerprint changed")
+    elif not FileAccess.file_exists(path):
+        return _failure(null,"Source GLB absent; compile the verified runtime scene before export")
+    var resource = ResourceLoader.load(path,"PackedScene",ResourceLoader.CACHE_MODE_IGNORE_DEEP)
     if not resource is PackedScene:return _failure(null,"Module GLB is not an imported PackedScene")
-    var staging: Node3D = resource.instantiate()
+    var instance = resource.instantiate()
+    if not instance is Node3D:return _failure(instance,"Module scene requires a 3D root")
+    var staging: Node3D = instance
+    if cached and (staging.get_meta("meshvenn_module_source_sha256","")!=definition["skinned"]["sha256"] or staging.get_meta("meshvenn_target_character_sha256","")!=character_sha256 or staging.get_meta("meshvenn_module_id","")!=module_id):
+        return _failure(staging,"Compiled module belongs to another source, character or ID")
     staging.visible=false;avatar_root.add_child(staging)
     var candidates: Array = _skeletons(staging)
     var meshes: Array = _meshes(staging)
@@ -71,12 +87,18 @@ static func mount_skinned(avatar_root: Node3D, skeleton: Skeleton3D, pack_root: 
     if body_meshes.is_empty():return _failure(staging,"Original native body skin is required")
     var reference: Skin = body_meshes[0].skin
     var reference_by_name: Dictionary = {}
-    for i in reference.get_bind_count():reference_by_name[str(reference.get_bind_name(i))]=reference.get_bind_pose(i)
+    for i in reference.get_bind_count():
+        var bind_name: String = str(reference.get_bind_name(i))
+        if reference_by_name.has(bind_name) or skeleton.find_bone(bind_name)<0:return _failure(staging,"Original bind set is ambiguous")
+        reference_by_name[bind_name]=reference.get_bind_pose(i)
+    if reference_by_name.size()!=skeleton.get_bone_count():return _failure(staging,"Original bind set is incomplete")
     var rebound: Skin = Skin.new()
+    var seen: Dictionary = {}
     for i in mesh.skin.get_bind_count():
         var name: String = str(mesh.skin.get_bind_name(i))
-        if not reference_by_name.has(name) or not _near(mesh.skin.get_bind_pose(i),reference_by_name[name]):
+        if seen.has(name) or not reference_by_name.has(name) or not _near(mesh.skin.get_bind_pose(i),reference_by_name[name]):
             return _failure(staging,"Native inverse bind changed: "+name)
+        seen[name]=true
         rebound.add_named_bind(name,mesh.skin.get_bind_pose(i))
     var container := Node3D.new()
     container.name="MeshvennModule_"+module_id;avatar_root.add_child(container)

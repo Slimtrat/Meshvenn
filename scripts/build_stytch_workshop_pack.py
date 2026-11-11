@@ -18,7 +18,9 @@ def build(destination=None,pack=PACK):
     doc=json.loads((pack/'pack.json').read_text())
     files={}
     for module in doc['modules']:
-        for kind in ('skinned','attachment'):
+        if 'runtime_scene' not in module:raise ValueError('Compile verified Godot runtime scenes before packaging')
+        if module['runtime_scene']['source_sha256']!=module['skinned']['sha256']:raise ValueError('Runtime scene is stale')
+        for kind in ('skinned','attachment','runtime_scene'):
             if kind not in module:continue
             record=module[kind];name=record['file'];path=(pack/name).resolve()
             if not path.is_relative_to(pack.resolve()):raise ValueError('Asset path escapes the pack')
@@ -34,6 +36,7 @@ def build(destination=None,pack=PACK):
     files['README.md']=(PACK/'README.md').read_text(encoding='utf-8').encode()
     files['LICENSE']=(ROOT/'LICENSE').read_text(encoding='utf-8').encode()
     files['godot_module_adapter.gd']=(TOOLS/'godot_module_adapter.gd').read_text(encoding='utf-8').encode()
+    files['compile_runtime.gd']=(TOOLS/'compile_runtime.gd').read_text(encoding='utf-8').encode()
     for path in TOOLS.glob('*.py'):files['Source/'+path.name]=path.read_text(encoding='utf-8').encode()
     if len(files)<29 or len(doc['modules'])!=10:raise ValueError('Module delivery is incomplete')
     destination.parent.mkdir(parents=True,exist_ok=True)

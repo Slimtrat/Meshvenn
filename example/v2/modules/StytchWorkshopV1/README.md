@@ -32,12 +32,17 @@ rigid accessory, without a new wing skeleton or flight animation.
   mesh and no skeleton. Their coordinates are already in the declared original
   joint/socket-local frame. Parent with **identity**, inheriting the original
   normalization; do not apply another facing, scale or legacy surface offset.
+- `runtime/`: ten verified Godot 4.7.1 binary scenes, each bound to its original
+  GLB hash, character and module ID. These are ready for exported games where
+  the authoring GLBs are absent; keep them with the matching `pack.json`.
 - `source.blend`: all ten editable module meshes, the original native rig and
   the original doll as a reference. Packed reference images are retained.
 - `validation.json`: triangles, draw primitives, 72 isolated ±45/90-degree native
   pose probes, source/raw/reimport errors and exact static-attachment placement.
 - `godot-validation.json`: actual Godot importer/adapter acceptance, one retained
-  native skeleton and 160 owner-presence checks.
+  native skeleton and 160 owner-presence checks. It also records an official
+  source-free PCK run from an empty working directory, nine stale/foreign/cache
+  rejections, stale-import refusal and a release-mode failure-exit check.
 - `previews/`: six renders of the exported GLBs reimported into Blender, including
   the three separate families, rear accessories and an articulated loadout.
 
@@ -56,6 +61,13 @@ rest/normalization and inverse binds. It gives each installation its own materia
 overrides, transfers only the module mesh and frees
 the temporary imported rig. Invalid or duplicate installations return an error
 without changing the native character. No engine-core dependency is added.
+
+When `runtime_scene` is declared, the adapter verifies that binary scene and its
+source/character/ID stamps, then loads it without reusing a previous in-memory
+scene. Missing or stale compiled scenes are refused; there is no silent fallback
+to another body or older module. Raw GLB hashes are also checked when those
+authoring files are present. Only bind names matching the complete native set
+are accepted, with no duplicate entries.
 
 ```gdscript
 var result = MeshvennWorkshopModules.mount_skinned(
@@ -106,8 +118,29 @@ blender --background --factory-startup --python-exit-code 1 \
 
 The command requires a fresh output directory and exports the saved meshes; it
 does not regenerate them or overwrite the previous pack. Keep `pack.json`
-beside the `.blend`. Copy the README/adapter from this delivery when handing off
+beside the `.blend`. Copy the README, adapter and `compile_runtime.gd` when handing off
 an edited pack, then rerun the repository gates before publishing it.
+
+After editing, import the new GLBs in your Godot project and compile its runtime
+scenes before making an exported game or downloadable ZIP:
+
+```sh
+godot --headless --path /path/to/game --editor --import
+godot --headless --path /path/to/game --script res://WorkshopModules/compile_runtime.gd -- res://WorkshopModules
+```
+
+The compiler checks the original bytes and the importer's source and destination
+MD5 sidecar values (using the default single-scene import),
+so changing a GLB and manifest without reimporting cannot relabel an old mesh as
+new. Use Godot's normal exporter to retain imported texture remaps and UID data.
+The included module scenes are built with Godot 4.7.1; rebuild them for your
+chosen engine version rather than copying an unqualified cache.
+
+Static attachment export preserves embedded textures, samplers, surface material
+extensions, UV sets and normalized vertex colors. Pack external images into the
+GLB first. Shape keys, sparse/compressed geometry, physical volume materials,
+custom attributes and mirrored/singular frames require an explicit bake and are
+refused instead of being silently discarded.
 
 Fresh generation from this checkout:
 
@@ -121,12 +154,13 @@ blender --background --factory-startup --python-exit-code 1 \
 blender --background --factory-startup --python-exit-code 1 \
   --python extensions/meshvenn_sketch/examples/stytch_workshop/render.py -- \
   --pack /tmp/workshop-modules
-python scripts/prepare_workshop_godot.py --pack /tmp/workshop-modules --output /tmp/workshop-godot
-godot --headless --path /tmp/workshop-godot --editor --import
-godot --headless --path /tmp/workshop-godot --script check.gd
+python scripts/run_workshop_godot.py --godot /path/to/godot --pack /tmp/workshop-modules --output /tmp/workshop-godot
 ```
 
 Pack the committed, validated delivery with
 `python scripts/build_stytch_workshop_pack.py`. It produces
 `dist/stytch-workshop-modules-v1.zip`, including the source scripts, adapter,
 editable scene, GLBs, reports, previews and GPL-3.0-or-later license.
+Runtime scenes and their build script are included too. The complete Godot runner
+uses bounded subprocesses, checks native/script errors and exports through the
+official PCK pipeline; export-pack does not require executable export templates.
