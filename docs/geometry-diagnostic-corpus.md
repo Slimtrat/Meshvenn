@@ -18,7 +18,7 @@ holdout, not fresh statistical validation.
 | Cases | Frozen requirement |
 | --- | --- |
 | Healthy, heldout healthy, intentional asymmetry | Real nonempty reconstruction and measured consistency; no automatic blame |
-| Valid informative reduction | Healthy consistency even when a later valid view removes at least 90% of remaining voxels |
+| Valid informative reduction | Healthy consistency even when a valid view removes at least 90% of remaining voxels; canonical order places that view after another observation |
 | Local appendage conflict | Actual cross-view conflict; uncertain fault attribution |
 | Ambiguous conflicting pair | Conflict remains ambiguous without independent canonical evidence |
 | Independent canonical resolves pair | Same observations plus independently authored reference support localization of the front discrepancy for review |

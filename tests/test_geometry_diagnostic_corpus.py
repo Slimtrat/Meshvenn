@@ -46,6 +46,16 @@ class GeometryCorpusTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "escapes"):
             checked_path(CORPUS, "../v1/manifest.json")
 
+    def test_heldout_labels_cannot_be_relaxed_in_place(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as folder:
+            destination = Path(folder)
+            build_corpus(destination)
+            manifest = json.loads((destination / "manifest.json").read_bytes())
+            manifest["cases"][4]["expected"]["controls"] = []
+            (destination / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Frozen geometry manifest changed"):
+                load_manifest(destination)
+
     def test_canonical_is_independent_reference_and_never_observation(self):
         case = self.case("canonical_resolves_pair")
         view_set, inputs, _ = inputs_for_case(CORPUS, case, case["variants"][0], "reverse")

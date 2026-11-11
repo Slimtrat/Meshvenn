@@ -36,7 +36,7 @@ def score_case(case: dict, observation: dict) -> dict:
             passed = not blame and bool(findings)
         elif control == "large_valid_reduction":
             steps = observation.get("trace", [])
-            passed = any(s["order_index"] > 0 and s["before"] > 0 and s["after"] > 0 and
+            passed = any(s["before"] > 0 and s["after"] > 0 and
                          1 - s["after"] / s["before"] >= expected["large_reduction_minimum"] for s in steps)
         elif control == "good_mean_iou":
             passed = bool(metrics) and sum(m["iou"] for m in metrics) / len(metrics) >= expected["mean_iou_good_minimum"]

@@ -16,7 +16,7 @@ from core.diagnostic_contracts import (ArtifactReference, CameraDeclaration, Can
 from core.diagnostics_preflight import RasterInput, ViewInput
 from scripts.diagnostic_corpus.evidence import difference_overlay
 from scripts.diagnostic_corpus.fixtures import canonical_json, sha256
-from . import CORPUS_VERSION, SCHEMA_VERSION
+from . import CORPUS_VERSION, FROZEN_MANIFEST_SHA256, SCHEMA_VERSION
 from .scoring import score_case, semantic_signature
 
 
@@ -32,6 +32,8 @@ def load_manifest(root: Path) -> tuple[dict, str]:
     manifest = json.loads(data)
     if manifest.get("schema_version") != SCHEMA_VERSION or manifest.get("corpus_version") != CORPUS_VERSION:
         raise ValueError("Unsupported geometry corpus")
+    if sha256(data) != FROZEN_MANIFEST_SHA256:
+        raise ValueError("Frozen geometry manifest changed; use a reviewed new corpus version")
     ids = [case["case_id"] for case in manifest["cases"]]
     if not ids or len(ids) != len(set(ids)):
         raise ValueError("Corpus requires unique cases")
@@ -225,6 +227,24 @@ def native_rejection(native_library: Path) -> dict:
     return result
 
 
+def real_worker_deadline(backend, inputs) -> dict:
+    """Exercise an actual child deadline separately from analysis preparation."""
+    from core.image_mask import BinaryMask
+    from core.native_bridge import NativeProjection
+    raster = inputs["front"].mask
+    mask = BinaryMask(raster.width, raster.height,
+                      bytes(int(raster.rgba[i] >= .1) for i in range(3, len(raster.rgba), 4)))
+    started = perf_counter()
+    batch = backend.run((("front", NativeProjection(mask, 0)),), resolution=32,
+                        input_order=("front",), timeout=.02, thread_count=1)
+    return {"state": batch.state, "termination": batch.termination,
+            "worker_started": batch.termination.startswith("terminated_deadline"),
+            "native_completion_known": bool(batch.experiments), "completed_experiments": len(batch.experiments),
+            "library_sha256": batch.library_sha256, "timeout_seconds": .02,
+            "elapsed_seconds": perf_counter() - started, "mocked": False,
+            "geometry_quality_evaluated": False}
+
+
 def run_qualification(root: Path, output: Path, *, native_library: Path, selected_cases=(), split="all", quick=False) -> dict:
     from core.geometry_diagnostics import GeometryPolicy, NativeGeometryBackend, analyze_geometry
     # Load all native adapter sources before capturing authority fingerprints.
@@ -280,6 +300,8 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
                                      max_seconds=.001 if case["injection"] == "deadline" else manifest["execution_plan"]["max_seconds_per_analysis"])
                     record["policy"] = jsonable(policy)
                     record["policy_sha256"] = sha256(canonical_json(record["policy"]))
+                    if case["injection"] == "deadline":
+                        record["native_worker_probe"] = real_worker_deadline(backend, inputs)
                     try:
                         result = analyze_geometry(view_set, inputs, policy=policy, backend=backend, regions=regions)
                         artifacts = write_evidence(destination, result)
