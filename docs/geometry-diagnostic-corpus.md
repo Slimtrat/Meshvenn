@@ -30,6 +30,34 @@ independent canonical comparison initially missed an extended appendage despite
 the native cross-view conflict; its failed expectation is retained in the
 [original report](geometry-diagnostic-corpus-evidence/initial-canonical-conflict/diagnostic-report.json).
 
+The corrected evaluation uses the exact PR #86 CI Windows binary, SHA-256
+`d6803649c54c6d16128541a1fb7edfdecc4dfcaab3594cddeb838db86950d2c8`.
+Its complete matrix took 75.52 seconds: 49 of 57 evaluations satisfied the
+frozen expectations, with zero unexpected execution exceptions. All 22 order
+checks and 22 matched regional localization checks passed their declared
+tolerances. Seventeen of 22 resolution comparisons retained the same
+classifications; all actual differences and bounds remain in the record.
+The independent canonical and important named-region controls now pass at all
+five requested configurations/orders.
+
+**The complete D3 qualification still fails.** Eight frozen evaluations remain
+unsatisfied: the five thin-shape variants and the three 64-pixel/32-voxel
+heldout-healthy orders. Four thin variants produce an actual empty 32-voxel
+volume; the 48-voxel variant retains unknown side detail. Heldout-healthy side
+reprojections are unknown at the coarse raster but pass at 128 pixels. These
+are resolution limits and unexpected healthy-control abstentions, not evidence
+that a source image is faulty. The CLI exits 1 and claims no full qualification.
+
+At coarse resolution, the important flag now has
+[actual calibrated antipodal raster evidence](geometry-diagnostic-corpus-evidence/corrected-small-region-coarse/overlay-input-pair-back-front.png)
+of a regional mismatch while the native regional measurement remains unknown.
+Native voxel evidence and direct input evidence are retained as different
+methods; the latter does not pretend the coarse hull resolved the missing part.
+The [corrected canonical report](geometry-diagnostic-corpus-evidence/corrected-canonical/diagnostic-report.json)
+also records actual independent same-camera comparison masks. The intermediate
+duplicate-finding exception exposed by combining native and direct evidence is
+preserved in the preceding run rather than removed from the development record.
+
 The 13 original analytic cases and all expectations were committed as
 `d51efb6` **before native evaluation**. The manifest SHA-256 is
 `aea6c48d9ffdfe1c5777291c4f0c82c945cb6fcd44e9a398fa9790ba9eb47a49`.

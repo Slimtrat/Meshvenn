@@ -12,6 +12,7 @@ import unittest
 from scripts.geometry_diagnostic_corpus.fixtures import build_corpus
 from scripts.geometry_diagnostic_corpus.runner import checked_path, inputs_for_case, load_manifest
 from scripts.geometry_diagnostic_corpus.scoring import localization_sensitivity, score_case, semantic_signature
+from scripts.diagnostic_corpus.fixtures import sha256
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "tests/fixtures/diagnostics/geometry-v1"
@@ -141,6 +142,27 @@ class GeometryCorpusTests(unittest.TestCase):
                                capture_output=True, text=True, check=False, timeout=20)
         self.assertEqual(child.returncode, 0, child.stderr)
         self.assertIn("No native quality evaluation executed", child.stdout)
+
+    def test_committed_actual_evidence_hashes_and_failed_attempts_are_retained(self):
+        document = json.loads((ROOT / "docs/geometry-diagnostic-corpus-baseline.json").read_bytes())
+        runs = {run["label"]: run for run in document["runs"]}
+        self.assertIn("initial-frozen-evaluation", runs)
+        self.assertIn("fresh-ci-binary-pair-regression", runs)
+        final = runs["corrected-exact-ci-native-evaluation"]
+        self.assertEqual(final["manifest_sha256"], FROZEN_MANIFEST_SHA256)
+        self.assertEqual(final["qualification_status"], "fail")
+        self.assertEqual({r["case_id"] for r in final["records"] if not r["score"]["passed"]},
+                         {"valid_informative_reduction", "healthy_heldout"})
+        for run in document["runs"]:
+            self.assertEqual(run["manifest_sha256"], FROZEN_MANIFEST_SHA256)
+            self.assertTrue(run["authorities_unchanged"])
+            for example in run["committed_examples"]:
+                directory = ROOT / "docs/geometry-diagnostic-corpus-evidence" / example["name"]
+                if example["report_path"] is not None:
+                    self.assertEqual(sha256((ROOT / "docs" / example["report_path"]).read_bytes()), example["report_sha256"])
+                observation = json.loads((directory / "observation.json").read_bytes())
+                for artifact in observation.get("artifacts", []):
+                    self.assertEqual(sha256(checked_path(directory, artifact["path"]).read_bytes()), artifact["sha256"])
 
 
 if __name__ == "__main__":
