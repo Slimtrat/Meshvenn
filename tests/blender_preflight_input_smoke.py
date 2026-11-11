@@ -5,6 +5,7 @@ Run: blender --background --factory-startup --python-exit-code 1
 """
 from __future__ import annotations
 
+import argparse
 import hashlib
 import importlib
 import math
@@ -13,11 +14,11 @@ import sys
 import zlib
 from dataclasses import replace
 from pathlib import Path
+from types import ModuleType
 
 import bpy
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT.parent))
 
 
 def png(mask, *, segmentation=False):
@@ -35,14 +36,21 @@ def png(mask, *, segmentation=False):
 
 
 def main():
-    addon = importlib.import_module(ROOT.name)
-    contracts = importlib.import_module(f"{ROOT.name}.core.diagnostic_contracts")
-    preflight = importlib.import_module(f"{ROOT.name}.core.diagnostics_preflight")
-    pipeline = importlib.import_module(f"{ROOT.name}.core.pipeline_contracts")
-    inputs_module = importlib.import_module(f"{ROOT.name}.implementations.projection_images")
-    sampling = importlib.import_module(f"{ROOT.name}.core.projected_material.sampling")
-    BinaryMask = importlib.import_module(f"{ROOT.name}.core.image_mask").BinaryMask
-    ProjectionAlignment = importlib.import_module(f"{ROOT.name}.core.projection_alignment").ProjectionAlignment
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--package-root", type=Path, default=ROOT)
+    args = parser.parse_args(sys.argv[sys.argv.index("--")+1:] if "--" in sys.argv else [])
+    package_root = args.package_root.resolve()
+    package_name = package_root.name
+    sys.path.insert(0, str(package_root.parent))
+    addon = importlib.import_module(package_name)
+    assert Path(addon.__file__).resolve().parent == package_root, "Smoke imported another checkout"
+    contracts = importlib.import_module(f"{package_name}.core.diagnostic_contracts")
+    preflight = importlib.import_module(f"{package_name}.core.diagnostics_preflight")
+    pipeline = importlib.import_module(f"{package_name}.core.pipeline_contracts")
+    inputs_module = importlib.import_module(f"{package_name}.implementations.projection_images")
+    sampling = importlib.import_module(f"{package_name}.core.projected_material.sampling")
+    BinaryMask = importlib.import_module(f"{package_name}.core.image_mask").BinaryMask
+    ProjectionAlignment = importlib.import_module(f"{package_name}.core.projection_alignment").ProjectionAlignment
     addon.register()
     manual_image = None
     try:
@@ -60,9 +68,14 @@ def main():
         manual_image.pixels.foreach_set(manual_pixels)
         manual_image.update()
         second.image = manual_image
+        # Tests stay outside the extension. Load only the existing smoke helper
+        # while all product imports below continue to use the shipped package.
+        helper_package = ModuleType("_preflight_smoke_helpers")
+        helper_package.__path__ = [str(ROOT / "tests/blender_smoke_support")]
+        sys.modules[helper_package.__name__] = helper_package
         legacy_alignment_smoke = importlib.import_module(
-            f"{ROOT.name}.tests.blender_smoke_support.projection_alignment")
-        legacy_alignment_smoke._validate_projection_alignment(ROOT.name, settings)
+            helper_package.__name__ + ".projection_alignment")
+        legacy_alignment_smoke._validate_projection_alignment(package_name, settings)
         original = BinaryMask(96, 96, bytes(int((.34 < x/95 < .65 and .2 < y/95 < .75) or
                                                 (.65 < x/95 < .76 and .52 < y/95 < .65))
                                              for y in range(96) for x in range(96)))

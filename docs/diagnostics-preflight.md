@@ -125,3 +125,33 @@ resolutions, and this is not an assertion of geometric invariance.
 
 Run focused tests after integrating D1 with
 `python -m unittest discover -s tests -p test_diagnostics_preflight.py`.
+
+## Existing Blender INPUT consumer
+
+The installed add-on exports `PreflightProjectionRequest` and
+`ProjectionAlignmentBinding` from its `implementations.projection_images` package.
+Pass an explicit request as `PipelineContext.source`. Each binding names an
+enabled scene projection, stable diagnostic view ID, proposal ID and explicit
+`rgb_encoding` (`sRGB` or `scene-linear`). It deliberately selects the preserved
+diagnostic pixels for that projection; the scene image and settings are unchanged.
+Unbound projections retain their existing manual preparation path.
+
+Before building consumers, INPUT reproduces the accepted proposals against the
+current immutable views, original pixels, references and policy. Unknown/duplicate
+bindings, changed camera/Flip X, changed scene alignment, stale hashes, modified
+buffers and forged proposals fail before context output or metadata changes.
+The freshly reproduced pre-correction report is attached to the stage result;
+technical INPUT success does not turn its diagnostic findings into asset approval.
+
+`PreparedProjectionView.preflight` and stage view metadata retain source and
+decoded hashes, the report dependency fingerprint and the shared certificate.
+Both `NativeProjection` and `ProjectedMaterialView` receive the same accepted mask
+and `ProjectionAlignment`. Material keeps its existing alpha-aware filtering and
+explicit color encoding; the certificate covers the mapping, not an assertion
+that binary-mask and color filters have identical edge samples.
+
+The real Blender consumer regression also runs against the extracted extension:
+
+```sh
+blender --background --factory-startup --python-exit-code 1 --python tests/blender_preflight_input_smoke.py -- --package-root /path/to/blender_projection_tool
+```
