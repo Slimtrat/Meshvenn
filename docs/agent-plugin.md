@@ -36,11 +36,15 @@ MCP host will use it:
 ```sh
 python -m venv .venv
 # Activate .venv with the command appropriate for your operating system.
-python -m pip install dist/meshvenn_engine-0.1.0-py3-none-any.whl "dist/meshvenn_agent-0.1.0-py3-none-any.whl[mcp]"
+python -m pip install build
+python -m build --sdist --wheel --outdir dist/engine .
+python -m build --sdist --wheel --outdir dist/agent packages/meshvenn_agent
+python -m pip install dist/engine/meshvenn_engine-0.1.0-py3-none-any.whl "dist/agent/meshvenn_agent-0.1.0-py3-none-any.whl[mcp]"
 ```
 
-These commands assume the wheels have already been built. The native library
-is a separate platform-specific build; the Python wheels do not turn a Windows
+Run these commands from the Meshvenn repository to build the distributions.
+Downloaded wheels can be installed directly with the final command. The native
+library is a separate platform-specific build; the Python wheels do not turn a Windows
 DLL into a Linux library. Supply the matching native binary for reconstruction
 and meshing. Preflight and capability discovery can be used independently of a
 working native backend; actual availability is reported by the engine.

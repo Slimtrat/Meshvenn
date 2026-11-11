@@ -20,6 +20,7 @@ env/
 .blender/
 
 # Generic build output
+*.egg-info/
 dist/
 build/
 native/bin/
