@@ -80,6 +80,10 @@ def score_case(case: dict, observation: dict) -> dict:
     assertions = []
     for requirement in expected["required"]:
         matches = [f for f in findings if f["code"] == requirement["code"] and f["status"] == requirement["status"]]
+        localized = requirement["code"] == "camera.unsupported" or (requirement["code"] == "geometry.cross_view_conflict" and
+            case["injection"] in ("extend_front_arm", "pair_conflict"))
+        if localized:
+            matches = [f for f in matches if "front" in f["view_ids"]]
         assertions.append({"name": requirement["code"] + ":" + requirement["status"], "passed": bool(matches),
                            "kind": "required_signal"})
     conflicts = [f for f in findings if f["code"] == "geometry.cross_view_conflict" and f["status"] == "fail"]
@@ -111,9 +115,11 @@ def score_case(case: dict, observation: dict) -> dict:
             if any(r["status"] == "fail" and r["region"]["label"] == "identity_flag"
                    for m in metrics for r in m.get("important_regions", [])):
                 sources.append("actual_native_voxel_reprojection")
-            if any(r["status"] == "fail" and r["region"]["label"] == "identity_flag"
-                   for pair in observation.get("pair_comparisons", []) for r in pair["metrics"].get("important_regions", [])):
-                sources.append("actual_calibrated_antipodal_input_comparison")
+            for pair in observation.get("pair_comparisons", []):
+                if any(r["status"] == "fail" and r["region"]["label"] == "identity_flag" for r in pair["metrics"].get("important_regions", [])):
+                    kind = "actual_independent_canonical_input_comparison" if pair.get("mapping") == "independent-canonical-same-camera" else "actual_calibrated_antipodal_input_comparison"
+                    if kind not in sources:
+                        sources.append(kind)
             passed = bool(sources)
         elif control == "canonical_eligible_front":
             # Eligibility means independently supported localization for user
@@ -127,7 +133,12 @@ def score_case(case: dict, observation: dict) -> dict:
             raise ValueError("Unknown frozen control: " + control)
         assertions.append({"name": control, "passed": passed, "kind": "control", "evidence_sources": sources})
     failures = [item["name"] for item in assertions if not item["passed"]]
+    healthy_control = "no_conflict" in expected["controls"]
     return {"passed": not failures, "assertions": assertions, "failures": failures,
+            "unexpected_geometry_abstentions": [{"code": f["code"], "view_ids": f["view_ids"], "reason": f["reason"]}
+                for f in findings if healthy_control and f["code"] == "geometry.cross_view_conflict" and f["status"] == "unknown"],
+            "unexpected_geometry_failures": [{"code": f["code"], "view_ids": f["view_ids"]}
+                for f in findings if healthy_control and f["code"].startswith("geometry.") and f["status"] == "fail"],
             "mean_iou": sum(m["iou"] for m in metrics) / len(metrics) if metrics else None,
             "abstentions": [{"code": f["code"], "view_ids": f["view_ids"], "reason": f["reason"]}
                             for f in findings if f["status"] == "unknown"]}

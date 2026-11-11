@@ -170,6 +170,15 @@ def probe_report(view_set, raster: int, probe: dict) -> DiagnosticReport:
                             policy, DiagnosticResolution(raster, raster), (finding,), completion="failed")
 
 
+def execution_failure_report(view_set, policy, error: dict) -> DiagnosticReport:
+    finding = Finding("geometry-execution-failure", "engine.geometry_execution", "engine", "error", "unknown",
+                      "The actual geometry analysis raised an unexpected exception; no quality success is established.",
+                      reason=error["error_type"] + ": " + error["message"])
+    return DiagnosticReport("geometry-execution-failure", view_set, (EngineVersion("geometry-corpus", CORPUS_VERSION),),
+                            policy.contract(), DiagnosticResolution(policy.resolution, policy.resolution, policy.resolution, "voxel"),
+                            (finding,), completion="failed")
+
+
 def write_evidence(destination: Path, result) -> tuple[dict, ...]:
     artifacts = []
     volumes = [("full", result.volume)] + [(experiment.experiment_id, experiment.volume) for experiment in result.experiments]
@@ -199,10 +208,11 @@ def write_evidence(destination: Path, result) -> tuple[dict, ...]:
         filename = "overlay-input-pair-" + pair.target_view_id + "-" + pair.counterpart_view_id + ".png"
         data = difference_overlay(pair.counterpart.values, pair.expected.values, pair.expected.width)
         (destination / filename).write_bytes(data)
+        kind = "actual_independent_canonical_input_comparison" if pair.mapping == "independent-canonical-same-camera" else "actual_calibrated_antipodal_input_comparison"
         artifacts.append({"view_id": pair.target_view_id, "counterpart_view_id": pair.counterpart_view_id,
                           "experiment_id": "pair-" + pair.target_view_id + "-" + pair.counterpart_view_id,
                           "path": filename, "sha256": sha256(data), "media_type": "image/png",
-                          "kind": "actual_calibrated_antipodal_input_comparison", "mapping": pair.mapping})
+                          "kind": kind, "mapping": pair.mapping})
     return tuple(artifacts)
 
 
@@ -210,12 +220,14 @@ def attach_evidence(report: DiagnosticReport, artifacts: tuple[dict, ...]) -> Di
     findings = []
     for finding in report.findings:
         extra = tuple(Evidence("geometry-overlay-" + str(i), "artifact",
+            "Actual independent canonical comparison, separate from voxel evidence: gray intersection, red observation-only, blue reference-only."
+            if a["kind"] == "actual_independent_canonical_input_comparison" else
             "Actual calibrated antipodal input comparison, separate from voxel evidence: gray intersection, red target-only, blue counterpart-only."
             if a["kind"] == "actual_calibrated_antipodal_input_comparison" else
             "Actual native voxel reprojection: gray intersection, red input-only, blue reconstruction-only.",
             (a["view_id"],), artifact=ArtifactReference("native-overlay-" + str(i), a["sha256"], "image/png", a["path"]))
             for i, a in enumerate(artifacts) if a["view_id"] in finding.view_ids and
-            (a["experiment_id"] == "full" or a["kind"] == "actual_calibrated_antipodal_input_comparison"))
+            (a["experiment_id"] == "full" or a["kind"] in ("actual_calibrated_antipodal_input_comparison", "actual_independent_canonical_input_comparison")))
         findings.append(replace(finding, evidence=finding.evidence + extra))
     return replace(report, findings=tuple(findings))
 
@@ -328,6 +340,10 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
                     except Exception as exc:
                         # Preserve unexpected engine failures as failures, never substitute a fake backend.
                         record["execution_failure"] = {"error_type": type(exc).__name__, "message": str(exc)}
+                        report = complete_report(execution_failure_report(view_set, policy, record["execution_failure"]),
+                                                 manifest_hash, implementation)
+                        record["report"] = report.to_dict()
+                        (destination / "diagnostic-report.json").write_text(report.to_json(), encoding="utf-8")
                 record["elapsed_seconds"] = perf_counter() - case_started
                 record["score"] = score_case(case, record)
                 if record.get("execution_failure") or record.get("contract_roundtrip_passed") is False:
@@ -365,6 +381,10 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
             "assertions": sum(len(r["score"]["assertions"]) for r in selected),
             "missed_assertions": sum(len(r["score"]["failures"]) for r in selected),
             "execution_failures": sum("execution_failure" in r for r in selected),
+            "passing_controls": sum(a["passed"] for r in selected for a in r["score"]["assertions"] if a["kind"] == "control"),
+            "missing_controls": sum(not a["passed"] for r in selected for a in r["score"]["assertions"] if a["kind"] == "control"),
+            "unexpected_geometry_abstentions_on_healthy_controls": sum(len(r["score"]["unexpected_geometry_abstentions"]) for r in selected),
+            "unexpected_geometry_failures_on_healthy_controls": sum(len(r["score"]["unexpected_geometry_failures"]) for r in selected),
             "abstentions": sum(len(r["score"]["abstentions"]) for r in selected)}
     complete = not selected_cases and split == "all" and not quick
     passed = unchanged and all(r["score"]["passed"] for r in records) and all(c["passed"] for c in order_checks)

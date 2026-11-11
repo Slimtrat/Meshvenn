@@ -1,0 +1,52 @@
+{
+  "case_id": "canonical_resolves_pair",
+  "elapsed_seconds": 0.931593199999952,
+  "execution_failure": {
+    "error_type": "ValueError",
+    "message": "finding IDs must be unique."
+  },
+  "order": "canonical",
+  "path": "runs/4d00514aae1dc669-1/canonical_resolves_pair/r64-v32-canonical",
+  "policy": {
+    "max_component_missing_fraction": 0.25,
+    "max_contour_distance_pixels": 3.0,
+    "max_experiments": 12,
+    "max_missing_fraction": 0.1,
+    "max_projection_work": 8000000,
+    "max_regions": 128,
+    "max_seconds": 15.0,
+    "max_views": 10,
+    "min_iou": 0.9,
+    "pair_raster_tolerance_pixels": 0.5,
+    "reprojection_size": 64,
+    "resolution": 32,
+    "thread_count": 1
+  },
+  "policy_sha256": "8ecd671922ea6b09168be6d9a60d2d105692274ad9fb25fa1f9853573544ce13",
+  "raster_resolution": 64,
+  "score": {
+    "abstentions": [],
+    "assertions": [
+      {
+        "kind": "required_signal",
+        "name": "geometry.cross_view_conflict:fail",
+        "passed": false
+      },
+      {
+        "evidence_sources": [],
+        "kind": "control",
+        "name": "canonical_eligible_front",
+        "passed": false
+      }
+    ],
+    "failures": [
+      "geometry.cross_view_conflict:fail",
+      "canonical_eligible_front",
+      "execution_or_contract_failure"
+    ],
+    "mean_iou": null,
+    "passed": false
+  },
+  "split": "heldout",
+  "voxel_resolution": 32
+}

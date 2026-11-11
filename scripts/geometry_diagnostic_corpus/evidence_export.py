@@ -70,9 +70,11 @@ def export_record(summary_path: Path, destination: Path, *, label: str, limitati
             original = source / filename
             if original.exists():
                 shutil.copyfile(original, target / filename)
+        report = target / "diagnostic-report.json"
         evidence.append({"name": name, "case_id": case_id, "raster_resolution": raster, "voxel_resolution": voxel,
-                         "report_path": f"geometry-diagnostic-corpus-evidence/{name}/diagnostic-report.json",
-                         "report_sha256": sha256((target / "diagnostic-report.json").read_bytes())})
+                         "report_path": f"geometry-diagnostic-corpus-evidence/{name}/diagnostic-report.json" if report.exists() else None,
+                         "report_sha256": sha256(report.read_bytes()) if report.exists() else None,
+                         "observation_sha256": sha256((target / "observation.json").read_bytes())})
     compact["committed_examples"] = evidence
     destination.mkdir(parents=True, exist_ok=True)
     record_path.write_bytes(canonical_json(document))
