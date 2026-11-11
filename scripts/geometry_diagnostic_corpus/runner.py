@@ -179,13 +179,13 @@ def execution_failure_report(view_set, policy, error: dict) -> DiagnosticReport:
                             (finding,), completion="failed")
 
 
-def write_evidence(destination: Path, result) -> tuple[dict, ...]:
+def write_evidence(destination: Path, result, *, prefix="", scope="selected-result") -> tuple[dict, ...]:
     artifacts = []
     volumes = [("full", result.volume)] + [(experiment.experiment_id, experiment.volume) for experiment in result.experiments]
     for phase, volume in volumes:
         if volume is None:
             continue
-        filename = "native-volume-" + phase + ".bin"
+        filename = prefix + "native-volume-" + phase + ".bin"
         (destination / filename).write_bytes(volume.values)
         artifacts.append({"view_id": None, "experiment_id": phase, "path": filename,
                           "sha256": sha256(volume.values), "volume_artifact_sha256": volume.sha256,
@@ -199,13 +199,13 @@ def write_evidence(destination: Path, result) -> tuple[dict, ...]:
             if expected.width != expected.height or expected.width != actual.width or expected.height != actual.height:
                 raise ValueError("Overlay requires actual same-sized square masks")
             data = difference_overlay(actual.values, expected.values, expected.width)
-            filename = "overlay-" + phase + "-" + view.view_id + ".png"
+            filename = prefix + "overlay-" + phase + "-" + view.view_id + ".png"
             (destination / filename).write_bytes(data)
             artifacts.append({"view_id": view.view_id, "experiment_id": phase, "path": filename,
                               "sha256": sha256(data), "media_type": "image/png",
                               "kind": "actual_native_voxel_reprojection_vs_original_input"})
     for pair in getattr(result, "pair_comparisons", ()):
-        filename = "overlay-input-pair-" + pair.target_view_id + "-" + pair.counterpart_view_id + ".png"
+        filename = prefix + "overlay-input-pair-" + pair.target_view_id + "-" + pair.counterpart_view_id + ".png"
         data = difference_overlay(pair.counterpart.values, pair.expected.values, pair.expected.width)
         (destination / filename).write_bytes(data)
         kind = "actual_independent_canonical_input_comparison" if pair.mapping == "independent-canonical-same-camera" else "actual_calibrated_antipodal_input_comparison"
@@ -213,10 +213,10 @@ def write_evidence(destination: Path, result) -> tuple[dict, ...]:
                           "experiment_id": "pair-" + pair.target_view_id + "-" + pair.counterpart_view_id,
                           "path": filename, "sha256": sha256(data), "media_type": "image/png",
                           "kind": kind, "mapping": pair.mapping})
-    return tuple(artifacts)
+    return tuple(artifact | {"evidence_scope": scope} for artifact in artifacts)
 
 
-def attach_evidence(report: DiagnosticReport, artifacts: tuple[dict, ...]) -> DiagnosticReport:
+def attach_evidence(report: DiagnosticReport, artifacts: tuple[dict, ...], *, scope="selected-result") -> DiagnosticReport:
     findings = []
     for finding in report.findings:
         extra = tuple(Evidence("geometry-overlay-" + str(i), "artifact",
@@ -226,10 +226,82 @@ def attach_evidence(report: DiagnosticReport, artifacts: tuple[dict, ...]) -> Di
             if a["kind"] == "actual_calibrated_antipodal_input_comparison" else
             "Actual native voxel reprojection: gray intersection, red input-only, blue reconstruction-only.",
             (a["view_id"],), artifact=ArtifactReference("native-overlay-" + str(i), a["sha256"], "image/png", a["path"]))
-            for i, a in enumerate(artifacts) if a["view_id"] in finding.view_ids and
+            for i, a in enumerate(artifacts) if a.get("evidence_scope", "selected-result") == scope and a["view_id"] in finding.view_ids and
             (a["experiment_id"] == "full" or a["kind"] in ("actual_calibrated_antipodal_input_comparison", "actual_independent_canonical_input_comparison")))
+        if finding.code == "engine.provenance":
+            extra += tuple(Evidence("attempt-report-" + str(i), "artifact",
+                "Actual preserved native attempt report, including its own resolution, unknowns, failures and budget deltas.",
+                artifact=ArtifactReference("attempt-report-" + str(i), artifact["sha256"], "application/json", artifact["path"]))
+                for i, artifact in enumerate(artifacts) if artifact["kind"] == "actual_native_attempt_report")
         findings.append(replace(finding, evidence=finding.evidence + extra))
     return replace(report, findings=tuple(findings))
+
+
+def preserve_attempts(destination: Path, result, manifest_hash: str, implementation: dict) -> tuple[list[dict], tuple[dict, ...]]:
+    """Persist every native attempt without replacing the coarse first result."""
+    snapshots, all_artifacts = [], []
+    for index, attempt in enumerate(getattr(result, "attempts", ()), 1):
+        scope = f"attempt-{index:02d}-n{attempt.resolution}"
+        artifacts = write_evidence(destination, attempt, prefix=scope + "-", scope=scope)
+        report = complete_report(attach_evidence(attempt.report, artifacts, scope=scope), manifest_hash, implementation)
+        serialized = report.to_json()
+        filename = scope + "-diagnostic-report.json"
+        (destination / filename).write_text(serialized, encoding="utf-8")
+        report_artifact = {"view_id": None, "experiment_id": scope, "path": filename,
+                           "sha256": sha256((destination / filename).read_bytes()), "media_type": "application/json",
+                           "kind": "actual_native_attempt_report", "evidence_scope": scope, "resolution": attempt.resolution}
+        snapshot = jsonable(attempt)
+        snapshot.update({"attempt_index": index, "report": report.to_dict(), "artifacts": artifacts + (report_artifact,),
+                         "contract_roundtrip_passed": DiagnosticReport.from_json(serialized).to_json() == serialized})
+        snapshots.append(snapshot)
+        all_artifacts.extend(artifacts + (report_artifact,))
+    return snapshots, tuple(all_artifacts)
+
+
+def attempt_accounting(result) -> dict:
+    """Verify the new attempt/provenance contract without changing truth labels."""
+    attempts = getattr(result, "attempts", ())
+    if not attempts:
+        return {"applicable": False, "passed": True, "checks": [],
+                "reason": "This result has no attempt contract; retry behavior is not qualified by this observation."}
+    checks = []
+    def check(name, passed, observed):
+        checks.append({"name": name, "passed": bool(passed), "observed": jsonable(observed)})
+    resolutions = tuple(attempt.resolution for attempt in attempts)
+    provenance = result.provenance
+    check("at_most_two_attempts", 1 <= len(attempts) <= 2, len(attempts))
+    check("original_requested_resolution_preserved", resolutions[0] == result.requested_resolution,
+          {"requested": result.requested_resolution, "attempts": resolutions})
+    check("single_n64_retry", len(attempts) == 1 or resolutions[1] == 64 and resolutions[0] < 64, resolutions)
+    check("selected_attempt_resolution", result.actual_resolution == resolutions[-1] == result.report.resolution.width == provenance.resolution,
+          {"actual": result.actual_resolution, "attempts": resolutions, "report": result.report.resolution.width,
+           "provenance": provenance.resolution})
+    check("attempted_resolutions", tuple(provenance.attempted_resolutions) == resolutions, provenance.attempted_resolutions)
+    for index, attempt in enumerate(attempts, 1):
+        check(f"attempt_{index}_resolution", attempt.report.resolution.width == attempt.resolution and
+              (attempt.volume is None or attempt.volume.width == attempt.resolution),
+              {"resolution": attempt.resolution, "report": attempt.report.resolution.width,
+               "volume": attempt.volume.width if attempt.volume is not None else None})
+    for field, budget, maximum in (("native_sessions_reserved", "native_session_budget", 24),
+                                   ("native_applications_reserved", "native_application_budget", 220),
+                                   ("native_voxel_test_capacity", "native_voxel_test_budget", 57_671_680),
+                                   ("python_work_reserved", "python_work_budget", 8_000_000_000)):
+        total = sum(getattr(attempt.provenance, field) for attempt in attempts)
+        observed, limit = getattr(provenance, field), getattr(provenance, budget)
+        check(field + "_shared_budget", total == observed and 0 <= observed <= limit <= maximum,
+              {"sum_attempt_deltas": total, "reported_total": observed, "shared_budget": limit, "maximum_contract_budget": maximum})
+    for field in ("completed_experiments", "native_projection_applications"):
+        total = sum(getattr(attempt.provenance, field) for attempt in attempts)
+        check(field + "_aggregate", total == getattr(provenance, field),
+              {"sum_attempt_deltas": total, "reported_total": getattr(provenance, field)})
+    native_total = sum(attempt.provenance.native_elapsed_seconds for attempt in attempts)
+    check("native_elapsed_aggregate", abs(native_total - provenance.native_elapsed_seconds) <= 1e-6,
+          {"sum_attempt_seconds": native_total, "reported_total": provenance.native_elapsed_seconds})
+    elapsed_total = sum(attempt.provenance.elapsed_seconds for attempt in attempts)
+    check("attempt_elapsed_within_total", elapsed_total <= provenance.elapsed_seconds + 1e-6,
+          {"sum_attempt_seconds": elapsed_total, "reported_total": provenance.elapsed_seconds,
+           "shared_deadline_seconds": provenance.deadline_seconds})
+    return {"applicable": True, "passed": all(item["passed"] for item in checks), "checks": checks}
 
 
 def native_rejection(native_library: Path) -> dict:
@@ -327,7 +399,8 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
                         record["native_worker_probe"] = real_worker_deadline(backend, inputs)
                     try:
                         result = analyze_geometry(view_set, inputs, policy=policy, backend=backend, regions=regions)
-                        artifacts = write_evidence(destination, result)
+                        attempts, attempt_artifacts = preserve_attempts(destination, result, manifest_hash, implementation)
+                        artifacts = write_evidence(destination, result) + attempt_artifacts
                         report = complete_report(attach_evidence(result.report, artifacts), manifest_hash, implementation)
                         serialized = report.to_json()
                         record["contract_roundtrip_passed"] = DiagnosticReport.from_json(serialized).to_json() == serialized
@@ -336,6 +409,9 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
                             "pair_comparisons": jsonable(getattr(result, "pair_comparisons", ())),
                             "experiments": jsonable(result.experiments), "trace": jsonable(result.trace),
                             "engine_provenance": jsonable(result.provenance), "artifacts": artifacts,
+                            "attempts": attempts, "attempt_accounting": attempt_accounting(result),
+                            "requested_voxel_resolution": getattr(result, "requested_resolution", voxel) or voxel,
+                            "effective_voxel_resolution": getattr(result, "actual_resolution", 0) or result.provenance.resolution,
                             "occupied_count": result.volume.occupied_count if result.volume is not None else None})
                     except Exception as exc:
                         # Preserve unexpected engine failures as failures, never substitute a fake backend.
@@ -349,6 +425,9 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
                 if record.get("execution_failure") or record.get("contract_roundtrip_passed") is False:
                     record["score"]["passed"] = False
                     record["score"]["failures"].append("execution_or_contract_failure")
+                if record.get("attempt_accounting", {}).get("passed") is False or any(not attempt["contract_roundtrip_passed"] for attempt in record.get("attempts", [])):
+                    record["score"]["passed"] = False
+                    record["score"]["failures"].append("native_attempt_contract_failure")
                 if case["injection"] == "deadline" and not record.get("native_worker_probe", {}).get("worker_started"):
                     record["score"]["passed"] = False
                     record["score"]["failures"].append("actual_worker_deadline_not_observed")
@@ -368,6 +447,10 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
             elif record is not baseline and "report" in record:
                 sensitivity.append({"case_id": case["case_id"], "baseline": [baseline["raster_resolution"], baseline["voxel_resolution"]],
                     "comparison": [record["raster_resolution"], record["voxel_resolution"]],
+                    "baseline_effective_voxel_resolution": baseline.get("effective_voxel_resolution", baseline["voxel_resolution"]),
+                    "comparison_effective_voxel_resolution": record.get("effective_voxel_resolution", record["voxel_resolution"]),
+                    "baseline_attempt_resolutions": [attempt["resolution"] for attempt in baseline.get("attempts", [])],
+                    "comparison_attempt_resolutions": [attempt["resolution"] for attempt in record.get("attempts", [])],
                     "same_conclusions": "report" in baseline and semantic_signature(baseline["report"], include_bounds=False) == semantic_signature(record["report"], include_bounds=False),
                     "both_satisfy_frozen_expectations": baseline["score"]["passed"] and record["score"]["passed"],
                     "localization": localization_sensitivity(baseline, record),
@@ -381,6 +464,9 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
             "assertions": sum(len(r["score"]["assertions"]) for r in selected),
             "missed_assertions": sum(len(r["score"]["failures"]) for r in selected),
             "execution_failures": sum("execution_failure" in r for r in selected),
+            "native_attempts": sum(len(r.get("attempts", [])) for r in selected),
+            "native_retries": sum(max(0, len(r.get("attempts", [])) - 1) for r in selected),
+            "attempt_contract_failures": sum(not r.get("attempt_accounting", {}).get("passed", True) for r in selected),
             "passing_controls": sum(a["passed"] for r in selected for a in r["score"]["assertions"] if a["kind"] == "control"),
             "missing_controls": sum(not a["passed"] for r in selected for a in r["score"]["assertions"] if a["kind"] == "control"),
             "unexpected_geometry_abstentions_on_healthy_controls": sum(len(r["score"]["unexpected_geometry_abstentions"]) for r in selected),

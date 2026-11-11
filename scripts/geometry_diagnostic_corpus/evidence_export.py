@@ -9,6 +9,24 @@ from scripts.diagnostic_corpus.fixtures import canonical_json, sha256
 from .runner import checked_path
 
 
+def measurement_summary(views):
+    return [{"view_id": view["view_id"], "iou": view["metrics"]["iou"],
+             "resolution_tolerance_pixels": view.get("resolution_tolerance_pixels"),
+             "source_width": view.get("source_width"), "source_height": view.get("source_height"),
+             "important_regions": view["metrics"]["important_regions"],
+             "components": view["metrics"].get("components", []),
+             "actual_component_count": view["metrics"].get("actual_component_count"),
+             "component_correspondence": view["metrics"].get("component_correspondence")}
+            for view in views]
+
+
+def experiment_summary(experiments):
+    return [{"experiment_id": experiment["experiment_id"], "state": experiment["state"],
+             "excluded_view_ids": experiment["excluded_view_ids"], "included_view_ids": experiment["included_view_ids"],
+             "elapsed_seconds": experiment["elapsed_seconds"], "volume": experiment["volume"]}
+            for experiment in experiments]
+
+
 def compact_run(summary_path: Path, *, label: str, limitations=()) -> dict:
     encoded = summary_path.read_bytes()
     summary = json.loads(encoded)
@@ -17,21 +35,29 @@ def compact_run(summary_path: Path, *, label: str, limitations=()) -> dict:
         data = {key: record[key] for key in ("case_id", "split", "raster_resolution", "voxel_resolution", "order",
                                              "elapsed_seconds", "score")}
         data.update({key: record[key] for key in ("policy", "policy_sha256", "occupied_count", "engine_provenance",
-                                                   "native_probe", "native_worker_probe", "execution_failure") if key in record})
+                                                   "native_probe", "native_worker_probe", "execution_failure", "attempt_accounting",
+                                                   "requested_voxel_resolution", "effective_voxel_resolution") if key in record})
         data["findings"] = [{key: finding[key] for key in ("code", "status", "view_ids", "regions", "reason")}
                             for finding in record.get("report", {}).get("findings", [])]
-        data["native_experiments"] = [{"experiment_id": experiment["experiment_id"], "state": experiment["state"],
-            "excluded_view_ids": experiment["excluded_view_ids"], "included_view_ids": experiment["included_view_ids"],
-            "elapsed_seconds": experiment["elapsed_seconds"], "volume": experiment["volume"]}
-            for experiment in record.get("experiments", [])]
+        data["native_experiments"] = experiment_summary(record.get("experiments", []))
         data["trace"] = record.get("trace", [])
         data["artifact_count"] = len(record.get("artifacts", []))
         data["artifact_manifest_sha256"] = sha256(canonical_json(record.get("artifacts", [])))
-        data["regional_measurements"] = [{"view_id": view["view_id"], "iou": view["metrics"]["iou"],
-            "important_regions": view["metrics"]["important_regions"]} for view in record.get("views", [])]
+        data["regional_measurements"] = measurement_summary(record.get("views", []))
         data["direct_pair_measurements"] = [{"target_view_id": pair["target_view_id"], "counterpart_view_id": pair["counterpart_view_id"],
             "mapping": pair["mapping"], "iou": pair["metrics"]["iou"], "important_regions": pair["metrics"]["important_regions"],
             "raster_tolerance_pixels": pair["raster_tolerance_pixels"]} for pair in record.get("pair_comparisons", [])]
+        data["attempts"] = []
+        for attempt in record.get("attempts", []):
+            snapshot = {key: attempt[key] for key in ("attempt_index", "resolution", "trigger", "provenance", "volume", "trace",
+                                                      "contract_roundtrip_passed")}
+            snapshot["findings"] = [{key: finding[key] for key in ("code", "status", "view_ids", "regions", "reason")}
+                                    for finding in attempt["report"]["findings"]]
+            snapshot["native_experiments"] = experiment_summary(attempt["experiments"])
+            snapshot["regional_measurements"] = measurement_summary(attempt["views"])
+            snapshot["artifact_manifest_sha256"] = sha256(canonical_json(attempt["artifacts"]))
+            snapshot["artifact_count"] = len(attempt["artifacts"])
+            data["attempts"].append(snapshot)
         records.append(data)
     return {"label": label, "source_qualification_sha256": sha256(encoded),
             "manifest_sha256": summary["manifest_sha256"], "qualification_identity": summary["qualification_identity"],

@@ -7,10 +7,11 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 
 from scripts.geometry_diagnostic_corpus.fixtures import build_corpus
-from scripts.geometry_diagnostic_corpus.runner import checked_path, inputs_for_case, load_manifest
+from scripts.geometry_diagnostic_corpus.runner import attempt_accounting, checked_path, inputs_for_case, load_manifest, write_evidence
 from scripts.geometry_diagnostic_corpus.scoring import localization_sensitivity, score_case, semantic_signature
 from scripts.diagnostic_corpus.fixtures import sha256
 
@@ -136,6 +137,42 @@ class GeometryCorpusTests(unittest.TestCase):
         self.assertEqual(result["matched_regions"][0]["baseline"][0]["bounds"], [.1, .2, .3, .4])
         changed["report"]["findings"][0]["regions"][0]["bounds"] = [.6, .7, .8, .9]
         self.assertFalse(localization_sensitivity(record, changed)["matched_bounds_within_tolerance"])
+
+    def test_attempt_provenance_checks_shared_budget_and_keeps_deltas(self):
+        # Contract specimens only; this test makes no native quality claim.
+        def attempt(resolution, sessions):
+            return SimpleNamespace(resolution=resolution, volume=SimpleNamespace(width=resolution),
+                report=SimpleNamespace(resolution=SimpleNamespace(width=resolution)),
+                provenance=SimpleNamespace(native_sessions_reserved=sessions, native_applications_reserved=4,
+                    native_voxel_test_capacity=128, python_work_reserved=1024, completed_experiments=2,
+                    native_projection_applications=4, native_elapsed_seconds=.1, elapsed_seconds=.2))
+        provenance = SimpleNamespace(resolution=64, attempted_resolutions=(32, 64), native_sessions_reserved=6,
+            native_session_budget=24, native_applications_reserved=8, native_application_budget=220,
+            native_voxel_test_capacity=256, native_voxel_test_budget=57_671_680, python_work_reserved=2048,
+            python_work_budget=8_000_000_000, completed_experiments=4, native_projection_applications=8,
+            native_elapsed_seconds=.2, elapsed_seconds=.5, deadline_seconds=15)
+        result = SimpleNamespace(attempts=(attempt(32, 3), attempt(64, 3)), requested_resolution=32, actual_resolution=64,
+            report=SimpleNamespace(resolution=SimpleNamespace(width=64)), provenance=provenance)
+        self.assertTrue(attempt_accounting(result)["passed"])
+        provenance.native_sessions_reserved = 3
+        self.assertFalse(attempt_accounting(result)["passed"])
+        provenance.native_sessions_reserved = 6
+        provenance.native_session_budget = 100
+        self.assertFalse(attempt_accounting(result)["passed"])
+
+    def test_attempt_artifact_prefix_prevents_overwriting_coarse_result(self):
+        # Byte serialization test only; masks are not a quality-evaluation backend.
+        def specimen(values):
+            volume = SimpleNamespace(values=values, sha256="a" * 64, width=8, depth=8, height=8,
+                                     occupied_count=sum(values), bounds=None)
+            return SimpleNamespace(volume=volume, views=(), experiments=(), pair_comparisons=())
+        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as folder:
+            destination = Path(folder)
+            first = write_evidence(destination, specimen(bytes(512)), prefix="attempt-01-n32-", scope="attempt-01-n32")
+            second = write_evidence(destination, specimen(bytes([1]) * 512), prefix="attempt-02-n64-", scope="attempt-02-n64")
+            self.assertNotEqual(first[0]["path"], second[0]["path"])
+            self.assertEqual((destination / first[0]["path"]).read_bytes(), bytes(512))
+            self.assertEqual((destination / second[0]["path"]).read_bytes(), bytes([1]) * 512)
 
     def test_verify_only_needs_no_native_binary_and_advertises_no_quality(self):
         child = subprocess.run([sys.executable, str(ROOT / "scripts/qualify_geometry_diagnostics.py"), "--verify-only"],
