@@ -40,7 +40,7 @@ Actions and exact arguments:
 | Action | Arguments | Result |
 | --- | --- | --- |
 | `engine.capabilities` | `{}` | Same catalogue as `capabilities()` |
-| `views.preflight` | `view_set`, `inputs`, optional `policy`, `anchors`, empty `regions` | Existing D1 report and D2 alignment proposals |
+| `views.preflight` | `view_set`, `inputs`, optional `policy`, `anchors` | Existing D1 report and D2 alignment proposals |
 | `geometry.diagnose` | `view_set`, `inputs`, optional `policy`, `regions` | Existing full D3 result, including preserved adaptive attempts |
 | `geometry.mesh` | Strict D3 `volume`, optional `voxel_size`, `center_xy`, `mesh_mode`, `max_seconds` | Native mesh arrays, projection space and runtime provenance |
 

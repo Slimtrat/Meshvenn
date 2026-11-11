@@ -53,7 +53,7 @@ def action_schemas():
         "inputs": {"type": "object", "maxProperties": 20, "additionalProperties": _object(
             {"image": raster, "mask": {"anyOf": [raster, {"type": "null"}]}}, ("image",))},
         "regions": {"type": "array", "maxItems": 128, "items": model_schema(Region)}}
-    preflight = _object({**common, "policy": model_schema(PreflightPolicy),
+    preflight = _object({**{key: value for key, value in common.items() if key != "regions"}, "policy": model_schema(PreflightPolicy),
         "anchors": {"type": "array", "maxItems": 20, "items": model_schema(AlignmentAnchor)}}, ("view_set", "inputs"))
     diagnosis = _object({**common, "policy": model_schema(GeometryPolicy)}, ("view_set", "inputs"))
     mesh = _object({"volume": model_schema(VolumeArtifact),

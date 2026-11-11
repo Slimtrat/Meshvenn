@@ -55,6 +55,8 @@ class EngineLibraryTests(unittest.TestCase):
             self.assertEqual(descriptor["version"], 1)
             self.assertIs(type(descriptor["available"]), bool)
             self.assertEqual(descriptor["input_schema"]["additionalProperties"], False)
+        self.assertNotIn("regions", catalogue["actions"]["views.preflight"]["input_schema"]["properties"])
+        self.assertIn("regions", catalogue["actions"]["geometry.diagnose"]["input_schema"]["properties"])
 
     def test_png_preflight_reuses_real_hash_dimension_and_camera_checks(self):
         engine = MeshvennEngine()
