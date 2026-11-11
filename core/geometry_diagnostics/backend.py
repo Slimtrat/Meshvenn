@@ -70,6 +70,8 @@ class NativeGeometryBackend:
         started = time.monotonic()
         if type(timeout) not in (int, float) or not math.isfinite(timeout):
             raise ValueError("Native deadline must be a finite number of seconds.")
+        if timeout > 120:
+            raise ValueError("Native diagnostic deadline must not exceed 120 seconds.")
         library_hash = ""
         python = str(self.python_executable.resolve())
 
@@ -104,7 +106,8 @@ class NativeGeometryBackend:
         request_views = []
         for name, projection in ordered:
             mask = projection.mask
-            if mask.width * mask.height > 1_048_576 or any(value > 1 for value in mask.values):
+            if (type(mask.width) is not int or type(mask.height) is not int or
+                    mask.width * mask.height > 1_048_576 or any(value > 1 for value in mask.values)):
                 raise ValueError("Native diagnostic masks exceed their binary/pixel contract.")
             request_views.append(dict(view_id=name, width=mask.width, height=mask.height,
                                       values_hex=mask.values.hex(), azimuth=projection.azimuth_degrees,

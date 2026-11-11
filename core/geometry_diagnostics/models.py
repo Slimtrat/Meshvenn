@@ -22,6 +22,8 @@ class MaskArtifact(JsonContract):
         require_sha256(self.sha256)
         if not 1 <= self.width <= 256 or not 1 <= self.height <= 256:
             raise ValueError("Diagnostic raster dimensions must be in [1,256].")
+        if len(self.values_hex) != self.width * self.height * 2:
+            raise ValueError("Diagnostic raster encoded length does not match its grid.")
         raw = bytes.fromhex(self.values_hex)
         if len(raw) != self.width * self.height or any(v > 1 for v in raw):
             raise ValueError("Diagnostic masks require exactly one binary byte per pixel.")
@@ -63,6 +65,8 @@ class VolumeArtifact(JsonContract):
         require_sha256(self.sha256)
         if not (8 <= self.width == self.depth == self.height <= 64):
             raise ValueError("Diagnostic volume must be cubic with side in [8,64].")
+        if len(self.values_hex) != self.width ** 3 * 2:
+            raise ValueError("Diagnostic volume encoded length does not match its grid.")
         raw = bytes.fromhex(self.values_hex)
         if len(raw) != self.width ** 3 or any(v > 1 for v in raw) or sum(raw) != self.occupied_count:
             raise ValueError("Native volume has invalid occupancy data.")

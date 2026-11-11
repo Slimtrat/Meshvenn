@@ -184,7 +184,7 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
         raise ValueError("Important region count exceeds the explicit policy budget.")
     findings, assumptions, measured, experiments, trace = [], [], [], [], ()
     full_volume, batch = None, NativeBatch((), "not_started", "", "", "", 0., "not_started")
-    native_masks, metric_masks, reduction_unknown = {}, {}, {}
+    native_masks, metric_masks, reduction_unknown, measurement_cache = {}, {}, {}, {}
     completion = "complete"
     source_hash = _source_hash()
 
@@ -285,6 +285,9 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
 
             def measure(volume, view_id):
                 check_budget(deadline=deadline, cancel=cancel)
+                cache_key = (volume.sha256, view_id)
+                if cache_key in measurement_cache:
+                    return measurement_cache[cache_key]
                 expected, view = metric_masks[view_id], views[view_id]
                 native = volume.as_native()
                 tolerance = projection_tolerance_pixels(native, view.camera, expected.width, expected.height)
@@ -295,10 +298,12 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                                            resolution_tolerance_pixels=tolerance, max_regions=policy.max_regions,
                                            deadline=deadline, cancel=cancel, max_work=policy.max_projection_work)
                 source = inputs[view_id].mask or inputs[view_id].image
-                return ViewGeometryResult(view_id, MaskArtifact.from_mask(expected), MaskArtifact.from_mask(actual),
+                result = ViewGeometryResult(view_id, MaskArtifact.from_mask(expected), MaskArtifact.from_mask(actual),
                                           _metric_snapshot(comparison, view_id), tolerance,
                                           source.width, source.height, source.source_sha256, source.decoded_sha256,
                                           _mask_digest(native_masks[view_id]))
+                measurement_cache[cache_key] = result
+                return result
 
             for item in batch.experiments:
                 if item.experiment_id == "source-order":
@@ -379,14 +384,20 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                     metric = compare_masks(reference_mask, expected,
                                            resolution_tolerance_pixels=0., max_regions=policy.max_regions,
                                            deadline=deadline, cancel=cancel, max_work=policy.max_projection_work)
-                    bad = metric.iou < policy.min_iou or any(r.status == "fail" for r in metric.components)
+                    bad = (metric.iou < policy.min_iou or 1-metric.recall > policy.max_missing_fraction or
+                           1-metric.precision > policy.max_missing_fraction or
+                           (metric.contour_max_pixels is not None and metric.contour_max_pixels > policy.max_contour_distance_pixels) or
+                           any(r.status == "fail" for r in metric.components))
                     unresolved = (reference_lost or reduction_unknown.get(target_id) or metric.components_truncated or
                                   any(r.status == "unknown" for r in metric.components))
                     finding("geometry.reference_conflict", "geometry", "fail" if bad else "unknown" if unresolved else "pass",
                             "This observation disagrees with independent validated same-camera canonical evidence." if bad else
                             "Independent validated same-camera canonical evidence supports this observation's silhouette.",
                             (target_id, reference.view_id), key=reference.view_id,
-                            measurements=(Measurement("canonical_mask_iou", metric.iou, "ratio", Threshold(">=", policy.min_iou, "ratio")),),
+                            measurements=(Measurement("canonical_mask_iou", metric.iou, "ratio", Threshold(">=", policy.min_iou, "ratio")),
+                                          Measurement("canonical_precision", metric.precision, "ratio"),
+                                          Measurement("canonical_recall", metric.recall, "ratio")) +
+                                         (() if metric.contour_max_pixels is None else (Measurement("canonical_contour_max", metric.contour_max_pixels, "pixel", Threshold("<=", policy.max_contour_distance_pixels, "pixel")),)),
                             action="review_reference")
     except InterruptedError:
         completion = "cancelled"

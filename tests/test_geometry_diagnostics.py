@@ -6,6 +6,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from dataclasses import replace
 from pathlib import Path
@@ -86,6 +87,43 @@ class GeometryBoundaryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             replace(correct, bounds=(0, 7, 0, 7, 0, 7))
 
+    def test_blocked_native_child_is_terminated_and_reaped_on_deadline(self):
+        class BlockedChild:
+            returncode = None
+            terminated = False
+            reaped = False
+            def poll(self):
+                return self.returncode
+            def wait(self, timeout=None):
+                if self.returncode is not None:
+                    self.reaped = True
+                    return self.returncode
+                time.sleep(min(timeout or .001, .005))
+                raise subprocess.TimeoutExpired("safe mocked native child", timeout)
+            def terminate(self):
+                self.terminated = True
+                self.returncode = -1
+            def kill(self):
+                self.returncode = -9
+        with tempfile.TemporaryDirectory() as directory:
+            library = Path(directory) / "unused.dll"
+            library.write_bytes(b"safe mocked backend fixture")
+            backend = NativeGeometryBackend(library)
+            child = BlockedChild()
+            projection = NativeProjection(BinaryMask(2, 2, b"\1" * 4), 0)
+            with patch("core.geometry_diagnostics.backend.subprocess.Popen", return_value=child):
+                result = backend.run((("a", projection),), resolution=8, input_order=("a",), timeout=.02)
+        self.assertEqual(result.state, "time_budget")
+        self.assertEqual(result.termination, "terminated_deadline")
+        self.assertTrue(child.terminated)
+        self.assertTrue(child.reaped)
+
+    def test_worker_tempfile_os_failure_is_a_structured_result(self):
+        with patch.object(NativeGeometryBackend, "_run", side_effect=PermissionError("test denied temp access")):
+            result = NativeGeometryBackend().run((), resolution=8, input_order=(), timeout=1)
+        self.assertEqual(result.state, "worker_failure")
+        self.assertIn("PermissionError", result.error)
+
     def test_malformed_input_never_launches_native(self):
         revision, inputs = sources()
         wrong = replace(inputs["v0"].image, source_sha256="b" * 64)
@@ -115,7 +153,7 @@ class GeometryBoundaryTests(unittest.TestCase):
         self.assertEqual(result.report.completion, "cancelled")
         self.assertEqual(result.report.verification_status, "unknown")
 
-    def test_tiny_named_region_without_foreground_remains_unknown(self):
+    def test_missing_backend_result_roundtrips_with_named_region(self):
         revision, inputs = sources()
         result = analyze_geometry(revision, inputs, regions=(Region("v0", "empty-region", (0., 0., .1, .1)),),
                                   backend=NativeGeometryBackend(Path("missing-diagnostic-library.dll")))
@@ -134,6 +172,15 @@ class GeometryNativeTests(unittest.TestCase):
         self.assertEqual(result.provenance.completed_experiments, 3)
         self.assertGreater(result.volume.occupied_count, 0)
         self.assertTrue(any(f.code == "alignment.reference_missing" and f.status == "unknown" and not f.required for f in result.report.findings))
+        self.assertEqual(GeometryResult.from_json(result.to_json()), result)
+
+    def test_real_empty_named_region_is_unknown_and_roundtrips(self):
+        revision, inputs = sources()
+        region = Region("v0", "empty-region", (0., 0., .1, .1))
+        result = analyze_geometry(revision, inputs, regions=(region,), backend=self.backend())
+        self.assertTrue(any(f.code == "geometry.detail_preservation" and region in f.regions and f.status == "unknown"
+                            for f in result.report.findings))
+        self.assertIsNone(result.views[0].metrics.important_regions[0].recall)
         self.assertEqual(GeometryResult.from_json(result.to_json()), result)
 
     def test_real_native_permutation_preserves_final_conclusions(self):
