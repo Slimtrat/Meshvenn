@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from typing import Callable
 
@@ -96,6 +97,12 @@ class Gateway:
                                   error=dict(code=error.code[:128], message=error.message[:1024], details=details))
         if engine_invoked and response["technical_status"] == "not_started":
             response["technical_status"] = "failed"
+        try:
+            json_bytes(response, max_bytes=self.limits.max_response_bytes, limits=self.limits)
+        except GatewayError:
+            response["error"]["details"] = {"truncated": True}
+            response["error"]["code"] = error.code[:128] if re.fullmatch(r"[A-Za-z0-9_.:-]+", error.code) else "failed"
+            response["error"]["message"] = error.message.encode("utf-8", "replace")[:128].decode("utf-8", "ignore")
         return response
 
     def execute(self, action: str, arguments: dict, *, request_id: str | None = None,
@@ -119,10 +126,10 @@ class Gateway:
             raw = json_bytes(request, max_bytes=self.limits.max_request_bytes, limits=self.limits, cancel=cancel)
             request = json.loads(raw)
             if type(request) is dict:
-                if type(request.get("request_id")) is str:
-                    request_id = request["request_id"][:128]
-                if type(request.get("action")) is str:
-                    action = request["action"][:128]
+                if type(request.get("request_id")) is str and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", request["request_id"]):
+                    request_id = request["request_id"]
+                if type(request.get("action")) is str and request["action"] in ACTIONS:
+                    action = request["action"]
             validate_request(request)
             request_id, action = request["request_id"], request["action"]
             arguments = request["arguments"]
@@ -200,11 +207,13 @@ class Gateway:
 
     def read_artifact(self, sha256: str, *, offset: int = 0, limit: int = 64*1024):
         try:
+            if type(offset) is not int or not 0 <= offset <= self.artifacts.max_artifact_bytes:
+                raise GatewayError("invalid_request", "Artifact offset exceeds the bounded store profile.")
             if type(limit) is not int or limit > self.limits.max_chunk_bytes:
                 raise GatewayError("invalid_request", "Artifact read exceeds the gateway chunk budget.")
             return self.artifacts.read(sha256, offset=offset, limit=limit)
         except Exception as exc:
             error = _safe_error(exc)
             return dict(schema_version=1, status=_error_status(error.code), sha256=sha256[:64] if type(sha256) is str else "",
-                        offset=offset if type(offset) is int else 0, bytes=0, total_bytes=None, eof=False,
+                        offset=offset if type(offset) is int and 0 <= offset <= self.artifacts.max_artifact_bytes else 0, bytes=0, total_bytes=None, eof=False,
                         next_offset=None, data_base64="", error=error.to_dict())

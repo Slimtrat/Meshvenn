@@ -74,6 +74,8 @@ Default limits are 64 MiB requests, 256 MiB responses/artifacts, 16 KiB inline
 results, 12 KiB embedded reports, 64 KiB chunks, depth 32 and 20 million JSON
 nodes. Hosts can configure stricter `GatewayLimits` and store limits. No shell,
 code execution endpoint or paid provider call is exposed.
+The response budget must retain at least 1 KiB for the versioned error envelope;
+large engine error messages/details are reduced to fit that bound.
 
 ```sh
 python -m pip install -e packages/meshvenn_agent

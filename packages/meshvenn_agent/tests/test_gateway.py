@@ -107,6 +107,25 @@ class GatewayTests(unittest.TestCase):
                 self.assertEqual(result["status"], "invalid_request")
         self.assertEqual(self.engine.calls, [])
 
+    def test_data_view_ids_are_not_misread_as_host_configuration(self):
+        raster = {"width": 1, "height": 1, "rgba": [1, 1, 1, 1]}
+        for name in ("path", "backend", "workspace", "native_library", "python_executable"):
+            with self.subTest(view_id=name):
+                result = self.gateway.execute("geometry.diagnose", {"view_set": {}, "inputs": {name: {"image": raster}}})
+                self.assertEqual(result["status"], "completed")
+                self.assertIn(name, self.engine.calls[-1][1]["inputs"])
+
+    def test_error_envelopes_remain_bounded_with_large_engine_details(self):
+        gateway = Gateway(self.engine, self.store, limits=GatewayLimits(max_response_bytes=1024,
+                           max_inline_bytes=512, max_report_bytes=512))
+        self.engine.error = PortError("stale_source", "é" * 2000, {"details": "x" * 1800})
+        result = gateway.execute("geometry.diagnose", self.arguments, request_id="r" * 128)
+        self.assertEqual(result["error"]["code"], "stale_source")
+        self.assertLessEqual(len(json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode()), 1024)
+        chunk = gateway.read_artifact("a" * 1000, offset=2**10000)
+        self.assertEqual(chunk["status"], "invalid_request")
+        self.assertEqual(chunk["offset"], 0)
+
     def test_strict_envelope_json_duplicate_nonfinite_types_versions_limits(self):
         valid = dict(schema_version=1, request_id="strict", action="geometry.diagnose", action_version=1, arguments=self.arguments)
         for changes in ({"schema_version": True}, {"action_version": 2}, {"request_id": "../path"}, {"extra": 1}, {"arguments": []}):

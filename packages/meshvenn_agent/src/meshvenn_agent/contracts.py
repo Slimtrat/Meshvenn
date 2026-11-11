@@ -39,6 +39,8 @@ class GatewayLimits:
         for name in self.__dataclass_fields__:
             if type(getattr(self, name)) is not int or getattr(self, name) <= 0:
                 raise ValueError(f"{name} must be a positive integer.")
+        if self.max_response_bytes < 1024:
+            raise ValueError("Response budget must hold the versioned error envelope (at least 1024 bytes).")
         for name in ("max_request_bytes", "max_response_bytes", "max_artifact_bytes"):
             if getattr(self, name) > 512 * 1024 * 1024:
                 raise ValueError(f"{name} exceeds the 512 MiB host profile cap.")
@@ -167,15 +169,16 @@ def validate_arguments(action: str, arguments: dict):
     forbidden = {"native_library", "native_library_path", "library_path", "python_executable", "backend",
                  "workspace", "allow_unverified", "trust_inputs", "trusted", "allow_paths", "source_path", "file_path", "path"}
 
-    def inspect(value):
-        if type(value) is dict:
-            if forbidden.intersection(value):
-                raise GatewayError("invalid_request", "Backend, local path and trust overrides are host configuration, not action arguments.")
-            for child in value.values():
-                if type(child) in (dict, list):
-                    inspect(child)
-        elif type(value) is list:
-            for child in value:
-                if type(child) in (dict, list):
-                    inspect(child)
-    inspect(arguments)
+    if forbidden.intersection(arguments.get("policy", {})):
+        raise GatewayError("invalid_request", "Backend, local path and trust overrides are host configuration, not policy arguments.")
+    # Input mapping keys are data IDs, not configuration keys. A legitimate D1
+    # view named 'path' or 'backend' must remain usable.
+    for view_input in arguments.get("inputs", {}).values():
+        if type(view_input) is not dict or set(view_input)-{"image", "mask"}:
+            raise GatewayError("invalid_request", "A view input contains only original image/mask raster DTOs.")
+        for raster in (view_input.get("image"), view_input.get("mask")):
+            if raster is None:
+                continue
+            allowed = {"format", "png_base64"} if type(raster) is dict and "png_base64" in raster else {"format", "width", "height", "rgba"}
+            if type(raster) is not dict or set(raster)-allowed:
+                raise GatewayError("invalid_request", "A raster contains encoded PNG bytes or decoded RGBA, never filesystem/backend options.")
