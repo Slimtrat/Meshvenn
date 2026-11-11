@@ -35,7 +35,10 @@ def _raster_size(width: int, height: int) -> None:
 
 def aligned_mask(source: BinaryMask, alignment: ProjectionAlignment) -> BinaryMask:
     """Reuse the production registration and native nearest-mask convention."""
-    _raster_size(source.width, source.height)
+    # Original decoded masks drive native carving. Only *measurement* rasters
+    # use the smaller 256-axis limit; registration must retain original detail.
+    if source.width * source.height > 1_048_576:
+        raise ValueError("Original diagnostic masks exceed the 1 Mi-pixel input budget.")
     return alignment.align_mask(source)
 
 

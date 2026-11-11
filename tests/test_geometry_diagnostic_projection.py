@@ -104,6 +104,13 @@ class GeometryProjectionTests(unittest.TestCase):
         self.assertEqual(aligned_mask(source, alignment), alignment.align_mask(source))
         self.assertGreater(projection_tolerance_pixels(volume(), camera(37, 29), 256, 128), 1)
 
+    def test_original_megapixel_alignment_preserves_fine_detail_without_resizing(self):
+        source = mask(1024, 1024, lambda x, y: (x, y) == (513, 519))
+        self.assertIs(aligned_mask(source, ProjectionAlignment()), source)
+        shifted = aligned_mask(source, ProjectionAlignment(offset_u=1 / 1023))
+        self.assertEqual((shifted.width, shifted.height, shifted.occupied_count), (1024, 1024, 1))
+        self.assertTrue(shifted.get(514, 519))
+
     def test_budgets_cancel_and_invalid_native_storage(self):
         v = volume()
         with self.assertRaisesRegex(ValueError, "work budget"):
