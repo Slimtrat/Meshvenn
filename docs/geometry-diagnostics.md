@@ -137,3 +137,6 @@ python -m unittest tests.test_geometry_diagnostics tests.test_geometry_diagnosti
 Real native tests use the installed DLL or `MESHVENN_TEST_NATIVE_LIBRARY` and are
 explicitly skipped where no real library exists. Mocked worker deadline tests
 verify terminate/reap orchestration only; they are not native quality evidence.
+The independent native sampler audit in the numerical test module additionally
+uses `MESHVENN_TEST_NATIVE_DLL`; set both variables to the same qualified binary
+to run every native check without skips.
