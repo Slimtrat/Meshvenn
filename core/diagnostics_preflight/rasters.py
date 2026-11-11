@@ -38,7 +38,8 @@ class RasterInput:
 
     @property
     def decoded_sha256(self) -> str:
-        payload = struct.pack(">qq", self.width or 0, self.height or 0)
+        # Invalid host dimensions still receive a stable failure dependency.
+        payload = f"{self.width}:{self.height}:".encode()
         digest = hashlib.sha256(payload)
         for value in self.rgba:
             digest.update(struct.pack(">d", value))
@@ -55,6 +56,9 @@ class RasterInput:
         a decoded-buffer reference, not a claim about any original file hash.
         Invalid buffer values are retained so preflight can report their cause.
         """
+        if not isinstance(width, int) or not isinstance(height, int) or width <= 0 or height <= 0:
+            return cls(None, None, (), hashlib.sha256(source_bytes or b"").hexdigest(), media_type,
+                       error="Decoded image dimensions must be positive integers.")
         if width > 0 and height > 0 and width * height > MAX_PIXELS:
             return cls(width, height, (), hashlib.sha256(source_bytes or b"").hexdigest(), media_type,
                        error="Decoded image exceeds the 1,048,576-pixel input budget.")
@@ -114,11 +118,14 @@ def _decode_png(data: bytes) -> tuple[int, int, tuple[float, ...]]:
     cursor, header, ended, idat_ended = 8, None, False, False
     compressed = bytearray()
     saw_idat = False
+    saw_palette = False
     while cursor < len(data):
         if cursor + 12 > len(data):
             raise ValueError("Truncated chunk header.")
         length = struct.unpack_from(">I", data, cursor)[0]
         kind = data[cursor + 4:cursor + 8]
+        if any(not (65 <= value <= 90 or 97 <= value <= 122) for value in kind) or kind[2] & 32:
+            raise ValueError("Invalid PNG chunk type.")
         end = cursor + 12 + length
         if end > len(data):
             raise ValueError("Truncated chunk payload.")
@@ -135,10 +142,13 @@ def _decode_png(data: bytes) -> tuple[int, int, tuple[float, ...]]:
             width, height, depth, color, compression, filtering, interlace = header
             if not (0 < width and 0 < height and width * height <= MAX_PIXELS):
                 raise ValueError("Dimensions are empty or exceed the pixel budget.")
-            if depth != 8 or color not in (0, 2, 4, 6) or interlace:
-                raise UnsupportedRaster("PNG requires 8-bit grayscale/RGB/RGBA without interlace; use a qualified host decoder.")
             if compression or filtering:
                 raise ValueError("Unsupported PNG compression/filter method.")
+            legal_depths = {0: (1, 2, 4, 8, 16), 2: (8, 16), 3: (1, 2, 4, 8), 4: (8, 16), 6: (8, 16)}
+            if color not in legal_depths or depth not in legal_depths[color] or interlace not in (0, 1):
+                raise ValueError("Illegal PNG bit depth, color type or interlace method.")
+            if depth != 8 or color not in (0, 2, 4, 6) or interlace:
+                raise UnsupportedRaster("PNG requires 8-bit grayscale/RGB/RGBA without interlace; use a qualified host decoder.")
         elif kind == b"IDAT":
             if idat_ended:
                 raise ValueError("IDAT chunks must be consecutive.")
@@ -155,8 +165,9 @@ def _decode_png(data: bytes) -> tuple[int, int, tuple[float, ...]]:
         elif kind in (b"acTL", b"fcTL", b"fdAT"):
             raise UnsupportedRaster("Animated PNG needs a qualified host decoder and an explicit selected frame.")
         elif kind == b"PLTE":
-            if header[3] in (0, 4) or not length or length % 3 or length > 768 or saw_idat:
+            if saw_palette or header[3] in (0, 4) or not length or length % 3 or length > 768 or saw_idat:
                 raise ValueError("Invalid suggested palette for this PNG color type.")
+            saw_palette = True
         elif not kind[0] & 32 and kind != b"PLTE":
             raise UnsupportedRaster("PNG contains an unsupported critical chunk.")
         if saw_idat and kind != b"IDAT":

@@ -82,6 +82,24 @@ def _assumptions(anchors: Sequence[AlignmentAnchor]) -> tuple[str, ...]:
                 for a in sorted(anchors, key=lambda a: (a.target_view_id, a.reference_view_id)))
 
 
+def _reference_descends_from_target(reference, target, views) -> bool:
+    target_hashes = {r.sha256 for r in (target.image, target.mask) if r}
+    parents_by_hash = defaultdict(set)
+    for view in views.values():
+        for source in (view.image, view.mask):
+            if source:
+                parents_by_hash[source.sha256].update(view.derived_from)
+    pending, visited = list(reference.derived_from), set()
+    while pending:
+        digest = pending.pop()
+        if digest in target_hashes:
+            return True
+        if digest not in visited:
+            visited.add(digest)
+            pending.extend(parents_by_hash[digest])
+    return False
+
+
 def analyze_preflight(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput], *,
                       anchors: Sequence[AlignmentAnchor] = (),
                       policy: PreflightPolicy | None = None) -> PreflightResult:
@@ -250,7 +268,7 @@ def analyze_preflight(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput]
         reference = views[ref_id]
         if (not valid.get(ref_id) or not _camera_supported(reference) or
                 _camera_key(view) != _camera_key(reference) or
-                reference.role != "reference"):
+                reference.role != "reference" or _reference_descends_from_target(reference, view, views)):
             finding("alignment.reference_missing", "alignment", "unknown", "The selected reference lacks usable independent evidence at the same verified camera.", (view_id, ref_id), action="review_reference")
             continue
         if not view.alignment.is_identity or not reference.alignment.is_identity:
@@ -273,7 +291,9 @@ def analyze_preflight(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput]
         proposal_data.append((view_id, ref_id, anchor, alignment, before, after))
 
     findings.sort(key=lambda f: (f.code, f.view_ids, f.finding_id))
-    dimensions = [(r.image.width, r.image.height) for r in inputs.values() if r.image.width and r.image.height]
+    dimensions = [(r.image.width, r.image.height) for view_id, r in inputs.items()
+                  if view_id in views and not r.image.error and isinstance(r.image.width, int) and
+                  isinstance(r.image.height, int) and r.image.width > 0 and r.image.height > 0]
     resolution = DiagnosticResolution(max((w for w, _ in dimensions), default=1), max((h for _, h in dimensions), default=1))
     report = DiagnosticReport("preflight-" + view_set.dependency_fingerprint[:20], view_set,
                               (ENGINE,), policy.contract(), resolution, tuple(findings), assumptions)

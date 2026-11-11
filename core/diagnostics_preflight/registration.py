@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import math
 from dataclasses import dataclass
 
 from ..image_mask import BinaryMask
@@ -120,9 +119,26 @@ def resample_mask(source: BinaryMask, width: int, height: int) -> BinaryMask:
     return BinaryMask(width, height, bytes(values))
 
 
+def _scale_interval(bounds, target, minimum, maximum):
+    """Intersect uniform-scale intervals allowed by pixel support rounding.
+
+    A discrete bbox extent is uncertain by one endpoint pixel before and after
+    nearest-neighbor sampling. Point width/height ratios can disagree even for
+    a genuine uniform transform; disjoint intervals still reject axis warping.
+    """
+    x0, y0, x1, y1 = bounds
+    tx0, ty0, tx1, ty1 = target
+    extents = ((x1-x0+1, tx1-tx0+1), (y1-y0+1, ty1-ty0+1))
+    low, high = minimum, maximum
+    for original, expected in extents:
+        low = max(low, max(1, expected-1)/(original+1))
+        high = min(high, (expected+1)/max(1, original-1))
+    return (low, high) if low <= high else None
+
+
 def fit_similarity(source: BinaryMask, reference: BinaryMask, *, min_scale: float,
                    max_scale: float, max_offset: float) -> tuple[ProjectionAlignment, float, float] | None:
-    """Search at at most 128x128; certify the winner against the native masks.
+    """Search at at most 128x128; certify finalists against native masks.
 
     Downsampling bounds search work only. Returned before/after measurements
     always come from complete original masks at the source native resolution.
@@ -134,12 +150,82 @@ def fit_similarity(source: BinaryMask, reference: BinaryMask, *, min_scale: floa
         return None
     fit = _fit_grid(resample_mask(source, width, height), resample_mask(reference, width, height),
                     min_scale=min_scale, max_scale=max_scale, max_offset=max_offset)
-    if fit is None:
-        return None
-    alignment = fit[0]
-    if not _keeps_bounds(occupied_bounds(source), source, alignment):
-        return None
-    return alignment, mask_iou(source, native_reference), mask_iou(alignment.align_mask(source), native_reference)
+    bounds, target_bounds = occupied_bounds(source), occupied_bounds(native_reference)
+    candidates = [fit[0]] if fit else []
+    # A native bbox finalist avoids quantization of the reduced search choosing
+    # a transform that is measurably worse on the complete image.
+    if bounds and target_bounds:
+        x0, y0, x1, y1 = bounds
+        tx0, ty0, tx1, ty1 = target_bounds
+        interval = _scale_interval(bounds, target_bounds, min_scale, max_scale)
+        if interval:
+            scale = sum(interval)/2
+            u = (tx0+tx1)/(2*(source.width-1))-.5-scale*((x0+x1)/(2*(source.width-1))-.5)
+            v = (ty0+ty1)/(2*(source.height-1))-.5-scale*((y0+y1)/(2*(source.height-1))-.5)
+            if abs(u) <= max_offset and abs(v) <= max_offset:
+                candidates.append(ProjectionAlignment(u, v, scale))
+    before = mask_iou(source, native_reference)
+    finalists = []
+    for alignment in candidates:
+        if not _keeps_bounds(bounds, source, alignment):
+            continue
+        aligned = alignment.align_mask(source)
+        finalists.append((mask_iou(aligned, native_reference), alignment, aligned))
+    for score, alignment, aligned in sorted(finalists, key=lambda item: item[0], reverse=True):
+        if _retains_components(source, native_reference, alignment, aligned):
+            return alignment, before, score
+    return None
+
+
+def _component_signature(mask: BinaryMask, sampled: bytearray | None = None) -> tuple[int, int]:
+    """Count eight-connected foreground components and wholly lost components."""
+    visited = bytearray(len(mask.values))
+    count = lost = 0
+    width, height = mask.width, mask.height
+    for seed, value in enumerate(mask.values):
+        if not value or visited[seed]:
+            continue
+        count += 1
+        visited[seed] = 1
+        pending, retained = [seed], sampled is None
+        while pending:
+            index = pending.pop()
+            if sampled is not None and sampled[index]:
+                retained = True
+            x, y = index % width, index // width
+            for ny in range(max(0, y - 1), min(height, y + 2)):
+                for nx in range(max(0, x - 1), min(width, x + 2)):
+                    neighbor = ny * width + nx
+                    if mask.values[neighbor] and not visited[neighbor]:
+                        visited[neighbor] = 1
+                        pending.append(neighbor)
+        lost += int(not retained)
+    return count, lost
+
+
+def _retains_components(source: BinaryMask, reference: BinaryMask,
+                        alignment: ProjectionAlignment, aligned: BinaryMask) -> bool:
+    """Never reward nearest-neighbor aliasing that erases an occupied component.
+
+    Global IoU can hide loss of an entire thin isolated part. Bind every original
+    component to actually selected source pixels, and conservatively abstain if
+    component topology differs from the independent reference or changes during
+    registration. This does not certify semantic details inside one component.
+    """
+    sampled = bytearray(len(source.values))
+    xs = [alignment.source_uv(x / (source.width - 1), .5)[0] for x in range(source.width)]
+    ys = [alignment.source_uv(.5, y / (source.height - 1))[1] for y in range(source.height)]
+    for v in ys:
+        if not 0 <= v <= 1:
+            continue
+        sy = int(v * (source.height - 1) + .5)
+        for u in xs:
+            if 0 <= u <= 1:
+                sx = int(u * (source.width - 1) + .5)
+                sampled[sy * source.width + sx] = 1
+    source_count, lost = _component_signature(source, sampled)
+    return (not lost and source_count == _component_signature(reference)[0] ==
+            _component_signature(aligned)[0])
 
 
 def _fit_grid(source: BinaryMask, reference: BinaryMask, *, min_scale: float,
@@ -158,22 +244,17 @@ def _fit_grid(source: BinaryMask, reference: BinaryMask, *, min_scale: float,
     tx0, ty0, tx1, ty1 = target
     # Inclusive pixel support is more stable for filled rasters than endpoint
     # lengths. The small search below accounts for nearest-neighbor rounding.
-    sx, sy = (tx1 - tx0 + 1) / (x1 - x0 + 1), (ty1 - ty0 + 1) / (y1 - y0 + 1)
-    if abs(math.log(sx / sy)) > 0.04:
+    interval = _scale_interval(bounds, target, min_scale, max_scale)
+    if interval is None:
         return None
-    scale = (sx + sy) / 2
     source_u = (x0 + x1) / (2 * (source.width - 1))
     source_v = (y0 + y1) / (2 * (source.height - 1))
     target_u = (tx0 + tx1) / (2 * (source.width - 1))
     target_v = (ty0 + ty1) / (2 * (source.height - 1))
-    if not min_scale <= scale <= max_scale:
-        return None
-    step = 1 / max(tx1 - tx0 + 1, ty1 - ty0 + 1)
     best, before, score = ProjectionAlignment(), mask_iou(source, reference), -1.0
-    for ds in (-1, -0.5, 0, 0.5, 1):
-        candidate_scale = scale + ds * step
-        if not min_scale <= candidate_scale <= max_scale:
-            continue
+    low, high = interval
+    for index in range(5):
+        candidate_scale = low + (high-low)*index/4
         offset_u = target_u - 0.5 - candidate_scale * (source_u - 0.5)
         offset_v = target_v - 0.5 - candidate_scale * (source_v - 0.5)
         for dx in (-1, -0.5, 0, 0.5, 1):

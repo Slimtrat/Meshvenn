@@ -294,6 +294,53 @@ class PreflightTests(unittest.TestCase):
         self.assertIn("pixel budget", result.error)
         self.assertFalse(result.rgba)
 
+    def test_alignment_cannot_erase_a_thin_original_component_to_improve_iou(self):
+        n = 96
+        reference = BinaryMask(n, n, bytes(int((.28 < x/95 < .7 and .2 < y/95 < .4) or
+                                               (.28 < x/95 < .43 and .2 < y/95 < .8))
+                                           for y in range(n) for x in range(n)))
+        enlarged = ProjectionAlignment(scale=1.2).align_mask(reference)
+        values = bytearray(enlarged.values)
+        for y in range(45, 57):
+            values[y*n+50] = 1
+        observation = BinaryMask(n, n, bytes(values))
+        view_set, inputs, anchors, policy = fixture(observation, reference)
+        result = analyze_preflight(view_set, inputs, anchors=anchors, policy=policy)
+        self.assertFalse(result.proposals)
+        self.assertEqual(codes(result)["alignment.shape_mismatch"], "unknown")
+        from core.diagnostics_preflight.registration import _retains_components
+        disappearing = ProjectionAlignment(-.001712, -.001712, .837359943977591)
+        self.assertFalse(_retains_components(observation, reference, disappearing, disappearing.align_mask(observation)))
+
+    def test_reference_derived_from_target_is_not_independent(self):
+        original = mask()
+        view_set, inputs, anchors, policy = fixture(ProjectionAlignment(offset_u=.08).align_mask(original), original)
+        reference = replace(view_set.views[1], origin="derived", derived_from=(view_set.views[0].image.sha256,))
+        view_set = replace(view_set, views=(view_set.views[0], reference))
+        result = analyze_preflight(view_set, inputs, anchors=anchors, policy=policy)
+        self.assertFalse(result.proposals)
+        self.assertEqual(codes(result)["alignment.reference_missing"], "unknown")
+
+    def test_png_illegal_header_and_duplicate_palette_are_malformed_not_unsupported(self):
+        encoded = png(mask(8))
+        def chunk(kind, data):
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff)
+        for depth, color, interlace in ((9,6,0), (8,1,0), (8,6,2)):
+            header = struct.pack(">IIBBBBB", 8, 8, depth, color, 0, 0, interlace)
+            image = RasterInput.from_png_bytes(encoded[:8]+chunk(b"IHDR", header)+encoded[33:])
+            self.assertTrue(image.error)
+            self.assertFalse(image.unsupported)
+        palette = chunk(b"PLTE", b"\0\0\0")
+        image = RasterInput.from_png_bytes(encoded[:33]+palette+palette+encoded[33:])
+        self.assertTrue(image.error)
+        self.assertFalse(image.unsupported)
+
+    def test_oversized_host_dimensions_remain_actionable_without_hash_overflow(self):
+        view_set, inputs, anchors, policy = fixture()
+        inputs["front"] = replace(inputs["front"], image=RasterInput.from_pixels(2**63, 1, ()))
+        result = analyze_preflight(view_set, inputs, anchors=anchors, policy=policy)
+        self.assertEqual(codes(result)["input.unreadable"], "fail")
+
 
 if __name__ == "__main__":
     unittest.main()

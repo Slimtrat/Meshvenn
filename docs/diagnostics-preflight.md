@@ -53,7 +53,8 @@ An anchor requires a separate `role="reference"` view, inclusion in the canonica
 reference's `view_ids`, `validated=True`, hashed canonical `validation_evidence`,
 an explicit anchor evidence hash and an identical verified orthographic camera
 (including Flip X). Reference/control views never supply required observation
-coverage. Provisional reconstruction output must not be marked as independent
+coverage. Explicit direct/transitive descendants of a target in `derived_from`
+cannot serve as that target's independent reference. Provisional reconstruction output must not be marked as independent
 canonical evidence by its host. Generated camera labels without independently
 archived verification remain unknown; this engine does not estimate cameras.
 
@@ -85,6 +86,11 @@ asymmetry. A proposal requires native-grid after-IoU ≥0.97 and improvement ≥
 The bounded fit rejects unequal axis scale and off-canvas subject loss; it never
 rotates, mirrors or warps a silhouette. These are explicit preparation-policy
 thresholds, not calibrated probabilities or guarantees about small semantic parts.
+Native foreground components must each retain actually selected source pixels;
+source, reference and aligned component counts must agree. A thin isolated part
+cannot disappear through nearest-neighbor aliasing to improve the IoU. Changes
+in connected topology conservatively abstain; semantic details inside a connected
+component remain outside this preparation check.
 
 ## Decoder and computation limits
 
@@ -106,8 +112,11 @@ binds actual decoded-buffer hashes, so changing pixels while retaining an encode
 hash invalidates an accepted proposal.
 
 Similarity search evaluates at most 125 candidates on at most 128×128 pixels,
-then validates the winner against the full native source grid and normalized
-reference grid. Before/after evidence always uses those complete masks. Reduced
+then validates at most two finalists (reduced-search winner and native-bbox fit)
+against the full native source grid and normalized reference grid. Uniform scale
+intervals account for one-pixel bbox endpoint quantization instead of treating
+different discrete width/height ratios as proof of unequal proportions.
+Before/after evidence always uses those complete masks. Reduced
 search can conservatively abstain on fine detail; it cannot accept a winner that
 fails full-grid thresholds. Input validation and final validation are linear in
 native pixel count. Sorted view IDs and dependency fingerprints make analysis
