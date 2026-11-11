@@ -230,7 +230,60 @@ class GeometryMetricTests(unittest.TestCase):
         region = Region("front", "important detail", (.49, .49, .54, .54))
         result = compare_masks(source, source, regions=(region,), resolution_tolerance_pixels=1)
         self.assertEqual(result.components[0].status, VerificationStatus.UNKNOWN)
+        self.assertEqual(result.components[0].sampled_coverage_status, VerificationStatus.UNKNOWN)
         self.assertEqual(result.important_regions[0].status, VerificationStatus.UNKNOWN)
+
+    def test_exact_thin_component_sample_coverage_does_not_certify_physical_detail(self):
+        source = mask(32, 32, lambda x, y: 15 <= x <= 16 and 5 <= y <= 25)
+        result = compare_masks(source, source, resolution_tolerance_pixels=2)
+        component = result.components[0]
+        self.assertEqual(component.status, VerificationStatus.UNKNOWN)
+        self.assertEqual(component.sampled_coverage_status, VerificationStatus.PASS)
+        self.assertEqual(component.missing_pixels, 0)
+        self.assertEqual(component.actual_component_count, 1)
+        self.assertEqual(component.matched_actual_component, 1)
+        self.assertTrue(result.component_correspondence)
+        self.assertEqual(result.actual_component_count, 1)
+        self.assertEqual(MaskComparison.from_dict(result.to_dict()), result)
+
+    def test_sampled_coverage_never_passes_when_components_merge(self):
+        expected = mask(32, 32, lambda x, y: (3 <= x <= 9 or 12 <= x <= 18) and 3 <= y <= 20)
+        actual = mask(32, 32, lambda x, y: 3 <= x <= 18 and 3 <= y <= 20)
+        result = compare_masks(expected, actual, resolution_tolerance_pixels=3)
+        self.assertEqual(result.missing_pixels, 0)
+        self.assertEqual(result.component_count, 2)
+        self.assertEqual(result.actual_component_count, 1)
+        self.assertFalse(result.component_correspondence)
+        for component in result.components:
+            self.assertEqual(component.sampled_coverage_status, VerificationStatus.UNKNOWN)
+            self.assertEqual(component.actual_component_count, 1)
+            self.assertIsNone(component.matched_actual_component)
+
+    def test_component_splits_and_unmatched_actual_components_are_explicit(self):
+        expected = mask(32, 32, lambda x, y: 3 <= x <= 18 and 3 <= y <= 20)
+        split = mask(32, 32, lambda x, y: 3 <= x <= 18 and x != 10 and 3 <= y <= 20)
+        result = compare_masks(expected, split, resolution_tolerance_pixels=2)
+        self.assertFalse(result.component_correspondence)
+        self.assertEqual(result.actual_component_count, 2)
+        self.assertEqual(result.components[0].actual_component_count, 2)
+        self.assertIsNone(result.components[0].matched_actual_component)
+        self.assertEqual(result.components[0].sampled_coverage_status, VerificationStatus.UNKNOWN)
+        extra = mask(32, 32, lambda x, y: expected.get(x, y) or (x == 28 and y == 28))
+        result = compare_masks(expected, extra)
+        self.assertFalse(result.component_correspondence)
+        self.assertEqual(result.actual_component_count, 2)
+        # The original component is covered; the global extra component is still
+        # explicit and prevents a global component correspondence claim.
+        self.assertEqual(result.components[0].sampled_coverage_status, VerificationStatus.PASS)
+
+    def test_partial_component_coverage_inside_uncertainty_remains_unknown(self):
+        expected = mask(32, 32, lambda x, y: 14 <= x <= 17 and 5 <= y <= 25)
+        actual = mask(32, 32, lambda x, y: 15 <= x <= 17 and 5 <= y <= 25)
+        result = compare_masks(expected, actual, resolution_tolerance_pixels=2)
+        self.assertTrue(result.component_correspondence)
+        self.assertGreater(result.components[0].missing_pixels, 0)
+        self.assertEqual(result.components[0].beyond_tolerance_pixels, 0)
+        self.assertEqual(result.components[0].sampled_coverage_status, VerificationStatus.UNKNOWN)
 
     def test_nearby_deficit_is_unknown_within_resolution_tolerance(self):
         expected = mask(20, 20, lambda x, y: 2 <= x <= 17 and 2 <= y <= 17)

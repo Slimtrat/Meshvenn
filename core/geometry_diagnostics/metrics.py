@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from array import array
 from dataclasses import dataclass
 from typing import Callable, Sequence
 
@@ -33,18 +34,28 @@ class RegionComparison:
     missing_pixels: int
     beyond_tolerance_pixels: int
     recall: float | None
+    sampled_coverage_status: VerificationStatus = VerificationStatus.UNKNOWN
+    sampled_coverage_reason: str = "Complete component correspondence was not assessed for this region."
+    actual_component_count: int = 0
+    matched_actual_component: int | None = None
 
     def to_dict(self) -> dict:
         return {"region": self.region.to_dict(), "status": self.status.value,
                 "reason": self.reason, "expected_pixels": self.expected_pixels,
                 "missing_pixels": self.missing_pixels,
-                "beyond_tolerance_pixels": self.beyond_tolerance_pixels, "recall": self.recall}
+                "beyond_tolerance_pixels": self.beyond_tolerance_pixels, "recall": self.recall,
+                "sampled_coverage_status": self.sampled_coverage_status.value,
+                "sampled_coverage_reason": self.sampled_coverage_reason,
+                "actual_component_count": self.actual_component_count,
+                "matched_actual_component": self.matched_actual_component}
 
     @classmethod
     def from_dict(cls, data: dict) -> RegionComparison:
         return cls(Region.from_dict(data["region"]), VerificationStatus(data["status"]),
                    data["reason"], data["expected_pixels"], data["missing_pixels"],
-                   data["beyond_tolerance_pixels"], data["recall"])
+                   data["beyond_tolerance_pixels"], data["recall"],
+                   VerificationStatus(data["sampled_coverage_status"]), data["sampled_coverage_reason"],
+                   data["actual_component_count"], data["matched_actual_component"])
 
 
 @dataclass(frozen=True)
@@ -71,6 +82,8 @@ class MaskComparison:
     components: tuple[RegionComparison, ...]
     component_count: int
     components_truncated: bool
+    actual_component_count: int
+    component_correspondence: bool
 
     def to_dict(self) -> dict:
         data = dict(self.__dict__)
@@ -187,7 +200,7 @@ def _bounds(indices: Sequence[int], width: int, height: int):
 
 
 def _region_result(region, indices, actual, distances, width, height, min_pixels,
-                   min_extent, tolerance, min_recall):
+                   min_extent, tolerance, min_recall, correspondence=None):
     count = len(indices)
     missing = sum(not actual[index] for index in indices)
     beyond = sum(distances[index] > tolerance * tolerance + 1e-9 for index in indices)
@@ -205,7 +218,50 @@ def _region_result(region, indices, actual, distances, width, height, min_pixels
             status, reason = VerificationStatus.UNKNOWN, "Region deficit lies within resolution tolerance."
     else:
         status, reason = VerificationStatus.PASS, "Expected region recall meets the declared threshold."
-    return RegionComparison(region, status, reason, count, missing, beyond, recall)
+    sampled_status = VerificationStatus.UNKNOWN
+    sampled_reason = "Complete component correspondence was not assessed for this region."
+    actual_count, matched = 0, None
+    if correspondence is not None:
+        actual_count, matched = correspondence
+        if count < min_pixels:
+            sampled_reason = "Component contains too few foreground samples for sampled coverage qualification."
+        elif beyond:
+            sampled_status = VerificationStatus.FAIL
+            sampled_reason = "Expected component samples are missing beyond the declared resolution tolerance."
+        elif matched is None:
+            sampled_reason = "Expected and actual components do not have one-to-one raster correspondence."
+        elif missing:
+            sampled_reason = "Some expected samples are uncovered within the declared resolution tolerance."
+        else:
+            sampled_status = VerificationStatus.PASS
+            sampled_reason = "All expected component samples are covered with one-to-one raster correspondence; physical detail remains separately assessed."
+    return RegionComparison(region, status, reason, count, missing, beyond, recall,
+                            sampled_status, sampled_reason, actual_count, matched)
+
+
+def _correspondence(expected_components, actual_components, pixel_count, deadline, cancel):
+    """Exact four-connected foreground overlap graph, with bounded raster storage."""
+    labels = array("I", [0]) * pixel_count
+    for label, indices in enumerate(actual_components, 1):
+        check_budget(deadline, cancel)
+        for index in indices:
+            labels[index] = label
+    forward, reverse = [], [set() for _ in actual_components]
+    for expected_label, indices in enumerate(expected_components, 1):
+        check_budget(deadline, cancel)
+        matches = {labels[index] for index in indices if labels[index]}
+        forward.append(matches)
+        for actual_label in matches:
+            reverse[actual_label - 1].add(expected_label)
+    evidence = []
+    for matches in forward:
+        match = next(iter(matches)) if len(matches) == 1 else None
+        if match is not None and len(reverse[match - 1]) != 1:
+            match = None
+        evidence.append((len(matches), match))
+    bijective = (bool(expected_components) and len(expected_components) == len(actual_components)
+                 and all(match is not None for _, match in evidence))
+    return evidence, bijective
 
 
 def compare_masks(expected: BinaryMask, actual: BinaryMask, *, regions: Sequence[Region] = (),
@@ -234,7 +290,7 @@ def compare_masks(expected: BinaryMask, actual: BinaryMask, *, regions: Sequence
             or not math.isfinite(min_region_extent_pixels) or min_region_extent_pixels <= 0
             or not math.isfinite(min_region_recall) or not 0 <= min_region_recall <= 1):
         raise ValueError("Region thresholds and resolution tolerance must be finite and valid.")
-    if len(regions) > max_regions or (32 + len(regions)) * width * height > max_work:
+    if len(regions) > max_regions or (40 + len(regions)) * width * height > max_work:
         raise ValueError("Diagnostic metric work budget exceeded.")
     e = bytes(bool(value) for value in expected.values)
     a = bytes(bool(value) for value in actual.values)
@@ -268,12 +324,17 @@ def compare_masks(expected: BinaryMask, actual: BinaryMask, *, regions: Sequence
         counts.append(len(items))
         residuals.append(tuple(sorted(items, key=lambda item: (-item.pixel_count, item.bounds))[:max_regions]))
     component_results = []
-    component_count = 0
-    for component_count, indices in enumerate(_components(e, width, height, deadline, cancel), 1):
+    expected_components = list(_components(e, width, height, deadline, cancel))
+    actual_components = list(_components(a, width, height, deadline, cancel))
+    correspondence, bijective = _correspondence(expected_components, actual_components,
+                                               len(e), deadline, cancel)
+    component_count = len(expected_components)
+    for label, indices in enumerate(expected_components, 1):
         if len(component_results) < max_regions:
-            region = Region("diagnostic", f"component-{component_count}", _bounds(indices, width, height)[0])
+            region = Region("diagnostic", f"component-{label}", _bounds(indices, width, height)[0])
             component_results.append(_region_result(region, indices, a, a_dist, width, height,
-                min_region_pixels, min_region_extent_pixels, resolution_tolerance_pixels, min_region_recall))
+                min_region_pixels, min_region_extent_pixels, resolution_tolerance_pixels, min_region_recall,
+                correspondence[label - 1]))
     region_results = []
     for region in regions:
         check_budget(deadline, cancel)
@@ -293,4 +354,5 @@ def compare_masks(expected: BinaryMask, actual: BinaryMask, *, regions: Sequence
         expected_count, actual_count, intersection, missing_count, excess_count,
         missing_beyond, excess_beyond, BinaryMask(width, height, missing), BinaryMask(width, height, excess),
         contour_mean, contour_max, residuals[0], residuals[1], counts[0], counts[1],
-        tuple(region_results), tuple(component_results), component_count, component_count > max_regions)
+        tuple(region_results), tuple(component_results), component_count, component_count > max_regions,
+        len(actual_components), bijective)

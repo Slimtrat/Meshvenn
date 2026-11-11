@@ -67,6 +67,17 @@ their coarse samples match perfectly. Below-threshold deficits wholly inside
 the numerical tolerance also remain `unknown`. Component truncation and total
 residual counts are explicit; callers must not treat omitted checks as passes.
 
+Sampled component coverage is a separate measurement. A component can retain
+every observed foreground sample while its physical width remains below voxel
+resolution. `sampled_coverage_status` records this distinction without changing
+the physical region `status`. A sampled pass requires the minimum foreground
+sample count, no missing samples, and one-to-one correspondence between its
+expected and overlapping actual four-connected components. Merges, splits and
+uncovered samples inside tolerance remain unknown. Missing samples beyond the
+declared tolerance can fail sampled coverage. Named regions do not inherit a
+complete-component correspondence assertion. Actual component counts, stable
+matched labels and a nonempty global component bijection are recorded explicitly.
+
 Raster, volume, work, output-region, deadline and cooperative cancellation bounds
 prevent unbounded rasterization or all-pairs contour work. Exceeding a bound
 raises an exception; no partial image is returned as a successful measurement.
