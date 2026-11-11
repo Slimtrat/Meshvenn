@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meshvenn-engine"
+version = "0.1.0"
+description = "Provider-independent Meshvenn geometry and diagnostic engine"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [{name = "Meshvenn contributors"}]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/Slimtrat/Meshvenn"
+
+[tool.setuptools]
+include-package-data = false
