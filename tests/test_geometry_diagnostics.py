@@ -12,7 +12,7 @@ from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
-from core.diagnostic_contracts import ArtifactReference, CameraDeclaration, Region, ViewRevision, ViewSetRevision
+from core.diagnostic_contracts import ArtifactReference, CameraDeclaration, CanonicalReference, Region, ViewRevision, ViewSetRevision
 from core.diagnostics_preflight import RasterInput, ViewInput
 from core.geometry_diagnostics import GeometryPolicy, GeometryResult, NativeGeometryBackend, VolumeArtifact, analyze_geometry
 from core.image_mask import BinaryMask
@@ -207,6 +207,14 @@ class GeometryNativeTests(unittest.TestCase):
             inputs[view.view_id] = ViewInput(raster, raster)
             updated.append(replace(view, image=raster.content_reference(), mask=raster.content_reference()))
         revision = replace(revision, views=tuple(updated))
+        reference_source = inputs["v1"].mask
+        reference_raster = RasterInput.from_pixels(64, 64, reference_source.rgba, source_bytes=b"independent-original-reference")
+        reference = ViewRevision("ref-v0", 1, reference_raster.content_reference(), reference_raster.content_reference(),
+                                 updated[0].camera, role="reference")
+        inputs["ref-v0"] = ViewInput(reference_raster, reference_raster)
+        canonical = CanonicalReference("canonical", 1, reference_raster.content_reference(), validated=True,
+                                       view_ids=("ref-v0",), validation_evidence=ArtifactReference("canonical-proof", "c"*64, "application/json"))
+        revision = replace(revision, views=revision.views+(reference,), canonical_reference=canonical, input_order=())
         region = Region("v0", "important-flag", (.68, .76, .76, .88))
         result = analyze_geometry(revision, inputs, regions=(region,), backend=self.backend())
         native = next(v for v in result.views if v.view_id == "v0")
@@ -216,7 +224,24 @@ class GeometryNativeTests(unittest.TestCase):
         self.assertTrue(any(f.code == "geometry.detail_preservation" and f.status == "fail" and region in f.regions
                             and "Direct antipodal" in f.message for f in result.report.findings))
         self.assertTrue(any(f.code == "geometry.attribution" and f.status == "unknown" for f in result.report.findings))
+        self.assertTrue(any(f.code == "geometry.reference_conflict" and f.status == "fail" for f in result.report.findings))
         self.assertEqual(GeometryResult.from_json(result.to_json()), result)
+
+    def test_independent_canonical_constraint_is_checked_when_native_views_agree(self):
+        revision, inputs = sources()
+        pixels = tuple(value for y in range(32) for x in range(32)
+                       for value in ((1., 1., 1., 1.) if 10 <= x < 22 and 5 <= y < 27 else (0., 0., 0., 0.)))
+        raster = RasterInput.from_pixels(32, 32, pixels, source_bytes=b"independent-narrow-canonical")
+        reference = ViewRevision("reference", 1, raster.content_reference(), raster.content_reference(),
+                                 revision.views[0].camera, role="reference")
+        inputs["reference"] = ViewInput(raster, raster)
+        canonical = CanonicalReference("canonical", 1, raster.content_reference(), validated=True,
+                                       view_ids=("reference",), validation_evidence=ArtifactReference("canonical-proof", "c"*64, "application/json"))
+        revision = replace(revision, views=revision.views+(reference,), canonical_reference=canonical, input_order=())
+        result = analyze_geometry(revision, inputs, backend=self.backend())
+        self.assertTrue(all(f.status == "pass" for f in result.report.findings if f.code == "geometry.cross_view_conflict"))
+        self.assertTrue(any(f.code == "geometry.reference_conflict" and f.status == "fail" for f in result.report.findings))
+        self.assertEqual(result.report.verification_status, "fail")
 
     def test_real_native_permutation_preserves_final_conclusions(self):
         revision, inputs = sources(angles=(0, 90, 180))

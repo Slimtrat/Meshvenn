@@ -432,7 +432,7 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                         interpretation="A useful valid view can remove substantial volume; residuals alone cannot justify deleting, regenerating or blaming a view.")
             # Canonical evidence arbitrates only same-camera observations and only
             # after source validity and complete independent lineage validation.
-            for target_id in conflicts:
+            for target_id in eligible:
                 target = views[target_id]
                 for reference in view_set.views:
                     if (reference.view_id in rejected or reference.view_id not in inputs or
@@ -448,12 +448,22 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                     metric = compare_masks(reference_mask, expected,
                                            resolution_tolerance_pixels=0., max_regions=policy.max_regions,
                                            deadline=deadline, cancel=cancel, max_work=policy.max_projection_work)
+                    reverse = compare_masks(expected, reference_mask,
+                                            regions=tuple(r for r in regions if r.view_id == target_id),
+                                            min_region_recall=1-policy.max_component_missing_fraction,
+                                            resolution_tolerance_pixels=0., max_regions=policy.max_regions,
+                                            deadline=deadline, cancel=cancel, max_work=policy.max_projection_work)
+                    reverse_snapshot = _metric_snapshot(reverse, target_id)
+                    pairs.append(GeometryPairComparison(target_id, reference.view_id, "independent-canonical-same-camera",
+                        MaskArtifact.from_mask(expected), MaskArtifact.from_mask(reference_mask), reverse_snapshot, 0.))
                     bad = (metric.iou < policy.min_iou or 1-metric.recall > policy.max_missing_fraction or
                            1-metric.precision > policy.max_missing_fraction or
                            (metric.contour_max_pixels is not None and metric.contour_max_pixels > policy.max_contour_distance_pixels) or
-                           any(r.status == "fail" for r in metric.components))
+                           any(r.status == "fail" for r in metric.components) or
+                           any(r.status == "fail" for r in reverse.components + reverse.important_regions))
                     unresolved = (reference_lost or reduction_unknown.get(target_id) or metric.components_truncated or
-                                  any(r.status == "unknown" for r in metric.components))
+                                  reverse.components_truncated or any(r.status == "unknown" for r in metric.components) or
+                                  any(r.status == "unknown" for r in reverse.components + reverse.important_regions))
                     finding("geometry.reference_conflict", "geometry", "fail" if bad else "unknown" if unresolved else "pass",
                             "This observation disagrees with independent validated same-camera canonical evidence." if bad else
                             "Independent validated same-camera canonical evidence supports this observation's silhouette.",
@@ -463,6 +473,12 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                                           Measurement("canonical_recall", metric.recall, "ratio")) +
                                          (() if metric.contour_max_pixels is None else (Measurement("canonical_contour_max", metric.contour_max_pixels, "pixel", Threshold("<=", policy.max_contour_distance_pixels, "pixel")),)),
                             action="review_reference")
+                    for index, detail in enumerate(reverse_snapshot.important_regions + reverse_snapshot.components):
+                        finding("geometry.detail_preservation", "geometry", detail.status,
+                                "Independent canonical raster evidence: " + detail.reason,
+                                (target_id, reference.view_id), key=f"canonical-{reference.view_id}-detail-{index}", regions=(detail.region,),
+                                measurements=(Measurement("region_expected_pixels", detail.expected_pixels, "pixel"),
+                                              Measurement("region_missing_pixels", detail.missing_pixels, "pixel")))
     except InterruptedError:
         completion = "cancelled"
         finding("engine.cancelled", "engine", "unknown", "Geometry diagnostics were cancelled; completed native artifacts are preserved.", action="diagnose_engine")
