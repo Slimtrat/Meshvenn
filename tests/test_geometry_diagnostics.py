@@ -52,12 +52,42 @@ def native_library():
 LIBRARY = native_library()
 
 
+def thin_sources(size=64):
+    """Analytic opaque slab whose side falls between the 32-grid samples."""
+    revision, inputs = sources(angles=(0, 90, 180, 270), size=size)
+    updated = []
+    scale = size // 64
+    for index, view in enumerate(revision.views):
+        rgba = tuple(value for y in range(size) for x in range(size)
+                     for value in ((1., 1., 1., 1.) if 10*scale <= y < 54*scale and
+                                   ((10*scale <= x < 54*scale) if index % 2 == 0 else 31*scale <= x < 33*scale)
+                                   else (0., 0., 0., 0.)))
+        raster = RasterInput.from_pixels(size, size, rgba, source_bytes=f"analytic-thin-{size}-{index}".encode())
+        inputs[view.view_id] = ViewInput(raster, raster)
+        updated.append(replace(view, image=raster.content_reference(), mask=raster.content_reference()))
+    return replace(revision, views=tuple(updated)), inputs
+
+
 class GeometryBoundaryTests(unittest.TestCase):
     def test_policy_rejects_nonfinite_and_unbounded_values(self):
         for kwargs in ({"max_seconds": float("nan")}, {"max_seconds": float("inf")},
-                       {"resolution": 128}, {"resolution": True}, {"thread_count": True}, {"max_views": 11}):
+                       {"resolution": 128}, {"resolution": True}, {"thread_count": True}, {"max_views": 11},
+                       {"adaptive_refinement": 1}, {"refinement_resolution": 128}, {"max_total_experiments": 25},
+                       {"max_total_python_work": 8_000_000_001}):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 GeometryPolicy(**kwargs)
+
+    def test_source_hash_binds_shared_runtime_authorities_and_is_stable(self):
+        from core.geometry_diagnostics.engine import _source_hash
+        before = _source_hash()
+        self.assertEqual(before, _source_hash())
+        read_bytes = Path.read_bytes
+        for suffix in ("diagnostic_contracts/reports.py", "diagnostics_preflight/rasters.py", "image_mask.py", "native_loader.py"):
+            def changed(path):
+                content = read_bytes(path)
+                return content+b"\n# dependency probe\n" if path.as_posix().endswith(suffix) else content
+            with self.subTest(suffix=suffix), patch.object(Path, "read_bytes", changed):
+                self.assertNotEqual(before, _source_hash())
 
     def test_backend_rejects_nonfinite_deadline_before_launch(self):
         backend = NativeGeometryBackend(Path("missing.dll"))
@@ -164,6 +194,117 @@ class GeometryBoundaryTests(unittest.TestCase):
 class GeometryNativeTests(unittest.TestCase):
     def backend(self):
         return NativeGeometryBackend(LIBRARY, python_executable=Path(sys.executable))
+
+    def test_adaptive_empty_grid_retains_initial_and_bounds_shared_execution(self):
+        class RecordingBackend(NativeGeometryBackend):
+            def __init__(self):
+                super().__init__(LIBRARY, python_executable=Path(sys.executable))
+                self.timeouts = []
+            def run(self, *args, **kwargs):
+                self.timeouts.append(kwargs["timeout"])
+                return super().run(*args, **kwargs)
+        backend = RecordingBackend()
+        revision, inputs = thin_sources()
+        policy = GeometryPolicy()
+        result = analyze_geometry(revision, inputs, policy=policy, backend=backend)
+        self.assertEqual((result.requested_resolution, result.actual_resolution), (32, 64))
+        self.assertEqual(tuple(a.resolution for a in result.attempts), (32, 64))
+        self.assertEqual(result.attempts[0].volume.occupied_count, 0)
+        self.assertTrue(any(f.code == "geometry.empty" and f.status == "fail" for f in result.attempts[0].report.findings))
+        self.assertGreater(result.volume.occupied_count, 0)
+        self.assertTrue(all(a.report.policy == policy.contract() for a in result.attempts))
+        self.assertEqual(result.report.policy, policy.contract())
+        self.assertEqual(result.attempts[0].provenance.source_sha256, result.attempts[1].provenance.source_sha256)
+        self.assertEqual(len(backend.timeouts), 2)
+        self.assertLess(backend.timeouts[1], backend.timeouts[0])
+        self.assertEqual(result.provenance.completed_experiments, sum(a.provenance.completed_experiments for a in result.attempts))
+        self.assertEqual(result.provenance.native_sessions_reserved, sum(a.provenance.native_sessions_reserved for a in result.attempts))
+        self.assertLessEqual(result.provenance.native_sessions_reserved, policy.max_total_experiments)
+        self.assertLessEqual(result.provenance.native_voxel_test_capacity, policy.max_total_native_voxel_tests)
+        self.assertLessEqual(result.provenance.python_work_reserved, policy.max_total_python_work)
+        self.assertTrue(all(f.status == "pass" for f in result.report.findings if f.code == "geometry.cross_view_conflict"))
+        self.assertFalse(any(f.code == "geometry.attribution" for f in result.report.findings))
+        self.assertTrue(any(f.code == "geometry.sampled_component_coverage" and f.status == "pass" for f in result.report.findings))
+        self.assertTrue(any(f.code == "geometry.detail_preservation" and f.status == "unknown" for f in result.report.findings))
+        self.assertGreater(max(1-step.after/step.before for step in result.trace if step.before), .95)
+        self.assertEqual(GeometryResult.from_json(result.to_json()), result)
+        tampered = result.to_dict()
+        tampered["attempts"].append(tampered["attempts"][-1])
+        with self.assertRaises(ValueError):
+            GeometryResult.from_dict(tampered)
+
+    def test_within_uncertainty_compatibility_retains_low_raw_iou_and_unknown_physical_detail(self):
+        revision, inputs = thin_sources(size=128)
+        result = analyze_geometry(revision, inputs, backend=self.backend())
+        side = next(v for v in result.views if v.view_id == "v1")
+        self.assertLess(side.metrics.iou, .9)
+        self.assertEqual(side.metrics.missing_beyond_tolerance_pixels+side.metrics.extraneous_beyond_tolerance_pixels, 0)
+        self.assertTrue(side.metrics.component_correspondence)
+        self.assertTrue(all(f.status == "pass" for f in result.report.findings if f.code == "geometry.cross_view_conflict"))
+        self.assertEqual(side.metrics.components[0].status, "unknown")
+        self.assertEqual(result.report.verification_status, "unknown")
+
+    def test_adaptive_aggregate_budget_stops_second_attempt_without_erasing_initial(self):
+        revision, inputs = thin_sources()
+        result = analyze_geometry(revision, inputs, backend=self.backend(), policy=GeometryPolicy(max_total_experiments=6))
+        self.assertEqual(len(result.attempts), 1)
+        self.assertEqual(result.attempts[0].volume.occupied_count, 0)
+        self.assertEqual(result.report.completion, "partial")
+        self.assertEqual(result.report.verification_status, "unknown")
+        self.assertTrue(any(f.code == "engine.refinement" and f.status == "unknown" for f in result.report.findings))
+        self.assertTrue(any(f.code == "geometry.empty" and f.status == "fail" for f in result.attempts[0].report.findings))
+        self.assertEqual(GeometryResult.from_json(result.to_json()), result)
+
+    def test_adaptive_can_be_disabled_and_never_retries_at_64(self):
+        revision, inputs = thin_sources()
+        disabled = analyze_geometry(revision, inputs, backend=self.backend(), policy=GeometryPolicy(adaptive_refinement=False))
+        self.assertEqual(len(disabled.attempts), 1)
+        self.assertEqual(disabled.actual_resolution, 32)
+        ceiling = analyze_geometry(revision, inputs, backend=self.backend(), policy=GeometryPolicy(resolution=64))
+        self.assertEqual(len(ceiling.attempts), 1)
+        self.assertEqual(ceiling.actual_resolution, 64)
+
+    def test_cancelled_second_attempt_is_unknown_and_preserves_first(self):
+        from core.geometry_diagnostics.backend import NativeBatch
+        class CancelSecond(NativeGeometryBackend):
+            def __init__(self):
+                super().__init__(LIBRARY, python_executable=Path(sys.executable))
+                self.completed_first = None
+            def run(self, *args, **kwargs):
+                if self.completed_first is None:
+                    self.completed_first = super().run(*args, **kwargs)
+                    return self.completed_first
+                first = self.completed_first
+                return NativeBatch((), "cancelled", "Controlled second-attempt cancellation orchestration test.",
+                                   first.library_sha256, first.python_executable, .001, "terminated_cancelled")
+        revision, inputs = thin_sources()
+        result = analyze_geometry(revision, inputs, backend=CancelSecond())
+        self.assertEqual(len(result.attempts), 2)
+        self.assertEqual(result.attempts[0].report.completion, "complete")
+        self.assertEqual(result.attempts[0].volume.occupied_count, 0)
+        self.assertEqual(result.attempts[1].report.completion, "cancelled")
+        self.assertEqual(result.report.completion, "cancelled")
+        self.assertEqual(result.report.verification_status, "unknown")
+        self.assertTrue(any(f.code == "engine.refinement" and f.status == "unknown" and "did not complete" in f.message for f in result.report.findings))
+        self.assertEqual(GeometryResult.from_json(result.to_json()), result)
+
+    def test_real_second_worker_deadline_is_unknown_and_preserves_first(self):
+        class DeadlineSecond(NativeGeometryBackend):
+            calls = 0
+            def run(self, *args, **kwargs):
+                self.calls += 1
+                if self.calls == 2:
+                    kwargs["timeout"] = min(kwargs["timeout"], .02)
+                return super().run(*args, **kwargs)
+        revision, inputs = thin_sources()
+        backend = DeadlineSecond(LIBRARY, python_executable=Path(sys.executable))
+        result = analyze_geometry(revision, inputs, backend=backend)
+        self.assertEqual(len(result.attempts), 2)
+        self.assertEqual(result.attempts[0].report.completion, "complete")
+        self.assertEqual(result.attempts[1].report.completion, "partial")
+        self.assertEqual(result.report.verification_status, "unknown")
+        self.assertTrue(any(f.code == "engine.refinement" and f.status == "unknown" for f in result.report.findings))
+        self.assertEqual(GeometryResult.from_json(result.to_json()), result)
 
     def test_real_native_pass_roundtrip_and_missing_anchor_not_a_gate(self):
         revision, inputs = sources()

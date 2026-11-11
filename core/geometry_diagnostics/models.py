@@ -115,6 +115,10 @@ class RegionMeasurement(JsonContract):
     missing_pixels: int
     recall: float | None
     beyond_tolerance_pixels: int = 0
+    sampled_coverage_status: str = "unknown"
+    sampled_coverage_reason: str = "Sample correspondence was not measured."
+    actual_component_count: int = 0
+    matched_actual_component: int | None = None
 
     def __post_init__(self):
         validate_model(self)
@@ -122,6 +126,10 @@ class RegionMeasurement(JsonContract):
             raise ValueError("Invalid regional measurement.")
         if not 0 <= self.missing_pixels <= self.expected_pixels:
             raise ValueError("Invalid regional missing pixels.")
+        if self.sampled_coverage_status not in ("pass", "fail", "unknown") or self.actual_component_count < 0:
+            raise ValueError("Invalid sampled component coverage.")
+        if self.matched_actual_component is not None and (self.matched_actual_component <= 0 or self.actual_component_count != 1):
+            raise ValueError("An isolated component must identify exactly one positive actual component label.")
 
 
 @dataclass(frozen=True)
@@ -160,6 +168,8 @@ class GeometryMetrics(JsonContract):
     extraneous_beyond_tolerance_pixels: int = 0
     missing_region_count: int = 0
     extraneous_region_count: int = 0
+    actual_component_count: int = 0
+    component_correspondence: bool = False
 
     def __post_init__(self):
         validate_model(self)
@@ -234,9 +244,24 @@ class GeometryProvenance(JsonContract):
     native_elapsed_seconds: float
     termination: str
     host_platform: str
+    requested_resolution: int = 0
+    attempted_resolutions: tuple[int, ...] = ()
+    native_sessions_reserved: int = 0
+    native_session_budget: int = 24
+    native_applications_reserved: int = 0
+    native_application_budget: int = 220
+    native_voxel_test_capacity: int = 0
+    native_voxel_test_budget: int = 57_671_680
+    python_work_reserved: int = 0
+    python_work_budget: int = 8_000_000_000
 
     def __post_init__(self):
         validate_model(self)
+        if not (0 <= self.native_sessions_reserved <= self.native_session_budget <= 24 and
+                0 <= self.native_applications_reserved <= self.native_application_budget <= 220 and
+                0 <= self.native_voxel_test_capacity <= self.native_voxel_test_budget <= 57_671_680 and
+                0 <= self.python_work_reserved <= self.python_work_budget <= 8_000_000_000):
+            raise ValueError("Recorded work capacities exceed the declared aggregate budget.")
 
 
 @dataclass(frozen=True)
@@ -254,6 +279,26 @@ class GeometryPairComparison(JsonContract):
 
 
 @dataclass(frozen=True)
+class GeometryAttempt(JsonContract):
+    resolution: int
+    trigger: str
+    report: DiagnosticReport
+    volume: VolumeArtifact | None
+    views: tuple[ViewGeometryResult, ...]
+    experiments: tuple[GeometryExperiment, ...]
+    trace: tuple[SequentialTraceStep, ...]
+    provenance: GeometryProvenance
+    pair_comparisons: tuple[GeometryPairComparison, ...]
+
+    def __post_init__(self):
+        validate_model(self)
+        if not 8 <= self.resolution <= 64 or self.report.resolution.width != self.resolution:
+            raise ValueError("Attempt resolution must agree with its preserved report.")
+        if self.provenance.resolution != self.resolution or (self.volume is not None and self.volume.width != self.resolution):
+            raise ValueError("Attempt volume/provenance resolution does not match.")
+
+
+@dataclass(frozen=True)
 class GeometryResult(JsonContract):
     report: DiagnosticReport
     volume: VolumeArtifact | None
@@ -262,9 +307,29 @@ class GeometryResult(JsonContract):
     trace: tuple[SequentialTraceStep, ...]
     provenance: GeometryProvenance
     pair_comparisons: tuple[GeometryPairComparison, ...] = ()
+    requested_resolution: int = 0
+    actual_resolution: int = 0
+    attempts: tuple[GeometryAttempt, ...] = ()
     schema_version: int = 1
 
     def __post_init__(self):
         validate_model(self)
         if self.schema_version != 1:
             raise ValueError("Unsupported geometry diagnostic result schema.")
+        if len(self.attempts) > 2:
+            raise ValueError("Geometry diagnostics permit at most two bounded attempts.")
+        if self.attempts:
+            resolutions = tuple(a.resolution for a in self.attempts)
+            if (self.requested_resolution != resolutions[0] or self.actual_resolution != resolutions[-1] or
+                    self.actual_resolution != self.report.resolution.width or
+                    self.actual_resolution != self.provenance.resolution or
+                    self.provenance.attempted_resolutions != resolutions or
+                    self.provenance.requested_resolution != self.requested_resolution or
+                    len(resolutions) == 2 and resolutions[0] >= resolutions[1]):
+                raise ValueError("Requested, actual and preserved attempt resolutions disagree.")
+            if any(a.report.view_set != self.report.view_set or a.report.policy != self.report.policy for a in self.attempts):
+                raise ValueError("Every preserved attempt must bind the same source revision and original policy.")
+            for name in ("completed_experiments", "native_projection_applications", "native_sessions_reserved",
+                         "native_applications_reserved", "native_voxel_test_capacity", "python_work_reserved"):
+                if getattr(self.provenance, name) != sum(getattr(a.provenance, name) for a in self.attempts):
+                    raise ValueError("Aggregate provenance must include every preserved attempt exactly once.")

@@ -20,7 +20,7 @@ from ..projection_math import direction_to_camera
 from .backend import NativeBatch, NativeGeometryBackend, host_platform
 from .metrics import compare_masks
 from .models import (
-    GeometryExperiment, GeometryMetrics, GeometryPairComparison, GeometryProvenance, GeometryResult, MaskArtifact,
+    GeometryAttempt, GeometryExperiment, GeometryMetrics, GeometryPairComparison, GeometryProvenance, GeometryResult, MaskArtifact,
     RegionMeasurement, ResidualArtifact, ViewGeometryResult,
 )
 from .projection import aligned_mask, check_budget, projection_tolerance_pixels, reproject_volume
@@ -43,15 +43,26 @@ class GeometryPolicy:
     thread_count: int = 1
     max_projection_work: int = 8_000_000
     pair_raster_tolerance_pixels: float = 0.5
+    adaptive_refinement: bool = True
+    refinement_resolution: int = 64
+    max_total_experiments: int = 24
+    max_total_native_applications: int = 220
+    max_total_native_voxel_tests: int = 57_671_680
+    max_total_python_work: int = 8_000_000_000
 
     def __post_init__(self):
         for name, low, high in (("resolution", 8, 64), ("reprojection_size", 16, 256),
                                 ("max_views", 1, 10), ("max_experiments", 1, 12),
                                 ("max_regions", 1, 128), ("thread_count", 1, 8),
-                                ("max_projection_work", 1000, 32_000_000)):
+                                ("max_projection_work", 1000, 32_000_000), ("refinement_resolution", 8, 64),
+                                ("max_total_experiments", 1, 24), ("max_total_native_applications", 1, 220),
+                                ("max_total_native_voxel_tests", 512, 57_671_680),
+                                ("max_total_python_work", 1000, 8_000_000_000)):
             value = getattr(self, name)
             if type(value) is not int or not low <= value <= high:
                 raise ValueError(f"{name} must be an integer in [{low},{high}].")
+        if type(self.adaptive_refinement) is not bool:
+            raise ValueError("adaptive_refinement must be a boolean.")
         for name in ("min_iou", "max_missing_fraction", "max_component_missing_fraction"):
             value = getattr(self, name)
             if type(value) not in (int, float) or not math.isfinite(value) or not 0 < value <= 1:
@@ -76,10 +87,15 @@ def _source_hash():
     root = Path(__file__).resolve().parents[1]
     paths = [*Path(__file__).parent.glob("*.py"), root / "projection_alignment.py",
              root / "projection_frame.py", * (root / "projection_math").glob("*.py"),
-             *(root / "native_bridge").glob("*.py")]
+             *(root / "native_bridge").glob("*.py"), *(root / "diagnostic_contracts").rglob("*.py"),
+             *(root / "diagnostics_preflight").rglob("*.py"), root / "image_mask.py", root / "native_loader.py"]
+    if (root / "__init__.py").is_file():
+        paths.append(root / "__init__.py")
     for path in sorted(paths, key=lambda p: str(p.relative_to(root))):
-        digest.update(str(path.relative_to(root)).replace("\\", "/").encode())
-        digest.update(path.read_bytes())
+        logical_path = str(path.relative_to(root)).replace("\\", "/").encode()
+        content = path.read_bytes()
+        digest.update(len(logical_path).to_bytes(4, "big") + logical_path)
+        digest.update(len(content).to_bytes(8, "big") + content)
     return digest.hexdigest()
 
 
@@ -91,7 +107,8 @@ def _metric_snapshot(value, view_id):
     def region(item):
         return RegionMeasurement(replace(item.region, view_id=view_id), item.status.value, item.reason,
                                  item.expected_pixels, item.missing_pixels, item.recall,
-                                 item.beyond_tolerance_pixels)
+                                 item.beyond_tolerance_pixels, item.sampled_coverage_status.value,
+                                 item.sampled_coverage_reason, item.actual_component_count, item.matched_actual_component)
     return GeometryMetrics(value.iou, value.precision, value.recall, value.expected_pixels,
                            value.actual_pixels, value.intersection_pixels, value.missing_pixels,
                            value.extraneous_pixels, value.contour_mean_pixels, value.contour_max_pixels,
@@ -101,13 +118,16 @@ def _metric_snapshot(value, view_id):
                            tuple(region(r) for r in value.important_regions), tuple(region(r) for r in value.components),
                            value.component_count, value.components_truncated,
                            value.missing_beyond_tolerance_pixels, value.extraneous_beyond_tolerance_pixels,
-                           value.missing_region_count, value.extraneous_region_count)
+                           value.missing_region_count, value.extraneous_region_count,
+                           value.actual_component_count, value.component_correspondence)
 
 
-def _source_reduction_loss(source, sampled, *, deadline, cancel, max_regions):
+def _source_reduction_loss(source, sampled, *, deadline, cancel, max_regions, work_budget=None):
     """Inspect original components before reduction; lost details cannot pass."""
     if (source.width, source.height) == (sampled.width, sampled.height):
         return False, 0
+    if work_budget is not None:
+        work_budget.reserve_python(8*len(source.values) + len(sampled.values))
     selected = set()
     for y in range(sampled.height):
         sy = int((y / (sampled.height - 1) if sampled.height > 1 else 0.5) * (source.height - 1) + 0.5)
@@ -168,9 +188,34 @@ def _independent_reference(view_set, reference, target):
     return not (lineage(reference) & lineage(target))
 
 
-def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput], *,
+class _WorkBudget:
+    """Shared conservative call capacities, not a CPU instruction counter."""
+    def __init__(self, policy):
+        self.policy = policy
+        self.sessions = self.applications = self.native_voxels = self.python_work = 0
+
+    def reserve_python(self, units):
+        if self.python_work + units > self.policy.max_total_python_work:
+            raise ValueError("Aggregate Python diagnostic work budget exhausted.")
+        self.python_work += units
+
+    def can_reserve_native(self, sessions, applications, resolution):
+        return (self.sessions + sessions <= self.policy.max_total_experiments and
+                self.applications + applications <= self.policy.max_total_native_applications and
+                self.native_voxels + applications*resolution**3 <= self.policy.max_total_native_voxel_tests)
+
+    def reserve_native(self, sessions, applications, resolution):
+        if not self.can_reserve_native(sessions, applications, resolution):
+            raise ValueError("Aggregate native session/application/voxel work budget exhausted.")
+        self.sessions += sessions
+        self.applications += applications
+        self.native_voxels += applications*resolution**3
+
+
+def _analyze_geometry_once(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput], *,
                      policy: GeometryPolicy | None = None, backend: NativeGeometryBackend | None = None,
-                     regions: Sequence[Region] = (), cancel: Callable[[], bool] | None = None) -> GeometryResult:
+                     regions: Sequence[Region] = (), cancel: Callable[[], bool] | None = None,
+                     request_policy: GeometryPolicy, deadline: float, work_budget: _WorkBudget) -> GeometryResult:
     """Read-only, bounded orthographic diagnostic using actual native visual hulls.
 
     Original masks drive reconstruction. Aligned, explicitly sampled grids drive
@@ -179,7 +224,7 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
     """
     started = time.monotonic()
     policy, backend = policy or GeometryPolicy(), backend or NativeGeometryBackend()
-    deadline = started + policy.max_seconds
+    counters_before = (work_budget.sessions, work_budget.applications, work_budget.native_voxels, work_budget.python_work)
     views = {v.view_id: v for v in view_set.views}
     inputs, regions = dict(inputs), tuple(regions)
     if any(r.view_id not in views for r in regions):
@@ -191,6 +236,10 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
     native_masks, metric_masks, reduction_unknown, measurement_cache = {}, {}, {}, {}
     completion = "complete"
     source_hash = _source_hash()
+
+    def _compare_masks(*args, **kwargs):
+        work_budget.reserve_python(policy.max_projection_work)
+        return compare_masks(*args, **kwargs)
 
     def finding(code, category, status, message, ids=(), *, measurements=(), artifact=None,
                 regions=(), key="", required=True, action="inspect_input", interpretation="", severity="error"):
@@ -212,13 +261,17 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                         "Full and leave-one-out geometry use sorted stable view IDs; acquisition-order trace is execution provenance only.",
                         "Native DLL calls have an OS-enforced subprocess deadline; Python preparation and raster work use bounded loops and cooperative deadline/cancellation checks.",
                         f"source_sha256:{source_hash}",
-                        "settings:" + json.dumps(asdict(policy), sort_keys=True, allow_nan=False, separators=(",", ":")),
+                        "settings:" + json.dumps(asdict(request_policy), sort_keys=True, allow_nan=False, separators=(",", ":")),
+                        f"requested_resolution:{request_policy.resolution};attempt_resolution:{policy.resolution}",
                         "measurement_sampling:nearest-endpoint-grid; native reconstruction uses complete original aligned masks"))
     eligible = []
     try:
         check_budget(deadline=deadline, cancel=cancel)
         if len(view_set.views) > 20:
             raise ValueError("At most 20 total observation/reference/control views fit the diagnostic profile.")
+        source_pixels = sum(min(1_048_576, max(0, r.width*r.height)) for view_id, data in inputs.items() if view_id in views
+                            for r in (data.image, data.mask) if r is not None and type(r.width) is int and type(r.height) is int)
+        work_budget.reserve_python(64*source_pixels)
         preflight = analyze_preflight(view_set, inputs, policy=PreflightPolicy(required_cameras=()))
         assumptions.extend(preflight.report.assumptions)
         for item in preflight.report.findings:
@@ -239,12 +292,14 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
             raise ValueError("Leave-one-out/session count exceeds the declared experiment budget.")
         for view_id in eligible:
             check_budget(deadline=deadline, cancel=cancel)
+            work_budget.reserve_python(8*inputs[view_id].image.width*inputs[view_id].image.height)
             native = aligned_mask(mask_from_input(inputs[view_id], 0.1, 0.5), views[view_id].alignment)
             native_masks[view_id] = native
             ratio = min(1., policy.reprojection_size / max(native.width, native.height))
             sampled = resample_mask(native, max(1, round(native.width * ratio)), max(1, round(native.height * ratio)))
             metric_masks[view_id] = sampled
-            lost, count = _source_reduction_loss(native, sampled, deadline=deadline, cancel=cancel, max_regions=policy.max_regions)
+            lost, count = _source_reduction_loss(native, sampled, deadline=deadline, cancel=cancel,
+                                                  max_regions=policy.max_regions, work_budget=work_budget)
             reduction_unknown[view_id] = lost
             assumptions.append(f"aligned:{view_id}:{native.width}x{native.height}:{_mask_digest(native)};measurement:{sampled.width}x{sampled.height}:{_mask_digest(sampled)}")
             if lost:
@@ -283,7 +338,7 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                 reflected = target_camera.flip_x == counterpart_camera.flip_x
                 if reflected:
                     counterpart = counterpart.flipped_x()
-                comparison = compare_masks(expected, counterpart,
+                comparison = _compare_masks(expected, counterpart,
                     regions=tuple(r for r in regions if r.view_id == target_id),
                     min_region_recall=1-policy.max_component_missing_fraction, min_region_extent_pixels=1.,
                     resolution_tolerance_pixels=policy.pair_raster_tolerance_pixels, max_regions=policy.max_regions,
@@ -322,6 +377,8 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
         else:
             projections = [(v, NativeProjection(native_masks[v], views[v].camera.azimuth_degrees,
                                                 views[v].camera.elevation_degrees, views[v].camera.flip_x)) for v in eligible]
+            applications = len(eligible)**2 + (len(eligible) if tuple(eligible) != order else 0)
+            work_budget.reserve_native(requested, applications, policy.resolution)
             batch = backend.run(projections, resolution=policy.resolution, input_order=order,
                                 timeout=deadline - time.monotonic(), thread_count=policy.thread_count, cancel=cancel)
             if batch.library_sha256:
@@ -351,9 +408,10 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                 expected, view = metric_masks[view_id], views[view_id]
                 native = volume.as_native()
                 tolerance = projection_tolerance_pixels(native, view.camera, expected.width, expected.height)
+                work_budget.reserve_python(policy.max_projection_work)
                 actual = reproject_volume(native, view.camera, width=expected.width, height=expected.height,
                                           max_work=policy.max_projection_work, deadline=deadline, cancel=cancel)
-                comparison = compare_masks(expected, actual, regions=tuple(r for r in regions if r.view_id == view_id),
+                comparison = _compare_masks(expected, actual, regions=tuple(r for r in regions if r.view_id == view_id),
                                            min_region_recall=1-policy.max_component_missing_fraction,
                                            resolution_tolerance_pixels=tolerance, max_regions=policy.max_regions,
                                            deadline=deadline, cancel=cancel, max_work=policy.max_projection_work)
@@ -392,6 +450,8 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
             for item in measured:
                 metric = item.metrics
                 outside = metric.missing_beyond_tolerance_pixels + metric.extraneous_beyond_tolerance_pixels
+                within_uncertainty = (outside == 0 and metric.expected_pixels > 0 and metric.actual_pixels > 0 and
+                                      metric.component_correspondence and not metric.components_truncated)
                 contour_bad = metric.contour_max_pixels is not None and metric.contour_max_pixels > policy.max_contour_distance_pixels + item.resolution_tolerance_pixels
                 bad = outside > 0 and (metric.iou < policy.min_iou or 1-metric.recall > policy.max_missing_fraction or contour_bad)
                 residual = metric.missing_pixels + metric.extraneous_pixels
@@ -399,17 +459,21 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                     bad = False
                     status = "unknown"
                 else:
-                    status = "fail" if bad else "unknown" if residual and metric.iou < policy.min_iou else "pass"
+                    status = "fail" if bad else "pass" if within_uncertainty else "unknown" if (
+                        not metric.component_correspondence or residual and metric.iou < policy.min_iou) else "pass"
                 if bad:
                     conflicts.append(item.view_id)
                 finding("geometry.cross_view_conflict", "geometry", status,
                         "Cross-view silhouette mismatch exceeds the declared raster/voxel tolerance." if bad else
                         "Silhouette mismatch cannot be resolved at this diagnostic resolution." if status == "unknown" else
+                        "Nonempty silhouettes and one-to-one components agree within the derived raster/voxel uncertainty; raw IoU is retained independently." if within_uncertainty else
                         "Reprojection agrees with this source silhouette within the explicit diagnostic thresholds.",
-                        (item.view_id,), measurements=(Measurement("mask_iou", metric.iou, "ratio", Threshold(">=", policy.min_iou, "ratio")),
+                        (item.view_id,), measurements=(Measurement("mask_iou", metric.iou, "ratio"),
                                                        Measurement("missing_pixels", metric.missing_pixels, "pixel"),
                                                        Measurement("missing_beyond_tolerance", metric.missing_beyond_tolerance_pixels, "pixel"),
-                                                       Measurement("extraneous_beyond_tolerance", metric.extraneous_beyond_tolerance_pixels, "pixel")),
+                                                       Measurement("extraneous_beyond_tolerance", metric.extraneous_beyond_tolerance_pixels, "pixel"),
+                                                       Measurement("component_correspondence", int(metric.component_correspondence), "boolean"),
+                                                       Measurement("derived_resolution_tolerance", item.resolution_tolerance_pixels, "pixel")),
                         artifact=ArtifactReference("residual-"+item.view_id, metric.missing_mask.sha256, "application/x-meshvenn-binary-mask"))
                 details = tuple(metric.important_regions) + tuple(metric.components)
                 if not details or metric.components_truncated or reduction_unknown.get(item.view_id):
@@ -422,6 +486,14 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                             measurements=(() if detail.recall is None else (Measurement("region_recall", detail.recall, "ratio", Threshold(">=", 1-policy.max_component_missing_fraction, "ratio")),)) +
                                          (Measurement("region_expected_pixels", detail.expected_pixels, "pixel"),
                                           Measurement("region_missing_pixels", detail.missing_pixels, "pixel")))
+                    if index >= len(metric.important_regions):
+                        finding("geometry.sampled_component_coverage", "geometry", detail.sampled_coverage_status,
+                                detail.sampled_coverage_reason, (item.view_id,), key=f"sampled-{index}",
+                                regions=(detail.region,), required=False,
+                                measurements=(Measurement("expected_samples", detail.expected_pixels, "pixel"),
+                                              Measurement("missing_samples", detail.missing_pixels, "pixel"),
+                                              Measurement("overlapping_actual_components", detail.actual_component_count, "component"),
+                                              Measurement("isolated_actual_component", int(detail.matched_actual_component is not None), "boolean")))
                     if detail.status == "fail" and full_volume and full_volume.occupied_count and item.view_id not in conflicts:
                         conflicts.append(item.view_id)
             if conflicts:
@@ -444,11 +516,11 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                     expected = metric_masks[target_id]
                     reference_mask = resample_mask(reference_original, expected.width, expected.height)
                     reference_lost, _ = _source_reduction_loss(reference_original, reference_mask, deadline=deadline,
-                                                              cancel=cancel, max_regions=policy.max_regions)
-                    metric = compare_masks(reference_mask, expected,
+                                                              cancel=cancel, max_regions=policy.max_regions, work_budget=work_budget)
+                    metric = _compare_masks(reference_mask, expected,
                                            resolution_tolerance_pixels=0., max_regions=policy.max_regions,
                                            deadline=deadline, cancel=cancel, max_work=policy.max_projection_work)
-                    reverse = compare_masks(expected, reference_mask,
+                    reverse = _compare_masks(expected, reference_mask,
                                             regions=tuple(r for r in regions if r.view_id == target_id),
                                             min_region_recall=1-policy.max_component_missing_fraction,
                                             resolution_tolerance_pixels=0., max_regions=policy.max_regions,
@@ -515,12 +587,126 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
     resolution = DiagnosticResolution(policy.resolution, policy.resolution, policy.resolution, "voxel")
     assumptions = tuple(sorted(set(assumptions)))
     report = DiagnosticReport("geometry-" + view_set.dependency_fingerprint[:20], view_set, engines,
-                              policy.contract(), resolution, tuple(findings), assumptions, completion)
+                              request_policy.contract(), resolution, tuple(findings), assumptions, completion)
     report = replace(report, report_id="geometry-" + report.dependency_fingerprint[:20])
     requested = 0 if not eligible else 1 + (len(eligible) if len(eligible) > 1 else 0) + int(tuple(v for v in view_set.input_order if v in eligible) != tuple(eligible))
     provenance = GeometryProvenance("isolated-native-core", batch.library_sha256, source_hash, batch.python_executable,
                                    1, policy.resolution, policy.thread_count, False, requested, len(batch.experiments),
                                    sum(len(e.included_view_ids) for e in batch.experiments), policy.resolution ** 3,
-                                   policy.reprojection_size ** 2, policy.max_seconds, elapsed,
-                                   batch.elapsed_seconds, batch.termination, host_platform())
-    return GeometryResult(report, full_volume, tuple(measured), tuple(experiments), trace, provenance, tuple(pairs))
+                                   policy.reprojection_size ** 2, request_policy.max_seconds, elapsed,
+                                   batch.elapsed_seconds, batch.termination, host_platform(),
+                                   request_policy.resolution, (policy.resolution,),
+                                   work_budget.sessions-counters_before[0], request_policy.max_total_experiments,
+                                   work_budget.applications-counters_before[1], request_policy.max_total_native_applications,
+                                   work_budget.native_voxels-counters_before[2], request_policy.max_total_native_voxel_tests,
+                                   work_budget.python_work-counters_before[3], request_policy.max_total_python_work)
+    return GeometryResult(report, full_volume, tuple(measured), tuple(experiments), trace, provenance, tuple(pairs),
+                          request_policy.resolution, policy.resolution)
+
+
+def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput], *,
+                     policy: GeometryPolicy | None = None, backend: NativeGeometryBackend | None = None,
+                     regions: Sequence[Region] = (), cancel: Callable[[], bool] | None = None) -> GeometryResult:
+    """Analyze once, then optionally refine once under the same deadline/budget.
+
+    Reports retain the original request policy. Attempt artifacts keep coarse
+    empty geometry and unresolved details even when a finer grid resolves them.
+    This function never recurses and never runs more than two resolutions.
+    """
+    started = time.monotonic()
+    policy, backend = policy or GeometryPolicy(), backend or NativeGeometryBackend()
+    deadline = started + policy.max_seconds
+    work_budget = _WorkBudget(policy)
+    inputs, regions = dict(inputs), tuple(regions)
+    initial = _analyze_geometry_once(view_set, inputs, policy=policy, backend=backend, regions=regions,
+                                     cancel=cancel, request_policy=policy, deadline=deadline, work_budget=work_budget)
+
+    def preserve(result, trigger):
+        return GeometryAttempt(result.actual_resolution, trigger, result.report, result.volume, result.views,
+                               result.experiments, result.trace, result.provenance, result.pair_comparisons)
+
+    attempts = [preserve(initial, "requested_resolution")]
+    result = initial
+    empty = initial.volume is not None and initial.volume.occupied_count == 0
+    detail_unknown = any(f.code == "geometry.detail_preservation" and f.status == "unknown" and len(f.view_ids) == 1
+                         for f in initial.report.findings)
+    independent_failure = (any(f.code == "geometry.reference_conflict" and f.status == "fail" for f in initial.report.findings) or
+                           any(p.metrics.missing_beyond_tolerance_pixels+p.metrics.extraneous_beyond_tolerance_pixels > 0 and
+                               (any(r.status == "fail" for r in p.metrics.important_regions+p.metrics.components) or
+                                any(f.code == "geometry.cross_view_conflict" and f.status == "fail" and
+                                    f.view_ids == (p.target_view_id, p.counterpart_view_id) for f in initial.report.findings))
+                               for p in initial.pair_comparisons))
+    invalid_input = any(f.category in ("input", "camera") and f.status == "fail" and f.required for f in initial.report.findings)
+    needs_refinement = empty or detail_unknown
+    eligible = (policy.adaptive_refinement and needs_refinement and initial.report.completion == "complete" and
+                not independent_failure and not invalid_input and policy.refinement_resolution > policy.resolution)
+    refinement_reason = "initial_empty" if empty else "native_detail_resolution" if detail_unknown else "not_needed"
+    skipped_budget = ""
+    if eligible:
+        observation_count = len(initial.views)
+        if not observation_count and initial.experiments:
+            observation_count = len(initial.experiments[0].included_view_ids)
+        # Reserve enough capacity for either source order. This conservative gate
+        # cannot make input permutation change whether refinement is permitted.
+        planned_sessions = 1 if observation_count == 1 else observation_count+2
+        planned_applications = 1 if observation_count == 1 else observation_count**2+observation_count
+        if cancel is not None and cancel():
+            skipped_budget = "cancelled"
+        elif time.monotonic() >= deadline:
+            skipped_budget = "shared_deadline"
+        elif not work_budget.can_reserve_native(planned_sessions, planned_applications, policy.refinement_resolution):
+            skipped_budget = "aggregate_native_budget"
+        elif work_budget.python_work + policy.max_projection_work > policy.max_total_python_work:
+            skipped_budget = "aggregate_python_budget"
+        else:
+            refined_policy = replace(policy, resolution=policy.refinement_resolution)
+            result = _analyze_geometry_once(view_set, inputs, policy=refined_policy, backend=backend, regions=regions,
+                                            cancel=cancel, request_policy=policy, deadline=deadline, work_budget=work_budget)
+            attempts.append(preserve(result, refinement_reason))
+
+    attempt_manifest = [dict(resolution=a.resolution, trigger=a.trigger,
+                             report_sha256=hashlib.sha256(a.report.to_json().encode()).hexdigest(),
+                             volume_sha256=a.volume.sha256 if a.volume else None) for a in attempts]
+    artifact = ArtifactReference("geometry-resolution-attempts", hashlib.sha256(json.dumps(attempt_manifest,
+        sort_keys=True, allow_nan=False, separators=(",", ":")).encode()).hexdigest(), "application/json")
+    measurements = (Measurement("requested_resolution", policy.resolution, "voxel"),
+                    Measurement("actual_resolution", result.actual_resolution, "voxel"),
+                    Measurement("attempt_count", len(attempts), "attempt"),
+                    Measurement("native_sessions_reserved", work_budget.sessions, "experiment", Threshold("<=", policy.max_total_experiments, "experiment")),
+                    Measurement("native_applications_reserved", work_budget.applications, "count", Threshold("<=", policy.max_total_native_applications, "count")),
+                    Measurement("native_voxel_test_capacity", work_budget.native_voxels, "voxel_test", Threshold("<=", policy.max_total_native_voxel_tests, "voxel_test")),
+                    Measurement("python_work_reserved", work_budget.python_work, "declared_work_unit", Threshold("<=", policy.max_total_python_work, "declared_work_unit")),
+                    Measurement("shared_deadline_seconds", policy.max_seconds, "second"))
+    refinement_incomplete = len(attempts) == 2 and result.report.completion != "complete"
+    refinement_status = "unknown" if skipped_budget or refinement_incomplete else "pass" if len(attempts) == 2 else "not_applicable"
+    message = ("Refinement could not run within the shared " + skipped_budget + "." if skipped_budget else
+               "The bounded refinement was attempted but did not complete; the original coarse attempt remains archived." if refinement_incomplete else
+               "One bounded refinement completed; the original coarse attempt remains archived." if len(attempts) == 2 else
+               "No additional resolution attempt was required or permitted by the declared refinement profile.")
+    refinement = Finding("geometry-refinement", "engine.refinement", "engine", "warning" if skipped_budget else "info",
+                         refinement_status, message, evidence=(Evidence("geometry-refinement-execution", "execution", message,
+                         measurements=measurements, artifact=artifact),), required=bool(skipped_budget or refinement_incomplete),
+                         reason=message if refinement_status in ("unknown", "not_applicable") else "")
+    findings = result.report.findings
+    completion = result.report.completion
+    if skipped_budget:
+        completion = "cancelled" if skipped_budget == "cancelled" else "partial"
+        if empty and not independent_failure:
+            findings = tuple(replace(f, status="unknown", reason="The initial finite grid is empty and the declared refinement could not be completed.")
+                             if f.status == "fail" and f.code in ("geometry.empty", "geometry.detail_preservation") else f for f in findings)
+    assumptions = tuple(sorted(set(result.report.assumptions + (
+        "attempt_resolutions:" + ",".join(str(a.resolution) for a in attempts),
+        "At most two attempts share one absolute deadline and aggregate native/Python work budgets; preserved initial outcomes are not overwritten.",))))
+    report = replace(result.report, findings=findings+(refinement,), assumptions=assumptions, completion=completion)
+    report = replace(report, report_id="geometry-"+report.dependency_fingerprint[:20])
+    provenance = replace(result.provenance, requested_resolution=policy.resolution,
+                         attempted_resolutions=tuple(a.resolution for a in attempts),
+                         requested_experiments=sum(a.provenance.requested_experiments for a in attempts),
+                         completed_experiments=sum(a.provenance.completed_experiments for a in attempts),
+                         native_projection_applications=sum(a.provenance.native_projection_applications for a in attempts),
+                         native_sessions_reserved=work_budget.sessions, native_applications_reserved=work_budget.applications,
+                         native_voxel_test_capacity=work_budget.native_voxels, python_work_reserved=work_budget.python_work,
+                         elapsed_seconds=time.monotonic()-started,
+                         native_elapsed_seconds=sum(a.provenance.native_elapsed_seconds for a in attempts))
+    return replace(result, report=report, provenance=provenance, requested_resolution=policy.resolution,
+                   actual_resolution=result.actual_resolution, attempts=tuple(attempts))

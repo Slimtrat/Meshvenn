@@ -58,6 +58,17 @@ source components during reduction and truncated component lists remain required
 unknowns. An unannotated semantic detail inside a large connected component is
 not certified by its component mean. Add an important region for that constraint.
 
+Geometric compatibility and physical detail resolution are separate observations.
+Nonempty silhouettes can agree within the derived symmetric foreground-distance
+tolerance when expected and projected components correspond one to one, even if
+conservative voxel cells lower raw IoU. Raw IoU and all residual counts remain
+unchanged in the artifacts. This compatibility finding does not resolve a small
+physical feature. `geometry.sampled_component_coverage` is a separate optional
+observation: a pass requires every expected pixel to be present and an isolated
+one-to-one actual component. A merge, split or a deficit within uncertainty does
+not qualify for that pass. Required physical/important-region uncertainty remains
+visible and cannot be overruled by sampled coverage or a high mean score.
+
 Exact antipodal declarations `(azimuth + 180, -elevation)` also permit direct
 silhouette comparison: horizontal coordinates reflect and vertical coordinates
 agree before the declared Flip X. This check uses the shared camera transform,
@@ -99,14 +110,40 @@ also remains unknown. No automatic deletion or regeneration action is applied.
 
 ## Bounds, cancellation and provenance
 
-Default native resolution is 32; the supported range is 8–64. At most 10 usable
-observations, 20 total snapshot views, 12 native sessions, 128 named/component
-regions, eight threads and a 120-second maximum deadline are accepted. The default
-deadline is 30 seconds and default thread count is one. Projection/metric calls
-each have an explicit operation cap; these caps are per call, not an aggregate
-instruction counter. Identical volume/view measurements are reused exactly.
+Default requested native resolution is 32; the supported range is 8–64. Optional
+adaptive refinement is enabled by default and permits one additional attempt at
+64 when the first grid is empty or required native detail remains unresolved.
+It does not retry known direct-pair/canonical conflicts or invalid inputs, does
+not recurse and never runs more than two resolutions. Disable it explicitly with
+`GeometryPolicy(adaptive_refinement=False)`. Resolution limits, thresholds and
+the original policy hash stay fixed throughout the request.
 
-All DLL calls run in one disposable subprocess. A deadline or cancellation causes
+`result.requested_resolution` records the initial request;
+`result.actual_resolution` records the final attempt. `result.attempts` preserves
+each `GeometryAttempt`, including its report, volume, view metrics, experiments,
+trace, pair artifacts and execution provenance. The initial empty/unknown outcome
+is retained even when the finer grid resolves it. A failed, timed-out or cancelled
+second attempt stays unknown and keeps the first attempt intact. Reaching the
+native resolution ceiling does not make unresolved physical parts pass.
+
+At most 10 usable observations, 20 total snapshot views, 12 native sessions per
+attempt, 24 sessions total, 220 native projection applications and 57,671,680
+potential voxel tests are accepted. Named/component regions are capped at 128,
+threads at eight and the shared deadline at 120 seconds. Defaults are 30 seconds
+and one thread. Both attempts consume one shared ledger and the same absolute
+deadline; neither resets the remaining budget. The refinement gate conservatively
+reserves enough native capacity for either acquisition order.
+
+Projection/metric calls each have an explicit operation cap. A second aggregate
+budget reserves their conservative call capacities and bounded source passes,
+up to eight billion declared work units. This is a workload reservation, not a
+CPU instruction counter. `*_reserved` fields in each attempt are deltas; the final
+provenance contains their sums, actual completed native session/application
+counts, attempted resolutions and the declared aggregate caps. Identical
+volume/view measurements are reused exactly within each attempt.
+
+Each attempt runs its DLL calls in a disposable subprocess, with at most two
+sequential subprocesses per request. A deadline or cancellation causes
 the parent to terminate it, escalate to kill if needed, and wait for its exit.
 This interrupts blocked native calls; it does not pretend that a cooperative
 Python check can do so. Native sessions write atomically after completion, so
@@ -122,10 +159,12 @@ reports its measured outcome; at coarse resolution a thin feature can remain
 unresolved, and emptiness alone does not establish which source is wrong.
 
 Both the common `DiagnosticReport` and strict typed result retain engine and
-library/source hashes, policy settings, resolution, sampling assumptions,
+library/source hashes, original policy settings, requested/actual resolutions, sampling assumptions,
 experiment artifact hashes, timing and compute bounds. The typed result additionally
 contains the full voxel/raster data and source-order trace. Library/source/policy,
 camera, alignment, reference or decoded-buffer changes invalidate dependencies.
+Source hashes include framed logical paths and bytes for the geometry engine,
+native bridge/loader, projection authorities, image masks and shared D1/D2 code.
 Timing and acquisition order remain execution provenance rather than truth labels.
 
 Run focused validation with:
