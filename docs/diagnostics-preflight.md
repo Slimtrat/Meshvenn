@@ -49,6 +49,17 @@ already aligned color image through this mapping again. Promotion to a new
 ViewRevision must be explicit and retain the original source hashes; this engine
 does not silently rewrite files or source revisions.
 
+For multiple accepted views use
+`acceptance = accept_alignments(proposals, result, view_set, inputs, anchors=anchors, policy=policy)`.
+It performs exactly one complete reanalysis for the entire batch. The immutable
+`PreflightAcceptance` contains the freshly recomputed `report` and `accepted`, a
+tuple of `(proposal_id, CertifiedProjectionInput)` pairs. Duplicate, foreign,
+forged or stale members reject the whole batch before any accepted input is
+constructed. Logical views retain distinct proposal IDs even when they reuse
+identical source bytes and transformations. `accept_alignment` is the compatible
+single-proposal wrapper over this same checked batch path. Consumers must attach
+the acceptance's fresh report, rather than trusting caller-supplied findings.
+
 An anchor requires a separate `role="reference"` view, inclusion in the canonical
 reference's `view_ids`, `validated=True`, hashed canonical `validation_evidence`,
 an explicit anchor evidence hash and an identical verified orthographic camera

@@ -63,6 +63,19 @@ class PreflightResult:
     proposals: tuple[AlignmentProposal, ...]
 
 
+@dataclass(frozen=True)
+class PreflightAcceptance:
+    """One freshly reproduced report and immutable proposal-ID/input pairs."""
+    report: DiagnosticReport
+    accepted: tuple[tuple[str, CertifiedProjectionInput], ...]
+
+    def __post_init__(self):
+        entries = tuple((proposal_id, value) for proposal_id, value in self.accepted)
+        if len({proposal_id for proposal_id, _ in entries}) != len(entries):
+            raise ValueError("Accepted proposal IDs must be unique.")
+        object.__setattr__(self, "accepted", entries)
+
+
 def _camera_supported(view) -> bool:
     camera = view.camera
     return (camera.projection == "orthographic" and camera.verified and
@@ -305,28 +318,50 @@ def analyze_preflight(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput]
                         reference.image.source_sha256, reference.mask.source_sha256 if reference.mask else None,
                         anchor.evidence_sha256)
         certificate = transform_hash(alignment, *dependencies)
-        proposals.append(AlignmentProposal("alignment-" + certificate[:20], view_id, ref_id, alignment,
+        proposal_id = "alignment-" + hashlib.sha256(f"{view_id}:{ref_id}:{certificate}".encode()).hexdigest()[:20]
+        proposals.append(AlignmentProposal(proposal_id, view_id, ref_id, alignment,
                                           before, after, *dependencies, certificate))
     return PreflightResult(report, tuple(proposals))
+
+
+def accept_alignments(proposals: Sequence[AlignmentProposal], result: PreflightResult,
+                      view_set: ViewSetRevision, inputs: Mapping[str, ViewInput], *,
+                      anchors: Sequence[AlignmentAnchor], policy: PreflightPolicy | None = None
+                      ) -> PreflightAcceptance:
+    """Reproduce the whole batch once; publish only after every proposal passes.
+
+    Reanalysis detects stale metadata, mutated buffers, policy/anchor changes and
+    caller-forged transforms. The current report is recomputed too: caller-edited
+    findings never become accepted evidence. Immutable snapshots prevent mapping
+    changes during acceptance. Source files and source revisions are not edited.
+    """
+    proposals, anchors = tuple(proposals), tuple(anchors)
+    if not proposals:
+        raise ValueError("At least one alignment proposal is required for acceptance.")
+    if len({proposal.proposal_id for proposal in proposals}) != len(proposals):
+        raise ValueError("Duplicate alignment proposal IDs cannot be accepted.")
+    if any(proposal not in result.proposals for proposal in proposals):
+        raise ValueError("A proposal does not belong to this preflight result.")
+    policy = policy or PreflightPolicy()
+    inputs = dict(inputs)
+    current = analyze_preflight(view_set, inputs, anchors=anchors, policy=policy)
+    if (current.report.dependency_fingerprint != result.report.dependency_fingerprint or
+            any(proposal not in current.proposals for proposal in proposals)):
+        raise ValueError("An alignment proposal is stale or its source/evidence/transform changed.")
+    accepted = []
+    for proposal in proposals:
+        source = inputs[proposal.view_id]
+        original = mask_from_input(source, policy.alpha_threshold, policy.mask_threshold)
+        certified = CertifiedProjectionInput(source, proposal.alignment.align_mask(original), proposal.alignment,
+                                             proposal.transform_sha256, proposal.source_image_sha256,
+                                             proposal.source_mask_sha256)
+        accepted.append((proposal.proposal_id, certified))
+    return PreflightAcceptance(current.report, tuple(accepted))
 
 
 def accept_alignment(proposal: AlignmentProposal, result: PreflightResult, view_set: ViewSetRevision,
                      inputs: Mapping[str, ViewInput], *, anchors: Sequence[AlignmentAnchor],
                      policy: PreflightPolicy | None = None) -> CertifiedProjectionInput:
-    """Accept only an unchanged, reproduced proposal and bind both consumers.
-
-    Reanalysis detects stale metadata, mutated buffers, policy/anchor changes and
-    caller-forged transforms. Acceptance creates a derived input, never edits a
-    source file or changes a ViewRevision silently.
-    """
-    if proposal not in result.proposals:
-        raise ValueError("Proposal does not belong to this preflight result.")
-    current = analyze_preflight(view_set, inputs, anchors=anchors, policy=policy)
-    if current.report.dependency_fingerprint != result.report.dependency_fingerprint or proposal not in current.proposals:
-        raise ValueError("Alignment proposal is stale or its source/evidence/transform changed.")
-    policy = policy or PreflightPolicy()
-    source = inputs[proposal.view_id]
-    original = mask_from_input(source, policy.alpha_threshold, policy.mask_threshold)
-    return CertifiedProjectionInput(source, proposal.alignment.align_mask(original), proposal.alignment,
-                                    proposal.transform_sha256, proposal.source_image_sha256,
-                                    proposal.source_mask_sha256)
+    """Compatible single-proposal wrapper over the same validated batch path."""
+    return accept_alignments((proposal,), result, view_set, inputs, anchors=anchors,
+                             policy=policy).accepted[0][1]

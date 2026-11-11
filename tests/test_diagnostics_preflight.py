@@ -16,7 +16,7 @@ from core.diagnostic_contracts import (
 )
 from core.diagnostics_preflight import (
     AlignmentAnchor, PreflightPolicy, RasterInput, ViewInput,
-    accept_alignment, analyze_preflight,
+    accept_alignment, accept_alignments, analyze_preflight,
 )
 from core.image_mask import BinaryMask
 from core.projection_alignment import ProjectionAlignment
@@ -340,6 +340,72 @@ class PreflightTests(unittest.TestCase):
         inputs["front"] = replace(inputs["front"], image=RasterInput.from_pixels(2**63, 1, ()))
         result = analyze_preflight(view_set, inputs, anchors=anchors, policy=policy)
         self.assertEqual(codes(result)["input.unreadable"], "fail")
+
+    def batch_fixture(self):
+        original = mask()
+        view_set, inputs, anchors, policy = fixture(ProjectionAlignment(offset_u=.08).align_mask(original), original)
+        duplicate_observation = replace(view_set.views[0], view_id="front-extra")
+        view_set = replace(view_set, views=(*view_set.views, duplicate_observation), input_order=())
+        inputs["front-extra"] = inputs["front"]
+        anchors = (*anchors, AlignmentAnchor("front-extra", "ref-front", anchors[0].evidence_sha256))
+        result = analyze_preflight(view_set, inputs, anchors=anchors, policy=policy)
+        self.assertEqual(len(result.proposals), 2)
+        return view_set, inputs, anchors, policy, result
+
+    def test_batch_acceptance_analyzes_once_and_keys_distinct_logical_views(self):
+        from core.diagnostics_preflight import engine
+        view_set, inputs, anchors, policy, result = self.batch_fixture()
+        with patch.object(engine, "analyze_preflight", wraps=engine.analyze_preflight) as analysis:
+            acceptance = accept_alignments(result.proposals, result, view_set, inputs,
+                                            anchors=anchors, policy=policy)
+        self.assertEqual(analysis.call_count, 1)
+        self.assertEqual(acceptance.report, result.report)
+        self.assertEqual(len(acceptance.accepted), 2)
+        self.assertEqual({key for key, _ in acceptance.accepted}, {p.proposal_id for p in result.proposals})
+        self.assertIsInstance(acceptance.accepted, tuple)
+        self.assertTrue(all(isinstance(entry, tuple) for entry in acceptance.accepted))
+        for proposal_id, accepted in acceptance.accepted:
+            proposal = next(p for p in result.proposals if p.proposal_id == proposal_id)
+            self.assertIs(accepted.source, inputs[proposal.view_id])
+            self.assertEqual(accepted.certificate_sha256, proposal.transform_sha256)
+
+    def test_stale_member_invalidates_batch_before_any_accepted_input_is_constructed(self):
+        from core.diagnostics_preflight import engine
+        view_set, inputs, anchors, policy, result = self.batch_fixture()
+        stale = dict(inputs)
+        image = stale["front-extra"].image
+        stale["front-extra"] = replace(stale["front-extra"], image=replace(image, rgba=(.9,) + image.rgba[1:]))
+        with patch.object(engine, "analyze_preflight", wraps=engine.analyze_preflight) as analysis:
+            with patch.object(engine, "CertifiedProjectionInput", wraps=engine.CertifiedProjectionInput) as constructor:
+                with self.assertRaises(ValueError):
+                    accept_alignments(result.proposals, result, view_set, stale, anchors=anchors, policy=policy)
+        self.assertEqual(analysis.call_count, 1)
+        self.assertEqual(constructor.call_count, 0)
+
+    def test_batch_rejects_duplicate_foreign_and_forged_proposals(self):
+        view_set, inputs, anchors, policy, result = self.batch_fixture()
+        first, second = result.proposals
+        for proposals in ((), (first, first), (first, replace(second, proposal_id="foreign"))):
+            with self.subTest(proposals=proposals), self.assertRaises(ValueError):
+                accept_alignments(proposals, result, view_set, inputs, anchors=anchors, policy=policy)
+        forged = replace(second, alignment=ProjectionAlignment(.15, 0, 1))
+        fake_result = replace(result, proposals=(first, forged))
+        with self.assertRaises(ValueError):
+            accept_alignments(fake_result.proposals, fake_result, view_set, inputs, anchors=anchors, policy=policy)
+
+    def test_batch_returns_fresh_findings_and_single_wrapper_uses_same_batch_path(self):
+        from core.diagnostics_preflight import engine
+        view_set, inputs, anchors, policy, result = self.batch_fixture()
+        forged = replace(result, report=replace(result.report, findings=tuple(f for f in result.report.findings if f.status == "pass")))
+        acceptance = accept_alignments(result.proposals, forged, view_set, inputs, anchors=anchors, policy=policy)
+        self.assertEqual(acceptance.report, result.report)
+        self.assertEqual(acceptance.report.verification_status, "fail")
+        with patch.object(engine, "accept_alignments", wraps=engine.accept_alignments) as batch:
+            with patch.object(engine, "analyze_preflight", wraps=engine.analyze_preflight) as analysis:
+                accepted = accept_alignment(result.proposals[0], result, view_set, inputs, anchors=anchors, policy=policy)
+        self.assertEqual(batch.call_count, 1)
+        self.assertEqual(analysis.call_count, 1)
+        self.assertEqual(accepted, dict(acceptance.accepted)[result.proposals[0].proposal_id])
 
 
 if __name__ == "__main__":
