@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meshvenn-agent"
+version = "0.1.0"
+description = "Provider-neutral action gateway and immutable artifacts for Meshvenn"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "GPL-3.0-or-later"}
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=2,<3"]
+
+[project.scripts]
+meshvenn-mcp = "meshvenn_agent.adapters.mcp:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["meshvenn_agent*"]
