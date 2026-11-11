@@ -14,7 +14,7 @@ from core.geometry_diagnostics.projection import (aligned_mask, nearest_mask_pix
 from core.image_mask import BinaryMask
 from core.native_bridge import NativeCore, NativeProjection, NativeVolume
 from core.projection_alignment import ProjectionAlignment
-from core.projection_math import ProjectedPoint
+from core.projection_math import NormalizedPoint, ProjectedPoint, compile_projection, project_normalized_point
 
 
 def camera(azimuth=0.0, elevation=0.0, flip=False):
@@ -33,6 +33,37 @@ def mask(width, height, predicate):
 
 
 class GeometryProjectionTests(unittest.TestCase):
+    def test_antipodal_declared_camera_mapping_including_poles_and_all_flip_pairs(self):
+        # Inverse camera rotations: a+180 negates x1/y1, while -e negates
+        # sin_el. Their product in z2 is unchanged. Thus v is unchanged and
+        # u is mirrored before declared flips, independently of hidden shape.
+        points = [NormalizedPoint(x, y, z) for x in (-1, -.37, 0, .81, 1)
+                  for y in (-1, -.22, .63, 1) for z in (-1, -.41, .58, 1)]
+        for azimuth, elevation in ((0, 0), (37, 29), (-128, -41), (359, 17),
+                                   (23, 90), (151, -90), (11, 89.999)):
+            for first_flip in (False, True):
+                for second_flip in (False, True):
+                    first = compile_projection(azimuth_degrees=azimuth,
+                        elevation_degrees=elevation, flip_x=first_flip)
+                    second = compile_projection(azimuth_degrees=azimuth + 180,
+                        elevation_degrees=-elevation, flip_x=second_flip)
+                    for point in points:
+                        a, b = (project_normalized_point(point, transform)
+                                for transform in (first, second))
+                        expected_u = 1 - a.u if first_flip == second_flip else a.u
+                        self.assertAlmostEqual(b.u, expected_u, places=12)
+                        self.assertAlmostEqual(b.v, a.v, places=12)
+
+    def test_opposite_camera_direction_alone_does_not_define_raster_roll_at_poles(self):
+        point = NormalizedPoint(.37, .63, -.22)
+        top = project_normalized_point(point,
+            compile_projection(azimuth_degrees=23, elevation_degrees=90))
+        bottom_same_azimuth = project_normalized_point(point,
+            compile_projection(azimuth_degrees=23, elevation_degrees=-90))
+        self.assertAlmostEqual(bottom_same_azimuth.u, top.u)
+        self.assertAlmostEqual(bottom_same_azimuth.v, 1 - top.v)
+        self.assertNotAlmostEqual(bottom_same_azimuth.v, top.v)
+
     def test_native_centres_include_endpoints_and_cardinal_flip(self):
         v = volume(8, 9, 10)
         self.assertEqual(project_voxel_center(v, camera(), 0, 4, 0), ProjectedPoint(0, 0))

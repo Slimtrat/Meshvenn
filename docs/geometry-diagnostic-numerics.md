@@ -25,6 +25,16 @@ raster cells with positive overlap with that polygon; it does not fill an
 elevated polygon's rectangular bounding box. Disconnected runs stay separate.
 The result is a conservative finite-cell silhouette, not a hidden-surface test.
 
+For an exact antipodal declaration `a2 = a1 + 180 (mod 360), e2 = -e1`,
+the shared transform gives `x1_2 = -x1_1`, `y1_2 = -y1_1`, and
+`sin_el_2 = -sin_el_1`. Therefore `z2_2 = z2_1`, extents agree, and
+the pre-flip UV relation is `(u2, v2) = (1-u1, v1)`. Including declared Flip X,
+the raster needs horizontal mirroring exactly when the two flags are equal.
+This permits a direct silhouette compatibility measurement independently of
+voxel resolution, with explicit raster quantization uncertainty. Merely
+opposite viewing directions are insufficient: at the poles, declared azimuth
+still specifies raster roll. This relation does not identify which image is true.
+
 `projection_tolerance_pixels` measures a bound on the projected half-cell
 displacement, plus half a raster diagonal. This numerical uncertainty must be
 recorded by the caller. It does not permit a pass for an unresolvable component.
