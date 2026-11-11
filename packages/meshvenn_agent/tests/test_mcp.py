@@ -92,18 +92,21 @@ class MCPOptionalDependencyTests(unittest.TestCase):
 
 @unittest.skipUnless(SDK_AVAILABLE, "Install meshvenn-agent[mcp] with official SDK 2 to run protocol tests")
 class MCPProtocolTests(unittest.IsolatedAsyncioTestCase):
-    async def test_real_stdio_discovery_and_gateway_dispatch(self):
-        # The SDK launches a real subprocess and negotiates the actual MCP wire
-        # protocol. Only the application fixture is fake, never an engine claim.
+    @staticmethod
+    def stdio_parameters():
         bootstrap = (
             "import sys;sys.path[:0]=sys.argv[1:3];"
             "from test_mcp import ProtocolGateway;"
             "from meshvenn_agent.adapters.mcp import create_server;"
             "create_server(ProtocolGateway()).run(transport='stdio')"
         )
-        parameters = StdioServerParameters(command=sys.executable,
+        return StdioServerParameters(command=sys.executable,
             args=["-I", "-c", bootstrap, str(SOURCE), str(Path(__file__).parent)])
-        async with Client(parameters, read_timeout_seconds=15) as client:
+
+    async def test_real_stdio_discovery_and_gateway_dispatch(self):
+        # The SDK launches a real subprocess and negotiates the actual MCP wire
+        # protocol. Only the application fixture is fake, never an engine claim.
+        async with Client(self.stdio_parameters(), read_timeout_seconds=15) as client:
             tools = (await client.list_tools()).tools
             self.assertEqual({tool.name for tool in tools}, {"meshvenn_capabilities", "meshvenn_preflight",
                 "meshvenn_diagnose", "meshvenn_mesh", "meshvenn_artifact_read"})
@@ -127,6 +130,19 @@ class MCPProtocolTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(artifact.structured_content["sha256"], "a" * 64)
             strict = await client.call_tool("meshvenn_artifact_read", {"sha256": "a" * 64, "offset": "0"})
             self.assertTrue(strict.is_error)
+
+    async def test_real_stdio_legacy_negotiates_tools_and_capabilities(self):
+        # This is a real SDK 2 legacy connection to a subprocess. The fake
+        # application qualifies adapter compatibility, never engine fidelity.
+        async with Client(self.stdio_parameters(), mode="legacy", read_timeout_seconds=15) as client:
+            tools = (await client.list_tools()).tools
+            self.assertEqual({tool.name for tool in tools}, {"meshvenn_capabilities", "meshvenn_preflight",
+                "meshvenn_diagnose", "meshvenn_mesh", "meshvenn_artifact_read"})
+            result = await client.call_tool("meshvenn_capabilities", {})
+            self.assertFalse(result.is_error)
+            self.assertEqual(result.structured_content["action"], "engine.capabilities")
+            self.assertEqual(result.structured_content["status"], "completed")
+            self.assertEqual(result.structured_content["verification_status"], "unknown")
 
     async def test_cancel_is_forwarded_to_gateway_work_in_sdk_thread(self):
         import anyio
