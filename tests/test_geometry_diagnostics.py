@@ -89,6 +89,15 @@ class GeometryBoundaryTests(unittest.TestCase):
             with self.subTest(suffix=suffix), patch.object(Path, "read_bytes", changed):
                 self.assertNotEqual(before, _source_hash())
 
+    def test_source_hash_uses_canonical_paths_for_module_aliases(self):
+        from core.geometry_diagnostics import engine
+        before = engine._source_hash()
+        module = Path(engine.__file__)
+        alias = module.parent / ".." / module.parent.name / module.name
+        self.assertEqual(alias.resolve(), module.resolve())
+        with patch.object(engine, "__file__", str(alias)):
+            self.assertEqual(engine._source_hash(), before)
+
     def test_backend_rejects_nonfinite_deadline_before_launch(self):
         backend = NativeGeometryBackend(Path("missing.dll"))
         with patch("core.geometry_diagnostics.backend.subprocess.Popen") as launch:
