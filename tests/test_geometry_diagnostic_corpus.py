@@ -196,6 +196,11 @@ class GeometryCorpusTests(unittest.TestCase):
         self.assertEqual(final["qualification_status"], "fail")
         self.assertEqual({r["case_id"] for r in final["records"] if not r["score"]["passed"]},
                          {"valid_informative_reduction", "healthy_heldout"})
+        adaptive = runs["bounded-refinement-exact-ci-native-evaluation"]
+        self.assertEqual(adaptive["qualification_status"], "pass")
+        self.assertEqual(len(adaptive["records"]), 57)
+        self.assertTrue(all(r["score"]["passed"] for r in adaptive["records"]))
+        self.assertEqual(sum(len(r.get("attempts", [])) for r in adaptive["records"]), 61)
         for run in document["runs"]:
             self.assertEqual(run["manifest_sha256"], FROZEN_MANIFEST_SHA256)
             self.assertTrue(run["authorities_unchanged"])
@@ -204,8 +209,19 @@ class GeometryCorpusTests(unittest.TestCase):
                 if example["report_path"] is not None:
                     self.assertEqual(sha256((ROOT / "docs" / example["report_path"]).read_bytes()), example["report_sha256"])
                 observation = json.loads((directory / "observation.json").read_bytes())
+                if "observation_sha256" in example:
+                    self.assertEqual(sha256((directory / "observation.json").read_bytes()), example["observation_sha256"])
+                self.assertEqual(sha256((directory / "analytic-source.json").read_bytes()), self.case(example["case_id"])["source"]["sha256"])
                 for artifact in observation.get("artifacts", []):
                     self.assertEqual(sha256(checked_path(directory, artifact["path"]).read_bytes()), artifact["sha256"])
+                if observation.get("attempts"):
+                    manifest = [{"resolution": attempt["resolution"], "trigger": attempt["trigger"],
+                                 "report_sha256": attempt["original_engine_report_sha256"],
+                                 "volume_sha256": attempt["volume"]["sha256"] if attempt["volume"] is not None else None}
+                                for attempt in observation["attempts"]]
+                    digest = sha256(json.dumps(manifest, sort_keys=True, allow_nan=False, separators=(",", ":")).encode())
+                    finding = next(f for f in observation["report"]["findings"] if f["code"] == "engine.refinement")
+                    self.assertEqual(digest, finding["evidence"][0]["artifact"]["sha256"])
 
 
 if __name__ == "__main__":

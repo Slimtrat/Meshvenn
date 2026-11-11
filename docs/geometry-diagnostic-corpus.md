@@ -6,6 +6,12 @@ through the isolated `core.geometry_diagnostics` worker, reprojects actual
 occupied voxels, and records leave-one-out experiments. It is an initial D7
 qualification tranche for #80/#84; #84 remains open.
 
+The bounded-refinement profile now passes this frozen **analytic sampled
+silhouette-consistency** matrix: 57 of 57 evaluations and all 153 assertions,
+with 61 preserved attempts including five N64 retries. This qualifies the
+declared analytic consistency controls, not physical resolution of every part
+or general asset quality. Earlier failed evaluations remain in the record.
+
 The [measured development record](geometry-diagnostic-corpus-baseline.json)
 retains the complete first attempt's hashes, assertions, failures, abstentions,
 experiments and latency. It evaluated 57 configurations/orders in 88.19 seconds:
@@ -30,7 +36,7 @@ independent canonical comparison initially missed an extended appendage despite
 the native cross-view conflict; its failed expectation is retained in the
 [original report](geometry-diagnostic-corpus-evidence/initial-canonical-conflict/diagnostic-report.json).
 
-The corrected evaluation uses the exact PR #86 CI Windows binary, SHA-256
+The earlier corrected evaluation uses the exact PR #86 CI Windows binary, SHA-256
 `d6803649c54c6d16128541a1fb7edfdecc4dfcaab3594cddeb838db86950d2c8`.
 Its complete matrix took 75.52 seconds: 49 of 57 evaluations satisfied the
 frozen expectations, with zero unexpected execution exceptions. All 22 order
@@ -40,13 +46,13 @@ classifications; all actual differences and bounds remain in the record.
 The independent canonical and important named-region controls now pass at all
 five requested configurations/orders.
 
-**The complete D3 qualification still fails.** Eight frozen evaluations remain
-unsatisfied: the five thin-shape variants and the three 64-pixel/32-voxel
-heldout-healthy orders. Four thin variants produce an actual empty 32-voxel
-volume; the 48-voxel variant retains unknown side detail. Heldout-healthy side
-reprojections are unknown at the coarse raster but pass at 128 pixels. These
-are resolution limits and unexpected healthy-control abstentions, not evidence
-that a source image is faulty. The CLI exits 1 and claims no full qualification.
+**That earlier profile failed the complete matrix.** Eight frozen evaluations
+were unsatisfied: the five thin-shape variants and the three 64-pixel/32-voxel
+heldout-healthy orders. Four thin variants produced an actual empty 32-voxel
+volume; the 48-voxel variant retained unknown side detail. Heldout-healthy side
+reprojections were unknown at the coarse raster but passed at 128 pixels.
+Those original limits and abstentions remain preserved and are not evidence
+that a source image is faulty. That recorded invocation exited 1.
 
 At coarse resolution, the important flag now has
 [actual calibrated antipodal raster evidence](geometry-diagnostic-corpus-evidence/corrected-small-region-coarse/overlay-input-pair-back-front.png)
@@ -57,6 +63,45 @@ The [corrected canonical report](geometry-diagnostic-corpus-evidence/corrected-c
 also records actual independent same-camera comparison masks. The intermediate
 duplicate-finding exception exposed by combining native and direct evidence is
 preserved in the preceding run rather than removed from the development record.
+
+The final bounded profile uses the same exact CI native binary and the same
+frozen manifest, labels and numeric thresholds. It permits one N64 retry under
+the original 15-second deadline and shared native/Python work budgets. All 57
+evaluations pass in 130.53 seconds, with zero unexpected execution or attempt
+accounting failures. All 107 passing controls and 46 required signal assertions
+are satisfied, as are 22 order checks and 22 matched localization checks. The
+56 actual analysis histories and 61 original engine-report hashes were replayed
+against their recorded attempt manifests without mismatches. The separate
+native rejection probe remains operational evidence, not a reconstruction.
+
+The five thin-shape controls use two attempts. The
+[64-pixel example](geometry-diagnostic-corpus-evidence/adaptive-thin-coarse/diagnostic-report.json)
+preserves the initial empty N32 volume and its original report, then records
+2,388 occupied N64 voxels. Its valid right view reduces 76,416 to 2,388 voxels
+(96.875%). The shared reservation is 12 sessions, 40 projection applications and
+5,898,240 voxel tests; those are bounded capacity reservations, separately
+reported from completed native work. Requested and effective resolution are
+explicit, and artifact filenames keep both attempts.
+
+Sampled component coverage and physical detail now have separate measurements.
+Compatibility can pass when nonempty masks have one-to-one component
+correspondence and every sample lies within the derived raster/voxel uncertainty.
+Raw IoU, contour distances, residuals and physical-region status remain visible.
+For example the 128-pixel thin case has mean raw IoU 0.81963 and unknown physical
+side detail, while its sampled compatibility passes under the numerical bound.
+The named-region defect still fails through independent direct raster evidence;
+it is not hidden by this compatibility check.
+
+Only four of 22 selected-result report signatures are identical across requested
+resolution configurations; physical observability and refinement findings can
+change. The first-attempt signatures match in three comparisons. Both sets of
+actual normalized bounds, requested/effective resolutions and findings are
+recorded. A shared final N64 grid therefore cannot hide initial N32/N48
+sensitivity. Passing the frozen controls does not certify identical observability
+or resolved physical detail across all grids. The immediately preceding adaptive
+run is retained locally and summarized separately: it passed the default corpus
+but was superseded after a contract audit corrected custom-budget order
+boundaries and strict JSON attempt lineage.
 
 The 13 original analytic cases and all expectations were committed as
 `d51efb6` **before native evaluation**. The manifest SHA-256 is
