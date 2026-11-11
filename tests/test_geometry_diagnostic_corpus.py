@@ -142,6 +142,7 @@ class GeometryCorpusTests(unittest.TestCase):
         # Contract specimens only; this test makes no native quality claim.
         def attempt(resolution, sessions):
             return SimpleNamespace(resolution=resolution, volume=SimpleNamespace(width=resolution),
+                views=(), experiments=(), trace=(), pair_comparisons=(),
                 report=SimpleNamespace(resolution=SimpleNamespace(width=resolution)),
                 provenance=SimpleNamespace(native_sessions_reserved=sessions, native_applications_reserved=4,
                     native_voxel_test_capacity=128, python_work_reserved=1024, completed_experiments=2,
@@ -153,7 +154,12 @@ class GeometryCorpusTests(unittest.TestCase):
             native_elapsed_seconds=.2, elapsed_seconds=.5, deadline_seconds=15)
         result = SimpleNamespace(attempts=(attempt(32, 3), attempt(64, 3)), requested_resolution=32, actual_resolution=64,
             report=SimpleNamespace(resolution=SimpleNamespace(width=64)), provenance=provenance)
+        for field in ("volume", "views", "experiments", "trace", "pair_comparisons"):
+            setattr(result, field, getattr(result.attempts[-1], field))
         self.assertTrue(attempt_accounting(result)["passed"])
+        result.volume = SimpleNamespace(width=64, tampered=True)
+        self.assertFalse(attempt_accounting(result)["passed"])
+        result.volume = result.attempts[-1].volume
         provenance.native_sessions_reserved = 3
         self.assertFalse(attempt_accounting(result)["passed"])
         provenance.native_sessions_reserved = 6

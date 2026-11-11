@@ -284,6 +284,9 @@ def attempt_accounting(result) -> dict:
           {"actual": result.actual_resolution, "attempts": resolutions, "report": result.report.resolution.width,
            "provenance": provenance.resolution})
     check("attempted_resolutions", tuple(provenance.attempted_resolutions) == resolutions, provenance.attempted_resolutions)
+    for field in ("volume", "views", "experiments", "trace", "pair_comparisons"):
+        check(field + "_matches_selected_attempt", getattr(result, field) == getattr(attempts[-1], field),
+              {"selected_attempt_resolution": attempts[-1].resolution})
     for index, attempt in enumerate(attempts, 1):
         check(f"attempt_{index}_resolution", attempt.report.resolution.width == attempt.resolution and
               (attempt.volume is None or attempt.volume.width == attempt.resolution),
@@ -452,12 +455,22 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
                     "passed": comparable and semantic_signature(baseline["report"]) == semantic_signature(record["report"]),
                     "sequential_trace_excluded_from_conclusions": True})
             elif record is not baseline and "report" in record:
+                initial_baseline = baseline.get("attempts", [None])[0] if baseline.get("attempts") else None
+                initial_comparison = record.get("attempts", [None])[0] if record.get("attempts") else None
+                initial_sensitivity = {"available": initial_baseline is not None and initial_comparison is not None,
+                                       "qualification_uses_selected_result": True}
+                if initial_sensitivity["available"]:
+                    initial_sensitivity.update({"baseline_resolution": initial_baseline["resolution"],
+                        "comparison_resolution": initial_comparison["resolution"],
+                        "same_conclusions": semantic_signature(initial_baseline["report"], include_bounds=False) == semantic_signature(initial_comparison["report"], include_bounds=False),
+                        "localization": localization_sensitivity(initial_baseline, initial_comparison)})
                 sensitivity.append({"case_id": case["case_id"], "baseline": [baseline["raster_resolution"], baseline["voxel_resolution"]],
                     "comparison": [record["raster_resolution"], record["voxel_resolution"]],
                     "baseline_effective_voxel_resolution": baseline.get("effective_voxel_resolution", baseline["voxel_resolution"]),
                     "comparison_effective_voxel_resolution": record.get("effective_voxel_resolution", record["voxel_resolution"]),
                     "baseline_attempt_resolutions": [attempt["resolution"] for attempt in baseline.get("attempts", [])],
                     "comparison_attempt_resolutions": [attempt["resolution"] for attempt in record.get("attempts", [])],
+                    "initial_attempt_sensitivity": initial_sensitivity,
                     "same_conclusions": "report" in baseline and semantic_signature(baseline["report"], include_bounds=False) == semantic_signature(record["report"], include_bounds=False),
                     "both_satisfy_frozen_expectations": baseline["score"]["passed"] and record["score"]["passed"],
                     "localization": localization_sensitivity(baseline, record),
