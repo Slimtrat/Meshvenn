@@ -77,8 +77,8 @@ jobs:
           cmake --build build/agent-native --config Release --parallel
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $agentLibrary = Join-Path $env:GITHUB_WORKSPACE 'build/agent-native/Release/bpt_core.dll'
-          "MESHVENN_TEST_NATIVE_LIBRARY=$agentLibrary" >> "$GITHUB_ENV"
-          "MESHVENN_TEST_NATIVE_DLL=$agentLibrary" >> "$GITHUB_ENV"
+          "MESHVENN_TEST_NATIVE_LIBRARY=$agentLibrary" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MESHVENN_TEST_NATIVE_DLL=$agentLibrary" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Build both standalone distributions
         shell: bash
         run: |
