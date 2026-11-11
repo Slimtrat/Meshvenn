@@ -1,0 +1,10 @@
+{
+  "godot_version": "4.7.1-stable (official)",
+  "native_rests_preserved": true,
+  "native_skeletons": 1,
+  "owner_presence_checks": 160,
+  "schema_version": 1,
+  "skinned_modules": 10,
+  "static_attachments": 6,
+  "target_character_sha256": "58bb85ca53f4bc437b7eb62777ea2d25aeb84aee7b46c4a53f837a507f89849b"
+}

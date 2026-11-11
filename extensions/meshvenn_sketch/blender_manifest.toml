@@ -14,4 +14,4 @@ license = ["SPDX:GPL-3.0-or-later"]
 files = "Load reference images and export the selected piece as GLB"
 
 [build]
-paths_exclude_pattern = ["/tests/", "__pycache__/", "*.pyc", "*.zip", "*.blend", "*.blend1"]
+paths_exclude_pattern = ["/tests/", "/examples/", "__pycache__/", "*.pyc", "*.zip", "*.blend", "*.blend1"]

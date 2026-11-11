@@ -1,5 +1,9 @@
 # Meshvenn Sketch
 
+The [Stytch Workshop Modules V1](https://github.com/Slimtrat/Meshvenn/tree/main/example/v2/modules/StytchWorkshopV1)
+delivery contains ten editable equipment, replacement and accessory designs,
+plus a separate Godot adapter tested on the public native doll.
+
 An independent Blender 5.2+ extension for drawing a closed outline on a reference
 image, making a rounded 3D accessory, and editing skin weights with Blender's
 native brushes. It works with an ordinary mesh and image, with or without the
