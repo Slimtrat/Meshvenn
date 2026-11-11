@@ -1,0 +1,48 @@
+name: Offline diagnostic corpus
+
+on:
+  pull_request:
+    paths:
+      - "core/diagnostic_contracts/**"
+      - "core/diagnostics_preflight/**"
+      - "core/projection_alignment.py"
+      - "scripts/diagnostic_corpus/**"
+      - "scripts/qualify_diagnostics.py"
+      - "tests/fixtures/diagnostics/**"
+      - "tests/test_diagnostic_corpus.py"
+      - ".github/workflows/diagnostic_corpus.yml"
+  push:
+    branches: [main]
+    paths:
+      - "core/diagnostic_contracts/**"
+      - "core/diagnostics_preflight/**"
+      - "scripts/diagnostic_corpus/**"
+      - "scripts/qualify_diagnostics.py"
+      - "tests/fixtures/diagnostics/**"
+      - "tests/test_diagnostic_corpus.py"
+      - ".github/workflows/diagnostic_corpus.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Contract, provenance, scoring and real preflight regression tests
+        run: python -m unittest discover -s tests -p "test_diagnostic_corpus.py" -v
+      - name: Evaluate frozen calibration and heldout matrix offline
+        run: python scripts/qualify_diagnostics.py --output tmp/diagnostic-qualification
+      - name: Preserve common reports, measured scores and actual overlays
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostic-corpus-v1
+          path: tmp/diagnostic-qualification
+          if-no-files-found: error
