@@ -11,7 +11,7 @@ import unittest
 
 from scripts.geometry_diagnostic_corpus.fixtures import build_corpus
 from scripts.geometry_diagnostic_corpus.runner import checked_path, inputs_for_case, load_manifest
-from scripts.geometry_diagnostic_corpus.scoring import score_case, semantic_signature
+from scripts.geometry_diagnostic_corpus.scoring import localization_sensitivity, score_case, semantic_signature
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT / "tests/fixtures/diagnostics/geometry-v1"
@@ -86,8 +86,12 @@ class GeometryCorpusTests(unittest.TestCase):
                     {"code": "geometry.detail_preservation", "status": "fail", "view_ids": ["back"],
                      "regions": [{"view_id": "back", "label": "identity_flag", "bounds": [.28, .79, .36, .87]}],
                      "proposed_actions": [], "reason": ""}]
-        observation = {"views": [{"metrics": {"iou": .99, "important_regions": []}}], "report": {"findings": findings}}
-        self.assertTrue(score_case(self.case("small_important_region"), observation)["passed"])
+        observation = {"views": [{"metrics": {"iou": .99, "important_regions": []}}], "report": {"findings": findings},
+                       "pair_comparisons": [{"metrics": {"important_regions": [{"status": "fail", "region": findings[1]["regions"][0]}]}}]}
+        score = score_case(self.case("small_important_region"), observation)
+        self.assertTrue(score["passed"])
+        assertion = next(a for a in score["assertions"] if a["name"] == "important_region_failure")
+        self.assertEqual(assertion["evidence_sources"], ["actual_calibrated_antipodal_input_comparison"])
 
     def test_large_voxel_drop_does_not_itself_satisfy_healthy(self):
         observation = {"occupied_count": 1, "trace": [{"before": 1000, "after": 1, "order_index": 1}]}
@@ -117,6 +121,20 @@ class GeometryCorpusTests(unittest.TestCase):
         changed = copy.deepcopy(report)
         changed["findings"][0]["view_ids"] = ["back"]
         self.assertNotEqual(semantic_signature(report), semantic_signature(changed))
+
+    def test_resolution_localization_keeps_bounds_and_checks_explicit_tolerance(self):
+        finding = {"code": "geometry.detail_preservation", "status": "fail", "view_ids": ["front"],
+                   "regions": [{"view_id": "front", "label": "identity_flag", "bounds": [.1, .2, .3, .4]}],
+                   "proposed_actions": []}
+        record = {"report": {"findings": [finding]}, "views": [{"view_id": "front", "expected": {"width": 128},
+                  "resolution_tolerance_pixels": 1, "metrics": {"missing_regions": [], "extraneous_regions": []}}]}
+        changed = copy.deepcopy(record)
+        changed["report"]["findings"][0]["regions"][0]["bounds"] = [.101, .201, .301, .401]
+        result = localization_sensitivity(record, changed)
+        self.assertTrue(result["matched_bounds_within_tolerance"])
+        self.assertEqual(result["matched_regions"][0]["baseline"][0]["bounds"], [.1, .2, .3, .4])
+        changed["report"]["findings"][0]["regions"][0]["bounds"] = [.6, .7, .8, .9]
+        self.assertFalse(localization_sensitivity(record, changed)["matched_bounds_within_tolerance"])
 
     def test_verify_only_needs_no_native_binary_and_advertises_no_quality(self):
         child = subprocess.run([sys.executable, str(ROOT / "scripts/qualify_geometry_diagnostics.py"), "--verify-only"],

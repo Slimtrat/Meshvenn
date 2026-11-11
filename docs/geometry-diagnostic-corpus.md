@@ -94,6 +94,12 @@ sequential traces and abstentions are retained. Permutation acceptance compares
 conclusions, localization and actions; sequential removal order remains
 provenance, never a fault ranking. Resolution reports retain changed conclusions
 and mean IoUs; both configurations must satisfy the same frozen expectations.
+The report also retains normalized regional bounds at both resolutions,
+unmatched regions, and actual missing/extraneous residual component bounds.
+Matched labeled regions are checked against the sum of both measured
+projection uncertainty bounds plus half a raster sample from each grid.
+Nearest residual box distances are observations; semantic correspondence of
+connected components across different grids remains unknown.
 
 `qualification.json` records the manifest, original source/PNG hashes, actual
 imported Python and worker source hashes, native binary hash, executable hash,

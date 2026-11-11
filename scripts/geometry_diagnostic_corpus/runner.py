@@ -17,7 +17,7 @@ from core.diagnostics_preflight import RasterInput, ViewInput
 from scripts.diagnostic_corpus.evidence import difference_overlay
 from scripts.diagnostic_corpus.fixtures import canonical_json, sha256
 from . import CORPUS_VERSION, FROZEN_MANIFEST_SHA256, SCHEMA_VERSION
-from .scoring import score_case, semantic_signature
+from .scoring import localization_sensitivity, score_case, semantic_signature
 
 
 def checked_path(root: Path, relative: str) -> Path:
@@ -195,16 +195,27 @@ def write_evidence(destination: Path, result) -> tuple[dict, ...]:
             artifacts.append({"view_id": view.view_id, "experiment_id": phase, "path": filename,
                               "sha256": sha256(data), "media_type": "image/png",
                               "kind": "actual_native_voxel_reprojection_vs_original_input"})
+    for pair in getattr(result, "pair_comparisons", ()):
+        filename = "overlay-input-pair-" + pair.target_view_id + "-" + pair.counterpart_view_id + ".png"
+        data = difference_overlay(pair.counterpart.values, pair.expected.values, pair.expected.width)
+        (destination / filename).write_bytes(data)
+        artifacts.append({"view_id": pair.target_view_id, "counterpart_view_id": pair.counterpart_view_id,
+                          "experiment_id": "pair-" + pair.target_view_id + "-" + pair.counterpart_view_id,
+                          "path": filename, "sha256": sha256(data), "media_type": "image/png",
+                          "kind": "actual_calibrated_antipodal_input_comparison", "mapping": pair.mapping})
     return tuple(artifacts)
 
 
 def attach_evidence(report: DiagnosticReport, artifacts: tuple[dict, ...]) -> DiagnosticReport:
     findings = []
     for finding in report.findings:
-        extra = tuple(Evidence("native-overlay-" + str(i), "artifact",
+        extra = tuple(Evidence("geometry-overlay-" + str(i), "artifact",
+            "Actual calibrated antipodal input comparison, separate from voxel evidence: gray intersection, red target-only, blue counterpart-only."
+            if a["kind"] == "actual_calibrated_antipodal_input_comparison" else
             "Actual native voxel reprojection: gray intersection, red input-only, blue reconstruction-only.",
             (a["view_id"],), artifact=ArtifactReference("native-overlay-" + str(i), a["sha256"], "image/png", a["path"]))
-            for i, a in enumerate(artifacts) if a["view_id"] in finding.view_ids and a["experiment_id"] == "full")
+            for i, a in enumerate(artifacts) if a["view_id"] in finding.view_ids and
+            (a["experiment_id"] == "full" or a["kind"] == "actual_calibrated_antipodal_input_comparison"))
         findings.append(replace(finding, evidence=finding.evidence + extra))
     return replace(report, findings=tuple(findings))
 
@@ -310,6 +321,7 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
                         record["contract_roundtrip_passed"] = DiagnosticReport.from_json(serialized).to_json() == serialized
                         (destination / "diagnostic-report.json").write_text(serialized, encoding="utf-8")
                         record.update({"report": report.to_dict(), "views": jsonable(result.views),
+                            "pair_comparisons": jsonable(getattr(result, "pair_comparisons", ())),
                             "experiments": jsonable(result.experiments), "trace": jsonable(result.trace),
                             "engine_provenance": jsonable(result.provenance), "artifacts": artifacts,
                             "occupied_count": result.volume.occupied_count if result.volume is not None else None})
@@ -342,6 +354,7 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
                     "comparison": [record["raster_resolution"], record["voxel_resolution"]],
                     "same_conclusions": "report" in baseline and semantic_signature(baseline["report"], include_bounds=False) == semantic_signature(record["report"], include_bounds=False),
                     "both_satisfy_frozen_expectations": baseline["score"]["passed"] and record["score"]["passed"],
+                    "localization": localization_sensitivity(baseline, record),
                     "baseline_mean_iou": baseline["score"]["mean_iou"], "comparison_mean_iou": record["score"]["mean_iou"]})
     unchanged = implementation == implementation_provenance(native_library) and manifest_hash == load_manifest(root)[1]
     metrics = {}
@@ -356,7 +369,7 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
     complete = not selected_cases and split == "all" and not quick
     passed = unchanged and all(r["score"]["passed"] for r in records) and all(c["passed"] for c in order_checks)
     # Sensitivity is an acceptance check against frozen expectations; retain actual conclusion changes too.
-    passed = passed and all(c["both_satisfy_frozen_expectations"] for c in sensitivity)
+    passed = passed and all(c["both_satisfy_frozen_expectations"] and c["localization"]["matched_bounds_within_tolerance"] for c in sensitivity)
     summary = {"schema_version": SCHEMA_VERSION, "corpus_version": CORPUS_VERSION, "manifest_sha256": manifest_hash,
         "qualification_identity": identity, "implementation": implementation, "authorities_unchanged": unchanged,
         "qualification_status": "pass" if passed else "fail", "complete_matrix": complete,

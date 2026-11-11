@@ -29,6 +29,9 @@ def compact_run(summary_path: Path, *, label: str, limitations=()) -> dict:
         data["artifact_manifest_sha256"] = sha256(canonical_json(record.get("artifacts", [])))
         data["regional_measurements"] = [{"view_id": view["view_id"], "iou": view["metrics"]["iou"],
             "important_regions": view["metrics"]["important_regions"]} for view in record.get("views", [])]
+        data["direct_pair_measurements"] = [{"target_view_id": pair["target_view_id"], "counterpart_view_id": pair["counterpart_view_id"],
+            "mapping": pair["mapping"], "iou": pair["metrics"]["iou"], "important_regions": pair["metrics"]["important_regions"],
+            "raster_tolerance_pixels": pair["raster_tolerance_pixels"]} for pair in record.get("pair_comparisons", [])]
         records.append(data)
     return {"label": label, "source_qualification_sha256": sha256(encoded),
             "manifest_sha256": summary["manifest_sha256"], "qualification_identity": summary["qualification_identity"],

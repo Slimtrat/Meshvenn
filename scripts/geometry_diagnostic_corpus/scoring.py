@@ -12,6 +12,68 @@ def semantic_signature(report: dict, *, include_bounds=True) -> list:
                   for finding in report["findings"])
 
 
+def localization_sensitivity(baseline: dict, comparison: dict) -> dict:
+    """Retain actual normalized bounds and validate stable named locations.
+
+    The bound is the sum of the engine's two explicit raster/voxel numerical
+    uncertainties plus half a sample from each raster. Residual components have
+    no stable semantic identity across grids, so retain both sets and nearest
+    box distances without pretending those are proven correspondences.
+    """
+    def normalized_error(record, view_id):
+        view = next((v for v in record.get("views", []) if v["view_id"] == view_id), None)
+        if view is None:
+            return None
+        size = view["expected"]["width"]
+        return (view["resolution_tolerance_pixels"] + .5) / max(1, size - 1)
+
+    def regions(record):
+        result = {}
+        for finding in record.get("report", {}).get("findings", []):
+            for region in finding["regions"]:
+                key = (finding["code"], region["view_id"], region["label"])
+                result.setdefault(key, []).append({"status": finding["status"], "bounds": region["bounds"]})
+        return result
+
+    left, right = regions(baseline), regions(comparison)
+    matched, unmatched = [], []
+    for key in sorted(set(left) | set(right)):
+        item = {"code": key[0], "view_id": key[1], "label": key[2],
+                "baseline": left.get(key, []), "comparison": right.get(key, [])}
+        if key not in left or key not in right:
+            item["state"] = "unknown"
+            item["reason"] = "This regional finding is absent at one resolution; no localization equivalence is asserted."
+            unmatched.append(item)
+            continue
+        tolerance_left, tolerance_right = normalized_error(baseline, key[1]), normalized_error(comparison, key[1])
+        tolerance = tolerance_left + tolerance_right if tolerance_left is not None and tolerance_right is not None else None
+        a = [r["bounds"] for r in left[key] if r["bounds"] is not None]
+        b = [r["bounds"] for r in right[key] if r["bounds"] is not None]
+        error = max([min(max(abs(x-y) for x, y in zip(box, other)) for other in b) for box in a] +
+                    [min(max(abs(x-y) for x, y in zip(box, other)) for other in a) for box in b]) if a and b else None
+        item.update({"maximum_symmetric_nearest_bounds_delta": error, "normalized_tolerance": tolerance,
+                     "state": "pass" if error is not None and tolerance is not None and error <= tolerance else
+                              "fail" if error is not None and tolerance is not None else "unknown"})
+        matched.append(item)
+    residuals = []
+    by_left = {v["view_id"]: v for v in baseline.get("views", [])}
+    by_right = {v["view_id"]: v for v in comparison.get("views", [])}
+    for view_id in sorted(set(by_left) | set(by_right)):
+        for kind in ("missing_regions", "extraneous_regions"):
+            a = [r["bounds"] for r in by_left.get(view_id, {}).get("metrics", {}).get(kind, [])]
+            b = [r["bounds"] for r in by_right.get(view_id, {}).get("metrics", {}).get(kind, [])]
+            nearest = max([min(max(abs(x-y) for x, y in zip(box, other)) for other in b) for box in a] +
+                          [min(max(abs(x-y) for x, y in zip(box, other)) for other in a) for box in b]) if a and b else None
+            residuals.append({"view_id": view_id, "kind": kind, "baseline_bounds": a, "comparison_bounds": b,
+                              "symmetric_nearest_bounds_delta": nearest,
+                              "semantic_component_correspondence": "unknown"})
+    return {"coordinate_space": "normalized bottom-left image bounds",
+            "tolerance_policy": "Sum of both measured projection uncertainty bounds plus half a sample from each raster",
+            "matched_regions": matched, "unmatched_regions": unmatched, "residual_components": residuals,
+            "matched_bounds_within_tolerance": all(item["state"] != "fail" for item in matched),
+            "unmatched_localization_is_unknown": bool(unmatched)}
+
+
 def score_case(case: dict, observation: dict) -> dict:
     findings = observation.get("report", {}).get("findings", [])
     expected = case["expected"]
@@ -25,6 +87,7 @@ def score_case(case: dict, observation: dict) -> dict:
     metrics = [v["metrics"] for v in observation.get("views", []) if v["metrics"].get("iou") is not None]
     for control in expected["controls"]:
         passed = False
+        sources = []
         if control == "nonempty":
             passed = observation.get("occupied_count", 0) > 0
         elif control == "empty":
@@ -45,10 +108,13 @@ def score_case(case: dict, observation: dict) -> dict:
         elif control == "good_mean_iou":
             passed = bool(metrics) and sum(m["iou"] for m in metrics) / len(metrics) >= expected["mean_iou_good_minimum"]
         elif control == "important_region_failure":
-            passed = any(r["status"] == "fail" and r["region"]["label"] == "identity_flag"
-                         for m in metrics for r in m.get("important_regions", []))
-            passed = passed or any(f["code"] == "geometry.detail_preservation" and f["status"] == "fail" and
-                                   any(r["label"] == "identity_flag" for r in f["regions"]) for f in findings)
+            if any(r["status"] == "fail" and r["region"]["label"] == "identity_flag"
+                   for m in metrics for r in m.get("important_regions", [])):
+                sources.append("actual_native_voxel_reprojection")
+            if any(r["status"] == "fail" and r["region"]["label"] == "identity_flag"
+                   for pair in observation.get("pair_comparisons", []) for r in pair["metrics"].get("important_regions", [])):
+                sources.append("actual_calibrated_antipodal_input_comparison")
+            passed = bool(sources)
         elif control == "canonical_eligible_front":
             # Eligibility means independently supported localization for user
             # review, never an automatically executed generative correction.
@@ -59,7 +125,7 @@ def score_case(case: dict, observation: dict) -> dict:
             passed = probe.get("state") == "native_rejected" and probe.get("dll_api_executed") is True and probe.get("native_error_code", 0) != 0
         else:
             raise ValueError("Unknown frozen control: " + control)
-        assertions.append({"name": control, "passed": passed, "kind": "control"})
+        assertions.append({"name": control, "passed": passed, "kind": "control", "evidence_sources": sources})
     failures = [item["name"] for item in assertions if not item["passed"]]
     return {"passed": not failures, "assertions": assertions, "failures": failures,
             "mean_iou": sum(m["iou"] for m in metrics) / len(metrics) if metrics else None,
