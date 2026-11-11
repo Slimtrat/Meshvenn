@@ -1,0 +1,100 @@
+# Native D3 diagnostic corpus
+
+`geometry-v1` extends the frozen D1/D2 corpus without changing its labels,
+thresholds or original assets. It exercises the real `NativeCore` visual hull
+through the isolated `core.geometry_diagnostics` worker, reprojects actual
+occupied voxels, and records leave-one-out experiments. It is an initial D7
+qualification tranche for #80/#84; #84 remains open.
+
+The 13 original analytic cases and all expectations were committed as
+`d51efb6` **before native evaluation**. The manifest SHA-256 is
+`aea6c48d9ffdfe1c5777291c4f0c82c945cb6fcd44e9a398fa9790ba9eb47a49`.
+The generator reuses the earlier cardinal AABB projection recipe, but has a
+separate source/version, boxes, source hashes, labels and asset directory.
+Labels or policy thresholds must not be changed to make an observed failure
+pass. Reruns after implementation fixes are regression evidence on an exposed
+holdout, not fresh statistical validation.
+
+| Cases | Frozen requirement |
+| --- | --- |
+| Healthy, heldout healthy, intentional asymmetry | Real nonempty reconstruction and measured consistency; no automatic blame |
+| Valid informative reduction | Healthy consistency even when a later valid view removes at least 90% of remaining voxels |
+| Local appendage conflict | Actual cross-view conflict; uncertain fault attribution |
+| Ambiguous conflicting pair | Conflict remains ambiguous without independent canonical evidence |
+| Independent canonical resolves pair | Same observations plus independently authored reference support localization of the front discrepancy for review |
+| Small important region | A named `identity_flag` region fails even when mean view IoU is at least 0.90 |
+| Insufficient coverage | Explicit unknown coverage and no blame |
+| Empty incompatible views | Valid nonempty original inputs produce an actual empty native volume, distinctly reported |
+| Invalid camera | Unsupported camera remains an input/camera result, never a fabricated geometry cause |
+| Real worker deadline | Actual bounded isolated-worker deadline; native completion is unknown |
+| Real native rejection | Actual DLL `bpt_visual_hull_create` rejects resolution zero in a subprocess with a five-second hard deadline |
+
+The final two cases establish operational paths only. The native rejection
+probe invokes the real binary, records its numeric error code, and marks
+`geometry_quality_evaluated=false`. The worker deadline can expire before the
+DLL call completes or even begins; it does not establish a native crash. Mock
+orchestration tests cannot substitute for either record or qualify geometry.
+
+Ground truth is exact mathematical authorship and knowledge of an injected
+silhouette defect. This is synthetic truth, not a human-approved generated
+asset. No downloaded assets, Stytch artwork, provider, image generation, network
+or paid calls are used. Intentional asymmetry is authored truth, so symmetry
+cannot be used to manufacture a defect. Canonical references have the
+`reference` role and cannot fill observation coverage. They are independently
+projected from the frozen source, rather than derived from the conflicting
+observation.
+
+Run from the repository root with Python and an explicitly supplied native
+binary; the binary is read and hashed, never copied into or modified by the
+corpus:
+
+```powershell
+python scripts/qualify_geometry_diagnostics.py --native-library C:/path/to/bpt_core.dll --output tmp/geometry-qualification
+python scripts/qualify_geometry_diagnostics.py --verify-only
+python -m unittest discover -s tests -p test_geometry_diagnostic_corpus.py -v
+```
+
+`--verify-only` checks hashes without claiming that geometry ran. `--case ID`,
+`--split calibration|heldout`, and `--quick` produce an explicitly incomplete
+matrix. `--regenerate` deliberately recreates the versioned authored fixtures;
+changed hashes require a reviewed corpus revision. Evaluation requires a real
+native library: no fake backend or silent fallback is available.
+
+The full plan evaluates raster/voxel pairs `(64,32)`, `(128,32)`, `(128,48)`.
+This isolates raster sensitivity at fixed voxel size and voxel sensitivity at
+fixed raster size. Canonical, reversed and rotated input orders run at the
+baseline configuration. Operational cases run once with their own explicit
+budget. Every analysis has a 15-second declared budget, except the intentional
+0.001-second deadline control. Actual latency, budgets, native experiments,
+sequential traces and abstentions are retained. Permutation acceptance compares
+conclusions, localization and actions; sequential removal order remains
+provenance, never a fault ranking. Resolution reports retain changed conclusions
+and mean IoUs; both configurations must satisfy the same frozen expectations.
+
+`qualification.json` records the manifest, original source/PNG hashes, actual
+imported Python and worker source hashes, native binary hash, executable hash,
+Python version, policies and policy hashes. Changed authorities invalidate the
+run. Calibration and heldout assertion counts, misses, execution failures and
+abstentions remain separate. Healthy passing controls prevent an engine that
+returns no findings from passing. Regional controls prevent global mean IoU
+from concealing a missing important part.
+
+Each invocation creates a new directory under `runs/`; rerunning never erases a
+previous failure. The top-level summary points to the latest actual run. Per
+case/configuration/order artifacts include the common versioned diagnostic
+report, observation record, original analytic source and **actual** full and
+leave-one-out native reprojection overlays. Gray denotes intersection, red
+input-only pixels, blue reconstruction-only pixels and white background. PNGs
+depict actual masks, not decorative renders or an accepted correction.
+
+Exit status is 0 only when selected assertions, report roundtrips, requested
+permutations, sensitivity controls and source stability pass; 1 preserves a
+measured failure and 2 reports missing/invalid dependencies. Only a passing
+complete matrix can qualify this analytic D3 subset. Raw assertions and
+abstentions remain visible rather than presenting synthetic accuracy as a
+real-world precision estimate.
+
+Silhouette consistency does not certify hidden surfaces, concavities, topology,
+identity, appearance or final mesh delivery. D4–D8 remain explicitly unknown in
+common reports, and D7 human/provider/end-to-end acceptance remains open. No
+generative correction is executed or promoted by this command.
