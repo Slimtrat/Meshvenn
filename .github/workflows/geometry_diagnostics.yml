@@ -1,0 +1,99 @@
+name: Native geometry diagnostics
+
+on:
+  pull_request:
+    paths:
+      - 'core/geometry_diagnostics/**'
+      - 'core/diagnostic_contracts/**'
+      - 'core/diagnostics_preflight/**'
+      - 'core/projection_math/**'
+      - 'core/projection_alignment.py'
+      - 'core/image_mask.py'
+      - 'core/native_bridge/**'
+      - 'core/native_loader.py'
+      - 'native/**'
+      - 'scripts/geometry_diagnostic_corpus/**'
+      - 'scripts/qualify_geometry_diagnostics.py'
+      - 'tests/test_geometry_diagnostic*'
+      - 'tests/fixtures/diagnostics/geometry-v1/**'
+      - '.github/workflows/geometry_diagnostics.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'core/geometry_diagnostics/**'
+      - 'core/diagnostic_contracts/**'
+      - 'core/diagnostics_preflight/**'
+      - 'core/projection_math/**'
+      - 'core/projection_alignment.py'
+      - 'core/image_mask.py'
+      - 'core/native_bridge/**'
+      - 'core/native_loader.py'
+      - 'native/**'
+      - 'scripts/geometry_diagnostic_corpus/**'
+      - 'scripts/qualify_geometry_diagnostics.py'
+      - 'tests/test_geometry_diagnostic*'
+      - 'tests/fixtures/diagnostics/geometry-v1/**'
+      - '.github/workflows/geometry_diagnostics.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: geometry-diagnostics-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Native D3 (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: ubuntu-latest
+            python: '3.13'
+          - os: windows-latest
+            python: '3.13'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Build the unchanged native engine on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S native -B build/diagnostic-native -G Ninja -DCMAKE_BUILD_TYPE=Release -DBPT_BUILD_TESTS=OFF
+          cmake --build build/diagnostic-native --parallel
+          echo "MESHVENN_TEST_NATIVE_LIBRARY=${GITHUB_WORKSPACE}/build/diagnostic-native/libbpt_core.so" >> "$GITHUB_ENV"
+          echo "MESHVENN_TEST_NATIVE_DLL=${GITHUB_WORKSPACE}/build/diagnostic-native/libbpt_core.so" >> "$GITHUB_ENV"
+      - name: Build the unchanged native engine on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cmake -S native -B build/diagnostic-native -A x64 -DBPT_BUILD_TESTS=OFF
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build/diagnostic-native --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $diagnosticLibrary = Join-Path $env:GITHUB_WORKSPACE 'build/diagnostic-native/Release/bpt_core.dll'
+          "MESHVENN_TEST_NATIVE_LIBRARY=$diagnosticLibrary" >> $env:GITHUB_ENV
+          "MESHVENN_TEST_NATIVE_DLL=$diagnosticLibrary" >> $env:GITHUB_ENV
+      - name: Native, projection, report and corpus regression tests
+        run: python -m unittest tests.test_geometry_diagnostics tests.test_geometry_diagnostic_projection tests.test_geometry_diagnostic_corpus -v
+      - name: Replay the frozen native geometric qualification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/qualify_geometry_diagnostics.py --native-library "$MESHVENN_TEST_NATIVE_LIBRARY" --output tmp/geometry-qualification
+      - name: Preserve native volumes, reports, attempts and overlays
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: geometry-diagnostics-${{ matrix.os }}-python-${{ matrix.python }}
+          path: tmp/geometry-qualification
+          if-no-files-found: error

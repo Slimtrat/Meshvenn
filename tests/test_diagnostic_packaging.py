@@ -25,7 +25,7 @@ class DiagnosticPackagingTests(unittest.TestCase):
 import importlib
 import sys
 sys.path.insert(0, sys.argv[1] + '/blender_projection_tool')
-for name in ('core.diagnostic_contracts', 'core.diagnostics_preflight'):
+for name in ('core.diagnostic_contracts', 'core.diagnostics_preflight', 'core.geometry_diagnostics'):
     module = importlib.import_module(name)
     if 'extension-core.zip' not in module.__file__:
         raise RuntimeError('Imported checkout instead of the shipped ZIP: ' + module.__file__)

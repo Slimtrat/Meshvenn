@@ -9,3 +9,9 @@ example/v2/modular/StytchDollAuthoredSkin/pose-quality.json -text whitespace=bla
 example/v2/modular/StytchDollShoulderAligned/*.json text eol=lf
 example/v2/modular/StytchDollShoulderAligned/derived-poses/*.json text eol=lf
 example/v2/modular/StytchDollDistalChains/*.json text eol=lf
+# Preserve hash-linked diagnostic evidence on Windows and Linux.
+docs/diagnostic-corpus-baseline.json text eol=lf
+docs/diagnostic-corpus-evidence/**/*.json text eol=lf
+docs/geometry-diagnostic-*.json text eol=lf
+docs/geometry-diagnostic-evidence/**/*.json text eol=lf
+docs/geometry-diagnostic-evidence/**/*.png binary
