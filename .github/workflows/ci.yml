@@ -974,6 +974,7 @@ jobs:
           #
           # Automatically includes:
           #
+          #   diagnostic_contracts/ and diagnostics_preflight/ (pure diagnostic packages)
           #   geometry_contracts/ (recursive package)
           #   modular_character/ (recursive package)
           #   native_bridge/ (recursive package)
@@ -990,6 +991,8 @@ jobs:
             "${PACKAGE_ROOT}/core/"
 
           cp -R \
+            core/diagnostic_contracts \
+            core/diagnostics_preflight \
             core/geometry_contracts \
             core/modular_character \
             core/native_bridge \
