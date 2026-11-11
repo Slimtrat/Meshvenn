@@ -6,11 +6,18 @@ from ...core.image_mask import BinaryMask
 from ...core.projection_alignment import ProjectionAlignment
 from ...core.native_bridge import NativeProjection
 from ...core.projected_material import ProjectedMaterialView
+from ...core.diagnostic_contracts import DiagnosticReport
+from .preflight import CertifiedProjectionBinding
 
 
 @dataclass(frozen=True)
 class PreparedProjectionView:
-    """One immutable source view shared by geometry and material stages."""
+    """One immutable source view shared by geometry and material stages.
+
+    ``preflight`` retains reproduced source revisions, original immutable buffers
+    and their shared mapping certificate for an explicitly accepted correction.
+    Manual scene inputs leave it unset.
+    """
 
     name: str
     image_name: str
@@ -24,6 +31,7 @@ class PreparedProjectionView:
     native_projection: NativeProjection
     material_view: ProjectedMaterialView
     alignment: ProjectionAlignment = field(default_factory=ProjectionAlignment)
+    preflight: CertifiedProjectionBinding | None = None
 
     @property
     def mask_pixels(self) -> int:
@@ -36,12 +44,17 @@ class PreparedProjectionView:
 
 @dataclass(frozen=True)
 class ProjectionImagesOutput:
-    """Output contract of the built-in ``projection-images`` input stage."""
+    """Output contract of the built-in ``projection-images`` input stage.
+
+    The optional diagnostic report describes the pre-correction evidence. INPUT
+    technical success and accepting a mapping do not certify the revised asset.
+    """
 
     views: tuple[PreparedProjectionView, ...]
     alpha_threshold: float
     enabled_projection_count: int
     missing_image_count: int
+    diagnostic_report: DiagnosticReport | None = None
 
     @property
     def projection_count(self) -> int:

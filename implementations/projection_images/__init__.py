@@ -7,6 +7,7 @@ from .implementation import (
     ProjectionImagesImplementation,
 )
 from .models import PreparedProjectionView, ProjectionImagesOutput
+from .preflight import PreflightProjectionRequest, ProjectionAlignmentBinding
 
 __all__ = (
     "IMPLEMENTATION_ID",
@@ -15,4 +16,6 @@ __all__ = (
     "ProjectionImagesOutput",
     "ProjectionImagesImplementation",
     "require_projection_images_output",
+    "PreflightProjectionRequest",
+    "ProjectionAlignmentBinding",
 )
