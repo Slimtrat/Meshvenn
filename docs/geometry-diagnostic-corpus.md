@@ -6,6 +6,30 @@ through the isolated `core.geometry_diagnostics` worker, reprojects actual
 occupied voxels, and records leave-one-out experiments. It is an initial D7
 qualification tranche for #80/#84; #84 remains open.
 
+The [measured development record](geometry-diagnostic-corpus-baseline.json)
+retains the complete first attempt's hashes, assertions, failures, abstentions,
+experiments and latency. It evaluated 57 configurations/orders in 88.19 seconds:
+44 passed their initial evaluator and 13 failed. All 22 order comparisons
+passed, with no unexpected execution exceptions. This is a **failed full
+qualification**, preserved for review rather than hidden by a later fix.
+
+The first native binary SHA-256 was `2dc0da20ba8b5d5366cb8d24f35ab0c3d5870de72f2189a95630f1a38843bb5e`;
+that existing local binary is not asserted to be the exact PR #86 CI build.
+The first evaluator also accepted one passing healthy view while other views
+could be unknown, and compared exact regional bounds across resolutions.
+Both evaluator limitations are identified in the record; subsequent attempts
+require a measured pass for every healthy observation and compare regional
+labels/statuses separately from changing pixel bounds.
+
+The initial source at 32 voxels produced an empty volume for the valid thin
+shape. At 48 voxels its valid right view removed 32,496 to 1,354 voxels (95.83%)
+without establishing fault; side detail still remained unknown. The small
+flag at `(128,48)` had mean native IoU 0.91025 while its named back region had
+recall 0.125 and failed. Coarser regional abstentions remain visible. An
+independent canonical comparison initially missed an extended appendage despite
+the native cross-view conflict; its failed expectation is retained in the
+[original report](geometry-diagnostic-corpus-evidence/initial-canonical-conflict/diagnostic-report.json).
+
 The 13 original analytic cases and all expectations were committed as
 `d51efb6` **before native evaluation**. The manifest SHA-256 is
 `aea6c48d9ffdfe1c5777291c4f0c82c945cb6fcd44e9a398fa9790ba9eb47a49`.

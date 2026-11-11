@@ -321,6 +321,9 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
                 if record.get("execution_failure") or record.get("contract_roundtrip_passed") is False:
                     record["score"]["passed"] = False
                     record["score"]["failures"].append("execution_or_contract_failure")
+                if case["injection"] == "deadline" and not record.get("native_worker_probe", {}).get("worker_started"):
+                    record["score"]["passed"] = False
+                    record["score"]["failures"].append("actual_worker_deadline_not_observed")
                 (destination / "observation.json").write_bytes(canonical_json(record))
                 source = checked_path(root, case["source"]["path"]).read_bytes()
                 (destination / "analytic-source.json").write_bytes(source)
@@ -337,7 +340,7 @@ def run_qualification(root: Path, output: Path, *, native_library: Path, selecte
             elif record is not baseline and "report" in record:
                 sensitivity.append({"case_id": case["case_id"], "baseline": [baseline["raster_resolution"], baseline["voxel_resolution"]],
                     "comparison": [record["raster_resolution"], record["voxel_resolution"]],
-                    "same_conclusions": "report" in baseline and semantic_signature(baseline["report"]) == semantic_signature(record["report"]),
+                    "same_conclusions": "report" in baseline and semantic_signature(baseline["report"], include_bounds=False) == semantic_signature(record["report"], include_bounds=False),
                     "both_satisfy_frozen_expectations": baseline["score"]["passed"] and record["score"]["passed"],
                     "baseline_mean_iou": baseline["score"]["mean_iou"], "comparison_mean_iou": record["score"]["mean_iou"]})
     unchanged = implementation == implementation_provenance(native_library) and manifest_hash == load_manifest(root)[1]

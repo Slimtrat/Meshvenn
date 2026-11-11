@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 
-def semantic_signature(report: dict) -> list:
+def semantic_signature(report: dict, *, include_bounds=True) -> list:
     """Order-independent conclusions, localization and suggested actions."""
     return sorted((finding["code"], finding["status"], tuple(sorted(finding["view_ids"])),
-                   tuple(sorted((r["view_id"], r["label"], tuple(r.get("bounds") or ()))
+                   tuple(sorted((r["view_id"], r["label"], tuple(r.get("bounds") or ()) if include_bounds else ())
                                 for r in finding["regions"])),
                    tuple(sorted((a["kind"], tuple(sorted(a["view_ids"])))
                                 for a in finding["proposed_actions"])))
@@ -31,7 +31,11 @@ def score_case(case: dict, observation: dict) -> dict:
             passed = observation.get("occupied_count") == 0
         elif control == "no_conflict":
             # An engine doing nothing must not satisfy healthy controls.
-            passed = any(f["code"] == "geometry.cross_view_conflict" and f["status"] == "pass" for f in findings) and not conflicts
+            expected_views = {view["view_id"] for view in case["variants"][0]["views"]}
+            measured_pass = {view_id for f in findings if f["code"] == "geometry.cross_view_conflict" and f["status"] == "pass"
+                             for view_id in f["view_ids"]}
+            unresolved = [f for f in findings if f["code"] == "geometry.cross_view_conflict" and f["status"] in ("unknown", "fail")]
+            passed = expected_views <= measured_pass and not unresolved
         elif control == "no_blame":
             passed = not blame and bool(findings)
         elif control == "large_valid_reduction":
@@ -43,6 +47,8 @@ def score_case(case: dict, observation: dict) -> dict:
         elif control == "important_region_failure":
             passed = any(r["status"] == "fail" and r["region"]["label"] == "identity_flag"
                          for m in metrics for r in m.get("important_regions", []))
+            passed = passed or any(f["code"] == "geometry.detail_preservation" and f["status"] == "fail" and
+                                   any(r["label"] == "identity_flag" for r in f["regions"]) for f in findings)
         elif control == "canonical_eligible_front":
             # Eligibility means independently supported localization for user
             # review, never an automatically executed generative correction.

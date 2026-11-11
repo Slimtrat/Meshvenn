@@ -80,6 +80,15 @@ class GeometryCorpusTests(unittest.TestCase):
         self.assertFalse(assertions["important_region_failure"])
         self.assertFalse(score["passed"])
 
+    def test_calibrated_pair_region_evidence_can_satisfy_region_label(self):
+        findings = [{"code": "geometry.cross_view_conflict", "status": "fail", "view_ids": ["front", "back"],
+                     "regions": [], "proposed_actions": [], "reason": ""},
+                    {"code": "geometry.detail_preservation", "status": "fail", "view_ids": ["back"],
+                     "regions": [{"view_id": "back", "label": "identity_flag", "bounds": [.28, .79, .36, .87]}],
+                     "proposed_actions": [], "reason": ""}]
+        observation = {"views": [{"metrics": {"iou": .99, "important_regions": []}}], "report": {"findings": findings}}
+        self.assertTrue(score_case(self.case("small_important_region"), observation)["passed"])
+
     def test_large_voxel_drop_does_not_itself_satisfy_healthy(self):
         observation = {"occupied_count": 1, "trace": [{"before": 1000, "after": 1, "order_index": 1}]}
         score = score_case(self.case("valid_informative_reduction"), observation)
@@ -87,6 +96,13 @@ class GeometryCorpusTests(unittest.TestCase):
         self.assertTrue(assertions["large_valid_reduction"])
         self.assertFalse(assertions["no_conflict"])
         self.assertFalse(score["passed"])
+
+    def test_healthy_requires_measurement_for_every_view_not_one_pass(self):
+        finding = {"code": "geometry.cross_view_conflict", "status": "pass", "view_ids": ["front"],
+                   "proposed_actions": [], "reason": "", "regions": []}
+        observation = {"occupied_count": 100, "report": {"findings": [finding]}}
+        score = score_case(self.case("healthy"), observation)
+        self.assertIn("no_conflict", score["failures"])
 
     def test_unknown_is_not_measured_conflict_and_mock_is_not_native_rejection(self):
         observation = {"report": {"findings": [{"code": "geometry.cross_view_conflict", "status": "unknown",
