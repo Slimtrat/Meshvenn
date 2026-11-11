@@ -240,6 +240,20 @@ class GeometryProvenance(JsonContract):
 
 
 @dataclass(frozen=True)
+class GeometryPairComparison(JsonContract):
+    target_view_id: str
+    counterpart_view_id: str
+    mapping: str
+    expected: MaskArtifact
+    counterpart: MaskArtifact
+    metrics: GeometryMetrics
+    raster_tolerance_pixels: float
+
+    def __post_init__(self):
+        validate_model(self)
+
+
+@dataclass(frozen=True)
 class GeometryResult(JsonContract):
     report: DiagnosticReport
     volume: VolumeArtifact | None
@@ -247,6 +261,7 @@ class GeometryResult(JsonContract):
     experiments: tuple[GeometryExperiment, ...]
     trace: tuple[SequentialTraceStep, ...]
     provenance: GeometryProvenance
+    pair_comparisons: tuple[GeometryPairComparison, ...] = ()
     schema_version: int = 1
 
     def __post_init__(self):

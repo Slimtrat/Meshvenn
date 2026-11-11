@@ -183,6 +183,41 @@ class GeometryNativeTests(unittest.TestCase):
         self.assertIsNone(result.views[0].metrics.important_regions[0].recall)
         self.assertEqual(GeometryResult.from_json(result.to_json()), result)
 
+    def test_real_native_keeps_megapixel_source_and_bounds_measurement_grid(self):
+        revision, inputs = sources(angles=(0,), size=1024)
+        result = analyze_geometry(revision, inputs, backend=self.backend())
+        self.assertEqual(result.report.completion, "complete")
+        self.assertEqual(result.views[0].source_width, 1024)
+        self.assertEqual(result.views[0].source_height, 1024)
+        self.assertEqual(result.views[0].expected.width, 256)
+        self.assertEqual(result.report.view_set.views[0].mask.width, 1024)
+        self.assertEqual(inputs["v0"].mask.width, 1024)
+        self.assertGreater(result.volume.occupied_count, 0)
+        self.assertNotEqual(result.views[0].aligned_mask_sha256, result.views[0].expected.sha256)
+
+    def test_direct_antipodal_detail_failure_does_not_overstate_coarse_native_roi(self):
+        revision, inputs = sources(angles=(0, 90, 180, 270), size=64)
+        updated = []
+        for view in revision.views:
+            rgba = tuple(value for y in range(64) for x in range(64)
+                         for value in ((1., 1., 1., 1.) if (18 <= x < 46 and 14 <= y < 42) or
+                                       (view.view_id == "v0" and 44 <= x < 46 and 49 <= y < 54)
+                                       else (0., 0., 0., 0.)))
+            raster = RasterInput.from_pixels(64, 64, rgba, source_bytes=("part-"+view.view_id).encode())
+            inputs[view.view_id] = ViewInput(raster, raster)
+            updated.append(replace(view, image=raster.content_reference(), mask=raster.content_reference()))
+        revision = replace(revision, views=tuple(updated))
+        region = Region("v0", "important-flag", (.68, .76, .76, .88))
+        result = analyze_geometry(revision, inputs, regions=(region,), backend=self.backend())
+        native = next(v for v in result.views if v.view_id == "v0")
+        self.assertEqual(native.metrics.important_regions[0].status, "unknown")
+        pair = next(p for p in result.pair_comparisons if p.target_view_id == "v0")
+        self.assertEqual(pair.metrics.important_regions[0].status, "fail")
+        self.assertTrue(any(f.code == "geometry.detail_preservation" and f.status == "fail" and region in f.regions
+                            and "Direct antipodal" in f.message for f in result.report.findings))
+        self.assertTrue(any(f.code == "geometry.attribution" and f.status == "unknown" for f in result.report.findings))
+        self.assertEqual(GeometryResult.from_json(result.to_json()), result)
+
     def test_real_native_permutation_preserves_final_conclusions(self):
         revision, inputs = sources(angles=(0, 90, 180))
         first = analyze_geometry(revision, inputs, backend=self.backend())

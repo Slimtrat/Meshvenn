@@ -20,7 +20,7 @@ from ..projection_math import direction_to_camera
 from .backend import NativeBatch, NativeGeometryBackend, host_platform
 from .metrics import compare_masks
 from .models import (
-    GeometryExperiment, GeometryMetrics, GeometryProvenance, GeometryResult, MaskArtifact,
+    GeometryExperiment, GeometryMetrics, GeometryPairComparison, GeometryProvenance, GeometryResult, MaskArtifact,
     RegionMeasurement, ResidualArtifact, ViewGeometryResult,
 )
 from .projection import aligned_mask, check_budget, projection_tolerance_pixels, reproject_volume
@@ -42,6 +42,7 @@ class GeometryPolicy:
     max_regions: int = 128
     thread_count: int = 1
     max_projection_work: int = 8_000_000
+    pair_raster_tolerance_pixels: float = 0.5
 
     def __post_init__(self):
         for name, low, high in (("resolution", 8, 64), ("reprojection_size", 16, 256),
@@ -59,6 +60,9 @@ class GeometryPolicy:
             raise ValueError("max_seconds must be finite in (0,120].")
         if type(self.max_contour_distance_pixels) not in (int, float) or not math.isfinite(self.max_contour_distance_pixels) or not 0 <= self.max_contour_distance_pixels <= 256:
             raise ValueError("Contour threshold must be finite in [0,256] pixels.")
+        if (type(self.pair_raster_tolerance_pixels) not in (int, float) or not math.isfinite(self.pair_raster_tolerance_pixels)
+                or not 0.5 <= self.pair_raster_tolerance_pixels <= 4):
+            raise ValueError("Direct pair tolerance must be finite in [0.5,4] measurement pixels.")
 
     def contract(self):
         digest = hashlib.sha256(json.dumps(asdict(self), sort_keys=True, allow_nan=False).encode()).hexdigest()
@@ -182,7 +186,7 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
         raise ValueError("Important regions must belong to the exact input revision.")
     if len(regions) > policy.max_regions:
         raise ValueError("Important region count exceeds the explicit policy budget.")
-    findings, assumptions, measured, experiments, trace = [], [], [], [], ()
+    findings, assumptions, measured, experiments, trace, pairs, conflicts = [], [], [], [], (), [], []
     full_volume, batch = None, NativeBatch((), "not_started", "", "", "", 0., "not_started")
     native_masks, metric_masks, reduction_unknown, measurement_cache = {}, {}, {}, {}
     completion = "complete"
@@ -257,6 +261,62 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                 "Provide at least two nonparallel verified observation axes before full 3D silhouette qualification.",
                 measurements=(Measurement("usable_observations", len(eligible), "view"),
                               Measurement("nonparallel_axes_present", int(axes), "boolean")), action="provide_view")
+        # Exactly antipodal supported camera declarations constrain the same
+        # opaque silhouette with a horizontal reflection (before Flip X). This
+        # is an independent raster observation, not a claim about coarse voxels.
+        for target_id in eligible:
+            for counterpart_id in eligible:
+                if counterpart_id == target_id:
+                    continue
+                target_camera, counterpart_camera = views[target_id].camera, views[counterpart_id].camera
+                angular_difference = (counterpart_camera.azimuth_degrees-target_camera.azimuth_degrees) % 360
+                if (abs(angular_difference-180) > 1e-7 or
+                        abs(counterpart_camera.elevation_degrees+target_camera.elevation_degrees) > 1e-7):
+                    continue
+                target_source, other_source = native_masks[target_id], native_masks[counterpart_id]
+                if (target_source.width, target_source.height) != (other_source.width, other_source.height):
+                    finding("geometry.pair_resolution", "geometry", "unknown",
+                            "Antipodal observations use different original grids; exact raster correspondence is unresolved in this profile.",
+                            (target_id, counterpart_id), key=counterpart_id)
+                    continue
+                expected, counterpart = metric_masks[target_id], metric_masks[counterpart_id]
+                reflected = target_camera.flip_x == counterpart_camera.flip_x
+                if reflected:
+                    counterpart = counterpart.flipped_x()
+                comparison = compare_masks(expected, counterpart,
+                    regions=tuple(r for r in regions if r.view_id == target_id),
+                    min_region_recall=1-policy.max_component_missing_fraction, min_region_extent_pixels=1.,
+                    resolution_tolerance_pixels=policy.pair_raster_tolerance_pixels, max_regions=policy.max_regions,
+                    deadline=deadline, cancel=cancel, max_work=policy.max_projection_work)
+                snapshot = _metric_snapshot(comparison, target_id)
+                pairs.append(GeometryPairComparison(target_id, counterpart_id,
+                    "antipodal-horizontal-reflection" if reflected else "antipodal-flip-x-cancelled",
+                    MaskArtifact.from_mask(expected), MaskArtifact.from_mask(counterpart), snapshot, policy.pair_raster_tolerance_pixels))
+                outside = snapshot.missing_beyond_tolerance_pixels + snapshot.extraneous_beyond_tolerance_pixels
+                bad = outside > 0 and (snapshot.iou < policy.min_iou or 1-snapshot.recall > policy.max_missing_fraction or
+                    1-snapshot.precision > policy.max_missing_fraction or
+                    (snapshot.contour_max_pixels is not None and snapshot.contour_max_pixels > policy.max_contour_distance_pixels+policy.pair_raster_tolerance_pixels))
+                unknown = reduction_unknown[target_id] or reduction_unknown[counterpart_id] or snapshot.components_truncated
+                if bad:
+                    conflicts.extend(v for v in (target_id, counterpart_id) if v not in conflicts)
+                finding("geometry.cross_view_conflict", "geometry", "fail" if bad else "unknown" if unknown else "pass",
+                        "Exact antipodal camera correspondence reveals a silhouette conflict; this does not identify which observation is true." if bad else
+                        "Antipodal raster correspondence remains unresolved after source reduction." if unknown else
+                        "Antipodal raster silhouettes agree within the explicit pixel tolerance.",
+                        (target_id, counterpart_id), key="pair-"+counterpart_id,
+                        measurements=(Measurement("antipodal_iou", snapshot.iou, "ratio", Threshold(">=", policy.min_iou, "ratio")),
+                                      Measurement("pair_raster_tolerance", policy.pair_raster_tolerance_pixels, "pixel")),
+                        artifact=ArtifactReference("pair-residual-"+target_id+"-"+counterpart_id,
+                                                   snapshot.missing_mask.sha256, "application/x-meshvenn-binary-mask"))
+                for index, detail in enumerate(snapshot.important_regions + snapshot.components):
+                    finding("geometry.detail_preservation", "geometry", detail.status,
+                            "Direct antipodal raster evidence: " + detail.reason,
+                            (target_id, counterpart_id), key=f"pair-{counterpart_id}-detail-{index}", regions=(detail.region,),
+                            measurements=(Measurement("region_expected_pixels", detail.expected_pixels, "pixel"),
+                                          Measurement("region_missing_pixels", detail.missing_pixels, "pixel"),
+                                          Measurement("beyond_raster_tolerance", detail.beyond_tolerance_pixels, "pixel")))
+                    if detail.status == "fail":
+                        conflicts.extend(v for v in (target_id, counterpart_id) if v not in conflicts)
         if not eligible:
             finding("engine.computation", "engine", "not_applicable", "No usable observation can be reconstructed.")
         else:
@@ -326,16 +386,20 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                     "Native diagnostic computation did not complete every requested session.",
                     measurements=(Measurement("completed_sessions", len(batch.experiments), "experiment"),), action="diagnose_engine")
             if full_volume and full_volume.occupied_count == 0:
-                finding("geometry.empty", "geometry", "fail", "Supported nonempty source silhouettes produce an empty visual hull; this is distinct from a DLL failure.",
+                finding("geometry.empty", "geometry", "fail", "The finite native grid contains no occupied voxels and cannot supply usable geometry; this is distinct from a DLL failure.",
                         tuple(eligible), measurements=(Measurement("occupied_voxels", 0, "voxel", Threshold(">", 0, "voxel")),))
-            conflicts = []
+                finding("geometry.empty_cause", "geometry", "unknown", "An empty finite grid can arise from underresolved thin geometry or incompatible constraints; emptiness alone does not establish the cause or a culprit.", tuple(eligible))
             for item in measured:
                 metric = item.metrics
                 outside = metric.missing_beyond_tolerance_pixels + metric.extraneous_beyond_tolerance_pixels
                 contour_bad = metric.contour_max_pixels is not None and metric.contour_max_pixels > policy.max_contour_distance_pixels + item.resolution_tolerance_pixels
                 bad = outside > 0 and (metric.iou < policy.min_iou or 1-metric.recall > policy.max_missing_fraction or contour_bad)
                 residual = metric.missing_pixels + metric.extraneous_pixels
-                status = "fail" if bad else "unknown" if residual and metric.iou < policy.min_iou else "pass"
+                if full_volume and not full_volume.occupied_count:
+                    bad = False
+                    status = "unknown"
+                else:
+                    status = "fail" if bad else "unknown" if residual and metric.iou < policy.min_iou else "pass"
                 if bad:
                     conflicts.append(item.view_id)
                 finding("geometry.cross_view_conflict", "geometry", status,
@@ -358,7 +422,7 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                             measurements=(() if detail.recall is None else (Measurement("region_recall", detail.recall, "ratio", Threshold(">=", 1-policy.max_component_missing_fraction, "ratio")),)) +
                                          (Measurement("region_expected_pixels", detail.expected_pixels, "pixel"),
                                           Measurement("region_missing_pixels", detail.missing_pixels, "pixel")))
-                    if detail.status == "fail" and item.view_id not in conflicts:
+                    if detail.status == "fail" and full_volume and full_volume.occupied_count and item.view_id not in conflicts:
                         conflicts.append(item.view_id)
             if conflicts:
                 finding("geometry.attribution", "geometry", "unknown",
@@ -413,9 +477,10 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                            ("engine.computation", "engine"), ("coverage.insufficient", "coverage")):
         if code not in present:
             finding(code, category, "unknown", "This required diagnostic measurement is unavailable or unfinished.")
-    elapsed = time.monotonic()-started
-    experiment_payload = json.dumps([e.to_dict() for e in experiments], sort_keys=True, allow_nan=False, separators=(",", ":")).encode()
+    experiment_payload = json.dumps(dict(native_experiments=[e.to_dict() for e in experiments],
+                                         antipodal_pairs=[p.to_dict() for p in pairs]), sort_keys=True, allow_nan=False, separators=(",", ":")).encode()
     trace_payload = json.dumps([step.to_dict() for step in trace], sort_keys=True, allow_nan=False, separators=(",", ":")).encode()
+    elapsed = time.monotonic()-started
     finding("engine.provenance", "engine", "pass", "Execution provenance records bounded compute, native binary/source/settings, elapsed time and experiment artifacts; this is not asset acceptance.",
             measurements=(Measurement("total_elapsed_seconds", elapsed, "second"),
                           Measurement("native_worker_elapsed_seconds", batch.elapsed_seconds, "second"),
@@ -442,4 +507,4 @@ def analyze_geometry(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput],
                                    sum(len(e.included_view_ids) for e in batch.experiments), policy.resolution ** 3,
                                    policy.reprojection_size ** 2, policy.max_seconds, elapsed,
                                    batch.elapsed_seconds, batch.termination, host_platform())
-    return GeometryResult(report, full_volume, tuple(measured), tuple(experiments), trace, provenance)
+    return GeometryResult(report, full_volume, tuple(measured), tuple(experiments), trace, provenance, tuple(pairs))

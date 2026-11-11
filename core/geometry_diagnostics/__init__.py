@@ -2,10 +2,10 @@
 from .backend import NativeGeometryBackend
 from .engine import GeometryPolicy, analyze_geometry
 from .models import (
-    GeometryExperiment, GeometryMetrics, GeometryProvenance, GeometryResult,
+    GeometryExperiment, GeometryMetrics, GeometryPairComparison, GeometryProvenance, GeometryResult,
     MaskArtifact, RegionMeasurement, SequentialTraceStep, ViewGeometryResult, VolumeArtifact,
 )
 
 __all__ = ("GeometryPolicy", "NativeGeometryBackend", "analyze_geometry", "GeometryResult",
-           "GeometryExperiment", "GeometryMetrics", "GeometryProvenance", "MaskArtifact",
+           "GeometryExperiment", "GeometryMetrics", "GeometryPairComparison", "GeometryProvenance", "MaskArtifact",
            "RegionMeasurement", "SequentialTraceStep", "ViewGeometryResult", "VolumeArtifact")

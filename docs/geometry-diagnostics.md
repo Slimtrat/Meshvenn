@@ -58,6 +58,17 @@ source components during reduction and truncated component lists remain required
 unknowns. An unannotated semantic detail inside a large connected component is
 not certified by its component mean. Add an important region for that constraint.
 
+Exact antipodal declarations `(azimuth + 180, -elevation)` also permit direct
+silhouette comparison: horizontal coordinates reflect and vertical coordinates
+agree before the declared Flip X. This check uses the shared camera transform,
+the same original raster dimensions and an explicit half-pixel measurement
+tolerance by default. It has no voxel uncertainty. Different original grids
+remain unknown in this direct comparison profile. Actual pair masks, residuals,
+regions and mapping are retained in `result.pair_comparisons`. Pair evidence can
+establish a small local source contradiction while the coarse native ROI remains
+unknown; those two observations are retained separately and neither identifies
+the true source without independent evidence.
+
 The [numerical convention](geometry-diagnostic-numerics.md) documents finite-cell
 reprojection, native coordinate authority and resolution uncertainty. Raster
 differences wholly explained by the supported resolution do not establish a
