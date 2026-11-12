@@ -91,6 +91,17 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(result["status"], "failed")
         self.assertEqual(result["error"]["code"], "invalid_engine_output")
 
+    def test_appearance_uses_engine_statuses_and_does_not_accept_remote_analyzers(self):
+        self.engine.value = {"report": {"completion": "complete", "findings": []},
+                             "verification_status": "unknown", "identity_status": "unknown", "deterministic_status": "pass"}
+        result = self.gateway.execute("appearance.diagnose", self.arguments)
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(result["verification_status"], "unknown")
+        self.assertEqual(result["summary"]["identity_status"], "unknown")
+        self.assertEqual(result["summary"]["deterministic_status"], "pass")
+        rejected = self.gateway.execute("appearance.diagnose", {**self.arguments, "vision_analyzer": {}})
+        self.assertEqual(rejected["status"], "invalid_request")
+
     def test_incomplete_report_cannot_be_presented_as_pass(self):
         self.engine.value = {"report": {"completion": "partial"}, "verification_status": "pass"}
         result = self.gateway.execute("geometry.diagnose", self.arguments)

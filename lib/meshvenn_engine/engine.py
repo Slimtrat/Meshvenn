@@ -8,7 +8,7 @@ from dataclasses import asdict
 from .catalogue import VERSION, action_schemas
 from .core.diagnostics_preflight import PreflightPolicy, analyze_preflight
 from .core.geometry_diagnostics import GeometryPolicy, NativeGeometryBackend, VolumeArtifact, analyze_geometry
-from .dto import object_fields, policy, validate_json, view_arguments
+from .dto import appearance_arguments, object_fields, policy, validate_json, view_arguments
 from .errors import EngineError
 from .native import NativeRuntime
 
@@ -16,8 +16,9 @@ from .native import NativeRuntime
 class MeshvennEngine:
     """A trusted host configures native paths; action arguments only contain data."""
 
-    def __init__(self, native_library=None, python_executable=None):
+    def __init__(self, native_library=None, python_executable=None, *, vision_analyzer=None):
         self._runtime = NativeRuntime(native_library, python_executable)
+        self._vision_analyzer = vision_analyzer
 
     def capabilities(self) -> dict:
         available, reason = self._runtime.availability()
@@ -31,8 +32,10 @@ class MeshvennEngine:
             "native": {"configured": available, "expected_abi": 1},
             "limits": {"request_bytes": 67_108_864, "decoded_pixels": 4_194_304,
                        "mesh_vertices": 262_144, "mesh_indices": 1_048_576},
-            "scope": ["Deterministic input diagnostics, bounded native geometry diagnostics and native surface extraction.",
-                      "Blender pipelines, rigging, animation, appearance identity and export certification are not advertised."]}
+            "semantic_analyzer_configured": self._vision_analyzer is not None,
+            "scope": ["Deterministic input, geometry and visible appearance diagnostics, plus native surface extraction.",
+                      "Semantic identity is unknown without an explicitly qualified host analyzer; geometry/export acceptance is separate.",
+                      "Blender pipelines, rigging, animation and export certification are not advertised."]}
 
     def execute(self, action: str, arguments: dict, *, cancel=None) -> dict:
         if type(action) is not str or action not in action_schemas():
@@ -45,6 +48,17 @@ class MeshvennEngine:
                 raise EngineError("cancelled", "Engine execution was cancelled before analysis.")
             if action == "engine.capabilities":
                 return self.capabilities()
+            if action == "appearance.diagnose":
+                from .core.appearance_diagnostics import analyze_appearance
+                revision, inputs, surface, settings, regions, anchors, reports, appearance_policy = appearance_arguments(arguments)
+                result = analyze_appearance(revision, inputs, surface=surface, view_settings=settings,
+                    regions=regions, region_anchors=anchors, upstream_reports=reports, policy=appearance_policy,
+                    vision_analyzer=self._vision_analyzer, cancel=cancel)
+                data = result.to_dict()
+                data["verification_status"] = result.report.verification_status.value
+                data["identity_status"] = result.identity_status
+                data["deterministic_status"] = result.deterministic_status
+                return json.loads(json.dumps(data, allow_nan=False, separators=(",", ":")))
             if action == "geometry.mesh":
                 volume = VolumeArtifact.from_dict(arguments["volume"])
                 voxel_size = arguments.get("voxel_size", 1.0)

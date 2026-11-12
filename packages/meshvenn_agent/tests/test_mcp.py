@@ -109,7 +109,7 @@ class MCPProtocolTests(unittest.IsolatedAsyncioTestCase):
         async with Client(self.stdio_parameters(), read_timeout_seconds=15) as client:
             tools = (await client.list_tools()).tools
             self.assertEqual({tool.name for tool in tools}, {"meshvenn_capabilities", "meshvenn_preflight",
-                "meshvenn_diagnose", "meshvenn_mesh", "meshvenn_artifact_read"})
+                "meshvenn_diagnose", "meshvenn_mesh", "meshvenn_appearance", "meshvenn_artifact_read"})
             for tool in tools:
                 properties = tool.input_schema.get("properties", {})
                 self.assertFalse({"workspace", "native_library", "python_executable"} & set(properties))
@@ -117,7 +117,7 @@ class MCPProtocolTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(capabilities.structured_content["action"], "engine.capabilities")
             self.assertEqual(capabilities.structured_content["verification_status"], "unknown")
             for name, action in (("meshvenn_preflight", "views.preflight"), ("meshvenn_diagnose", "geometry.diagnose"),
-                                 ("meshvenn_mesh", "geometry.mesh")):
+                                 ("meshvenn_mesh", "geometry.mesh"), ("meshvenn_appearance", "appearance.diagnose")):
                 result = await client.call_tool(name, {"arguments": {"opaque": [1, False, None]}, "request_id": "wire-1"})
                 self.assertEqual(result.structured_content["action"], action)
                 self.assertEqual(result.structured_content["request_id"], "wire-1")
@@ -137,7 +137,7 @@ class MCPProtocolTests(unittest.IsolatedAsyncioTestCase):
         async with Client(self.stdio_parameters(), mode="legacy", read_timeout_seconds=15) as client:
             tools = (await client.list_tools()).tools
             self.assertEqual({tool.name for tool in tools}, {"meshvenn_capabilities", "meshvenn_preflight",
-                "meshvenn_diagnose", "meshvenn_mesh", "meshvenn_artifact_read"})
+                "meshvenn_diagnose", "meshvenn_mesh", "meshvenn_appearance", "meshvenn_artifact_read"})
             result = await client.call_tool("meshvenn_capabilities", {})
             self.assertFalse(result.is_error)
             self.assertEqual(result.structured_content["action"], "engine.capabilities")

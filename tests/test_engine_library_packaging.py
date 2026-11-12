@@ -55,6 +55,9 @@ class EngineDistributionTests(unittest.TestCase):
             with ZipFile(wheel) as archive:
                 names = archive.namelist()
                 self.assertIn("meshvenn_engine/core/geometry_diagnostics/worker.py", names)
+                self.assertIn("meshvenn_engine/core/appearance_diagnostics/engine.py", names)
+                self.assertIn("meshvenn_engine/core/material_visibility/tester.py", names)
+                self.assertNotIn("meshvenn_engine/core/material_visibility/blender_backend.py", names)
                 self.assertNotIn("meshvenn_engine/core/material_inputs.py", names)
                 self.assertFalse(any("projected_material/" in name or "native_mesh_builder.py" in name for name in names))
                 for name in names:
@@ -83,10 +86,13 @@ sys.path.insert(0,sys.argv[1])
 from meshvenn_engine import MeshvennEngine
 from meshvenn_engine.core.geometry_diagnostics import GeometryResult
 engine=MeshvennEngine(native_library=sys.argv[3] or None,python_executable=sys.executable)
-assert set(engine.capabilities()['actions'])=={'engine.capabilities','views.preflight','geometry.diagnose','geometry.mesh'}
+assert set(engine.capabilities()['actions'])=={'engine.capabilities','views.preflight','geometry.diagnose','geometry.mesh','appearance.diagnose'}
 arguments=json.loads(Path(sys.argv[2]).read_text())
 preflight=dict(arguments,policy={'required_cameras':[]})
 assert engine.execute('views.preflight',preflight)['report']['completion']=='complete'
+appearance=engine.execute('appearance.diagnose',dict(arguments,policy={'sampling_size':16}))
+assert appearance['identity_status']=='unknown'
+assert appearance['report']['completion']=='complete'
 if sys.argv[3]:
     result=engine.execute('geometry.diagnose',arguments)
     assert result['verification_status']=='pass', result['report']

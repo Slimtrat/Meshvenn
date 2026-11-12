@@ -10,7 +10,7 @@ from typing import Any, Callable
 SCHEMA_VERSION = 1
 ACTION_VERSION = 1
 GATEWAY_VERSION = "0.1.0"
-ACTIONS = ("engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh")
+ACTIONS = ("engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose")
 VERIFICATION_STATUSES = frozenset(("pass", "fail", "unknown", "not_applicable"))
 
 
@@ -145,12 +145,14 @@ ALLOWED_ARGUMENTS = {
     "views.preflight": frozenset(("view_set", "inputs", "policy", "anchors")),
     "geometry.diagnose": frozenset(("view_set", "inputs", "policy", "regions")),
     "geometry.mesh": frozenset(("volume", "voxel_size", "center_xy", "mesh_mode", "max_seconds")),
+    "appearance.diagnose": frozenset(("view_set", "inputs", "surface", "view_settings", "regions", "region_anchors", "upstream_reports", "policy")),
 }
 REQUIRED_ARGUMENTS = {
     "engine.capabilities": frozenset(),
     "views.preflight": frozenset(("view_set", "inputs")),
     "geometry.diagnose": frozenset(("view_set", "inputs")),
     "geometry.mesh": frozenset(("volume",)),
+    "appearance.diagnose": frozenset(("view_set", "inputs")),
 }
 
 
@@ -163,9 +165,13 @@ def validate_arguments(action: str, arguments: dict):
     for name in ("view_set", "inputs", "policy", "volume"):
         if name in arguments and type(arguments[name]) is not dict:
             raise GatewayError("invalid_request", f"{name} must be a JSON object.")
-    for name in ("anchors", "regions"):
+    for name in ("anchors", "regions", "region_anchors", "upstream_reports"):
         if name in arguments and type(arguments[name]) is not list:
             raise GatewayError("invalid_request", f"{name} must be a JSON array.")
+    if "surface" in arguments and arguments["surface"] is not None and type(arguments["surface"]) is not dict:
+        raise GatewayError("invalid_request", "surface must be a strict surface object or null.")
+    if "view_settings" in arguments and type(arguments["view_settings"]) is not dict:
+        raise GatewayError("invalid_request", "view_settings must map declared view IDs to setting objects.")
     forbidden = {"native_library", "native_library_path", "library_path", "python_executable", "backend",
                  "workspace", "allow_unverified", "trust_inputs", "trusted", "allow_paths", "source_path", "file_path", "path"}
 
