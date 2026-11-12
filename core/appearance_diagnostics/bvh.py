@@ -20,6 +20,14 @@ def cross(a, b):
     return (a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0])
 
 
+class SurfaceWorkBudgetExceeded(OverflowError, ValueError):
+    """A valid surface computation exceeded its capacity, not an invalid DTO.
+
+    OverflowError lets analysis preserve partial evidence; ValueError preserves
+    the initial helper API's catch behavior for existing callers.
+    """
+
+
 class WorkBudget:
     def __init__(self, max_work, deadline=None, cancel=None):
         if type(max_work) is not int or not 1 <= max_work <= 50_000_000:
@@ -37,9 +45,9 @@ class WorkBudget:
 
     def spend(self, units=1):
         previous = self.used
+        if previous + units > self.limit:
+            raise SurfaceWorkBudgetExceeded("Surface correspondence work budget exceeded.")
         self.used += units
-        if self.used > self.limit:
-            raise ValueError("Surface correspondence work budget exceeded.")
         if previous // 256 != self.used // 256:
             self.check()
 
@@ -138,7 +146,10 @@ class TriangleBVH:
             tuple(origin[i]+distance*direction[i] for i in range(3)), triangle.normal, (1-u-v, u, v))
 
     def cast(self, origin, direction, maximum=8.0):
-        if (not all(math.isfinite(x) for x in (*origin, *direction, maximum)) or maximum <= 0
+        if (type(origin) not in (tuple, list) or len(origin) != 3
+                or type(direction) not in (tuple, list) or len(direction) != 3
+                or any(type(x) not in (int, float) for x in (*origin, *direction, maximum))
+                or not all(math.isfinite(x) for x in (*origin, *direction, maximum)) or maximum <= 0
                 or not math.isclose(math.hypot(*direction), 1.0, abs_tol=1e-10)):
             raise ValueError("A BVH ray requires finite position, unit direction and positive length.")
         best, tie = None, 1e-8

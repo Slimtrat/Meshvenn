@@ -10,6 +10,7 @@ from dataclasses import FrozenInstanceError, replace
 from unittest.mock import patch
 
 from core.appearance_diagnostics.correspondence import SurfaceSampler
+from core.appearance_diagnostics.bvh import SurfaceWorkBudgetExceeded
 from core.appearance_diagnostics.surface import SurfaceMesh
 from core.diagnostic_contracts import ArtifactReference, CameraDeclaration, ViewRevision
 from core.material_visibility import MeshVisibilityTester
@@ -95,7 +96,9 @@ class SurfaceContractTests(unittest.TestCase):
         for change in ({"vertices": [[float("nan"), 0, 0]] * 4},
                        {"triangles": [[0, 1, 12]]}, {"triangles": [[0, 0, 1]]},
                        {"vertices": [[-2, 0, -1], [1, 0, -1], [1, 0, 1], [-1, 0, 1]]},
-                       {"binding_sha256": "invalid"}, {"sha256": "b" * 64}):
+                       {"binding_sha256": "invalid"}, {"sha256": "b" * 64},
+                       {"schema_version": True}, {"triangles": [[False, 1, 2]]},
+                       {"vertices": [[False, 0, 0]] * 4}):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 SurfaceMesh.from_dict(mesh.to_dict() | change)
 
@@ -237,6 +240,23 @@ class SurfaceCorrespondenceTests(unittest.TestCase):
             with self.assertRaises(TimeoutError):
                 sampler.map_views(view(), (), width=64, height=64)
             self.assertGreater(sampler.work_units, built)
+
+    def test_work_overflow_preserves_recorded_capacity_and_is_not_a_dto_error(self):
+        sampler = SurfaceSampler(plane(), max_work=100)
+        with self.assertRaises(SurfaceWorkBudgetExceeded) as caught:
+            sampler.map_views(view(), (), width=9, height=9)
+        self.assertIsInstance(caught.exception, OverflowError)
+        self.assertIsInstance(caught.exception, ValueError)
+        self.assertLessEqual(sampler.work_units, 100)
+
+    def test_bvh_rejects_bool_nonfinite_and_wrong_length_ray_inputs(self):
+        tree = SurfaceSampler(plane()).bvh
+        for origin, direction, maximum in (((0, 0), (0, -1, 0), 8),
+                ((0, 0, 0), (False, -1, 0), 8), ((0, 0, 0), (0, -1), 8),
+                ((0, 0, 0), (0, -1, 0), True), ((0, 0, 0), (0, -1, 0), float("nan")),
+                ((0, float("inf"), 0), (0, -1, 0), 8)):
+            with self.subTest(origin=origin, direction=direction), self.assertRaises(ValueError):
+                tree.cast(origin, direction, maximum)
 
 
 if __name__ == "__main__":
