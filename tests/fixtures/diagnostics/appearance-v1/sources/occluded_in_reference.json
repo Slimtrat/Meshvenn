@@ -1,0 +1,37 @@
+{
+  "albedo_recipe": {
+    "intentional_asymmetry": false,
+    "kind": "piecewise_constant_uv_quadrants_and_four_stripes",
+    "reference_injection": "none",
+    "scalar_gain_applied_in_linear_rgb": 1.0,
+    "target_injection": "occlusion_patch",
+    "version": 1
+  },
+  "authoring": "original-linear-ray-triangle-albedo/1",
+  "authoring_tie_policy": "Stable smallest authored triangle index for image creation only. Coincident independent surfaces remain ambiguous truth, not disambiguated by this policy.",
+  "camera_recipe": "elevation=0; right=(cos(az),sin(az),0), up=(0,0,1), backward=(sin(az),-cos(az),0); ray origin=right*(2u-1)*(abs(cos)+abs(sin))+up*(2v-1)+3*backward; direction=-backward",
+  "case_id": "occluded_in_reference",
+  "human_reviewed": false,
+  "mesh": {
+    "path": "sources/mesh-occluder.json",
+    "sha256": "4611b47d9b1fd1d5918b9a6aab4237d34593e7cddbef8f3edefc7deee72e9da2",
+    "triangle_count": 24,
+    "vertex_count": 48
+  },
+  "named_region": {
+    "label": "occluded_patch",
+    "surface_label": "body_front",
+    "x": [
+      0.18,
+      0.38
+    ],
+    "y": -0.35,
+    "z": [
+      0.06,
+      0.34
+    ]
+  },
+  "raster_recipe": "bottom-left endpoint samples u=x/(width-1),v=y/(height-1); no antialiasing; PNG rows top-left",
+  "schema_version": 1,
+  "truth_kind": "original_mathematical_authorship"
+}
