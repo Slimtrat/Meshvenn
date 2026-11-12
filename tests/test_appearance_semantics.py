@@ -136,6 +136,32 @@ class SemanticContractTests(unittest.TestCase):
         self.assertGreater(analyzer.calls[0][1], 0)
         self.assertLessEqual(analyzer.calls[0][1], 30)
         self.assertEqual(SemanticEvaluation.from_json(evaluation.to_json()), evaluation)
+        self.assertIsNone(evaluation.qualification_evidence)
+        self.assertEqual(evaluation.qualification_kinds, ())
+
+    def test_host_qualification_record_is_model_bound_and_never_model_response_data(self):
+        request = request_fixture()
+        unqualified = analyze_semantics(request, analyzer=FixtureAnalyzer())
+        class DeclaredQualification(FixtureAnalyzer):
+            def metadata(self):
+                return SemanticAnalyzerMetadata(self.adapter, self.model,
+                    qualification_evidence=ArtifactReference("fixture-qualified-declaration-only", "e"*64, "application/json"),
+                    qualification_kinds=("identity",))
+        qualified = analyze_semantics(request, analyzer=DeclaredQualification())
+        self.assertEqual(qualified.qualification_kinds, ("identity",))
+        self.assertEqual(qualified.qualification_evidence.sha256, "e"*64)
+        self.assertNotEqual(unqualified.dependency_fingerprint, qualified.dependency_fingerprint)
+        self.assertTrue(any(e.artifact == qualified.qualification_evidence
+                            for f in qualified.findings if f.code == "appearance.semantic_identity" for e in f.evidence))
+        self.assertTrue(all(not j.confidence_calibrated for f in qualified.findings for j in f.interpretations))
+        self.assertEqual(SemanticEvaluation.from_json(qualified.to_json()), qualified)
+        injected = FixtureAnalyzer(lambda response, _: {**response.to_dict(),
+            "qualification_evidence": {"artifact_id": "self-qualify", "sha256": "f"*64, "media_type": "application/json"}})
+        rejected = analyze_semantics(request, analyzer=injected)
+        self.assertEqual(rejected.state, "malformed_response")
+        self.assertIsNone(rejected.qualification_evidence)
+        with self.assertRaises(ValueError):
+            SemanticAnalyzerMetadata(FixtureAnalyzer().adapter, FixtureAnalyzer().model, qualification_kinds=("identity",))
 
     def test_changed_claim_is_localized_review_only_and_no_auto_correction(self):
         analyzer = FixtureAnalyzer(lambda response, _: replace(response,

@@ -9,7 +9,7 @@ import hashlib
 import struct
 from dataclasses import dataclass
 
-from ..diagnostic_contracts import ContentReference, EngineVersion, Finding, Region, ViewSetRevision
+from ..diagnostic_contracts import ArtifactReference, ContentReference, EngineVersion, Finding, Region, ViewSetRevision
 from ..diagnostic_contracts.codec import (JsonContract, canonical_json, fingerprint, require_id,
                                          require_sha256, require_text, require_version, unique, validate_model)
 
@@ -146,6 +146,8 @@ class SemanticRequest(JsonContract):
 class SemanticAnalyzerMetadata(JsonContract):
     analyzer: EngineVersion
     model: EngineVersion
+    qualification_evidence: ArtifactReference | None = None
+    qualification_kinds: tuple[str, ...] = ()
     schema_version: int = 1
 
     def __post_init__(self):
@@ -153,6 +155,12 @@ class SemanticAnalyzerMetadata(JsonContract):
         require_version(self.schema_version)
         if self.analyzer.engine_id == self.model.engine_id and self.analyzer != self.model:
             raise ValueError("One engine identifier cannot declare conflicting adapter/model versions.")
+        unique(self.qualification_kinds, "qualified semantic kinds")
+        if any(kind not in KINDS for kind in self.qualification_kinds):
+            raise ValueError("Qualification evidence declares an unsupported semantic kind.")
+        if self.qualification_kinds and self.qualification_evidence is None:
+            raise ValueError("Qualified semantic kinds require explicit host qualification evidence.")
+        object.__setattr__(self, "qualification_kinds", tuple(sorted(self.qualification_kinds)))
 
 
 @dataclass(frozen=True)
@@ -256,6 +264,7 @@ class SemanticEvaluation(JsonContract):
     error_code: str
     error_message: str
     elapsed_seconds: float
+    metadata: SemanticAnalyzerMetadata | None = None
     schema_version: int = 1
 
     def __post_init__(self):
@@ -278,8 +287,19 @@ class SemanticEvaluation(JsonContract):
         unique(tuple(engine.engine_id for engine in self.engines), "semantic engine IDs")
         if self.model is not None and self.model not in self.engines:
             raise ValueError("The semantic model must appear in the evidence engine versions.")
+        if self.metadata is not None and (self.model != self.metadata.model or self.metadata.analyzer not in self.engines):
+            raise ValueError("Preserved semantic metadata must bind the recorded adapter and model.")
+
+    @property
+    def qualification_evidence(self):
+        return self.metadata.qualification_evidence if self.metadata is not None else None
+
+    @property
+    def qualification_kinds(self):
+        return self.metadata.qualification_kinds if self.metadata is not None else ()
 
     @property
     def dependency_fingerprint(self):
         return fingerprint(dict(request_fingerprint=self.request_fingerprint, policy=self.policy.to_dict(),
-                                engines=[engine.to_dict() for engine in self.engines]))
+                                engines=[engine.to_dict() for engine in self.engines],
+                                metadata=self.metadata.to_dict() if self.metadata is not None else None))

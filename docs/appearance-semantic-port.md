@@ -137,6 +137,22 @@ Returned D1 interpretations use `Judgment(kind="model")`, record model version,
 uncertainty and `confidence_calibrated=False`, separately from hashed source,
 visibility and execution observations.
 
+Adapter metadata can additionally declare `qualification_evidence` (a hashed D1
+`ArtifactReference`) and `qualification_kinds` (a subset of identity/accessory/motif).
+The record belongs to the trusted adapter/host and is bound to the exact model and
+evaluation fingerprint; it is not accepted from the model response. Declaring a
+qualified kind without evidence is invalid. The semantic layer records this host
+assertion, not a scientific audit of the referenced qualification dataset.
+Qualification evidence never calibrates model confidence automatically.
+
+`evaluation.metadata`, `evaluation.qualification_evidence` and
+`evaluation.qualification_kinds` expose that declaration to the parent appearance
+engine. Optional PASS/FAIL findings remain model opinions. The global identity
+assessment must remain unknown for an unqualified analyzer, including every mock
+in the diagnostic corpus; a model's `consistent` response alone cannot promote
+identity fidelity. Only the parent engine applies its policy to an explicit
+host qualification record and the supported current claims.
+
 ## Outcomes, timing and qualification
 
 `SemanticEvaluation` retains the immutable request and fingerprint, policy,

@@ -138,6 +138,10 @@ def _finding(request, pair, kind, evaluated, *, metadata, response_sha, policy, 
         artifacts.append(Evidence("semantic-visibility-"+token, "observation", "Host-verified source-space correspondence/visibility evidence, not proof of semantic identity.",
             ids, regions, measurements=(Measurement("visible_correspondences", pair.visible_samples, "sample"),),
             artifact=ArtifactReference("semantic-correspondence-"+pair.pair_id, pair.evidence_sha256, "application/x-meshvenn-appearance-evidence")))
+    if metadata is not None and metadata.qualification_evidence is not None and kind in metadata.qualification_kinds:
+        artifacts.append(Evidence("semantic-qualification-"+token, "artifact",
+            "Trusted host declaration of qualification evidence for this exact model/version and semantic kind; this does not calibrate its confidence score.",
+            ids, regions, artifact=metadata.qualification_evidence))
     if not artifacts:
         artifacts.append(Evidence("semantic-execution-"+token, "execution", evaluated.reason,
                                   measurements=(Measurement("elapsed_seconds", elapsed, "second"),)))
@@ -281,7 +285,7 @@ def analyze_semantics(request: SemanticRequest | dict, *, analyzer: VisionAnalyz
         engines = (SEMANTIC_ENGINE,)
     return SemanticEvaluation(parsed, parsed.dependency_fingerprint if parsed is not None else None,
         policy, state, engines, metadata.model if metadata is not None else None, tuple(evaluated), tuple(findings),
-        raw_sha, raw_json, error_code[:128], error_message[:512], elapsed)
+        raw_sha, raw_json, error_code[:128], error_message[:512], elapsed, metadata=metadata)
 
 
 __all__ = ("VisionAnalyzer", "SemanticAnalyzerUnavailable", "SemanticAnalyzerMetadata", "SemanticImageSnapshot", "make_semantic_image",
