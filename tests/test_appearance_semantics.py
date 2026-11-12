@@ -129,6 +129,8 @@ class SemanticContractTests(unittest.TestCase):
         self.assertEqual(evaluation.model, analyzer.model)
         self.assertIn(analyzer.model, evaluation.engines)
         self.assertIn(analyzer.adapter, evaluation.engines)
+        snapshot_hashes = {image.sha256 for image in request.images}
+        self.assertTrue(snapshot_hashes <= {e.artifact.sha256 for f in evaluation.findings for e in f.evidence if e.artifact})
         self.assertEqual(evaluation.raw_response_sha256, hashlib.sha256(evaluation.raw_response_json.encode()).hexdigest())
         self.assertTrue(all(j.kind == "model" and not j.confidence_calibrated and j.calibration_evidence is None
                             for f in evaluation.findings for j in f.interpretations))
@@ -223,6 +225,17 @@ class SemanticContractTests(unittest.TestCase):
             self.assertEqual(result.state, "insufficient_evidence")
             self.assertEqual(analyzer.calls, [])
             self.assertTrue(all(item.status == "unknown" for item in result.claims))
+
+    def test_self_comparison_abstains_without_invalid_duplicate_d1_regions(self):
+        request = request_fixture()
+        pair = request.pairs[0]
+        self_pair = replace(pair, target=pair.reference, target_image_sha256=pair.reference_image_sha256)
+        analyzer = FixtureAnalyzer()
+        result = analyze_semantics(replace(request, pairs=(self_pair,)), analyzer=analyzer)
+        self.assertEqual(result.state, "insufficient_evidence")
+        self.assertEqual(analyzer.calls, [])
+        self.assertTrue(all(f.status == "unknown" for f in result.findings))
+        self.assertEqual(SemanticEvaluation.from_json(result.to_json()), result)
 
     def test_accepted_design_ancestor_allowed_target_derived_or_circular_abstains(self):
         request = request_fixture()

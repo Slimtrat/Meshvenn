@@ -127,7 +127,7 @@ def _engines(metadata):
 
 def _finding(request, pair, kind, evaluated, *, metadata, response_sha, policy, elapsed):
     known = {view.view_id for view in request.view_set.views} if request is not None else set()
-    regions = tuple(region for region in (pair.target, pair.reference) if region.view_id in known) if pair else ()
+    regions = tuple(dict.fromkeys(region for region in (pair.target, pair.reference) if region.view_id in known)) if pair else ()
     ids = tuple(sorted({region.view_id for region in regions}))
     token = hashlib.sha256(f"{pair.pair_id if pair else 'unavailable'}:{kind}".encode()).hexdigest()[:20]
     artifacts = []
@@ -138,6 +138,14 @@ def _finding(request, pair, kind, evaluated, *, metadata, response_sha, policy, 
         artifacts.append(Evidence("semantic-visibility-"+token, "observation", "Host-verified source-space correspondence/visibility evidence, not proof of semantic identity.",
             ids, regions, measurements=(Measurement("visible_correspondences", pair.visible_samples, "sample"),),
             artifact=ArtifactReference("semantic-correspondence-"+pair.pair_id, pair.evidence_sha256, "application/x-meshvenn-appearance-evidence")))
+        snapshots = {image.view_id: image for image in request.images}
+        for role, region in (("target", pair.target), ("reference", pair.reference)):
+            if region.view_id in snapshots and region.view_id in known:
+                image = snapshots[region.view_id]
+                artifacts.append(Evidence("semantic-image-"+role+"-"+token, "artifact",
+                    "Actual bounded full-frame source-space RGBA supplied to the analyzer; derived content, not the original encoded image.",
+                    (region.view_id,), (region,), artifact=ArtifactReference("semantic-image-"+region.view_id,
+                        image.sha256, "application/x-meshvenn-semantic-rgba-f64")))
     if metadata is not None and metadata.qualification_evidence is not None and kind in metadata.qualification_kinds:
         artifacts.append(Evidence("semantic-qualification-"+token, "artifact",
             "Trusted host declaration of qualification evidence for this exact model/version and semantic kind; this does not calibrate its confidence score.",
