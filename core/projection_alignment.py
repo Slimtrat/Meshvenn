@@ -41,6 +41,17 @@ class ProjectionAlignment:
             (target_v - 0.5 - self.offset_v) / self.scale + 0.5,
         )
 
+    def aligned_uv(self, source_u: float, source_v: float) -> tuple[float, float]:
+        """Map original image UV to the aligned projection frame, without clipping.
+
+        This is the exact inverse of ``source_uv``. Flip X remains the camera
+        transform's responsibility and must not be applied a second time here.
+        """
+        if not math.isfinite(source_u) or not math.isfinite(source_v):
+            raise ValueError("Projection coordinates must be finite.")
+        return ((source_u - 0.5) * self.scale + 0.5 + self.offset_u,
+                (source_v - 0.5) * self.scale + 0.5 + self.offset_v)
+
     def align_mask(self, source: BinaryMask) -> BinaryMask:
         """Resample a source mask on its native grid with outside pixels empty.
 

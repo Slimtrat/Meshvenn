@@ -24,7 +24,7 @@ reply = gateway.execute("geometry.diagnose", {
 `catalogue()` returns `schema_version: 1`, gateway/engine versions, and an action
 list containing `name`, `version`, availability/reason, JSON input/output schemas
 and capability annotations. Supported actions are `engine.capabilities`,
-`views.preflight`, `geometry.diagnose` and `geometry.mesh`. The engine supplies
+`views.preflight`, `geometry.diagnose`, `geometry.mesh` and `appearance.diagnose`. The engine supplies
 the complete input schemas and validates its D1/D2/D3 semantic contracts. The
 gateway additionally rejects unknown actions/versions/arguments, host paths,
 backend/trust overrides and nonfinite or over-budget JSON. PNG inputs are encoded
@@ -44,6 +44,12 @@ the operation returned. It does not establish geometric quality. Verification
 comes only from the engine's explicit derived status; successful mesh construction
 remains unknown. The gateway never reconstructs the D1 verification decision from
 finding means, labels or successful execution.
+
+The sixth MCP tool, `meshvenn_appearance`, dispatches `appearance.diagnose` through
+the same gateway. It preserves engine-derived `deterministic_status` and
+`identity_status` in the bounded summary. Visible color agreement cannot invent a
+qualified identity verdict; optional vision analyzers are trusted host constructor
+dependencies, never serialized action parameters.
 
 Full returned JSON is stored losslessly by SHA-256, including partial evidence
 returned during cancellation. If it exceeds the inline limit, `result` is `null`;

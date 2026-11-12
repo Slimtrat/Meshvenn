@@ -9,6 +9,7 @@ import re
 import types
 from dataclasses import MISSING, fields, is_dataclass
 from enum import Enum
+from functools import lru_cache
 from typing import Union, get_args, get_origin, get_type_hints
 
 
@@ -93,9 +94,17 @@ def _convert(value, annotation, path: str, *, decode: bool):
     raise TypeError(f"Unsupported contract field type: {annotation!r}")
 
 
+@lru_cache(maxsize=256)
+def _model_annotations(model):
+    # Versioned contract classes have static schemas. Cache only reflection,
+    # never instances, converted values or validation outcomes. Reloaded module
+    # classes are distinct keys; untrusted JSON cannot supply a class object.
+    return get_type_hints(model)
+
+
 def validate_model(value) -> None:
     """Normalize enum/tuple/numeric fields and reject coercion of JSON scalars."""
-    annotations = get_type_hints(type(value))
+    annotations = _model_annotations(type(value))
     for field in fields(value):
         converted = _convert(getattr(value, field.name), annotations[field.name],
                              field.name, decode=False)
@@ -111,7 +120,7 @@ def _decode_model(model, data, path: str):
         raise ValueError(f"{path} contains unsupported fields: {sorted(extra)}")
     if "schema_version" in model_fields and "schema_version" not in data:
         raise ValueError(f"{path}.schema_version is required.")
-    annotations = get_type_hints(model)
+    annotations = _model_annotations(model)
     kwargs = {}
     for name, field in model_fields.items():
         if name in data:

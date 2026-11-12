@@ -6,7 +6,7 @@ from dataclasses import MISSING, fields, is_dataclass
 from enum import Enum
 from typing import Union, get_args, get_origin, get_type_hints
 
-from .core.diagnostic_contracts import Region, ViewSetRevision
+from .core.diagnostic_contracts import DiagnosticReport, Region, ViewSetRevision
 from .core.diagnostics_preflight import AlignmentAnchor, PreflightPolicy
 from .core.geometry_diagnostics import GeometryPolicy, VolumeArtifact
 
@@ -42,6 +42,7 @@ def _object(properties, required=()):
 
 
 def action_schemas():
+    from .core.appearance_diagnostics import AppearancePolicy, AppearanceRegionAnchor, AppearanceViewSettings, SurfaceMesh
     png = _object({"png_base64": {"type": "string", "maxLength": 44_739_244},
                    "format": {"const": "png"}}, ("png_base64",))
     rgba = _object({"format": {"const": "rgba"}, "width": {"type": "integer", "minimum": 1, "maximum": 1_048_576},
@@ -60,9 +61,19 @@ def action_schemas():
         "voxel_size": {"type": "number", "exclusiveMinimum": 0, "maximum": 1_000_000},
         "center_xy": {"type": "boolean"}, "mesh_mode": {"enum": ["blocks", "surface-nets"]},
         "max_seconds": {"type": "number", "exclusiveMinimum": 0, "maximum": 120}}, ("volume",))
+    appearance = _object({**common, "policy": model_schema(AppearancePolicy),
+        "surface": {"anyOf": [model_schema(SurfaceMesh), {"type": "null"}]},
+        "view_settings": {"type": "object", "maxProperties": 20,
+                          "additionalProperties": model_schema(AppearanceViewSettings)},
+        "region_anchors": {"type": "array", "maxItems": 128, "items": model_schema(AppearanceRegionAnchor)},
+        "upstream_reports": {"type": "array", "maxItems": 20, "items": model_schema(DiagnosticReport)}}, ("view_set", "inputs"))
     output = {"type": "object", "properties": {"schema_version": {"const": 1},
         "verification_status": {"enum": ["pass", "fail", "unknown", "not_applicable"]}},
         "required": ["schema_version", "verification_status"]}
+    appearance_output = {"type": "object", "properties": {**output["properties"],
+        "identity_status": {"enum": ["pass", "fail", "unknown", "not_applicable"]},
+        "deterministic_status": {"enum": ["pass", "fail", "unknown", "not_applicable"]}},
+        "required": ["schema_version", "verification_status", "identity_status", "deterministic_status"]}
     return {"engine.capabilities": (_object({}), {"type": "object"}),
             "views.preflight": (preflight, output), "geometry.diagnose": (diagnosis, output),
-            "geometry.mesh": (mesh, output)}
+            "geometry.mesh": (mesh, output), "appearance.diagnose": (appearance, appearance_output)}

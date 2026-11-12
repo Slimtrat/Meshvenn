@@ -6,6 +6,9 @@ include core/projection_alignment.py core/projection_frame.py
 recursive-include core/diagnostic_contracts *.py
 recursive-include core/diagnostics_preflight *.py
 recursive-include core/geometry_diagnostics *.py
+recursive-include core/appearance_diagnostics *.py
+recursive-include core/material_visibility *.py
+exclude core/material_visibility/blender_backend.py
 recursive-include core/native_bridge *.py
 recursive-include core/projection_math *.py
 recursive-include core/geometry_contracts *.py

@@ -76,6 +76,40 @@ def complete_artifact(read, reference):
     return json.loads(data)
 
 
+def appearance_arguments():
+    """A declared analytic plane, accepted reference and equal original colors."""
+    from meshvenn_engine.core.appearance_diagnostics import SurfaceMesh
+    from meshvenn_engine.core.diagnostic_contracts import ArtifactReference, CanonicalReference, ViewRevision, ViewSetRevision
+    from dataclasses import replace
+    base = source_arguments()
+    original = ViewSetRevision.from_dict(base["view_set"]).views[0]
+    target = replace(original, view_id="target")
+    reference = replace(original, view_id="reference", role="reference")
+    proof = ArtifactReference("authored-visible-plane", hashlib.sha256(b"normalized plane y=0,xz[-.6,.6]; color=sRGB albedo").hexdigest(), "application/json")
+    revision = ViewSetRevision("installed-appearance", 1, (target, reference), CanonicalReference(
+        "accepted-analytic-design", 1, reference.image, validated=True, view_ids=("reference",), validation_evidence=proof))
+    surface = SurfaceMesh(((-.6,0.,-.6),(.6,0.,-.6),(.6,0.,.6),(-.6,0.,.6)), ((0,1,2),(0,2,3)),
+                          proof, binding_sha256=revision.dependency_fingerprint)
+    return dict(view_set=revision.to_dict(), inputs={view.view_id: base["inputs"][original.view_id] for view in revision.views},
+        surface=surface.to_dict(), view_settings={view.view_id: dict(color_space="sRGB",photometry="albedo",
+            verified=True,evidence=proof.to_dict()) for view in revision.views}, policy={"sampling_size":16})
+
+
+def check_appearance(value, envelope):
+    assert envelope["status"] == envelope["technical_status"] == "completed", envelope
+    assert envelope["verification_status"] == value["identity_status"] == "unknown", value
+    assert value["deterministic_status"] == "pass", value["report"]
+    from meshvenn_engine.core.appearance_diagnostics import AppearanceResult
+    strict = dict(value)
+    for field in ("verification_status", "identity_status", "deterministic_status"):
+        strict.pop(field)
+    restored = AppearanceResult.from_dict(strict)
+    assert restored.provenance.grid_samples > 0 and restored.pairs
+    assert restored.identity_status == "unknown"
+    assert restored.semantic is not None and restored.semantic.qualification_evidence is None
+    return restored
+
+
 def check_diagnostic(value, envelope):
     assert envelope["status"] == envelope["technical_status"] == "completed", envelope
     assert envelope["verification_status"] == "pass", envelope
@@ -111,7 +145,7 @@ async def protocol(args, arguments, volume, library_sha):
             tools = await client.list_tools()
             names = {tool.name for tool in tools.tools}
             assert names == {"meshvenn_capabilities", "meshvenn_preflight", "meshvenn_diagnose",
-                             "meshvenn_mesh", "meshvenn_artifact_read"}, names
+                             "meshvenn_mesh", "meshvenn_appearance", "meshvenn_artifact_read"}, names
 
             async def call(name, value):
                 result = await client.call_tool(name, value)
@@ -150,8 +184,10 @@ async def protocol(args, arguments, volume, library_sha):
             assert restored.volume.sha256 == volume["sha256"]
             mesh = await call("meshvenn_mesh", {"arguments": {"volume": volume, "mesh_mode": "surface-nets"}})
             check_mesh(await read_result(mesh["artifact"]), mesh, volume, library_sha)
+            appearance = await call("meshvenn_appearance", {"arguments": appearance_arguments()})
+            check_appearance(await read_result(appearance["artifact"]), appearance)
             return {"protocol_version": client.protocol_version, "tools": sorted(names),
-                    "capabilities": caps, "preflight": preflight, "diagnostic": diagnostic, "mesh": mesh,
+                    "capabilities": caps, "preflight": preflight, "diagnostic": diagnostic, "mesh": mesh, "appearance": appearance,
                     "native_library_sha256": library_sha}
 
 
@@ -176,7 +212,7 @@ def main():
                       ArtifactStore(args.output / "direct-workspace"))
     catalogue = gateway.catalogue()
     assert {action["name"] for action in catalogue["actions"]} == {
-        "engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh"}
+        "engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose"}
     arguments = source_arguments()
     preflight = gateway.execute("views.preflight", dict(arguments, policy={"required_cameras": []}))
     assert preflight["status"] == "completed"
@@ -189,6 +225,8 @@ def main():
     mesh = gateway.execute("geometry.mesh", {"volume": value["volume"], "mesh_mode": "surface-nets"})
     mesh_value = complete_artifact(gateway.read_artifact, mesh["artifact"])
     check_mesh(mesh_value, mesh, value["volume"], library_sha)
+    appearance = gateway.execute("appearance.diagnose", appearance_arguments())
+    check_appearance(complete_artifact(gateway.read_artifact, appearance["artifact"]), appearance)
     cancelled = gateway.execute("geometry.diagnose", arguments, cancel=lambda: True)
     assert cancelled["status"] == "cancelled" and cancelled["verification_status"] != "pass"
     assert "bpy" not in sys.modules and "mcp" not in sys.modules
@@ -199,11 +237,11 @@ def main():
         "agent_source_sha256": installed_source_hash(meshvenn_agent),
         "native_library_sha256": library_sha, "engine_path": meshvenn_engine.__file__,
         "agent_path": meshvenn_agent.__file__, "request_sha256": hashlib.sha256(encoded(arguments)).hexdigest(),
-        "direct": {"catalogue": catalogue, "preflight": preflight, "diagnostic": diagnostic, "mesh": mesh},
+        "direct": {"catalogue": catalogue, "preflight": preflight, "diagnostic": diagnostic, "mesh": mesh, "appearance": appearance},
         "mcp": asyncio.run(protocol(args, arguments, value["volume"], library_sha)),
         "scope": "Installed API, MCP transport and actual native execution; not identity, topology or GLB certification"}
     (args.output / "qualification.json").write_bytes(encoded(evidence))
-    print("INSTALLED_ENGINE_AGENT_PASS: two installed wheels, strict D3 report, native mesh, CAS, cancellation and real MCP stdio")
+    print("INSTALLED_ENGINE_AGENT_PASS: two installed wheels, strict D3/D4 reports, native mesh, visible appearance, CAS, cancellation and real MCP stdio")
 
 
 if __name__ == "__main__":

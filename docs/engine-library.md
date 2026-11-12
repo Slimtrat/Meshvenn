@@ -1,9 +1,9 @@
 # Meshvenn Engine library
 
 `meshvenn-engine` is an installable, provider-independent Python distribution
-(Python 3.11+). It exposes the existing D1/D2/D3 engines and native surface
+(Python 3.11+). It exposes the existing D1/D2/D3/D4 engines and native surface
 extraction without importing Blender or an agent SDK. The library does not
-advertise Blender pipeline execution, rigging, animation, appearance identity or
+advertise Blender pipeline execution, rigging, animation, unqualified appearance identity or
 export certification.
 
 The existing `core/` files remain the source of truth. Setuptools maps their
@@ -43,6 +43,25 @@ Actions and exact arguments:
 | `views.preflight` | `view_set`, `inputs`, optional `policy`, `anchors` | Existing D1 report and D2 alignment proposals |
 | `geometry.diagnose` | `view_set`, `inputs`, optional `policy`, `regions` | Existing full D3 result, including preserved adaptive attempts |
 | `geometry.mesh` | Strict D3 `volume`, optional `voxel_size`, `center_xy`, `mesh_mode`, `max_seconds` | Native mesh arrays, projection space and runtime provenance |
+| `appearance.diagnose` | `view_set`, `inputs`; optional `surface`, `view_settings`, `regions`, `region_anchors`, `upstream_reports`, `policy` | Strict D4 visible color/coverage evidence and separate identity assessment |
+
+Appearance runs without a native library. `surface` is a strict `SurfaceMesh`
+with declared native-normalized vertices/triangle indices, provenance and optional
+view-set binding. `view_settings` maps actual view IDs to `AppearanceViewSettings`
+with explicit color encoding, photometry and producer evidence. Regions use D1
+original source coordinates; optional `AppearanceRegionAnchor` dictionaries bind
+expected parts to authored surface support. `upstream_reports` contains at most
+20 strict D1 reports; failed or stale evidence remains failed/unknown.
+
+`MeshvennEngine(..., vision_analyzer=trusted_host_analyzer)` is the only way to
+inject optional semantic inference. An action cannot supply a provider, callable
+or qualification override. Without qualified host evidence, identity remains
+unknown even when visible colors match. Appearance returns three derived fields:
+`verification_status`, `identity_status`, and `deterministic_status`. Remove those
+three keys before `AppearanceResult.from_dict`; all original typed evidence is
+otherwise unchanged. Numerical color agreement does not qualify unseen parts,
+identity, geometry or export. The wheel includes pure material visibility helpers
+and excludes `material_visibility/blender_backend.py` entirely.
 
 `view_set` and each region use the existing strict D1 dictionaries. `inputs` is
 keyed by declared view ID; each entry contains `image` and optional `mask`.

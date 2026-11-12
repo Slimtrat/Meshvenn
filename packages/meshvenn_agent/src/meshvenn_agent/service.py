@@ -201,6 +201,9 @@ class Gateway:
         for name in ("requested_resolution", "actual_resolution"):
             if type(value.get(name)) is int:
                 summary[name] = value[name]
+        for name in ("identity_status", "deterministic_status"):
+            if type(value.get(name)) is str and value[name] in VERIFICATION_STATUSES:
+                summary[name] = value[name]
         if type(value.get("attempts")) is list:
             summary["attempt_count"] = len(value["attempts"])
         return summary

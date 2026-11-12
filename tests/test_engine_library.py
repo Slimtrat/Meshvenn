@@ -38,6 +38,25 @@ def cube_arguments():
         "inputs": {view.view_id: {"image": {"png_base64": base64.b64encode(png).decode()}} for view in views}}
 
 
+def appearance_arguments():
+    from meshvenn_engine.core.appearance_diagnostics import SurfaceMesh
+    from meshvenn_engine.core.diagnostic_contracts import CanonicalReference
+    base = cube_arguments()
+    original = ViewSetRevision.from_dict(base["view_set"]).views[0]
+    from dataclasses import replace
+    target, reference = replace(original, view_id="target"), replace(original, view_id="reference", role="reference")
+    proof = ArtifactReference("analytic-appearance-proof", "b"*64, "application/json")
+    revision = ViewSetRevision("library-visible-appearance", 1, (target, reference),
+        CanonicalReference("accepted-design", 1, reference.image, validated=True,
+                           view_ids=("reference",), validation_evidence=proof))
+    surface = SurfaceMesh(((-.6,0.,-.6),(.6,0.,-.6),(.6,0.,.6),(-.6,0.,.6)),
+                          ((0,1,2),(0,2,3)), proof, binding_sha256=revision.dependency_fingerprint)
+    return {"view_set": revision.to_dict(), "inputs": {view.view_id: base["inputs"][original.view_id] for view in revision.views},
+            "surface": surface.to_dict(), "view_settings": {view.view_id:
+                {"color_space": "sRGB", "photometry": "albedo", "verified": True, "evidence": proof.to_dict()} for view in revision.views},
+            "policy": {"sampling_size": 16}}
+
+
 def library():
     value = os.environ.get("MESHVENN_TEST_NATIVE_LIBRARY") or os.environ.get("MESHVENN_TEST_NATIVE_DLL")
     return Path(value) if value else None
@@ -50,13 +69,44 @@ class EngineLibraryTests(unittest.TestCase):
                                capture_output=True, text=True, timeout=20)
         self.assertEqual(child.returncode, 0, child.stdout + child.stderr)
         catalogue = json.loads(child.stdout)
-        self.assertEqual(set(catalogue["actions"]), {"engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh"})
+        self.assertEqual(set(catalogue["actions"]), {"engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose"})
         for descriptor in catalogue["actions"].values():
             self.assertEqual(descriptor["version"], 1)
             self.assertIs(type(descriptor["available"]), bool)
             self.assertEqual(descriptor["input_schema"]["additionalProperties"], False)
         self.assertNotIn("regions", catalogue["actions"]["views.preflight"]["input_schema"]["properties"])
         self.assertIn("regions", catalogue["actions"]["geometry.diagnose"]["input_schema"]["properties"])
+        self.assertIn("surface", catalogue["actions"]["appearance.diagnose"]["input_schema"]["properties"])
+
+    def test_visible_appearance_runs_without_native_and_preserves_identity_unknown(self):
+        from meshvenn_engine.core.appearance_diagnostics import AppearanceResult
+        result = MeshvennEngine(native_library=ROOT/"absent.dll").execute("appearance.diagnose", appearance_arguments())
+        self.assertEqual(result["identity_status"], "unknown")
+        self.assertEqual(result["deterministic_status"], "pass")
+        self.assertEqual(result["verification_status"], "unknown")
+        status = {key: result.pop(key) for key in ("verification_status", "identity_status", "deterministic_status")}
+        restored = AppearanceResult.from_dict(result)
+        self.assertGreater(restored.provenance.grid_samples, 0)
+        self.assertEqual(restored.deterministic_status, status["deterministic_status"])
+        self.assertFalse("bpy" in sys.modules)
+
+    def test_appearance_dtos_reject_unknown_fields_and_untrusted_analyzers(self):
+        for updates in ({"vision_analyzer": {}}, {"surface": {"path": "surface.obj"}},
+                        {"view_settings": {"undeclared": {}}}, {"upstream_reports": [True]},
+                        {"region_anchors": [{"region": {"view_id": "target"}}]}):
+            with self.subTest(updates=updates), self.assertRaises(EngineError):
+                MeshvennEngine().execute("appearance.diagnose", {**appearance_arguments(), **updates})
+
+    def test_cancelled_appearance_report_is_delivered_without_discarding_evidence(self):
+        calls = 0
+        def cancel():
+            nonlocal calls
+            calls += 1
+            return calls >= 2
+        result = MeshvennEngine().execute("appearance.diagnose", appearance_arguments(), cancel=cancel)
+        self.assertEqual(result["report"]["completion"], "cancelled")
+        self.assertEqual(result["verification_status"], "unknown")
+        self.assertEqual(result["identity_status"], "unknown")
 
     def test_png_preflight_reuses_real_hash_dimension_and_camera_checks(self):
         engine = MeshvennEngine()

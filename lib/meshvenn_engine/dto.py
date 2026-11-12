@@ -86,8 +86,8 @@ def policy(model, value):
     return model(**value)
 
 
-def view_arguments(arguments, *, preflight=False):
-    allowed = ("view_set", "inputs", "policy", "regions") + (("anchors",) if preflight else ())
+def view_arguments(arguments, *, preflight=False, extra_fields=()):
+    allowed = ("view_set", "inputs", "policy", "regions") + (("anchors",) if preflight else ()) + tuple(extra_fields)
     object_fields(arguments, allowed, ("view_set", "inputs"))
     revision = ViewSetRevision.from_dict(arguments["view_set"])
     if len(revision.views) > 20:
@@ -122,3 +122,23 @@ def view_arguments(arguments, *, preflight=False):
                 raise ValueError("Alignment anchor values must be strings.")
             anchors.append(AlignmentAnchor(**item))
     return revision, decoded, regions, tuple(anchors)
+
+
+def appearance_arguments(arguments):
+    """Decode D4 JSON through the same core authority as direct/Blender callers."""
+    from .core.appearance_diagnostics import AppearancePolicy, AppearanceRegionAnchor, AppearanceViewSettings, SurfaceMesh
+    from .core.diagnostic_contracts import DiagnosticReport
+    revision, inputs, regions, _ = view_arguments(arguments,
+        extra_fields=("surface", "view_settings", "region_anchors", "upstream_reports"))
+    raw_settings = arguments.get("view_settings", {})
+    if type(raw_settings) is not dict or not set(raw_settings) <= {view.view_id for view in revision.views}:
+        raise ValueError("Appearance settings must be keyed by current source view IDs.")
+    settings = {name: AppearanceViewSettings.from_dict(value) for name, value in raw_settings.items()}
+    raw_anchors = arguments.get("region_anchors", [])
+    raw_reports = arguments.get("upstream_reports", [])
+    if type(raw_anchors) is not list or len(raw_anchors) > 128 or type(raw_reports) is not list or len(raw_reports) > 20:
+        raise ValueError("Appearance anchor/upstream report counts exceed the declared profile.")
+    anchors = tuple(AppearanceRegionAnchor.from_dict(value) for value in raw_anchors)
+    reports = tuple(DiagnosticReport.from_dict(value) for value in raw_reports)
+    surface = SurfaceMesh.from_dict(arguments["surface"]) if arguments.get("surface") is not None else None
+    return revision, inputs, surface, settings, regions, anchors, reports, policy(AppearancePolicy, arguments.get("policy"))

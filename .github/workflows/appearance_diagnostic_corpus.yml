@@ -1,0 +1,83 @@
+name: Appearance diagnostic corpus
+
+on:
+  pull_request:
+    paths:
+      - 'core/appearance_diagnostics/**'
+      - 'core/diagnostic_contracts/**'
+      - 'core/diagnostics_preflight/**'
+      - 'core/projection_math/**'
+      - 'core/projection_alignment.py'
+      - 'core/projection_frame.py'
+      - 'core/image_mask.py'
+      - 'core/material_visibility/**'
+      - 'core/geometry_diagnostics/metrics.py'
+      - 'core/geometry_diagnostics/projection.py'
+      - 'scripts/appearance_diagnostic_corpus/**'
+      - 'scripts/qualify_appearance_diagnostics.py'
+      - 'tests/fixtures/diagnostics/appearance-v1/**'
+      - 'tests/test_appearance*.py'
+      - '.github/workflows/appearance_diagnostic_corpus.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'core/appearance_diagnostics/**'
+      - 'core/diagnostic_contracts/**'
+      - 'core/diagnostics_preflight/**'
+      - 'core/projection_math/**'
+      - 'core/projection_alignment.py'
+      - 'core/projection_frame.py'
+      - 'core/image_mask.py'
+      - 'core/material_visibility/**'
+      - 'core/geometry_diagnostics/metrics.py'
+      - 'core/geometry_diagnostics/projection.py'
+      - 'scripts/appearance_diagnostic_corpus/**'
+      - 'scripts/qualify_appearance_diagnostics.py'
+      - 'tests/fixtures/diagnostics/appearance-v1/**'
+      - 'tests/test_appearance*.py'
+      - '.github/workflows/appearance_diagnostic_corpus.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appearance-corpus-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Authored D4 (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: ubuntu-latest
+            python: '3.13'
+          - os: windows-latest
+            python: '3.13'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify authored evidence and appearance contracts
+        run: python -m unittest discover -s tests -p 'test_appearance*.py' -v
+      - name: Verify immutable corpus bytes
+        run: python scripts/qualify_appearance_diagnostics.py --verify-only
+      - name: Execute actual bounded appearance matrix
+        run: python scripts/qualify_appearance_diagnostics.py --output tmp/appearance-qualification
+      - name: Preserve measured failures and actual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appearance-corpus-${{ matrix.os }}-python-${{ matrix.python }}
+          path: |
+            tmp/appearance-qualification
+            tests/fixtures/diagnostics/appearance-v1/case-panel.png
+          retention-days: 14
+          if-no-files-found: error

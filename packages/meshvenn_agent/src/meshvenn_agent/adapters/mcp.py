@@ -86,6 +86,11 @@ def create_server(gateway: "Gateway"):
         return gateway.execute("geometry.mesh", arguments, request_id=request_id, cancel=cancellation_check())
 
     @server.tool()
+    def meshvenn_appearance(arguments: dict[str, Any], request_id: StrictStr | None = None) -> dict[str, Any]:
+        """Run appearance.diagnose on bounded visible source regions; optional model judgments do not certify identity, geometry or export."""
+        return gateway.execute("appearance.diagnose", arguments, request_id=request_id, cancel=cancellation_check())
+
+    @server.tool()
     def meshvenn_artifact_read(sha256: StrictStr, offset: StrictInt = 0, limit: StrictInt = 65536) -> dict[str, Any]:
         """Read a verified bounded base64 chunk from the configured artifact store by content hash."""
         return gateway.read_artifact(sha256, offset=offset, limit=limit)

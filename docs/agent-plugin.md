@@ -88,6 +88,7 @@ requires no provider credential.
 | `meshvenn_preflight` | `execute("views.preflight", arguments)` | `arguments` object; optional `request_id` |
 | `meshvenn_diagnose` | `execute("geometry.diagnose", arguments)` | `arguments` object; optional `request_id` |
 | `meshvenn_mesh` | `execute("geometry.mesh", arguments)` | `arguments` object; optional `request_id` |
+| `meshvenn_appearance` | `execute("appearance.diagnose", arguments)` | `arguments` object; optional `request_id`; visible evidence and separate identity status |
 | `meshvenn_artifact_read` | `read_artifact(sha256, offset=..., limit=...)` | SHA-256, integer offset and chunk size |
 
 Action argument schemas and availability come from capability discovery. The
@@ -155,9 +156,9 @@ with an AnyIO cancellation scope, following the [SDK cancellation model](https:/
 
 ## Scope and verification
 
-The four engine actions are capability discovery, original-view preflight,
-bounded silhouette reconstruction diagnostics, and native mesh extraction from
-a validated volume. Meshing produces geometry data, not a visually approved
+The five engine actions are capability discovery, original-view preflight,
+bounded silhouette reconstruction diagnostics, native mesh extraction from
+a validated volume, and visible-region appearance diagnostics. Meshing produces geometry data, not a visually approved
 delivered asset. The CPython facade does not execute the Blender import, rigging,
 texture baking, animation or GLB delivery pipelines. Those workflows still need
 their Blender adapter and their own acceptance records.
