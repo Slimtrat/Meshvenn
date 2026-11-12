@@ -13,6 +13,7 @@ from scripts.appearance_diagnostic_corpus import FROZEN_MANIFEST_SHA256
 from scripts.appearance_diagnostic_corpus.authoring import primary_rays, scene, sha256, triangle_hit
 from scripts.appearance_diagnostic_corpus.fixtures import REGIONS, build_corpus, inside_region
 from scripts.appearance_diagnostic_corpus.integrity import checked_path, load_manifest
+from scripts.appearance_diagnostic_corpus.scoring import score_case
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = ROOT/"tests/fixtures/diagnostics/appearance-v1"
@@ -117,6 +118,40 @@ class AppearanceAuthoringTests(unittest.TestCase):
             if case["scope"]=="adapter-only":
                 self.assertFalse(case["semantic_service"]["semantic_quality_qualification"])
                 self.assertEqual(case["semantic_service"]["real_provider_calls"],0)
+
+    def test_no_output_cannot_satisfy_frozen_positive_and_negative_controls(self):
+        for case in self.document["cases"]:
+            self.assertFalse(score_case(case,{})["passed"],case["case_id"])
+
+    def test_default_unknown_does_not_qualify_a_mock_that_was_never_called(self):
+        record = {"identity_status":"unknown","semantic_adapter":{"kind":"mock-adapter-only","real_provider_calls":0,
+                  "actual_local_mock_calls":0},"semantic":{"state":"insufficient_evidence","claims":[{"status":"unknown"}]}}
+        result = score_case(self.case("service_low_evidence"),record)
+        self.assertIn("semantic_mock_adapter_scope_only",result["failures"])
+
+    def test_nested_upstream_report_and_failure_gate_preserve_exact_failure(self):
+        case = self.case("upstream_geometry_fail")
+        record = {"verification_status":"fail","upstream_preservation":{"all_reports_equal":True,"hashes_match":True,
+                  "failure_gate_present":True},"report":{"findings":[]}}
+        assertions = {a["name"]:a["passed"] for a in score_case(case,record)["assertions"]}
+        self.assertTrue(assertions["same_upstream_geometry_fail_preserved"])
+        self.assertTrue(assertions["overall_verification_cannot_pass"])
+        record["upstream_preservation"]["hashes_match"] = False
+        assertions = {a["name"]:a["passed"] for a in score_case(case,record)["assertions"]}
+        self.assertFalse(assertions["same_upstream_geometry_fail_preserved"])
+
+    def test_resolution_check_measures_changed_localization_not_only_authored_roi(self):
+        from scripts.appearance_diagnostic_corpus.runner import resolution_observations
+        region = {"region":{"view_id":"target","label":"colour_patch","bounds":[.2,.2,.4,.4]}}
+        left = {"raster_resolution":32,"views":[{"regions":[region]}],
+                "localization":[{"view_id":"target","changed_bounds_normalized":[.2,.2,.4,.4]}]}
+        right = {"raster_resolution":64,"views":[{"regions":[region]}],
+                 "localization":[{"view_id":"target","changed_bounds_normalized":[.6,.2,.8,.4]}]}
+        check = resolution_observations(left,right)
+        self.assertTrue(check["regions"][0]["bounds_within_tolerance"])
+        self.assertFalse(check["matched_bounds_within_tolerance"])
+        right["localization"][0]["changed_bounds_normalized"] = [.21,.21,.41,.41]
+        self.assertTrue(resolution_observations(left,right)["matched_bounds_within_tolerance"])
 
 
 if __name__=="__main__":

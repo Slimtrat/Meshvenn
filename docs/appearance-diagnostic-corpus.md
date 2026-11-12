@@ -82,10 +82,61 @@ must not be changed after observing a failure. Reruns following an implementatio
 fix provide regression evidence on an exposed holdout, not new statistical
 validation. Raw metrics, localization bounds, visibility abstentions, code/policy
 and source fingerprints, budgets, timings and actual overlay evidence will be
-retained by the qualification runner once the D4 API is available.
+retained by the qualification runner.
 
 Healthy passing controls and required injected failures prevent an evaluator
 that emits no findings from passing. A good global mean cannot substitute for
 the named-region result. Numeric analytic outcomes and mock adapter outcomes
 must be reported separately. Unexecuted stages and general semantic fidelity
 remain unknown; initial D7 and #84 remain open.
+
+## Offline qualification
+
+Run from the repository with Python 3.11 or later; no renderer installation,
+native library, model service or network access is required:
+
+```console
+python scripts/qualify_appearance_diagnostics.py --verify-only
+python -m unittest discover -s tests -p test_appearance_diagnostic_corpus.py -v
+python scripts/qualify_appearance_diagnostics.py --output tmp/appearance-qualification
+```
+
+`--quick` evaluates only the 32-pixel canonical-order subset and cannot establish
+the complete matrix. `--case` and `--split` also produce explicitly partial
+results. The complete run performs 132 actual analyses: 22 cases, two raster
+sizes and three order labels. With two source views, reverse and rotate name
+the same actual permutation; there are two distinct input orders, not three.
+Every invocation receives the frozen 15-second deadline. The engine's sample
+and work budgets, actual elapsed times and local mock calls remain recorded.
+
+Every attempt receives a new directory under `runs/`; failures are retained.
+`qualification.json` lists scope/partition metrics, every required assertion,
+raw region counts and normalized bounds, order signatures, resolution changes,
+Python executable/code/source/policy hashes and measured timings. The source
+authorities are checked again after the run; changing engine or evaluator code
+while measuring invalidates qualification. Heldout reruns after exposed failures
+remain regression evidence, not an independent new holdout.
+
+Each observation retains the exact strict D4 result, original engine report,
+common report, original PNGs and authored sources. Actual status masks and
+sampled source colours accompany separate raw and declared-correction delta
+PNGs. White delta pixels are unmeasured, while black means measured zero; fitted
+neutral gains are retained as diagnostics and never become calibration proof.
+The common report explicitly keeps D5–D8 unknown. Supplied upstream failures
+remain verbatim in `upstream_reports` with their hashes and an overall failure
+gate; the upstream specimen tests composition, not native D3 quality.
+
+Localization compares actual changed masks against independent author truth
+masks after execution. Those truth masks are never passed to D4. Resolution
+checks retain both the authored ROI and measured changed-mask bounds; their
+explicit tolerance is one endpoint-grid pixel from each raster,
+`1/(32-1) + 1/(64-1)`. A shifted measured localization cannot pass merely because
+the authored ROI is unchanged. Full finding-signature differences are retained
+even when both resolutions satisfy the frozen case expectations.
+
+The workflow `appearance_diagnostic_corpus.yml` evaluates the real engine on
+Ubuntu/Python 3.11 and 3.13 and Windows/Python 3.13, then uploads raw evidence even
+on failure. Semantic service scenarios use local adapter mocks only; their
+metadata explicitly lacks semantic qualification. Positive mock claims cannot
+certify identity. The no-output control fails all 22 frozen cases, and a mock
+that was never invoked cannot pass an adapter-only control.
