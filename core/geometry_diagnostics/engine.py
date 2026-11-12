@@ -84,8 +84,9 @@ class GeometryPolicy:
 
 def _source_hash():
     digest = hashlib.sha256()
-    root = Path(__file__).resolve().parents[1]
-    paths = [*Path(__file__).parent.glob("*.py"), root / "projection_alignment.py",
+    directory = Path(__file__).resolve().parent
+    root = directory.parent
+    paths = [*directory.glob("*.py"), root / "projection_alignment.py",
              root / "projection_frame.py", * (root / "projection_math").glob("*.py"),
              *(root / "native_bridge").glob("*.py"), *(root / "diagnostic_contracts").rglob("*.py"),
              *(root / "diagnostics_preflight").rglob("*.py"), root / "image_mask.py", root / "native_loader.py"]
