@@ -195,6 +195,20 @@ class SurfaceCorrespondenceTests(unittest.TestCase):
         self.assertEqual(reference.state, "numerical_unknown")
         self.assertFalse(reference.visible)
 
+    def test_occluder_inside_the_skipped_offset_segment_remains_unknown(self):
+        # The target ray x=0 hits the base plane. Its 45-degree reference ray
+        # crosses this patch at distance sqrt(.5)*epsilon, before the legacy
+        # visibility ray's origin. An ordinary forward offset ray misses it.
+        mesh = merged_planes(((.25e-6, -.5e-6, -.4), (.75e-6, -.5e-6, -.4),
+                              (.75e-6, -.5e-6, .4), (.25e-6, -.5e-6, .4)))
+        pixel = SurfaceSampler(mesh).map_views(view(), (view("near",45),), width=1, height=1).pixels[0]
+        self.assertEqual(pixel.state, "visible")
+        reference = pixel.references[0]
+        self.assertEqual(reference.state, "numerical_unknown")
+        self.assertFalse(reference.visible)
+        self.assertIn(reference.occluder_triangle, (2,3))
+        self.assertEqual(reference.original_uv, (.5,.5))
+
     def test_unverified_camera_and_deadline_cancellation_work_limits_remain_explicit(self):
         result = SurfaceSampler(plane()).map_views(view(verified=False), (), width=2, height=2)
         self.assertTrue(all(pixel.state == "camera_unknown" for pixel in result.pixels))

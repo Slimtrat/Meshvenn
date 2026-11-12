@@ -132,6 +132,16 @@ class SurfaceSampler:
             return ReferenceCorrespondence(view.view_id, (projected.u, projected.v), original,
                 "numerical_unknown", False, grazing, facing, "A near-surface or ambiguous hit is inside the visibility offset tolerance.",
                 last.triangle_index, False, backfacing)
+        # The legacy tester deliberately starts epsilon in front of P. Probe
+        # that skipped segment backwards as well: an intervening thin surface
+        # must not disappear merely because the ray origin jumped over it.
+        # The ordinary source-face intersection is at the segment's far end.
+        offset = tuple(point[i]+self.surface_epsilon*direction[i] for i in range(3))
+        near = self.bvh.cast(offset, tuple(-v for v in direction), self.surface_epsilon)
+        if near is not None and (near.ambiguous or near.distance < self.surface_epsilon*(1-1e-6)):
+            return ReferenceCorrespondence(view.view_id, (projected.u, projected.v), original,
+                "numerical_unknown", False, grazing, facing, "A surface intersects the segment skipped by the visibility offset.",
+                near.triangle_index, False, backfacing)
         state = "backfacing" if backfacing else "grazing" if grazing else "visible"
         reason = ("Source winding faces away from this reference camera." if backfacing else
                   "Reference ray is too grazing for a supported appearance comparison." if grazing else
