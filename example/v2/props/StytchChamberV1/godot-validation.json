@@ -1,0 +1,38 @@
+{
+  "assets": [
+    {
+      "bounds": [
+        1.29999995231628,
+        1.79999995231628,
+        0.200000002980232
+      ],
+      "clips": [
+        "door_closed",
+        "door_open"
+      ],
+      "id": "chamber-door-v1",
+      "negative_space": true,
+      "no_gameplay_bodies": true,
+      "rigid": true,
+      "sha256": "0a128a1d6abe34c55b13cbf85fe26f69611505368a614755de3ab608e9b3b637"
+    },
+    {
+      "bounds": [
+        0.850000023841858,
+        0.519999980926514,
+        0.440000027418137
+      ],
+      "clips": [
+        "chest_closed",
+        "chest_open"
+      ],
+      "id": "chamber-loot-cache-v1",
+      "negative_space": true,
+      "no_gameplay_bodies": true,
+      "rigid": true,
+      "sha256": "3553b24204193862a7a65e1afa0ad0b0bcde965bf3eb8d4173b22fc66f83001f"
+    }
+  ],
+  "engine": "4.7.1-stable (official)",
+  "status": "pass"
+}

@@ -1,0 +1,114 @@
+name: Chamber Rigid Props
+
+on:
+  pull_request:
+    paths:
+      - 'example/v2/props/StytchChamberV1/**'
+      - 'scripts/chamber_props/**'
+      - 'scripts/author_stytch_chamber.py'
+      - 'scripts/build_stytch_chamber_pack.py'
+      - 'scripts/run_chamber_godot.py'
+      - 'tests/test_chamber_props.py'
+      - '.github/workflows/chamber_props.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'example/v2/props/StytchChamberV1/**'
+      - 'scripts/chamber_props/**'
+      - 'scripts/author_stytch_chamber.py'
+      - 'scripts/build_stytch_chamber_pack.py'
+      - 'scripts/run_chamber_godot.py'
+      - 'tests/test_chamber_props.py'
+      - '.github/workflows/chamber_props.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chamber-props-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rigid-props:
+    name: Rigid geometry, PBR, pivots and native Godot
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify complete committed delivery and rejection gates
+        run: python -m unittest discover -s tests -p test_chamber_props.py -v
+      - uses: actions/cache@v4
+        id: blender
+        with:
+          path: .blender
+          key: blender-linux-x64-5.2.1
+      - name: Download Blender
+        if: steps.blender.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .blender
+          curl --fail --show-error --location --retry 5 --retry-all-errors \
+            --connect-timeout 20 --max-time 600 \
+            --output "${RUNNER_TEMP}/blender.tar.xz" \
+            https://download.blender.org/release/Blender5.2/blender-5.2.1-linux-x64.tar.xz
+          xz --test "${RUNNER_TEMP}/blender.tar.xz"
+          tar -xJf "${RUNNER_TEMP}/blender.tar.xz" -C .blender --strip-components=1
+      - uses: actions/cache@v4
+        id: godot
+        with:
+          path: .godot-bin
+          key: godot-linux-x64-4.7.1
+      - name: Download Godot
+        if: steps.godot.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --location --retry 5 --retry-all-errors \
+            --connect-timeout 20 --max-time 600 \
+            --output "${RUNNER_TEMP}/godot.zip" \
+            https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip
+          python -m zipfile -e "${RUNNER_TEMP}/godot.zip" .godot-bin
+          chmod +x .godot-bin/Godot_v4.7.1-stable_linux.x86_64
+      - name: Reimport committed geometry and check native Godot voids and animation
+        shell: bash
+        run: |
+          set -euo pipefail
+          .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python scripts/chamber_props/blender_smoke.py -- --pack example/v2/props/StytchChamberV1
+          python scripts/run_chamber_godot.py --godot .godot-bin/Godot_v4.7.1-stable_linux.x86_64 \
+            --pack example/v2/props/StytchChamberV1 --output "${RUNNER_TEMP}/chamber-committed-godot"
+      - name: Independently author, reimport, animate and render both fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python scripts/author_stytch_chamber.py -- --output "${RUNNER_TEMP}/chamber-new"
+          .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python scripts/chamber_props/blender_smoke.py -- --pack "${RUNNER_TEMP}/chamber-new"
+          python scripts/run_chamber_godot.py --godot .godot-bin/Godot_v4.7.1-stable_linux.x86_64 \
+            --pack "${RUNNER_TEMP}/chamber-new" --output "${RUNNER_TEMP}/chamber-new-godot"
+          .blender/blender --background --factory-startup --python-exit-code 1 \
+            --python scripts/chamber_props/render.py -- --pack "${RUNNER_TEMP}/chamber-new"
+          python scripts/build_stytch_chamber_pack.py --pack "${RUNNER_TEMP}/chamber-new" --output dist/stytch-chamber-v1.zip
+      - name: Verify extracted source tools without the repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m zipfile -e dist/stytch-chamber-v1.zip "${RUNNER_TEMP}/chamber-portable"
+          cd "${RUNNER_TEMP}/chamber-portable"
+          "${GITHUB_WORKSPACE}/.blender/blender" --background --factory-startup --python-exit-code 1 \
+            --python scripts/author_stytch_chamber.py -- --output "${RUNNER_TEMP}/chamber-portable-new"
+          python scripts/run_chamber_godot.py --godot "${GITHUB_WORKSPACE}/.godot-bin/Godot_v4.7.1-stable_linux.x86_64" \
+            --pack "${RUNNER_TEMP}/chamber-portable-new" --output "${RUNNER_TEMP}/chamber-portable-godot"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stytch-chamber-v1
+          path: dist/stytch-chamber-v1.zip
+          if-no-files-found: error
