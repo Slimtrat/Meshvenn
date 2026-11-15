@@ -25,7 +25,7 @@ def capabilities():
                                 "camera_request","identity_reference"),8)
 
 
-def report_for(view_set,proof,outcome="baseline"):
+def report_for(view_set,proof,outcome="baseline",*,export_artifact=None):
     """Statuses/metrics here are contract data, not results of NativeCore/models."""
     identity="unknown" if outcome in ("baseline","required_unknown") else "fail" if outcome=="identity_failure" else "pass"
     part="fail" if outcome=="higher_mean_part_failure" else "pass"
@@ -42,7 +42,8 @@ def report_for(view_set,proof,outcome="baseline"):
     for index,(code,status,category,regions) in enumerate(values):
         observation=Evidence("contract-e-"+str(index),"execution",
             "Local simulated evaluator contract; this is not measured asset/model/provider fidelity.",
-            ("target",),regions,(Measurement("contract_check_satisfied",float(status=="pass"),"contract_boolean"),),proof)
+            ("target",),regions,(Measurement("contract_check_satisfied",float(status=="pass"),"contract_boolean"),),
+            export_artifact if code=="quality.export_verified" and export_artifact is not None else proof)
         findings.append(Finding("contract-f-"+str(index),code,category,"error" if status=="fail" else "info",status,
             "Simulated global check for conditional loop-orchestration qualification.",("target",),regions,(observation,),
             reason="Synthetic evaluator contract leaves this required check unknown." if status=="unknown" else ""))
@@ -65,7 +66,9 @@ def initialize_contract_source(root):
     ref=ViewRevision("reference",1,reference.content_reference(),None,camera,role="reference",origin="rendered")
     canonical=CanonicalReference("original-D6-design",1,ref.image,True,(ref.view_id,),proof)
     view_set=ViewSetRevision("D6-contract-source",1,(target,ref),canonical)
-    report=report_for(view_set,proof)
+    glb_data=(root/"assets/original.glb").read_bytes()
+    glb=ArtifactReference("original-glb",sha256(glb_data),"model/gltf-binary")
+    report=report_for(view_set,proof,export_artifact=glb)
     support=bytes(int(11<=x<16 and 9<=y<14) for y in range(32) for x in range(32))
     annotation=EditAnnotation(sha256(report.to_json().encode()),"contract-f-0",REGION,proof,
                               MaskArtifact.from_mask(BinaryMask(32,32,support)))
@@ -73,10 +76,9 @@ def initialize_contract_source(root):
     planned=plan_corrections(view_set,(report,),capabilities=capabilities(),annotations=(annotation,),policy=policy)
     plan=next(p for p in planned.plans if p.action_kind=="edit_region" and p.readiness=="ready")
     prepared=prepare_correction(plan,view_set,(report,),capabilities=capabilities(),annotations=(annotation,),policy=policy)
-    glb_data=(root/"assets/original.glb").read_bytes()
     snapshot=LoopSnapshot("contract-initial",view_set,(report,),
         (Measurement("target_error",.2,"normalized_error"),Measurement("mean_iou",.8,"ratio")),
-        (SnapshotArtifact("glb",ArtifactReference("original-glb",sha256(glb_data),"model/gltf-binary")),
+        (SnapshotArtifact("glb",glb),
          SnapshotArtifact("source_state",proof)))
     acceptance=AcceptancePolicy(required_checks=CHECKS,required_engines=(ENGINE.engine_id,))
     return {"accepted":snapshot,"proof":proof,"annotations":(annotation,),"policy":policy,
@@ -104,7 +106,7 @@ def simulated_candidate(context,request,image_ref,root,outcome):
     glb=ArtifactReference("candidate-glb",sha256(glb_data),"model/gltf-binary")
     extra=(SnapshotArtifact("mesh",glb),) if context.get("include_provisional_mesh") else ()
     snapshot=LoopSnapshot("contract-candidate-"+str(request.attempt_number),view_set,
-        (report_for(view_set,context["proof"],outcome),),
+        (report_for(view_set,context["proof"],outcome,export_artifact=glb),),
         (Measurement("target_error",error,"normalized_error"),Measurement("mean_iou",mean,"ratio")),
         (SnapshotArtifact("glb",glb),SnapshotArtifact("source_state",context["proof"]))+extra)
     return snapshot,((glb.sha256,glb_data),)
