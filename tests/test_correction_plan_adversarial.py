@@ -257,6 +257,56 @@ class CorrectionPlanAdversarialTests(unittest.TestCase):
             except TimeoutError:
                 return  # A bounded pre-planning timeout may reject the request.
         self.assertEqual(result.completion,"partial")
+        self.assertEqual(result.plans,())
+        self.assertTrue(result.limitations)
+
+    def test_cancellation_before_dependency_hashing_never_authorizes_a_plan(self):
+        from core.correction_plans import engine
+        original_fingerprint = engine.fingerprint
+        hashed_reports = []
+        def count_reports(value):
+            if type(value) is dict and "report_id" in value:
+                hashed_reports.append(value)
+            return original_fingerprint(value)
+        with patch.object(engine,"fingerprint",side_effect=count_reports):
+            result = self.plan((self.appearance.report,),cancel=lambda:True)
+        self.assertEqual(result.completion,"cancelled")
+        self.assertEqual(result.plans,())
+        self.assertEqual(hashed_reports,[])
+        self.assertTrue(result.limitations)
+
+    def test_missing_camera_uses_structured_degrees_and_never_guesses_from_prose(self):
+        from core.diagnostics_preflight import PreflightPolicy,analyze_preflight
+        from tests.test_appearance_engine import fixture
+        revision,inputs,_ = fixture()
+        preflight = analyze_preflight(revision,inputs,
+            policy=PreflightPolicy(required_cameras=((0.,0.),(235.,25.)))).report
+        coverage = next(f for f in preflight.findings if f.code=="coverage.insufficient")
+        misleading = replace(coverage,message="Ask for camera 10/-10 degrees; this prose is not structured evidence.")
+        structured = replace(preflight,findings=tuple(misleading if f==coverage else f for f in preflight.findings))
+        result = self.plan((structured,),view_set=revision)
+        request = next(p for p in result.plans if p.action_kind=="request_view")
+        self.assertEqual(request.prompt.camera.requested_azimuth_degrees,235.)
+        self.assertEqual(request.prompt.camera.requested_elevation_degrees,25.)
+        legacy = replace(misleading,evidence=tuple(replace(e,measurements=tuple(
+            m for m in e.measurements if not m.name.startswith(("missing_azimuth_","missing_elevation_"))))
+            for e in misleading.evidence))
+        legacy_report = replace(preflight,findings=tuple(legacy if f==coverage else f for f in preflight.findings))
+        legacy_result = self.plan((legacy_report,),view_set=revision)
+        request = next(p for p in legacy_result.plans if p.action_kind=="request_view")
+        self.assertIsNone(request.prompt.camera.requested_azimuth_degrees)
+        self.assertIsNone(request.prompt.camera.requested_elevation_degrees)
+
+    def test_conflicting_current_snapshots_cannot_select_a_convenient_failed_region(self):
+        baseline = self.appearance.report
+        local = next(f for f in baseline.findings if f.code=="appearance.color_consistency" and
+            f.status=="fail" and any(r.view_id=="target" and r.label.startswith("visible-difference") for r in f.regions))
+        alternate = replace(baseline,report_id="review-conflicting-snapshot",findings=tuple(
+            replace(f,status="pass") if f==local else f for f in baseline.findings))
+        self.assertEqual(alternate.dependency_fingerprint,baseline.dependency_fingerprint)
+        result = self.plan((baseline,alternate))
+        self.assertEqual(len(edits(result)),0)
+        self.assertIn("select_reference",{p.action_kind for p in result.plans})
 
 
 if __name__ == "__main__":
