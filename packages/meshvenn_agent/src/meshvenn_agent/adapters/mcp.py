@@ -101,6 +101,11 @@ def create_server(gateway: "Gateway"):
         return gateway.execute("corrections.prepare", arguments, request_id=request_id, cancel=cancellation_check())
 
     @server.tool()
+    def meshvenn_loop(arguments: dict[str, Any], request_id: StrictStr | None = None) -> dict[str, Any]:
+        """Operate a durable correction session; only the trusted host configures providers, evaluators and storage."""
+        return gateway.execute("corrections.loop", arguments, request_id=request_id, cancel=cancellation_check())
+
+    @server.tool()
     def meshvenn_artifact_read(sha256: StrictStr, offset: StrictInt = 0, limit: StrictInt = 65536) -> dict[str, Any]:
         """Read a verified bounded base64 chunk from the configured artifact store by content hash."""
         return gateway.read_artifact(sha256, offset=offset, limit=limit)
@@ -112,7 +117,8 @@ def build_gateway(*, workspace: Path, native_library: Path | None = None, python
     """Trusted process bootstrap; the adapter knows only public package facades."""
     from meshvenn_agent import ArtifactStore, Gateway
     from meshvenn_engine import MeshvennEngine
-    engine = MeshvennEngine(native_library=native_library, python_executable=python_executable)
+    engine = MeshvennEngine(native_library=native_library, python_executable=python_executable,
+                           loop_workspace=Path(workspace)/"engine-loops")
     return Gateway(engine, ArtifactStore(workspace=workspace))
 
 

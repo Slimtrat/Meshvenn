@@ -8,6 +8,7 @@ recursive-include core/diagnostics_preflight *.py
 recursive-include core/geometry_diagnostics *.py
 recursive-include core/appearance_diagnostics *.py
 recursive-include core/correction_plans *.py
+recursive-include core/correction_loop *.py
 recursive-include core/material_visibility *.py
 exclude core/material_visibility/blender_backend.py
 recursive-include core/native_bridge *.py

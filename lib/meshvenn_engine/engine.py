@@ -8,7 +8,7 @@ from dataclasses import asdict
 from .catalogue import VERSION, action_schemas
 from .core.diagnostics_preflight import PreflightPolicy, analyze_preflight
 from .core.geometry_diagnostics import GeometryPolicy, NativeGeometryBackend, VolumeArtifact, analyze_geometry
-from .dto import appearance_arguments, correction_arguments, object_fields, policy, validate_json, view_arguments
+from .dto import appearance_arguments, correction_arguments, loop_arguments, object_fields, policy, validate_json, view_arguments
 from .errors import EngineError
 from .native import NativeRuntime
 
@@ -16,9 +16,14 @@ from .native import NativeRuntime
 class MeshvennEngine:
     """A trusted host configures native paths; action arguments only contain data."""
 
-    def __init__(self, native_library=None, python_executable=None, *, vision_analyzer=None):
+    def __init__(self, native_library=None, python_executable=None, *, vision_analyzer=None,
+                 loop_workspace=None, generation_provider=None, loop_evaluator=None):
         self._runtime = NativeRuntime(native_library, python_executable)
         self._vision_analyzer = vision_analyzer
+        self._loop_runtime = None
+        if loop_workspace is not None:
+            from .loop_runtime import LoopRuntime
+            self._loop_runtime = LoopRuntime(loop_workspace, provider=generation_provider, evaluator=loop_evaluator)
 
     def capabilities(self) -> dict:
         available, reason = self._runtime.availability()
@@ -28,6 +33,10 @@ class MeshvennEngine:
             actions[action] = {"version": 1, "available": available if native else True,
                 "reason": reason if native else "Deterministic local Python action.",
                 "input_schema": input_schema, "output_schema": output_schema}
+            if action == "corrections.loop":
+                actions[action]["available"] = self._loop_runtime is not None
+                actions[action]["reason"] = ("Trusted persistent loop workspace configured; provider and evaluator availability are separate."
+                    if self._loop_runtime is not None else "Configure a trusted loop_workspace on MeshvennEngine to enable durable correction sessions.")
         return {"schema_version": 1, "engine_version": VERSION, "actions": actions,
             "native": {"configured": available, "expected_abi": 1},
             "limits": {"request_bytes": 67_108_864, "decoded_pixels": 4_194_304,
@@ -35,6 +44,7 @@ class MeshvennEngine:
             "semantic_analyzer_configured": self._vision_analyzer is not None,
             "scope": ["Deterministic input, geometry and visible appearance diagnostics, native surface extraction and correction planning.",
                       "Correction planning and preparation never execute a provider or certify the asset.",
+                      "Correction loops use trusted host injections and keep orchestration separate from asset verification.",
                       "Semantic identity is unknown without an explicitly qualified host analyzer; geometry/export acceptance is separate.",
                       "Blender pipelines, rigging, animation and export certification are not advertised."]}
 
@@ -49,6 +59,14 @@ class MeshvennEngine:
                 raise EngineError("cancelled", "Engine execution was cancelled before analysis.")
             if action == "engine.capabilities":
                 return self.capabilities()
+            if action == "corrections.loop":
+                operation, session_id, payload = loop_arguments(arguments)
+                if self._loop_runtime is None:
+                    raise EngineError("unavailable", "Correction loops require a trusted host loop_workspace.")
+                data = self._loop_runtime.execute(operation, session_id, payload, cancel=cancel)
+                if type(data) is not dict or data.get("verification_status") != "unknown":
+                    raise EngineError("invalid_engine_output", "Loop orchestration must return a JSON object with unknown asset verification.")
+                return json.loads(json.dumps(data, allow_nan=False, separators=(",", ":")))
             if action in ("corrections.plan", "corrections.prepare"):
                 from .core.correction_plans import plan_corrections, prepare_correction
                 revision, reports, capabilities, annotations, correction_policy, selected = correction_arguments(

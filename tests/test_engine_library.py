@@ -7,6 +7,7 @@ import os
 import struct
 import subprocess
 import sys
+import tempfile
 import unittest
 import zlib
 from pathlib import Path
@@ -69,7 +70,7 @@ class EngineLibraryTests(unittest.TestCase):
                                capture_output=True, text=True, timeout=20)
         self.assertEqual(child.returncode, 0, child.stdout + child.stderr)
         catalogue = json.loads(child.stdout)
-        self.assertEqual(set(catalogue["actions"]), {"engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose", "corrections.plan", "corrections.prepare"})
+        self.assertEqual(set(catalogue["actions"]), {"engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose", "corrections.plan", "corrections.prepare", "corrections.loop"})
         for descriptor in catalogue["actions"].values():
             self.assertEqual(descriptor["version"], 1)
             self.assertIs(type(descriptor["available"]), bool)
@@ -80,6 +81,80 @@ class EngineLibraryTests(unittest.TestCase):
         self.assertEqual(catalogue["actions"]["corrections.plan"]["input_schema"]["properties"]["reports"]["maxItems"], 20)
         self.assertIn("plan", catalogue["actions"]["corrections.prepare"]["input_schema"]["required"])
         self.assertTrue(catalogue["actions"]["corrections.plan"]["available"])
+        self.assertFalse(catalogue["actions"]["corrections.loop"]["available"])
+        self.assertNotIn("loop_workspace", catalogue["actions"]["corrections.loop"]["input_schema"]["properties"])
+
+    def test_correction_loop_is_explicitly_unavailable_without_trusted_workspace(self):
+        engine = MeshvennEngine()
+        with self.assertRaises(EngineError) as caught:
+            engine.execute("corrections.loop", {"operation": "status", "session_id": "local-session"})
+        self.assertEqual(caught.exception.code, "unavailable")
+        for updates in ({"operation": "execute"}, {"session_id": "../outside"}, {"payload": []},
+                        {"loop_workspace": "untrusted"}, {"generation_provider": {}}, {"loop_evaluator": {}}):
+            with self.subTest(updates=updates), self.assertRaises(EngineError) as caught:
+                engine.execute("corrections.loop", {"operation": "start", "session_id": "local-session", **updates})
+            self.assertEqual(caught.exception.code, "invalid_arguments")
+
+    def test_real_loop_persists_across_facades_without_provider_or_remote_evaluation_authority(self):
+        from scripts.smoke_engine_agent_install import correction_arguments, loop_start_payload
+        from meshvenn_engine.core.correction_loop.models import LoopState
+        payload = loop_start_payload(correction_arguments())
+        with tempfile.TemporaryDirectory(prefix="meshvenn-loop-facade-") as temporary:
+            engine = MeshvennEngine(loop_workspace=temporary)
+            self.assertTrue(engine.capabilities()["actions"]["corrections.loop"]["available"])
+            started = engine.execute("corrections.loop", {"operation":"start", "session_id":"facade-session", "payload":payload})
+            reopened = MeshvennEngine(loop_workspace=temporary).execute("corrections.loop", {"operation":"status", "session_id":"facade-session"})
+            self.assertEqual(started, reopened)
+            strict = {key:value for key,value in started.items() if key not in ("known_cost","cost_uncertain")}
+            state = LoopState.from_dict(strict)
+            self.assertEqual(state.status, "provider_unavailable")
+            self.assertEqual(state.accepted.to_dict(), payload["accepted"])
+            self.assertEqual(state.known_cost, 0)
+            self.assertEqual(state.verification_status, "unknown")
+            self.assertFalse(state.attempts)
+            for operation, injected in (("supply", {"evaluation": {"verification_status":"pass"}}),
+                                        ("advance", {"generation_provider":{}}), ("status", {"path":"untrusted"})):
+                with self.subTest(operation=operation), self.assertRaises(EngineError):
+                    engine.execute("corrections.loop", {"operation":operation,"session_id":"facade-session","payload":injected})
+            cancelled = engine.execute("corrections.loop", {"operation":"cancel", "session_id":"facade-session"})
+            self.assertEqual(cancelled["status"], "cancelled")
+            self.assertEqual(cancelled["accepted"], payload["accepted"])
+            self.assertEqual(cancelled["verification_status"], "unknown")
+
+    def test_loop_trusted_ports_accept_library_dtos_and_cannot_be_overridden_remotely(self):
+        # Metadata-only fixtures qualify host wiring, never generated-image quality.
+        from scripts.smoke_engine_agent_install import correction_arguments, loop_start_payload
+        from meshvenn_engine.core.correction_loop import EvaluatorInfo, ProviderInfo
+        from meshvenn_engine.core.correction_plans import ProviderCapabilities
+        from meshvenn_engine.core.diagnostic_contracts import EngineVersion
+        payload = loop_start_payload(correction_arguments())
+        class Provider:
+            calls = 0
+            def metadata(self):
+                return ProviderInfo("host-port-specimen", EngineVersion("adapter-only-model","1"),
+                    ProviderCapabilities.from_dict(payload["capabilities"]), max_cost_per_request=.1, simulation=True)
+            def submit(self, *args, **kwargs):
+                self.calls += 1
+                raise AssertionError("This metadata-only test must not dispatch generation.")
+        class Evaluator:
+            calls = 0
+            def metadata(self):
+                return EvaluatorInfo(EngineVersion("adapter-only-evaluator","1"),simulation=True)
+            def evaluate(self, *args, **kwargs):
+                self.calls += 1
+                raise AssertionError("This metadata-only test must not evaluate a generated image.")
+        provider, evaluator = Provider(), Evaluator()
+        with tempfile.TemporaryDirectory(prefix="meshvenn-loop-ports-") as temporary:
+            engine = MeshvennEngine(loop_workspace=temporary,generation_provider=provider,loop_evaluator=evaluator)
+            result = engine.execute("corrections.loop", {"operation":"start","session_id":"trusted-ports","payload":payload})
+            self.assertEqual(result["status"], "ready")
+            self.assertEqual(result["provider"]["provider_id"], "host-port-specimen")
+            self.assertEqual(result["verification_status"], "unknown")
+            self.assertTrue(result["provider"]["simulation"] and result["evaluator"]["simulation"])
+            overridden = {**payload,"provider":{**provider.metadata().to_dict(),"provider_id":"remote-override"}}
+            with self.assertRaises(EngineError):
+                engine.execute("corrections.loop",{"operation":"start","session_id":"forbidden-override","payload":overridden})
+            self.assertEqual((provider.calls,evaluator.calls),(0,0))
 
     def test_visible_appearance_runs_without_native_and_preserves_identity_unknown(self):
         from meshvenn_engine.core.appearance_diagnostics import AppearanceResult

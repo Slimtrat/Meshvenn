@@ -209,6 +209,13 @@ class Gateway:
                 summary[name] = value[name]
         if type(value.get("attempts")) is list:
             summary["attempt_count"] = len(value["attempts"])
+        if type(value.get("session_id")) is str and type(value.get("status")) is str:
+            summary["session_id"] = value["session_id"][:128]
+            summary["state"] = value["status"][:64]
+        if type(value.get("known_cost")) in (int, float):
+            summary["known_cost"] = value["known_cost"]
+        if type(value.get("cost_uncertain")) is bool:
+            summary["cost_uncertain"] = value["cost_uncertain"]
         if value.get("completion") in ("complete", "partial", "cancelled"):
             summary["completion"] = value["completion"]
         if type(value.get("plans")) is list:

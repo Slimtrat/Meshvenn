@@ -1,7 +1,7 @@
 # Meshvenn Engine library
 
 `meshvenn-engine` is an installable, provider-independent Python distribution
-(Python 3.11+). It exposes the existing D1/D2/D3/D4/D5 engines and native surface
+(Python 3.11+). It exposes the existing D1/D2/D3/D4/D5/D6 engines and native surface
 extraction without importing Blender or an agent SDK. The library does not
 advertise Blender pipeline execution, rigging, animation, unqualified appearance identity or
 export certification.
@@ -23,7 +23,8 @@ checkout.
 from meshvenn_engine import EngineError, MeshvennEngine
 
 engine = MeshvennEngine(native_library=trusted_native_path,
-                        python_executable=trusted_cpython_path)
+                        python_executable=trusted_cpython_path,
+                        loop_workspace=trusted_loop_workspace)
 catalogue = engine.capabilities()
 result = engine.execute("geometry.diagnose", arguments, cancel=is_cancelled)
 ```
@@ -47,6 +48,34 @@ Actions and exact arguments:
 | `appearance.diagnose` | `view_set`, `inputs`; optional `surface`, `view_settings`, `regions`, `region_anchors`, `upstream_reports`, `policy` | Strict D4 visible color/coverage evidence and separate identity assessment |
 | `corrections.plan` | `view_set`, `reports`; optional `capabilities`, `annotations`, `policy` | Inspectable D5 correction plans with explicit readiness and current evidence bindings |
 | `corrections.prepare` | `plan`, `view_set`, `reports`; optional `capabilities`, `annotations`, `policy` | A revalidated prompt package for one ready regional edit; no generation |
+| `corrections.loop` | `operation`, `session_id`; optional operation-specific `payload` | Durable bounded correction orchestration, with separate accepted evidence and unknown asset verification |
+
+Loop operations are `start`, `status`, `advance`, `resume`, `cancel`, `supply`
+and `artifact_read`, plus optional artifact preloading with `artifact_put`. The
+runtime validates each operation's exact payload.
+`MeshvennEngine(..., loop_workspace=trusted_path,
+generation_provider=trusted_provider, loop_evaluator=trusted_evaluator)` configures
+the optional host ports. These objects, credentials, executable code and storage
+paths cannot be supplied through action arguments. Without a loop workspace the
+loop action is unavailable; the local diagnostic and planning actions remain
+usable. Missing provider or evaluator ports remain explicit in session state and
+cannot manufacture a completed correction or accepted diagnostic report.
+When no service port is configured, a start payload may declare strict
+`ProviderInfo` metadata for `host_tool` execution. This records the host dispatch
+mode and explicit request cost ceiling; it supplies no provider object,
+credential, calibrated fidelity or invented quota.
+
+Session state is persisted beneath the trusted workspace. Read its bounded
+artifacts through the same action's `artifact_read` operation, identified by
+content hash; this does not expose arbitrary filesystem reads. `supply` is an
+operation validated by the host runtime, never authority for a remote caller to
+invent accepted evaluation reports. Every loop response keeps
+`verification_status: "unknown"`; inspect the session phase, stopping reason and
+actual accepted reports separately. Loop completion does not certify the asset.
+State responses include two runtime-derived fields, `known_cost` and
+`cost_uncertain`. Remove those two keys before `LoopState.from_dict`; the remaining
+state is the strict core snapshot. Gateway summaries preserve these values and
+the session state without reconstructing financial or quality decisions.
 
 Correction actions run without a native library, provider SDK or network access.
 They accept at most 20 current strict `DiagnosticReport` dictionaries, 20 views

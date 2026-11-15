@@ -91,6 +91,7 @@ requires no provider credential.
 | `meshvenn_appearance` | `execute("appearance.diagnose", arguments)` | `arguments` object; optional `request_id`; visible evidence and separate identity status |
 | `meshvenn_plan` | `execute("corrections.plan", arguments)` | Current `view_set` and `reports`; optional capabilities, annotations and policy |
 | `meshvenn_prepare_correction` | `execute("corrections.prepare", arguments)` | Selected `plan` plus the exact current planning evidence; preparation only |
+| `meshvenn_loop` | `execute("corrections.loop", arguments)` | `operation`, `session_id`, optional strict operation-specific `payload` |
 | `meshvenn_artifact_read` | `read_artifact(sha256, offset=..., limit=...)` | SHA-256, integer offset and chunk size |
 
 Action argument schemas and availability come from capability discovery. The
@@ -100,12 +101,21 @@ declared RGBA buffers, not arbitrary file paths supplied by an agent. Native
 library, worker interpreter and artifact workspace remain trusted constructor
 configuration.
 
-The eight tools expose seven engine actions and bounded artifact retrieval.
+The nine tools expose eight engine actions and bounded artifact retrieval.
 Correction capability declarations are strict data, not provider credentials or
 execution configuration. Plans preserve readiness separately from verification.
 Preparation recomputes the plan against current evidence and only returns a
 prompt package for a ready regional edit. It never generates an image, deletes a
 source or approves an asset; both correction actions retain verification unknown.
+
+The CLI configures durable loop state under the trusted `--workspace` directory's
+`engine-loops` subdirectory. `meshvenn_loop` supports start/status/advance/resume/
+cancel/supply/artifact_read/artifact_put through one versioned action. Loop artifact reads use
+that operation, while `meshvenn_artifact_read` continues to read Gateway result
+artifacts. Provider and evaluator objects are host injections and cannot enter
+tool arguments. The default CLI has neither port: it preserves explicit missing
+services and never simulates generated candidates or accepted quality reports.
+Orchestration verification remains unknown regardless of the session phase.
 
 Application results are available directly in the SDK's `structured_content`
 dictionary, as described by the [SDK structured-output contract](https://py.sdk.modelcontextprotocol.io/servers/structured-output/).
@@ -165,10 +175,10 @@ with an AnyIO cancellation scope, following the [SDK cancellation model](https:/
 
 ## Scope and verification
 
-The seven engine actions are capability discovery, original-view preflight,
+The eight engine actions are capability discovery, original-view preflight,
 bounded silhouette reconstruction diagnostics, native mesh extraction from
-a validated volume, visible-region appearance diagnostics, correction planning
-and correction preparation. Meshing produces geometry data, not a visually approved
+a validated volume, visible-region appearance diagnostics, correction planning,
+correction preparation and durable correction orchestration. Meshing produces geometry data, not a visually approved
 delivered asset. The CPython facade does not execute the Blender import, rigging,
 texture baking, animation or GLB delivery pipelines. Those workflows still need
 their Blender adapter and their own acceptance records.
