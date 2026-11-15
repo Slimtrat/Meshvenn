@@ -43,3 +43,55 @@ a pass. The runner will retain failed attempts, full raw reports and package
 contents under `tmp`; CI will upload actual evidence without committing large
 runtime outputs. Two report orders will test deterministic planning. No image,
 provider or network call is part of this qualification.
+
+## Offline execution
+
+With Python 3.11 or later, verify authored data and run the actual matrix:
+
+```console
+python scripts/qualify_correction_plans.py --verify-only
+python -m unittest discover -s tests -p test_correction_plan_corpus.py -v
+python scripts/qualify_correction_plans.py --native-library /absolute/path/to/bpt_core.dll --output tmp/correction-plan-qualification
+```
+
+The explicit native path can identify the platform's `.dll` or `.so` build.
+`--python-executable` controls the trusted isolated native worker interpreter;
+neither path becomes a provider prompt argument. A missing library leaves D3
+cases unqualified and returns a nonzero status. `--case` selects an explicitly
+partial matrix. The loader-failure case always uses the original invalid binary
+probe to measure a real bounded worker/loader error, not fake geometry.
+
+Each case executes its actual upstream diagnostics once. Both report-order
+invocations use that exact immutable measured snapshot; no upstream quality
+result is fabricated. The two orders also reverse input-order provenance,
+which is excluded from semantic D1 dependencies. All plan/package content,
+original-region bounds and context fingerprints are checked for stability.
+
+Target-space edit annotations come from the independent original authored ROI
+and inline support mask. D4 measures that original target ROI explicitly in
+addition to the unchanged parent's canonical ROI. Bounds are never copied or
+expanded from a residual to make an annotation pass. The source mask is explicit
+author intent, not proof of physical segmentation. Multiple accepted references
+use a distinct original 45-degree design view, not a duplicate or a target-derived
+reference.
+
+For every prepared request the runner tests strict JSON roundtrips and verifies
+exact source, report-content, policy and capability bindings. Staleness probes
+change one valid dependency after preparing a valid baseline: source revision
+and content, capability version, report finding text, or minimum-region policy.
+Rejection must occur in `prepare_correction`; fixture construction errors do not
+count. Original encoded hashes and decoded buffers are compared before/after.
+
+`qualification.json` records every assertion, raw numerical region/location
+evidence, capabilities, policies, actual source/native/Python hashes and timings.
+Each new run receives a fresh subdirectory; earlier failures remain intact.
+Actual D2/D3/D4 reports, strict upstream results, original PNGs, actual D4 overlays,
+full correction plans and prepared packages remain under `tmp`. Runtime outputs
+are not committed. The complementary Linux/Python 3.11 and Windows/Python 3.13
+workflow builds the real unchanged native core and uploads evidence on failure.
+
+A prepared package has unknown verification status, immutable originals and
+derived candidate lineage. It does not include an executed edit, a provider
+compliance result, accepted identity or delivered GLB certification. Local
+semantic mocks only test insufficient-evidence handling. This corpus establishes
+bounded orchestration and preparation contracts, not general model quality.
