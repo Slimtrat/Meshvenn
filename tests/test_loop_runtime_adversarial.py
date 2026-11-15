@@ -340,6 +340,36 @@ class LoopRuntimeAdversarialTests(unittest.TestCase):
                 log=folder/"provider.log"
                 self.assertEqual(len(log.read_text().splitlines()) if log.exists() else 0,1 if provider else 0)
 
+    def test_configuring_a_provider_cannot_reactivate_a_terminal_unavailable_session(self):
+        for terminal in ("cancelled","stopped"):
+            with self.subTest(terminal=terminal),temporary_directory() as folder:
+                clock=[1000.]
+                initial=LoopRuntime(folder/"store",clock=lambda:clock[0])
+                payload={**self.payload,"budget":LoopBudget(max_elapsed_seconds=10.).to_dict()}
+                self.assertEqual(initial.start("session",payload).status,"provider_unavailable")
+                if terminal=="cancelled":initial.execute("cancel","session")
+                else:
+                    clock[0]=1011.
+                    self.assertEqual(initial.advance("session").status,"stopped")
+                before=initial._load("session")
+                revisions=len(initial.store.history("session"))
+                provider=Provider(folder/"provider.log")
+                configured=LoopRuntime(folder/"store",provider=provider,clock=lambda:clock[0])
+                for _ in range(2):
+                    after=configured.resume("session")
+                    self.assertEqual(after,before)
+                    self.assertEqual(after.status,terminal)
+                    self.assertEqual(after.attempts,())
+                    self.unchanged(configured,after)
+                self.assertEqual(len(configured.store.history("session")),revisions)
+                self.assertFalse((folder/"provider.log").exists())
+        with temporary_directory() as folder:
+            initial=LoopRuntime(folder/"store",clock=lambda:1000.)
+            initial.start("session",self.payload)
+            configured=LoopRuntime(folder/"store",provider=Provider(folder/"provider.log"),clock=lambda:1000.)
+            self.assertEqual(configured.resume("session").status,"ready")
+            self.assertFalse((folder/"provider.log").exists())
+
     def test_late_acknowledgements_preserve_cancellation_and_completed_usage(self):
         runtime=self.runtime()
         payload={**self.payload,"provider":replace(Provider(self.log).metadata(),execution_mode="host_tool").to_dict()}
