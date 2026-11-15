@@ -34,3 +34,65 @@ are separate; later fixes retain exposed failures as regression history rather
 than relabeling them. Runtime journals, receipts, raw evaluations and candidates
 will stay under `tmp` and CI artifacts; no large generated runtime output is
 committed. Initial D7 and full #84 remain open.
+
+## Run offline
+
+Use Python 3.11 or later. The repository's `lib` folder supplies the standalone
+engine when testing a checkout; no provider SDK, paid credential, renderer or
+native DLL is needed:
+
+```console
+python scripts/qualify_correction_loops.py --verify-only
+python scripts/qualify_correction_loops.py --output tmp/correction-loop-qualification
+```
+
+For unit tests, add `lib` to `PYTHONPATH` and run:
+
+```console
+python -m unittest discover -s tests -p 'test_*loop*.py' -v
+```
+
+The matrix has 18 scenarios. `--case` selects an explicitly partial run.
+The clock is a deterministic host test clock starting at zero, never reset on
+restart. Logical deadline advances test policy; wall-clock elapsed time is
+recorded separately. Simulated USD quotes/usage test accounting, not real fees.
+
+Each run gets a fresh directory under `runs/`; no earlier journal or failed
+qualification is overwritten. `qualification.json` records assertions, actual
+state-derived promotion/rejection facts, source/Python hashes and wall timings.
+Individual directories retain start payloads, final states, actual immutable
+LoopStore history, receipts, observed port calls and full evaluations. The real
+D2/D4 scenario also retains the strict appearance result and numerical region
+counts. Runtime outputs are kept under `tmp` and uploaded by CI, not committed.
+
+The test ports are injected through the trusted host constructor. They return
+the real SDK-free DTOs from `meshvenn_engine.core.correction_loop`; they never
+configure a callback through serialized model arguments. Provider metadata,
+model, parameters, actual declared usage and exact request fingerprints survive
+in the real journal. A returned receipt must be durably retained for every
+completed dispatch to count as exercising its scenario. A different technical
+failure before receipt handling cannot pass a cost or service control.
+
+Crash recovery deliberately raises an uncaught local `BaseException` after
+dispatch reservation, creates a fresh runtime/store object, reads the actual
+disk journal and resumes it. This tests the orchestration boundary; separate
+LoopStore tests cover OS-process locks and durability. The uncertain request
+must not be submitted again, and unknown usage must remain unknown. No claim
+of exactly-once external paid execution is made.
+
+The invariant checks hash the original photo stand-in, original source and GLB
+both in the fixtures and through the actual artifact store. Rejected candidates
+stay separate and the accepted snapshot retains its exact original hash.
+Positive conditional promotion requires a globally evaluated candidate, all
+required checks, preserved outside pixels, camera and lineage, and measurable
+improvement. A higher average never overrides a named failed part or required
+unknown/identity check. Canonical references are compared across stored states,
+provider requests and evaluator results; provisional candidate meshes cannot
+become authority merely because they were reconstructed or generated.
+
+The Linux/Python 3.11 and Windows/Python 3.13 workflow replays the actual runtime
+and store and uploads evidence even on failure. Windows long-path storage is
+tested by the store suite; descriptive case names do not determine transaction
+path depth. Neither simulated success nor a prepared D5 request certifies a real
+provider, actual semantic fidelity, hidden geometry, exported production quality
+or D7/#84 acceptance.
