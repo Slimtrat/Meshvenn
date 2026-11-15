@@ -89,6 +89,8 @@ requires no provider credential.
 | `meshvenn_diagnose` | `execute("geometry.diagnose", arguments)` | `arguments` object; optional `request_id` |
 | `meshvenn_mesh` | `execute("geometry.mesh", arguments)` | `arguments` object; optional `request_id` |
 | `meshvenn_appearance` | `execute("appearance.diagnose", arguments)` | `arguments` object; optional `request_id`; visible evidence and separate identity status |
+| `meshvenn_plan` | `execute("corrections.plan", arguments)` | Current `view_set` and `reports`; optional capabilities, annotations and policy |
+| `meshvenn_prepare_correction` | `execute("corrections.prepare", arguments)` | Selected `plan` plus the exact current planning evidence; preparation only |
 | `meshvenn_artifact_read` | `read_artifact(sha256, offset=..., limit=...)` | SHA-256, integer offset and chunk size |
 
 Action argument schemas and availability come from capability discovery. The
@@ -97,6 +99,13 @@ geometry or changing its result envelope. Image inputs are encoded PNG data or
 declared RGBA buffers, not arbitrary file paths supplied by an agent. Native
 library, worker interpreter and artifact workspace remain trusted constructor
 configuration.
+
+The eight tools expose seven engine actions and bounded artifact retrieval.
+Correction capability declarations are strict data, not provider credentials or
+execution configuration. Plans preserve readiness separately from verification.
+Preparation recomputes the plan against current evidence and only returns a
+prompt package for a ready regional edit. It never generates an image, deletes a
+source or approves an asset; both correction actions retain verification unknown.
 
 Application results are available directly in the SDK's `structured_content`
 dictionary, as described by the [SDK structured-output contract](https://py.sdk.modelcontextprotocol.io/servers/structured-output/).
@@ -156,9 +165,10 @@ with an AnyIO cancellation scope, following the [SDK cancellation model](https:/
 
 ## Scope and verification
 
-The five engine actions are capability discovery, original-view preflight,
+The seven engine actions are capability discovery, original-view preflight,
 bounded silhouette reconstruction diagnostics, native mesh extraction from
-a validated volume, and visible-region appearance diagnostics. Meshing produces geometry data, not a visually approved
+a validated volume, visible-region appearance diagnostics, correction planning
+and correction preparation. Meshing produces geometry data, not a visually approved
 delivered asset. The CPython facade does not execute the Blender import, rigging,
 texture baking, animation or GLB delivery pipelines. Those workflows still need
 their Blender adapter and their own acceptance records.

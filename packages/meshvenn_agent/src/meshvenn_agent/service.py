@@ -155,10 +155,13 @@ class Gateway:
             verification = value.get("verification_status", "not_applicable" if action == "engine.capabilities" else "unknown")
             if type(verification) is not str or verification not in VERIFICATION_STATUSES:
                 raise GatewayError("invalid_engine_output", "The engine returned an unsupported verification status.")
+            if action.startswith("corrections.") and verification != "unknown":
+                raise GatewayError("invalid_engine_output", "Correction readiness does not establish asset verification; its status must remain unknown.")
             report = value.get("report") if type(value.get("report")) is dict else None
             if verification == "pass" and (action == "geometry.mesh" or report is None or report.get("completion") != "complete"):
                 raise GatewayError("invalid_engine_output", "A geometric PASS requires the engine's completed diagnostic report; mesh construction is technical only.")
-            cancelled = (cancel is not None and cancel()) or (report is not None and report.get("completion") == "cancelled")
+            cancelled = ((cancel is not None and cancel()) or (report is not None and report.get("completion") == "cancelled")
+                         or (action == "corrections.plan" and value.get("completion") == "cancelled"))
             if len(encoded) > self.limits.max_artifact_bytes:
                 raise GatewayError("artifact_too_large", "The returned artifact exceeds the gateway storage budget.")
             artifact = self.artifacts.put_bytes(encoded, media_type="application/json").to_dict()
@@ -206,6 +209,17 @@ class Gateway:
                 summary[name] = value[name]
         if type(value.get("attempts")) is list:
             summary["attempt_count"] = len(value["attempts"])
+        if value.get("completion") in ("complete", "partial", "cancelled"):
+            summary["completion"] = value["completion"]
+        if type(value.get("plans")) is list:
+            counts = {state: 0 for state in ("ready", "needs_input", "unsupported", "blocked")}
+            for plan in value["plans"]:
+                if type(plan) is dict and plan.get("readiness") in counts:
+                    counts[plan["readiness"]] += 1
+            summary["plan_count"] = len(value["plans"])
+            summary["readiness_counts"] = counts
+        if type(value.get("plan_id")) is str:
+            summary["plan_id"] = value["plan_id"][:128]
         return summary
 
     def read_artifact(self, sha256: str, *, offset: int = 0, limit: int = 64*1024):

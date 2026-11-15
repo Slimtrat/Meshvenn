@@ -69,7 +69,7 @@ class EngineLibraryTests(unittest.TestCase):
                                capture_output=True, text=True, timeout=20)
         self.assertEqual(child.returncode, 0, child.stdout + child.stderr)
         catalogue = json.loads(child.stdout)
-        self.assertEqual(set(catalogue["actions"]), {"engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose"})
+        self.assertEqual(set(catalogue["actions"]), {"engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose", "corrections.plan", "corrections.prepare"})
         for descriptor in catalogue["actions"].values():
             self.assertEqual(descriptor["version"], 1)
             self.assertIs(type(descriptor["available"]), bool)
@@ -77,6 +77,9 @@ class EngineLibraryTests(unittest.TestCase):
         self.assertNotIn("regions", catalogue["actions"]["views.preflight"]["input_schema"]["properties"])
         self.assertIn("regions", catalogue["actions"]["geometry.diagnose"]["input_schema"]["properties"])
         self.assertIn("surface", catalogue["actions"]["appearance.diagnose"]["input_schema"]["properties"])
+        self.assertEqual(catalogue["actions"]["corrections.plan"]["input_schema"]["properties"]["reports"]["maxItems"], 20)
+        self.assertIn("plan", catalogue["actions"]["corrections.prepare"]["input_schema"]["required"])
+        self.assertTrue(catalogue["actions"]["corrections.plan"]["available"])
 
     def test_visible_appearance_runs_without_native_and_preserves_identity_unknown(self):
         from meshvenn_engine.core.appearance_diagnostics import AppearanceResult
@@ -96,6 +99,52 @@ class EngineLibraryTests(unittest.TestCase):
                         {"region_anchors": [{"region": {"view_id": "target"}}]}):
             with self.subTest(updates=updates), self.assertRaises(EngineError):
                 MeshvennEngine().execute("appearance.diagnose", {**appearance_arguments(), **updates})
+
+    def test_correction_plan_and_prepare_reuse_actual_regional_d4_evidence(self):
+        from scripts.smoke_engine_agent_install import correction_arguments
+        from meshvenn_engine.core.correction_plans import CorrectionResult, PreparedCorrection
+        arguments = correction_arguments()
+        engine = MeshvennEngine(native_library=ROOT/"absent.dll")
+        planned = engine.execute("corrections.plan", arguments)
+        restored = CorrectionResult.from_dict(planned)
+        self.assertEqual(restored.verification_status, "unknown")
+        selected = next(plan for plan in restored.plans if plan.action_kind == "edit_region" and plan.readiness == "ready")
+        prepared = PreparedCorrection.from_dict(engine.execute("corrections.prepare", {**arguments, "plan": selected.to_dict()}))
+        self.assertEqual(prepared.context_sha256, selected.context_sha256)
+        self.assertEqual(prepared.verification_status, "unknown")
+        self.assertEqual(prepared.prompt.original.image, selected.prompt.original.image)
+        self.assertTrue(prepared.prompt.preserve_originals)
+        self.assertTrue(prepared.derived_from and prepared.postconditions)
+        unsupported = engine.execute("corrections.plan", {key: value for key, value in arguments.items() if key != "capabilities"})
+        self.assertFalse(any(plan["readiness"] == "ready" for plan in unsupported["plans"]))
+        for updates in ({"capabilities": {}}, {"reports": []}, {"view_set": {**arguments["view_set"], "revision": 99}}):
+            with self.subTest(updates=updates), self.assertRaises(EngineError):
+                engine.execute("corrections.prepare", {**arguments, "plan": selected.to_dict(), **updates})
+        forged = selected.to_dict()
+        forged["prompt"]["instructions"].append("Unbound instruction added after planning.")
+        with self.assertRaises(EngineError):
+            engine.execute("corrections.prepare", {**arguments, "plan": forged})
+
+    def test_correction_dtos_are_bounded_and_reject_execution_configuration(self):
+        arguments = {"view_set": cube_arguments()["view_set"], "reports": []}
+        for updates in ({"reports": [None]*21}, {"annotations": [None]*129}, {"reports": [True]},
+                        {"capabilities": {"backend": "untrusted"}}, {"provider": {}},
+                        {"policy": {"max_plans": True}}, {"policy": {"max_seconds": float("nan")}},
+                        {"annotations": [{"path": "annotation.png"}]}):
+            with self.subTest(updates=updates), self.assertRaises(EngineError):
+                MeshvennEngine().execute("corrections.plan", {**arguments, **updates})
+
+    def test_cancelled_correction_plan_preserves_strict_partial_result(self):
+        from meshvenn_engine.core.correction_plans import CorrectionResult
+        calls = 0
+        def cancel():
+            nonlocal calls
+            calls += 1
+            return calls >= 2
+        result = MeshvennEngine().execute("corrections.plan", {"view_set": cube_arguments()["view_set"], "reports": []}, cancel=cancel)
+        restored = CorrectionResult.from_dict(result)
+        self.assertEqual(restored.completion, "cancelled")
+        self.assertEqual(restored.verification_status, "unknown")
 
     def test_cancelled_appearance_report_is_delivered_without_discarding_evidence(self):
         calls = 0

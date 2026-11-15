@@ -91,6 +91,16 @@ def create_server(gateway: "Gateway"):
         return gateway.execute("appearance.diagnose", arguments, request_id=request_id, cancel=cancellation_check())
 
     @server.tool()
+    def meshvenn_plan(arguments: dict[str, Any], request_id: StrictStr | None = None) -> dict[str, Any]:
+        """Plan bounded corrections from current diagnostic evidence; no provider execution or asset approval."""
+        return gateway.execute("corrections.plan", arguments, request_id=request_id, cancel=cancellation_check())
+
+    @server.tool()
+    def meshvenn_prepare_correction(arguments: dict[str, Any], request_id: StrictStr | None = None) -> dict[str, Any]:
+        """Revalidate one correction plan against current sources, reports and capabilities; never generate images."""
+        return gateway.execute("corrections.prepare", arguments, request_id=request_id, cancel=cancellation_check())
+
+    @server.tool()
     def meshvenn_artifact_read(sha256: StrictStr, offset: StrictInt = 0, limit: StrictInt = 65536) -> dict[str, Any]:
         """Read a verified bounded base64 chunk from the configured artifact store by content hash."""
         return gateway.read_artifact(sha256, offset=offset, limit=limit)

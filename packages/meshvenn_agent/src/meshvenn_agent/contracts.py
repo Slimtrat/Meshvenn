@@ -10,7 +10,8 @@ from typing import Any, Callable
 SCHEMA_VERSION = 1
 ACTION_VERSION = 1
 GATEWAY_VERSION = "0.1.0"
-ACTIONS = ("engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose")
+ACTIONS = ("engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose",
+           "corrections.plan", "corrections.prepare")
 VERIFICATION_STATUSES = frozenset(("pass", "fail", "unknown", "not_applicable"))
 
 
@@ -146,6 +147,8 @@ ALLOWED_ARGUMENTS = {
     "geometry.diagnose": frozenset(("view_set", "inputs", "policy", "regions")),
     "geometry.mesh": frozenset(("volume", "voxel_size", "center_xy", "mesh_mode", "max_seconds")),
     "appearance.diagnose": frozenset(("view_set", "inputs", "surface", "view_settings", "regions", "region_anchors", "upstream_reports", "policy")),
+    "corrections.plan": frozenset(("view_set", "reports", "capabilities", "annotations", "policy")),
+    "corrections.prepare": frozenset(("plan", "view_set", "reports", "capabilities", "annotations", "policy")),
 }
 REQUIRED_ARGUMENTS = {
     "engine.capabilities": frozenset(),
@@ -153,6 +156,8 @@ REQUIRED_ARGUMENTS = {
     "geometry.diagnose": frozenset(("view_set", "inputs")),
     "geometry.mesh": frozenset(("volume",)),
     "appearance.diagnose": frozenset(("view_set", "inputs")),
+    "corrections.plan": frozenset(("view_set", "reports")),
+    "corrections.prepare": frozenset(("plan", "view_set", "reports")),
 }
 
 
@@ -162,12 +167,15 @@ def validate_arguments(action: str, arguments: dict):
     missing = REQUIRED_ARGUMENTS[action] - set(arguments)
     if missing:
         raise GatewayError("invalid_request", "Required action arguments are missing.", {"missing": sorted(missing)})
-    for name in ("view_set", "inputs", "policy", "volume"):
+    for name in ("view_set", "inputs", "policy", "volume", "plan", "capabilities"):
         if name in arguments and type(arguments[name]) is not dict:
             raise GatewayError("invalid_request", f"{name} must be a JSON object.")
-    for name in ("anchors", "regions", "region_anchors", "upstream_reports"):
+    for name in ("anchors", "regions", "region_anchors", "upstream_reports", "reports", "annotations"):
         if name in arguments and type(arguments[name]) is not list:
             raise GatewayError("invalid_request", f"{name} must be a JSON array.")
+    for name, maximum in (("reports", 20), ("annotations", 128)):
+        if name in arguments and len(arguments[name]) > maximum:
+            raise GatewayError("invalid_request", f"{name} exceeds its {maximum}-item request bound.")
     if "surface" in arguments and arguments["surface"] is not None and type(arguments["surface"]) is not dict:
         raise GatewayError("invalid_request", "surface must be a strict surface object or null.")
     if "view_settings" in arguments and type(arguments["view_settings"]) is not dict:

@@ -1,7 +1,7 @@
 # Meshvenn Engine library
 
 `meshvenn-engine` is an installable, provider-independent Python distribution
-(Python 3.11+). It exposes the existing D1/D2/D3/D4 engines and native surface
+(Python 3.11+). It exposes the existing D1/D2/D3/D4/D5 engines and native surface
 extraction without importing Blender or an agent SDK. The library does not
 advertise Blender pipeline execution, rigging, animation, unqualified appearance identity or
 export certification.
@@ -33,7 +33,8 @@ Each real action declares `version: 1`, availability, reason and JSON input/outp
 schemas. Configured native availability means the runtime files are present;
 the isolated worker validates ABI 1 when executed. The constructor is the only
 place to configure binary and interpreter paths. Action arguments cannot select
-paths, commands, Python code or providers.
+paths, commands, Python code or executable providers. Planning accepts declared
+provider capabilities as data; those declarations do not configure a connection.
 
 Actions and exact arguments:
 
@@ -44,6 +45,27 @@ Actions and exact arguments:
 | `geometry.diagnose` | `view_set`, `inputs`, optional `policy`, `regions` | Existing full D3 result, including preserved adaptive attempts |
 | `geometry.mesh` | Strict D3 `volume`, optional `voxel_size`, `center_xy`, `mesh_mode`, `max_seconds` | Native mesh arrays, projection space and runtime provenance |
 | `appearance.diagnose` | `view_set`, `inputs`; optional `surface`, `view_settings`, `regions`, `region_anchors`, `upstream_reports`, `policy` | Strict D4 visible color/coverage evidence and separate identity assessment |
+| `corrections.plan` | `view_set`, `reports`; optional `capabilities`, `annotations`, `policy` | Inspectable D5 correction plans with explicit readiness and current evidence bindings |
+| `corrections.prepare` | `plan`, `view_set`, `reports`; optional `capabilities`, `annotations`, `policy` | A revalidated prompt package for one ready regional edit; no generation |
+
+Correction actions run without a native library, provider SDK or network access.
+They accept at most 20 current strict `DiagnosticReport` dictionaries, 20 views
+and 128 `EditAnnotation` dictionaries. `ProviderCapabilities` declares supported
+request controls, not provider fidelity; omitted capabilities grant no controls.
+Annotations use original source coordinates and explicit evidence, with an
+optional inline source-frame mask. Unknown fields and host configuration are
+rejected through the same strict core DTOs as direct callers.
+
+`corrections.prepare` accepts only an `edit_region` plan whose readiness is
+`ready`. It revalidates current revisions, report hashes, policy, annotations and
+capabilities, then recomputes the plan before returning its prompt package.
+Stale or altered plans fail; preparation never edits a source or calls a provider.
+Other action kinds remain inspectable plans for manual work. Readiness describes
+whether the proposed request can be prepared, not asset acceptance. Both actions
+always return `verification_status: "unknown"`; preserve the core result's
+separate readiness and completion fields. Their full dictionaries round-trip
+through `CorrectionResult.from_dict` or `PreparedCorrection.from_dict`, including
+the fixed unknown verification field.
 
 Appearance runs without a native library. `surface` is a strict `SurfaceMesh`
 with declared native-normalized vertices/triangle indices, provenance and optional
