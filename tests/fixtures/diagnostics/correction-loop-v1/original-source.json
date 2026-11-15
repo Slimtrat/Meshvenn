@@ -1,0 +1,12 @@
+{
+  "GLB": "Original one-triangle glTF binary, byte-preservation contract only.",
+  "author": "Original mathematical fixture, no real photograph or outside asset.",
+  "canonical": "Original accepted analytic reference; never a reconstructed or provider candidate.",
+  "human_reviewed": false,
+  "intentional_asymmetry": true,
+  "original_photo": "Analytic user-origin stand-in; source bytes are immutable.",
+  "provider_fidelity_qualified": false,
+  "schema_version": 1,
+  "semantic_model_qualified": false,
+  "shape": "body x[9,23),y[5,27), appendage x[23,27),y[16,20), raster32 bottom-left"
+}
