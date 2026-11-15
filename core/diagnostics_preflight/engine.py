@@ -19,7 +19,7 @@ from .registration import (
     mask_from_input, mask_iou, resample_mask, transform_hash,
 )
 
-ENGINE = EngineVersion("meshvenn.preflight", "1.0.0")
+ENGINE = EngineVersion("meshvenn.preflight", "1.1.0")
 
 
 @dataclass(frozen=True)
@@ -248,7 +248,10 @@ def analyze_preflight(view_set: ViewSetRevision, inputs: Mapping[str, ViewInput]
     missing = tuple(camera for camera in policy.required_cameras if camera not in available)
     finding("coverage.insufficient", "coverage", "fail" if missing else "pass",
             "Provide usable verified observations at directions: " + ", ".join(f"{a:g}/{e:g} degrees" for a, e in missing) if missing else "All required camera directions have usable verified observations.",
-            measurements=(Measurement("missing_directions", len(missing), "view", Threshold("==", 0, "view")),), action="provide_view")
+            measurements=(Measurement("missing_directions", len(missing), "view", Threshold("==", 0, "view")),) +
+                         tuple(measure for i,(azimuth,elevation) in enumerate(missing) for measure in (
+                             Measurement(f"missing_azimuth_{i}",azimuth,"degree"),
+                             Measurement(f"missing_elevation_{i}",elevation,"degree"))), action="provide_view")
 
     groups = defaultdict(list)
     for view_id, view in sorted(views.items()):
