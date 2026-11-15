@@ -232,15 +232,24 @@ class LoopRuntime:
 
     def resume(self,session,*,cancel=None):
         state=self._drain(session)
+        if not state.attempts and state.status in ("cancelled","stopped"):
+            return state
         info=self._port_info()
         evaluation=self._evaluator_info()
         if not state.attempts and info is not None and state.provider.execution_mode=="unavailable":
             def bind(s):
+                if s.attempts or s.status in ("cancelled","stopped") or s.provider.execution_mode!="unavailable":
+                    return s
+                now=self._now()
+                reason=budget_reason(s,now)
+                if reason:return stop(s,now,reason)
                 plans=plan_corrections(s.accepted.view_set,s.accepted.reports,capabilities=info.capabilities,annotations=s.annotations,policy=s.correction_policy)
-                return event(replace(s,provider=info,evaluator=evaluation,plans=plans),self._now(),"ports_bound","Explicit resume bound a configured trusted host port.",status="ready")
+                return event(replace(s,provider=info,evaluator=evaluation,plans=plans),now,"ports_bound","Explicit resume bound a configured trusted host port.",status="ready")
             state=self._update(session,bind)
         elif state.evaluator is None and evaluation is not None:
             state=self._update(session,lambda s:event(replace(s,evaluator=evaluation),self._now(),"evaluator_bound","A replayable local evaluator is now configured."))
+        if not state.attempts and state.status in ("cancelled","stopped"):
+            return state
         self._current(state)
         attempt=current_attempt(state)
         if cancel and cancel():return self._update(session,lambda s:stop(s,self._now(),"cancelled_by_host","cancelled"))
