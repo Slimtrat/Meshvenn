@@ -57,6 +57,9 @@ class EngineDistributionTests(unittest.TestCase):
                 self.assertIn("meshvenn_engine/core/geometry_diagnostics/worker.py", names)
                 self.assertIn("meshvenn_engine/core/appearance_diagnostics/engine.py", names)
                 self.assertIn("meshvenn_engine/core/correction_plans/__init__.py", names)
+                self.assertIn("meshvenn_engine/core/correction_loop/__init__.py", names)
+                self.assertIn("meshvenn_engine/loop_runtime.py", names)
+                self.assertIn("meshvenn_engine/loop_store.py", names)
                 self.assertIn("meshvenn_engine/core/material_visibility/tester.py", names)
                 self.assertNotIn("meshvenn_engine/core/material_visibility/blender_backend.py", names)
                 self.assertNotIn("meshvenn_engine/core/material_inputs.py", names)
@@ -79,9 +82,12 @@ class EngineDistributionTests(unittest.TestCase):
             arguments["policy"] = {"resolution": 16, "reprojection_size": 64, "max_seconds": 15}
             request = folder / "arguments.json"
             request.write_text(json.dumps(arguments), encoding="utf-8")
-            from scripts.smoke_engine_agent_install import correction_arguments
+            from scripts.smoke_engine_agent_install import correction_arguments, loop_start_payload
             correction_request = folder / "correction.json"
-            correction_request.write_text(json.dumps(correction_arguments()), encoding="utf-8")
+            correction_data = correction_arguments()
+            correction_request.write_text(json.dumps(correction_data), encoding="utf-8")
+            loop_request = folder / "loop.json"
+            loop_request.write_text(json.dumps(loop_start_payload(correction_data)), encoding="utf-8")
             native = os.environ.get("MESHVENN_TEST_NATIVE_LIBRARY") or os.environ.get("MESHVENN_TEST_NATIVE_DLL", "")
             script = r'''
 import json,sys
@@ -91,7 +97,8 @@ from meshvenn_engine import MeshvennEngine
 from meshvenn_engine.core.geometry_diagnostics import GeometryResult
 from meshvenn_engine.core.correction_plans import CorrectionResult,PreparedCorrection
 engine=MeshvennEngine(native_library=sys.argv[3] or None,python_executable=sys.executable)
-assert set(engine.capabilities()['actions'])=={'engine.capabilities','views.preflight','geometry.diagnose','geometry.mesh','appearance.diagnose','corrections.plan','corrections.prepare'}
+assert set(engine.capabilities()['actions'])=={'engine.capabilities','views.preflight','geometry.diagnose','geometry.mesh','appearance.diagnose','corrections.plan','corrections.prepare','corrections.loop'}
+assert not engine.capabilities()['actions']['corrections.loop']['available']
 arguments=json.loads(Path(sys.argv[2]).read_text())
 preflight=dict(arguments,policy={'required_cameras':[]})
 assert engine.execute('views.preflight',preflight)['report']['completion']=='complete'
@@ -105,6 +112,16 @@ selected=next(p for p in planned.plans if p.action_kind=='edit_region' and p.rea
 prepared=PreparedCorrection.from_dict(engine.execute('corrections.prepare',dict(correction,plan=selected.to_dict())))
 assert prepared.verification_status=='unknown' and prepared.context_sha256==selected.context_sha256
 assert prepared.prompt.preserve_originals and prepared.derived_from and prepared.postconditions
+loop_payload=json.loads(Path(sys.argv[6]).read_text())
+loop_root=Path(sys.argv[6]).parent/'persistent-loop'
+loop_engine=MeshvennEngine(loop_workspace=loop_root)
+assert loop_engine.capabilities()['actions']['corrections.loop']['available']
+started=loop_engine.execute('corrections.loop',{'operation':'start','session_id':'sdist-loop','payload':loop_payload})
+assert started['status']=='provider_unavailable' and started['accepted']==loop_payload['accepted']
+reopened=MeshvennEngine(loop_workspace=loop_root).execute('corrections.loop',{'operation':'status','session_id':'sdist-loop'})
+assert reopened==started and reopened['verification_status']=='unknown'
+cancelled=loop_engine.execute('corrections.loop',{'operation':'cancel','session_id':'sdist-loop'})
+assert cancelled['status']=='cancelled' and cancelled['accepted']==loop_payload['accepted']
 if sys.argv[3]:
     result=engine.execute('geometry.diagnose',arguments)
     assert result['verification_status']=='pass', result['report']
@@ -124,7 +141,7 @@ for name,module in tuple(sys.modules.items()):
     assert not filename or not Path(filename).resolve().is_relative_to(checkout), filename
 print('STANDALONE_ENGINE_PASS')
 '''
-            output = self.command(["-I", "-c", script, str(site), str(request), native, str(ROOT), str(correction_request)], cwd=folder)
+            output = self.command(["-I", "-c", script, str(site), str(request), native, str(ROOT), str(correction_request), str(loop_request)], cwd=folder)
             self.assertIn("STANDALONE_ENGINE_PASS", output)
 
 

@@ -141,6 +141,33 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(result["summary"]["completion"], "cancelled")
         self.assertEqual(result["summary"]["readiness_counts"]["needs_input"], 1)
 
+    def test_loop_operations_preserve_unknown_and_delegate_payload_authority(self):
+        self.engine.value = {"schema_version": 1, "verification_status": "unknown", "status": "provider_unavailable",
+                             "session_id": "loop-1", "attempts": [], "known_cost": 0., "cost_uncertain": False}
+        for operation in ("start", "status", "advance", "resume", "cancel", "supply", "artifact_read", "artifact_put"):
+            with self.subTest(operation=operation):
+                arguments = {"operation": operation, "session_id": "loop-1", "payload": {}}
+                result = self.gateway.execute("corrections.loop", arguments)
+                self.assertEqual((result["status"], result["verification_status"]), ("completed", "unknown"))
+                self.assertEqual(self.engine.calls[-1][:2], ("corrections.loop", arguments))
+                self.assertEqual(result["summary"]["state"], "provider_unavailable")
+                self.assertEqual(result["summary"]["attempt_count"], 0)
+                self.assertEqual(result["summary"]["known_cost"], 0)
+                self.assertFalse(result["summary"]["cost_uncertain"])
+        self.engine.value["verification_status"] = "pass"
+        result = self.gateway.execute("corrections.loop", {"operation": "status", "session_id": "loop-1"})
+        self.assertEqual(result["error"]["code"], "invalid_engine_output")
+
+    def test_loop_request_rejects_unsupported_operations_paths_and_host_injections(self):
+        for updates in ({"operation": "execute"}, {"operation": True}, {"session_id": "../outside"},
+                        {"session_id": "a"*129}, {"session_id": "contains.dot"}, {"session_id": "contains:colon"},
+                        {"payload": []}, {"loop_workspace": "untrusted"},
+                        {"generation_provider": {}}, {"loop_evaluator": {}}):
+            with self.subTest(updates=updates):
+                result = self.gateway.execute("corrections.loop", {"operation": "status", "session_id": "loop-1", **updates})
+                self.assertEqual(result["status"], "invalid_request")
+        self.assertEqual(self.engine.calls, [])
+
     def test_unknown_action_extra_arguments_and_host_overrides_reject_before_port(self):
         cases = [("shell.execute", {"code": "ignored"}), ("geometry.diagnose", {**self.arguments, "python_executable": "x"}),
                  ("geometry.diagnose", {**self.arguments, "policy": {"backend": "x"}}),

@@ -1,0 +1,93 @@
+name: Correction loop corpus
+
+on:
+  pull_request:
+    paths:
+      - 'core/correction_loop/**'
+      - 'core/correction_plans/**'
+      - 'core/diagnostic_contracts/**'
+      - 'core/diagnostics_preflight/**'
+      - 'core/appearance_diagnostics/**'
+      - 'core/geometry_diagnostics/**'
+      - 'core/material_visibility/**'
+      - 'core/projection_math/**'
+      - 'core/projection_alignment.py'
+      - 'core/projection_frame.py'
+      - 'core/image_mask.py'
+      - 'lib/meshvenn_engine/**'
+      - 'scripts/correction_loop_corpus/**'
+      - 'scripts/qualify_correction_loops.py'
+      - 'scripts/correction_plan_corpus/**'
+      - 'scripts/appearance_diagnostic_corpus/**'
+      - 'tests/test_*loop*.py'
+      - 'tests/fixtures/diagnostics/correction-loop-v1/**'
+      - 'tests/fixtures/diagnostics/correction-plan-v1/**'
+      - 'tests/fixtures/diagnostics/appearance-v1/**'
+      - '.github/workflows/correction_loop_corpus.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'core/correction_loop/**'
+      - 'core/correction_plans/**'
+      - 'core/diagnostic_contracts/**'
+      - 'core/diagnostics_preflight/**'
+      - 'core/appearance_diagnostics/**'
+      - 'core/geometry_diagnostics/**'
+      - 'core/material_visibility/**'
+      - 'core/projection_math/**'
+      - 'core/projection_alignment.py'
+      - 'core/projection_frame.py'
+      - 'core/image_mask.py'
+      - 'lib/meshvenn_engine/**'
+      - 'scripts/correction_loop_corpus/**'
+      - 'scripts/qualify_correction_loops.py'
+      - 'scripts/correction_plan_corpus/**'
+      - 'scripts/appearance_diagnostic_corpus/**'
+      - 'tests/test_*loop*.py'
+      - 'tests/fixtures/diagnostics/correction-loop-v1/**'
+      - 'tests/fixtures/diagnostics/correction-plan-v1/**'
+      - 'tests/fixtures/diagnostics/appearance-v1/**'
+      - '.github/workflows/correction_loop_corpus.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: correction-loop-corpus-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: Durable D6 (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: windows-latest
+            python: '3.13'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Verify frozen authorship and actual loop/store controls
+        env:
+          PYTHONPATH: lib
+        run: python -m unittest discover -s tests -p 'test_*loop*.py' -v
+      - name: Verify immutable expected outcomes
+        run: python scripts/qualify_correction_loops.py --verify-only
+      - name: Replay actual durable runtime with local simulated ports
+        run: python scripts/qualify_correction_loops.py --output tmp/correction-loop-qualification
+      - name: Preserve real journals, receipts, rejections and diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: correction-loop-${{ matrix.os }}-python-${{ matrix.python }}
+          path: tmp/correction-loop-qualification
+          retention-days: 14
+          if-no-files-found: error

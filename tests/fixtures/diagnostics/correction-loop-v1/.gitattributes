@@ -1,0 +1,4 @@
+# Original binary byte-preservation assets are hash-pinned on all platforms.
+*.glb binary
+*.png binary
+*.json text eol=lf

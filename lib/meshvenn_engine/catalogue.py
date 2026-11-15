@@ -9,6 +9,7 @@ from typing import Union, get_args, get_origin, get_type_hints
 from .core.diagnostic_contracts import DiagnosticReport, Region, ViewSetRevision
 from .core.diagnostics_preflight import AlignmentAnchor, PreflightPolicy
 from .core.geometry_diagnostics import GeometryPolicy, VolumeArtifact
+from .dto import LOOP_OPERATIONS
 
 VERSION = "0.1.0"
 
@@ -44,6 +45,7 @@ def _object(properties, required=()):
 def action_schemas():
     from .core.appearance_diagnostics import AppearancePolicy, AppearanceRegionAnchor, AppearanceViewSettings, SurfaceMesh
     from .core.correction_plans import CorrectionPlan, CorrectionPolicy, CorrectionResult, EditAnnotation, PreparedCorrection, ProviderCapabilities
+    from .loop_runtime import loop_payload_schemas
     png = _object({"png_base64": {"type": "string", "maxLength": 44_739_244},
                    "format": {"const": "png"}}, ("png_base64",))
     rgba = _object({"format": {"const": "rgba"}, "width": {"type": "integer", "minimum": 1, "maximum": 1_048_576},
@@ -81,6 +83,15 @@ def action_schemas():
         "annotations": {"type": "array", "maxItems": 128, "items": model_schema(EditAnnotation)},
         "policy": model_schema(CorrectionPolicy)}, ("view_set", "reports"))
     prepare = _object({**correction["properties"], "plan": model_schema(CorrectionPlan)}, ("plan", "view_set", "reports"))
+    loop = _object({"operation": {"enum": list(LOOP_OPERATIONS)},
+        "session_id": {"type": "string", "pattern": r"^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$", "maxLength": 128},
+        "payload": {"type": "object"}}, ("operation", "session_id"))
+    payload_schemas = loop_payload_schemas()
+    if set(payload_schemas) != set(LOOP_OPERATIONS):
+        raise RuntimeError("Loop runtime and action catalogue disagree on supported operations.")
+    loop["oneOf"] = [{"properties": {"operation": {"const": operation}, "payload": schema},
+                      "required": ["payload"] if schema.get("required") else []}
+                     for operation, schema in payload_schemas.items()]
     def correction_output(model):
         schema = model_schema(model)
         schema["properties"]["verification_status"] = {"const": "unknown"}
@@ -90,4 +101,9 @@ def action_schemas():
             "views.preflight": (preflight, output), "geometry.diagnose": (diagnosis, output),
             "geometry.mesh": (mesh, output), "appearance.diagnose": (appearance, appearance_output),
             "corrections.plan": (correction, correction_output(CorrectionResult)),
-            "corrections.prepare": (prepare, correction_output(PreparedCorrection))}
+            "corrections.prepare": (prepare, correction_output(PreparedCorrection)),
+            "corrections.loop": (loop, {"type": "object", "properties": {"schema_version": {"const": 1},
+                "verification_status": {"const": "unknown"}, "session_id": loop["properties"]["session_id"],
+                "status": {"type": "string"}, "known_cost": {"type": "number", "minimum": 0},
+                "cost_uncertain": {"type": "boolean"}},
+                "required": ["schema_version", "verification_status"]})}

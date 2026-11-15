@@ -5,6 +5,7 @@ import base64
 import binascii
 import json
 import math
+import re
 from dataclasses import fields
 
 from .core.diagnostic_contracts import Region, ViewSetRevision
@@ -14,6 +15,7 @@ from .errors import EngineError
 MAX_REQUEST_BYTES = 67_108_864
 MAX_TOTAL_PIXELS = 4_194_304
 MAX_PNG_BYTES = 33_554_432
+LOOP_OPERATIONS = ("start", "status", "advance", "resume", "cancel", "supply", "artifact_read", "artifact_put")
 
 
 def object_fields(value, allowed, required=(), *, name="arguments"):
@@ -22,6 +24,19 @@ def object_fields(value, allowed, required=(), *, name="arguments"):
     if set(value) - set(allowed) or set(required) - set(value):
         raise ValueError(f"{name} has unsupported or missing fields.")
     return value
+
+
+def loop_arguments(arguments):
+    """Only operation data crosses this boundary; runtime validates each payload."""
+    object_fields(arguments, ("operation", "session_id", "payload"), ("operation", "session_id"))
+    operation, session_id, payload = arguments["operation"], arguments["session_id"], arguments.get("payload", {})
+    if type(operation) is not str or operation not in LOOP_OPERATIONS:
+        raise ValueError("Unsupported correction loop operation.")
+    if type(session_id) is not str or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", session_id):
+        raise ValueError("Loop session_id must be a stable identifier of at most 128 characters.")
+    if type(payload) is not dict or any(type(key) is not str for key in payload):
+        raise ValueError("Loop payload must be a JSON object.")
+    return operation, session_id, payload
 
 
 def validate_json(value) -> None:

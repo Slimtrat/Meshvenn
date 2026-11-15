@@ -157,6 +157,37 @@ def check_prepared(value, envelope, selected):
     return restored
 
 
+def loop_start_payload(correction):
+    """Actual original PNG bytes and D4 reports seed a provider-free session."""
+    from meshvenn_engine.core.correction_loop.models import LoopSnapshot
+    from meshvenn_engine.core.diagnostic_contracts import DiagnosticReport, Measurement, ViewSetRevision
+    finding = next(f for f in correction["reports"][0]["findings"] if f["code"] == "appearance.color_consistency"
+        and any(r["label"] == "central-color-patch" for r in f["regions"]))
+    measured = {m["name"]:m["value"] for evidence in finding["evidence"] for m in evidence["measurements"]}
+    assert measured["comparable"] > 0
+    snapshot = LoopSnapshot("installed-loop-baseline", ViewSetRevision.from_dict(correction["view_set"]),
+        tuple(DiagnosticReport.from_dict(report) for report in correction["reports"]),
+        (Measurement("target_error", measured["changed"]/measured["comparable"], "normalized_error"),))
+    images = (cube_png(), cube_png((210,45,30,255),patch=(11,11,19,19)))
+    artifacts = {hashlib.sha256(raw).hexdigest():base64.b64encode(raw).decode("ascii") for raw in images}
+    assert set(artifacts) == set(snapshot.artifact_hashes)
+    return {"accepted":snapshot.to_dict(), "artifacts":artifacts, "capabilities":correction["capabilities"]}
+
+
+def check_loop(value, envelope, accepted, *, status):
+    from meshvenn_engine.core.correction_loop.models import LoopState
+    assert envelope["status"] == envelope["technical_status"] == "completed", envelope
+    assert envelope["verification_status"] == value["verification_status"] == "unknown"
+    strict = dict(value)
+    for key in ("known_cost", "cost_uncertain"):
+        strict.pop(key, None)
+    restored = LoopState.from_dict(strict)
+    assert restored.status == status and restored.accepted.to_dict() == accepted
+    assert not restored.attempts and restored.known_cost == 0 and not restored.cost_uncertain
+    assert restored.provider.execution_mode == "unavailable"
+    return restored
+
+
 def check_diagnostic(value, envelope):
     assert envelope["status"] == envelope["technical_status"] == "completed", envelope
     assert envelope["verification_status"] == "pass", envelope
@@ -192,7 +223,7 @@ async def protocol(args, arguments, volume, library_sha, correction):
             tools = await client.list_tools()
             names = {tool.name for tool in tools.tools}
             assert names == {"meshvenn_capabilities", "meshvenn_preflight", "meshvenn_diagnose",
-                             "meshvenn_mesh", "meshvenn_appearance", "meshvenn_plan", "meshvenn_prepare_correction", "meshvenn_artifact_read"}, names
+                             "meshvenn_mesh", "meshvenn_appearance", "meshvenn_plan", "meshvenn_prepare_correction", "meshvenn_loop", "meshvenn_artifact_read"}, names
 
             async def call(name, value):
                 result = await client.call_tool(name, value)
@@ -239,10 +270,31 @@ async def protocol(args, arguments, volume, library_sha, correction):
             check_prepared(await read_result(prepared["artifact"]), prepared, selected)
             stale = await call("meshvenn_prepare_correction", {"arguments": dict(correction, plan=selected, capabilities={})})
             assert stale["status"] == "invalid_request" and stale["verification_status"] == "unknown", stale
-            return {"protocol_version": client.protocol_version, "tools": sorted(names),
+            loop_payload = loop_start_payload(correction)
+            loop_request = {"operation":"start", "session_id":"installed-mcp-loop", "payload":loop_payload}
+            loop_started = await call("meshvenn_loop", {"arguments":loop_request})
+            check_loop(await read_result(loop_started["artifact"]), loop_started, loop_payload["accepted"], status="provider_unavailable")
+            loop_resumed = await call("meshvenn_loop", {"arguments":{"operation":"resume","session_id":"installed-mcp-loop"}})
+            check_loop(await read_result(loop_resumed["artifact"]), loop_resumed, loop_payload["accepted"], status="provider_unavailable")
+            digest = sorted(loop_payload["artifacts"])[0]
+            loop_read = await call("meshvenn_loop", {"arguments":{"operation":"artifact_read", "session_id":"installed-mcp-loop",
+                "payload":{"sha256":digest, "offset":0, "limit":65536}}})
+            read_value = await read_result(loop_read["artifact"])
+            assert base64.b64decode(read_value["data_base64"],validate=True) == base64.b64decode(loop_payload["artifacts"][digest])
+            assert read_value["sha256"] == digest and read_value["eof"]
+            loop_cancelled = await call("meshvenn_loop", {"arguments":{"operation":"cancel","session_id":"installed-mcp-loop"}})
+            check_loop(await read_result(loop_cancelled["artifact"]), loop_cancelled, loop_payload["accepted"], status="cancelled")
+            evidence = {"protocol_version": client.protocol_version, "tools": sorted(names),
                     "capabilities": caps, "preflight": preflight, "diagnostic": diagnostic, "mesh": mesh, "appearance": appearance,
                     "planned": planned, "prepared": prepared, "stale_preparation": stale,
+                    "loop_started":loop_started, "loop_resumed":loop_resumed,"loop_artifact_read":loop_read,"loop_cancelled":loop_cancelled,
                     "native_library_sha256": library_sha}
+        # A new stdio process must reopen the exact accepted sources and terminal state.
+        async with Client(server, read_timeout_seconds=30) as client:
+            loop_reopened = await call("meshvenn_loop", {"arguments":{"operation":"status","session_id":"installed-mcp-loop"}})
+            check_loop(await read_result(loop_reopened["artifact"]), loop_reopened, loop_payload["accepted"], status="cancelled")
+            evidence["loop_reopened_after_process_restart"] = loop_reopened
+        return evidence
 
 
 def main():
@@ -262,11 +314,12 @@ def main():
         assert Path(module.__file__).resolve().is_relative_to(installed), module.__file__
     assert "bpy" not in sys.modules and "mcp" not in sys.modules
     library_sha = hashlib.sha256(args.native_library.read_bytes()).hexdigest()
-    gateway = Gateway(MeshvennEngine(native_library=args.native_library, python_executable=sys.executable),
+    gateway = Gateway(MeshvennEngine(native_library=args.native_library, python_executable=sys.executable,
+                                    loop_workspace=args.output/"direct-engine-loops"),
                       ArtifactStore(args.output / "direct-workspace"))
     catalogue = gateway.catalogue()
     assert {action["name"] for action in catalogue["actions"]} == {
-        "engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose", "corrections.plan", "corrections.prepare"}
+        "engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose", "corrections.plan", "corrections.prepare", "corrections.loop"}
     arguments = source_arguments()
     preflight = gateway.execute("views.preflight", dict(arguments, policy={"required_cameras": []}))
     assert preflight["status"] == "completed"
@@ -288,6 +341,14 @@ def main():
     check_prepared(complete_artifact(gateway.read_artifact, prepared["artifact"]), prepared, selected)
     stale = gateway.execute("corrections.prepare", dict(correction, plan=selected, capabilities={}))
     assert stale["status"] == "invalid_request" and stale["verification_status"] == "unknown", stale
+    loop_payload = loop_start_payload(correction)
+    loop_started = gateway.execute("corrections.loop", {"operation":"start","session_id":"installed-direct-loop","payload":loop_payload})
+    check_loop(complete_artifact(gateway.read_artifact,loop_started["artifact"]),loop_started,loop_payload["accepted"],status="provider_unavailable")
+    loop_cancelled = gateway.execute("corrections.loop", {"operation":"cancel","session_id":"installed-direct-loop"})
+    check_loop(complete_artifact(gateway.read_artifact,loop_cancelled["artifact"]),loop_cancelled,loop_payload["accepted"],status="cancelled")
+    reopened_engine = MeshvennEngine(loop_workspace=args.output/"direct-engine-loops")
+    loop_reopened = reopened_engine.execute("corrections.loop",{"operation":"status","session_id":"installed-direct-loop"})
+    assert loop_reopened["accepted"] == loop_payload["accepted"] and loop_reopened["status"] == "cancelled"
     cancelled = gateway.execute("geometry.diagnose", arguments, cancel=lambda: True)
     assert cancelled["status"] == "cancelled" and cancelled["verification_status"] != "pass"
     assert "bpy" not in sys.modules and "mcp" not in sys.modules
@@ -300,11 +361,12 @@ def main():
         "agent_path": meshvenn_agent.__file__, "request_sha256": hashlib.sha256(encoded(arguments)).hexdigest(),
         "correction_request_sha256": hashlib.sha256(encoded(correction)).hexdigest(),
         "direct": {"catalogue": catalogue, "preflight": preflight, "diagnostic": diagnostic, "mesh": mesh, "appearance": appearance,
-                   "planned": planned, "prepared": prepared, "stale_preparation": stale},
+                   "planned": planned, "prepared": prepared, "stale_preparation": stale,
+                   "loop_started":loop_started,"loop_cancelled":loop_cancelled,"loop_reopened":loop_reopened},
         "mcp": asyncio.run(protocol(args, arguments, value["volume"], library_sha, correction)),
         "scope": "Installed API, MCP transport and actual native execution; not identity, topology or GLB certification"}
     (args.output / "qualification.json").write_bytes(encoded(evidence))
-    print("INSTALLED_ENGINE_AGENT_PASS: two installed wheels, strict D3/D4/D5 results, native mesh, visible appearance, revalidated corrections, CAS, cancellation and eight real MCP tools")
+    print("INSTALLED_ENGINE_AGENT_PASS: two installed wheels, strict diagnostic and correction results, native mesh, visible appearance, durable loops, CAS, cancellation and nine real MCP tools")
 
 
 if __name__ == "__main__":

@@ -11,7 +11,8 @@ SCHEMA_VERSION = 1
 ACTION_VERSION = 1
 GATEWAY_VERSION = "0.1.0"
 ACTIONS = ("engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose",
-           "corrections.plan", "corrections.prepare")
+           "corrections.plan", "corrections.prepare", "corrections.loop")
+LOOP_OPERATIONS = ("start", "status", "advance", "resume", "cancel", "supply", "artifact_read", "artifact_put")
 VERIFICATION_STATUSES = frozenset(("pass", "fail", "unknown", "not_applicable"))
 
 
@@ -149,6 +150,7 @@ ALLOWED_ARGUMENTS = {
     "appearance.diagnose": frozenset(("view_set", "inputs", "surface", "view_settings", "regions", "region_anchors", "upstream_reports", "policy")),
     "corrections.plan": frozenset(("view_set", "reports", "capabilities", "annotations", "policy")),
     "corrections.prepare": frozenset(("plan", "view_set", "reports", "capabilities", "annotations", "policy")),
+    "corrections.loop": frozenset(("operation", "session_id", "payload")),
 }
 REQUIRED_ARGUMENTS = {
     "engine.capabilities": frozenset(),
@@ -158,6 +160,7 @@ REQUIRED_ARGUMENTS = {
     "appearance.diagnose": frozenset(("view_set", "inputs")),
     "corrections.plan": frozenset(("view_set", "reports")),
     "corrections.prepare": frozenset(("plan", "view_set", "reports")),
+    "corrections.loop": frozenset(("operation", "session_id")),
 }
 
 
@@ -167,6 +170,13 @@ def validate_arguments(action: str, arguments: dict):
     missing = REQUIRED_ARGUMENTS[action] - set(arguments)
     if missing:
         raise GatewayError("invalid_request", "Required action arguments are missing.", {"missing": sorted(missing)})
+    if action == "corrections.loop":
+        if type(arguments["operation"]) is not str or arguments["operation"] not in LOOP_OPERATIONS:
+            raise GatewayError("invalid_request", "Unsupported correction loop operation.")
+        if type(arguments["session_id"]) is not str or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", arguments["session_id"]):
+            raise GatewayError("invalid_request", "Loop session_id must be a stable identifier of at most 128 characters.")
+        if "payload" in arguments and type(arguments["payload"]) is not dict:
+            raise GatewayError("invalid_request", "Loop payload must be a JSON object; the runtime validates its operation-specific fields.")
     for name in ("view_set", "inputs", "policy", "volume", "plan", "capabilities"):
         if name in arguments and type(arguments[name]) is not dict:
             raise GatewayError("invalid_request", f"{name} must be a JSON object.")

@@ -8,6 +8,7 @@ recursive-include core/diagnostics_preflight *.py
 recursive-include core/geometry_diagnostics *.py
 recursive-include core/appearance_diagnostics *.py
 recursive-include core/correction_plans *.py
+recursive-include core/correction_loop *.py
 recursive-include core/material_visibility *.py
 exclude core/material_visibility/blender_backend.py
 recursive-include core/native_bridge *.py
@@ -15,6 +16,7 @@ recursive-include core/projection_math *.py
 recursive-include core/geometry_contracts *.py
 recursive-include core/pipeline_contracts *.py
 include docs/engine-library.md
+include docs/correction-loop.md docs/correction-loop-persistence.md
 global-exclude __pycache__ *.py[cod]
 prune tests
 prune native

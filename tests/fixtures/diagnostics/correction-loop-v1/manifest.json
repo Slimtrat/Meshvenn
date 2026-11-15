@@ -1,0 +1,657 @@
+{
+  "assets": [
+    {
+      "bytes": 178,
+      "path": "assets/original-photo.png",
+      "sha256": "046bb7b058312e28ea2424d96104ba6a26807b35330bb2c590cf5bad93a8f90d"
+    },
+    {
+      "bytes": 175,
+      "path": "assets/accepted-reference.png",
+      "sha256": "5d93372e3c96777a817523edb45cacaf6b3db17c5082cacdd81df6b42d78b6ed"
+    },
+    {
+      "bytes": 175,
+      "path": "assets/candidate-improved.png",
+      "sha256": "2d62368d32bee775af9176ffa4be253809fb74c534a47d13ebd38b463a6edcdb"
+    },
+    {
+      "bytes": 171,
+      "path": "assets/candidate-erased-part.png",
+      "sha256": "5996bc46c473cd3b70f5f5a7a3dc96b7bb376f7dc6a9def86d10f02c7f668eb4"
+    },
+    {
+      "bytes": 1176,
+      "path": "assets/original.glb",
+      "sha256": "15b5f150b9b717a8a885c515244c149cb1fc194c407d2428d61ea773b8c6d6ba"
+    },
+    {
+      "bytes": 1180,
+      "path": "assets/candidate.glb",
+      "sha256": "2e6e298f8638145bb581aa182bee1e17b32feaaebfe0fc040652d0f2cde2e392"
+    },
+    {
+      "bytes": 595,
+      "path": "original-source.json",
+      "sha256": "b27486e5ea5bf7a778df614e253f363794ca4d3bc4bf560941c7b9051963cb9a"
+    }
+  ],
+  "cases": [
+    {
+      "budgets": {
+        "max_attempts": 3,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "globally_improved_promoted",
+      "evaluation_outcomes": [
+        "all_required_pass"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "provider_called",
+          "global_evaluation_ran",
+          "promoted_after_full_reevaluation",
+          "accepted_candidate_is_measured_candidate"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "calibration"
+    },
+    {
+      "budgets": {
+        "max_attempts": 1,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "higher_mean_erased_part_rejected",
+      "evaluation_outcomes": [
+        "higher_mean_part_failure"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "higher_mean_retained",
+          "named_part_failure_retained",
+          "not_promoted",
+          "rollback_restores_initial_asset"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "heldout"
+    },
+    {
+      "budgets": {
+        "max_attempts": 1,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "identity_failure_rejected",
+      "evaluation_outcomes": [
+        "identity_failure"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "required_identity_failure_retained",
+          "not_promoted",
+          "rollback_restores_initial_asset"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "calibration"
+    },
+    {
+      "budgets": {
+        "max_attempts": 1,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "required_unknown_never_passes",
+      "evaluation_outcomes": [
+        "required_unknown"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "required_unknown_retained",
+          "no_unknown_to_pass_coercion",
+          "not_promoted"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "heldout"
+    },
+    {
+      "budgets": {
+        "max_attempts": 1,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "rollback_all_original_bytes",
+      "evaluation_outcomes": [
+        "identity_failure"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "candidate_materialized_separately",
+          "not_promoted",
+          "rollback_restores_initial_asset",
+          "photo_source_GLB_hashes_exact"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "heldout"
+    },
+    {
+      "budgets": {
+        "max_attempts": 2,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 3
+      },
+      "case_id": "attempt_budget",
+      "evaluation_outcomes": [
+        "no_progress",
+        "no_progress",
+        "all_required_pass"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "attempt_limit_respected",
+          "exactly_two_provider_calls",
+          "not_promoted",
+          "budget_stop_explicit"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "calibration"
+    },
+    {
+      "budgets": {
+        "max_attempts": 3,
+        "max_cost": 1.0,
+        "max_seconds": 1.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "time_budget",
+      "evaluation_outcomes": [
+        "no_progress"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "time_limit_respected",
+          "no_new_call_after_deadline",
+          "not_promoted",
+          "budget_stop_explicit"
+        ]
+      },
+      "options": {
+        "evaluation_clock_advance": 2.0
+      },
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "heldout"
+    },
+    {
+      "budgets": {
+        "max_attempts": 3,
+        "max_cost": 0.25,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "cost_budget",
+      "evaluation_outcomes": [
+        "no_progress",
+        "all_required_pass"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "cost_limit_respected",
+          "exactly_one_provider_call",
+          "cost_reservation_precedes_dispatch",
+          "not_promoted"
+        ]
+      },
+      "options": {
+        "quote_cost": 0.2,
+        "receipt_cost": 0.2
+      },
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "calibration"
+    },
+    {
+      "budgets": {
+        "max_attempts": 5,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "stagnation_budget",
+      "evaluation_outcomes": [
+        "no_progress",
+        "no_progress",
+        "all_required_pass"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "stagnation_stop_explicit",
+          "bounded_calls",
+          "not_promoted"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "heldout"
+    },
+    {
+      "budgets": {
+        "max_attempts": 1,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "service_failure",
+      "evaluation_outcomes": [],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "failure_journalled",
+          "bounded_calls",
+          "not_promoted",
+          "rollback_restores_initial_asset"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "service_error",
+      "scope": "orchestration-only",
+      "split": "calibration"
+    },
+    {
+      "budgets": {
+        "max_attempts": 3,
+        "max_cost": 1.0,
+        "max_seconds": 1.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "late_response",
+      "evaluation_outcomes": [
+        "all_required_pass"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "late_receipt_retained",
+          "late_candidate_not_promoted",
+          "cost_not_erased",
+          "not_promoted"
+        ]
+      },
+      "options": {
+        "provider_clock_advance": 2.0
+      },
+      "provider_behavior": "late_response",
+      "scope": "orchestration-only",
+      "split": "heldout"
+    },
+    {
+      "budgets": {
+        "max_attempts": 3,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "cancellation",
+      "evaluation_outcomes": [
+        "all_required_pass"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "cancelled_state_retained",
+          "no_new_call_after_cancel",
+          "not_promoted",
+          "rollback_restores_initial_asset"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "cancel_during_call",
+      "scope": "orchestration-only",
+      "split": "calibration"
+    },
+    {
+      "budgets": {
+        "max_attempts": 2,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "crash_pending_resume_uncertain",
+      "evaluation_outcomes": [],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "durable_pending_before_dispatch",
+          "restart_reads_actual_journal",
+          "uncertain_attempt_not_redispatched",
+          "explicit_uncertainty_retained",
+          "not_promoted"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "crash_after_dispatch",
+      "scope": "orchestration-only",
+      "split": "heldout"
+    },
+    {
+      "budgets": {
+        "max_attempts": 3,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "provider_unavailable_keeps_local_plans",
+      "evaluation_outcomes": [],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "no_provider_dispatch",
+          "local_plans_preserved",
+          "provider_unavailable_explicit",
+          "not_promoted"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "unavailable",
+      "scope": "orchestration-only",
+      "split": "calibration"
+    },
+    {
+      "budgets": {
+        "max_attempts": 3,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "canonical_never_provisional_mesh",
+      "evaluation_outcomes": [
+        "no_progress",
+        "all_required_pass"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "canonical_hash_identical_for_every_call",
+          "provisional_mesh_never_reference",
+          "global_evaluation_ran"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "heldout"
+    },
+    {
+      "budgets": {
+        "max_attempts": 3,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "receipt_audit",
+      "evaluation_outcomes": [
+        "all_required_pass"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "provider_model_params_usage_preserved",
+          "receipt_request_binding_exact",
+          "all_dispatches_auditable"
+        ]
+      },
+      "options": {
+        "quote_cost": 0.2,
+        "receipt_cost": 0.2
+      },
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "calibration"
+    },
+    {
+      "budgets": {
+        "max_attempts": 1,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "real_D2_D4_improvement_identity_unknown",
+      "evaluation_outcomes": [
+        "real_D2_D4"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "real_preflight_and_appearance_ran",
+          "numeric_region_improves_fail_to_pass",
+          "real_identity_stays_unknown",
+          "required_unknown_retained",
+          "not_promoted"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "normal",
+      "real_source": {
+        "candidate_recipe": "original accepted source rendered without the authored local colour defect",
+        "case_id": "local_colour_change",
+        "parent": "appearance",
+        "raster_resolution": 32
+      },
+      "scope": "real-diagnostics-plus-simulated-provider",
+      "split": "heldout"
+    },
+    {
+      "budgets": {
+        "max_attempts": 1,
+        "max_cost": 1.0,
+        "max_seconds": 10.0,
+        "stagnation_limit": 2
+      },
+      "case_id": "evaluation_failure_after_receipt",
+      "evaluation_outcomes": [
+        "evaluation_error"
+      ],
+      "expected": {
+        "controls": [
+          "original_photo_and_source_bytes_unchanged",
+          "original_GLB_artifact_bytes_unchanged",
+          "canonical_reference_unchanged",
+          "attempts_and_receipts_journalled",
+          "no_real_provider_or_model_quality_qualification",
+          "never_promote_before_global_evaluation",
+          "receipt_survives_evaluation_failure",
+          "failure_journalled",
+          "not_promoted",
+          "rollback_restores_initial_asset"
+        ]
+      },
+      "options": {},
+      "provider_behavior": "normal",
+      "scope": "orchestration-only",
+      "split": "calibration"
+    }
+  ],
+  "clock": {
+    "initial_seconds": 0.0,
+    "kind": "deterministic_host_test_clock",
+    "meaning": "Only orchestration deadline controls; no wall-clock performance claim is inferred from logical time."
+  },
+  "corpus_version": "correction-loop-v1",
+  "expectations_frozen_before_loop_evaluation": true,
+  "limits": {
+    "initial_D7_and_issue_84": "open",
+    "physical_geometry_and_export_quality": "unqualified",
+    "provider_fidelity": "unqualified",
+    "real_D2_D4_identity": "unknown",
+    "semantic_identity": "unqualified"
+  },
+  "parents": {
+    "appearance": {
+      "path": "tests/fixtures/diagnostics/appearance-v1/manifest.json",
+      "sha256": "5fc81e9563bd6ee03ebc5b6f8b2f2eb003b8283aaa04a1f481788f6b4533d5e3"
+    },
+    "plans": {
+      "path": "tests/fixtures/diagnostics/correction-plan-v1/manifest.json",
+      "sha256": "c6e20ec65dcfcd00471edc4483db54ce8fcb42e6adce9fe7159baf18658b4567"
+    }
+  },
+  "port_metadata": {
+    "default_quote_cost": 0.2,
+    "model_id": "corpus.fixed_model",
+    "model_version": "1",
+    "parameters": {
+      "seed": 17,
+      "strength": 0.3
+    },
+    "provider_id": "corpus.provider_simulator",
+    "provider_version": "1",
+    "usage": {
+      "images": 1,
+      "input_units": 12,
+      "output_units": 8
+    }
+  },
+  "provenance": {
+    "generator_sources": [
+      {
+        "path": "scripts/correction_loop_corpus/fixtures.py",
+        "sha256_lf": "bdf3b1bdc365f0f9697e91250395ab8cfa3cc79a2bebf924d1346f8191442077"
+      },
+      {
+        "path": "scripts/appearance_diagnostic_corpus/authoring.py",
+        "sha256_lf": "1b2ec051040666aa41642cb8ea095de7264e10bcb62b2167371666e27963507a"
+      }
+    ],
+    "human_reviewed": false,
+    "kind": "original_analytic_contract_corpus",
+    "provider_fidelity_qualified": false,
+    "real_provider_calls": 0
+  },
+  "schema_version": 1,
+  "simulated_evaluation": {
+    "baseline_mean_iou": 0.8,
+    "improved_mean_iou": 0.95,
+    "meaning": "Contract data reported by local fake ports, not measured NativeCore fidelity or model judgment quality.",
+    "part_erased_mean_iou": 0.98
+  }
+}
