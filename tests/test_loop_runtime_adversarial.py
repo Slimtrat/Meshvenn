@@ -130,8 +130,9 @@ class Provider:
 
 
 class Evaluator:
-    def __init__(self,before,log,*,canonical_change=False,hook=None,version="1"):
+    def __init__(self,before,log,*,canonical_change=False,hook=None,version="1",export_verified=False):
         self.before,self.log,self.canonical_change,self.hook,self.version=before,Path(log),canonical_change,hook,version
+        self.export_verified=export_verified
     def metadata(self):return EvaluatorInfo(EngineVersion("test.local_evaluator",self.version),simulation=True)
     def evaluate(self,request,output_image,**kwargs):
         with self.log.open("ab") as stream:stream.write(b"evaluate\n")
@@ -143,7 +144,14 @@ class Evaluator:
         views=replace(old,revision=2,views=tuple(target if v.view_id=="target" else v for v in old.views),canonical_reference=canonical)
         candidate_glb=glb("candidate artifact")
         new_glb=artifact("candidate-glb",candidate_glb,"model/gltf-binary")
-        snapshot=LoopSnapshot("candidate",views,(declared_report(views),),
+        report=declared_report(views)
+        if self.export_verified:
+            exported=Finding("exact-export","quality.export_verified","quality","info","pass",
+                "Declared test-profile validation of this exact output; no real exporter is qualified.",
+                evidence=(Evidence("exact-glb","artifact","Exact candidate GLB in the declared test profile.",artifact=new_glb),))
+            report=replace(report,findings=(*report.findings,exported),
+                policy=replace(report.policy,required_checks=(*report.policy.required_checks,"quality.export_verified")))
+        snapshot=LoopSnapshot("candidate",views,(report,),
             (Measurement("target_error",.5,"normalized_error"),),tuple(
                 SnapshotArtifact("glb",new_glb) if a.role=="glb" else a for a in self.before.artifacts))
         result=EvaluationResult(GlobalEvaluation(request.request_id,request.sha256,snapshot,self.metadata(),
@@ -311,6 +319,100 @@ class LoopRuntimeAdversarialTests(unittest.TestCase):
         self.assertIn("canonical_authority_changed",state.attempts[0].decision.reasons)
         self.assertEqual(state.plans.view_set,self.before.view_set)
         self.unchanged(runtime,state)
+
+    def test_pending_and_awaiting_host_stop_when_persisted_elapsed_budget_expires(self):
+        for mode in ("service_api","host_tool"):
+            with self.subTest(mode=mode),temporary_directory() as folder:
+                clock=[1000.]
+                provider=Provider(folder/"provider.log") if mode=="service_api" else None
+                payload={**self.payload,"budget":LoopBudget(max_elapsed_seconds=10.).to_dict()}
+                if mode=="host_tool":payload["provider"]=replace(Provider(folder/"unused.log").metadata(),execution_mode=mode).to_dict()
+                runtime=LoopRuntime(folder/"store",provider=provider,clock=lambda:clock[0])
+                runtime.start("session",payload)
+                waiting=runtime.advance("session")
+                self.assertEqual(waiting.status,"pending" if provider else "awaiting_host")
+                clock[0]=1011.
+                expired=runtime.advance("session")
+                self.assertEqual(expired.status,"stopped")
+                self.assertIn("elapsed_budget_exhausted",expired.limitations)
+                self.assertEqual(len(expired.attempts),1)
+                self.unchanged(runtime,expired)
+                log=folder/"provider.log"
+                self.assertEqual(len(log.read_text().splitlines()) if log.exists() else 0,1 if provider else 0)
+
+    def test_late_acknowledgements_preserve_cancellation_and_completed_usage(self):
+        runtime=self.runtime()
+        payload={**self.payload,"provider":replace(Provider(self.log).metadata(),execution_mode="host_tool").to_dict()}
+        runtime.start("session",payload)
+        waiting=runtime.advance("session")
+        request=waiting.attempts[0].request
+        runtime.execute("cancel","session")
+        ack=ProviderReceipt(request.request_id,request.sha256,request.provider.provider_id,request.provider.model,
+            "pending",Usage(.1),parameters_json=request.provider.parameters_json)
+        supplied=runtime.execute("supply","session",{"receipt":ack.to_dict()})
+        self.assertEqual(supplied["status"],"cancelled")
+        self.now[0]+=301.
+        for _ in range(2):
+            resumed=runtime.resume("session")
+            self.assertEqual(resumed.status,"cancelled")
+            self.unchanged(runtime,resumed)
+        with temporary_directory() as folder:
+            completed=LoopRuntime(folder/"store",provider=Provider(folder/"provider.log","completed"),clock=lambda:1000.)
+            completed.start("session",self.payload)
+            state=completed.advance("session")
+            request=state.attempts[0].request
+            completed_sha=state.attempts[0].completed_receipt.sha256
+            pending=ProviderReceipt(request.request_id,request.sha256,request.provider.provider_id,request.provider.model,
+                "pending",Usage(cost=None),parameters_json=request.provider.parameters_json)
+            completed._save_receipt("session",pending)
+            after=completed._drain("session")
+            self.assertEqual(after.status,"candidate_ready")
+            self.assertEqual(after.known_cost,.2)
+            self.assertFalse(after.cost_uncertain)
+            self.assertEqual(after.attempts[0].completed_receipt.sha256,completed_sha)
+            self.assertEqual(len(after.attempts[0].receipts),2)
+
+    def test_timely_generation_allows_local_evaluation_after_request_deadline(self):
+        evaluator=Evaluator(self.before,self.eval_log,export_verified=True)
+        runtime=self.runtime(Provider(self.log,"completed"),evaluator)
+        payload={**self.payload,"budget":LoopBudget(request_timeout_seconds=5.,max_elapsed_seconds=30.).to_dict(),
+            "acceptance_policy":AcceptancePolicy(required_checks=("test.global_ok","quality.export_verified"),
+                required_engines=(TEST_ENGINE.engine_id,)).to_dict()}
+        runtime.start("session",payload)
+        generated=runtime.advance("session")
+        self.assertEqual(generated.status,"candidate_ready")
+        self.now[0]=generated.attempts[0].request.expires_at+1
+        evaluated=runtime.advance("session")
+        self.assertTrue(evaluated.attempts[0].decision.promoted)
+        self.assertEqual(evaluated.attempts[0].status,"accepted")
+        self.assertEqual(self.calls("submit"),1)
+
+    def test_acceptance_keeps_failure_dominant_and_binds_export_evidence_to_candidate(self):
+        from meshvenn_engine.core.correction_loop import assess
+        evaluator=Evaluator(self.before,self.eval_log,export_verified=True)
+        runtime=self.runtime(Provider(self.log,"completed"),evaluator)
+        runtime.start("session",self.payload)
+        generated=runtime.advance("session")
+        attempt=generated.attempts[0]
+        evaluation=evaluator.evaluate(attempt.request,attempt.completed_receipt.output_image).evaluation
+        policy=AcceptancePolicy(required_checks=("test.global_ok","quality.export_verified"),required_engines=(TEST_ENGINE.engine_id,))
+        self.assertTrue(assess(self.before,attempt.request,evaluation,policy,protected_pixels=True).promoted)
+        report=evaluation.candidate.reports[0]
+        original_glb=next(a.artifact for a in self.before.artifacts if a.role=="glb")
+        wrong_report=replace(report,findings=tuple(replace(f,evidence=tuple(
+            replace(e,artifact=original_glb) for e in f.evidence)) if f.code=="quality.export_verified" else f for f in report.findings))
+        wrong=replace(evaluation,candidate=replace(evaluation.candidate,reports=(wrong_report,)))
+        decision=assess(self.before,attempt.request,wrong,policy,protected_pixels=True)
+        self.assertFalse(decision.promoted)
+        self.assertIn("exact_export_artifact_evidence_missing",decision.reasons)
+        failed=replace(report,findings=tuple(replace(f,status="fail") if f.code=="test.global_ok" else f for f in report.findings))
+        unknown=replace(report,report_id="unknown-after-failure",completion="partial",findings=tuple(
+            replace(f,status="unknown",reason="Unresolved orchestration fixture.") for f in report.findings))
+        mixed=replace(evaluation,candidate=replace(evaluation.candidate,reports=(failed,unknown),metrics=()))
+        decision=assess(self.before,attempt.request,mixed,policy,protected_pixels=True)
+        self.assertFalse(decision.promoted)
+        self.assertEqual(decision.required_status,"fail")
+        self.assertIn("comparable_objective_missing",decision.reasons)
 
 
 if __name__=="__main__":unittest.main()
