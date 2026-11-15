@@ -1000,6 +1000,7 @@ jobs:
             core/geometry_diagnostics \
             core/appearance_diagnostics \
             core/correction_plans \
+            core/correction_loop \
             core/geometry_contracts \
             core/modular_character \
             core/native_bridge \

@@ -52,6 +52,11 @@ def main():
         request = corrections.prepare_correction(edit,revision,(result.report,),capabilities=capabilities)
         assert request.candidate_origin=="derived" and request.verification_status=="unknown"
         assert corrections.PreparedCorrection.from_json(request.to_json()) == request
+        loops = importlib.import_module(package.__name__+".core.correction_loop")
+        snapshot = loops.LoopSnapshot("packaged-loop-baseline",revision,(result.report,),
+            (contracts.Measurement("target_error",.5,"normalized_error"),))
+        assert loops.LoopSnapshot.from_json(snapshot.to_json()) == snapshot
+        assert loops.LoopBudget.from_json(loops.LoopBudget().to_json()).max_attempts == 3
         assert tuple(bpy.context.scene.objects) == before
         print("PACKAGED_APPEARANCE_DIAGNOSTICS_PASS: visible paint defect, checked correction package, unknown identity, strict replay, no scene mutation")
     finally:

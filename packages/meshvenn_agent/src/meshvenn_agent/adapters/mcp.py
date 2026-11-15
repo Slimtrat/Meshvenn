@@ -102,7 +102,7 @@ def create_server(gateway: "Gateway"):
 
     @server.tool()
     def meshvenn_loop(arguments: dict[str, Any], request_id: StrictStr | None = None) -> dict[str, Any]:
-        """Operate a durable correction session; only the trusted host configures providers, evaluators and storage."""
+        """Operate durable state; advance may invoke a host-configured provider. The host alone configures ports, limits and storage."""
         return gateway.execute("corrections.loop", arguments, request_id=request_id, cancel=cancellation_check())
 
     @server.tool()

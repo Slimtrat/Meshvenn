@@ -70,7 +70,7 @@ class Gateway:
             actions.append(dict(name=name, version=ACTION_VERSION, available=available,
                 reason=str(reason)[:1024], **schemas,
                 annotations=dict(readOnlyHint=name == "engine.capabilities", destructiveHint=False,
-                                 idempotentHint=name == "engine.capabilities", openWorldHint=False,
+                                 idempotentHint=name == "engine.capabilities", openWorldHint=name == "corrections.loop",
                                  supportsCancellation=name != "engine.capabilities",
                                  requiresNative=name in ("geometry.diagnose", "geometry.mesh"),
                                  technicalCompletionIsVerification=False)))
