@@ -999,6 +999,7 @@ jobs:
             core/diagnostics_preflight \
             core/geometry_diagnostics \
             core/appearance_diagnostics \
+            core/correction_plans \
             core/geometry_contracts \
             core/modular_character \
             core/native_bridge \
@@ -2670,7 +2671,7 @@ jobs:
             --python-executable "$(command -v python)" \
             --native-library "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool/native/bin/libbpt_core.so"
 
-      - name: Verify packaged appearance diagnostics
+      - name: Verify packaged appearance diagnostics and checked correction plans
         shell: bash
         run: |
           set -euo pipefail

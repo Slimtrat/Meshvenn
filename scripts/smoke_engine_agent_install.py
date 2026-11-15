@@ -29,11 +29,12 @@ def installed_source_hash(module):
     return digest.hexdigest()
 
 
-def cube_png():
+def cube_png(color=(51, 128, 191, 255), *, patch=None):
     def chunk(kind, data):
         return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
     rows = b"".join(b"\0" + b"".join(
-        bytes((51, 128, 191, 255)) if 7 <= x <= 23 and 7 <= y <= 23 else bytes(4)
+        bytes(color if patch is None or patch[0] <= x <= patch[2] and patch[1] <= y <= patch[3]
+              else (51, 128, 191, 255)) if 7 <= x <= 23 and 7 <= y <= 23 else bytes(4)
         for x in range(31)) for y in range(31))
     return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 31, 31, 8, 6, 0, 0, 0))
             + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
@@ -110,6 +111,52 @@ def check_appearance(value, envelope):
     return restored
 
 
+def correction_arguments():
+    """Use a real D4 regional color measurement, never a fabricated ready report."""
+    from meshvenn_engine import MeshvennEngine
+    from meshvenn_engine.core.diagnostic_contracts import Region, ViewSetRevision
+    from meshvenn_engine.core.diagnostics_preflight import RasterInput
+    arguments = appearance_arguments()
+    png = cube_png((210, 45, 30, 255), patch=(11,11,19,19))
+    for view in arguments["view_set"]["views"]:
+        if view["view_id"] == "target":
+            view["image"] = RasterInput.from_png_bytes(png).content_reference().to_dict()
+    revision = ViewSetRevision.from_dict(arguments["view_set"])
+    arguments["surface"]["binding_sha256"] = revision.dependency_fingerprint
+    arguments["inputs"]["target"] = {"image": {"png_base64": base64.b64encode(png).decode("ascii")}}
+    arguments["regions"] = [Region("target", "central-color-patch", (.35,.35,.65,.65)).to_dict()]
+    measured = MeshvennEngine().execute("appearance.diagnose", arguments)
+    assert any(f["code"] == "appearance.color_consistency" and f["status"] == "fail"
+               and any(r["label"] == "central-color-patch" for r in f["regions"])
+               for f in measured["report"]["findings"]), measured["report"]
+    return {"view_set": arguments["view_set"], "reports": [measured["report"]],
+        "capabilities": {"provider_id": "offline-request-contract", "version": "1",
+            "controls": ["region_edit", "multiple_references", "camera_request", "identity_reference"], "max_references": 8}}
+
+
+def check_plan(value, envelope):
+    from meshvenn_engine.core.correction_plans import CorrectionResult
+    assert envelope["status"] == envelope["technical_status"] == "completed", envelope
+    assert envelope["verification_status"] == value["verification_status"] == "unknown"
+    restored = CorrectionResult.from_dict(value)
+    candidates = [plan for plan in restored.plans if plan.action_kind == "edit_region" and plan.readiness == "ready"]
+    assert candidates, value
+    assert envelope["summary"]["readiness_counts"]["ready"] >= 1
+    assert any(e.code == "appearance.color_consistency" and e.status == "fail" for e in candidates[0].evidence)
+    return candidates[0].to_dict()
+
+
+def check_prepared(value, envelope, selected):
+    from meshvenn_engine.core.correction_plans import PreparedCorrection
+    assert envelope["status"] == envelope["technical_status"] == "completed", envelope
+    assert envelope["verification_status"] == value["verification_status"] == "unknown"
+    restored = PreparedCorrection.from_dict(value)
+    assert restored.plan_id == selected["plan_id"] and restored.context_sha256 == selected["context_sha256"]
+    assert restored.candidate_origin == "derived" and restored.derived_from and restored.postconditions
+    assert restored.prompt.preserve_originals and restored.prompt.coordinate_space == "source"
+    return restored
+
+
 def check_diagnostic(value, envelope):
     assert envelope["status"] == envelope["technical_status"] == "completed", envelope
     assert envelope["verification_status"] == "pass", envelope
@@ -134,7 +181,7 @@ def check_mesh(value, envelope, volume, library_sha):
     assert value["provenance"]["worker_pid"] != os.getpid()
 
 
-async def protocol(args, arguments, volume, library_sha):
+async def protocol(args, arguments, volume, library_sha, correction):
     from mcp import Client
     from mcp.client.stdio import StdioServerParameters
     server = StdioServerParameters(command=sys.executable, args=["-I", "-m",
@@ -145,7 +192,7 @@ async def protocol(args, arguments, volume, library_sha):
             tools = await client.list_tools()
             names = {tool.name for tool in tools.tools}
             assert names == {"meshvenn_capabilities", "meshvenn_preflight", "meshvenn_diagnose",
-                             "meshvenn_mesh", "meshvenn_appearance", "meshvenn_artifact_read"}, names
+                             "meshvenn_mesh", "meshvenn_appearance", "meshvenn_plan", "meshvenn_prepare_correction", "meshvenn_artifact_read"}, names
 
             async def call(name, value):
                 result = await client.call_tool(name, value)
@@ -186,8 +233,15 @@ async def protocol(args, arguments, volume, library_sha):
             check_mesh(await read_result(mesh["artifact"]), mesh, volume, library_sha)
             appearance = await call("meshvenn_appearance", {"arguments": appearance_arguments()})
             check_appearance(await read_result(appearance["artifact"]), appearance)
+            planned = await call("meshvenn_plan", {"arguments": correction})
+            selected = check_plan(await read_result(planned["artifact"]), planned)
+            prepared = await call("meshvenn_prepare_correction", {"arguments": dict(correction, plan=selected)})
+            check_prepared(await read_result(prepared["artifact"]), prepared, selected)
+            stale = await call("meshvenn_prepare_correction", {"arguments": dict(correction, plan=selected, capabilities={})})
+            assert stale["status"] == "invalid_request" and stale["verification_status"] == "unknown", stale
             return {"protocol_version": client.protocol_version, "tools": sorted(names),
                     "capabilities": caps, "preflight": preflight, "diagnostic": diagnostic, "mesh": mesh, "appearance": appearance,
+                    "planned": planned, "prepared": prepared, "stale_preparation": stale,
                     "native_library_sha256": library_sha}
 
 
@@ -212,7 +266,7 @@ def main():
                       ArtifactStore(args.output / "direct-workspace"))
     catalogue = gateway.catalogue()
     assert {action["name"] for action in catalogue["actions"]} == {
-        "engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose"}
+        "engine.capabilities", "views.preflight", "geometry.diagnose", "geometry.mesh", "appearance.diagnose", "corrections.plan", "corrections.prepare"}
     arguments = source_arguments()
     preflight = gateway.execute("views.preflight", dict(arguments, policy={"required_cameras": []}))
     assert preflight["status"] == "completed"
@@ -227,6 +281,13 @@ def main():
     check_mesh(mesh_value, mesh, value["volume"], library_sha)
     appearance = gateway.execute("appearance.diagnose", appearance_arguments())
     check_appearance(complete_artifact(gateway.read_artifact, appearance["artifact"]), appearance)
+    correction = correction_arguments()
+    planned = gateway.execute("corrections.plan", correction)
+    selected = check_plan(complete_artifact(gateway.read_artifact, planned["artifact"]), planned)
+    prepared = gateway.execute("corrections.prepare", dict(correction, plan=selected))
+    check_prepared(complete_artifact(gateway.read_artifact, prepared["artifact"]), prepared, selected)
+    stale = gateway.execute("corrections.prepare", dict(correction, plan=selected, capabilities={}))
+    assert stale["status"] == "invalid_request" and stale["verification_status"] == "unknown", stale
     cancelled = gateway.execute("geometry.diagnose", arguments, cancel=lambda: True)
     assert cancelled["status"] == "cancelled" and cancelled["verification_status"] != "pass"
     assert "bpy" not in sys.modules and "mcp" not in sys.modules
@@ -237,11 +298,13 @@ def main():
         "agent_source_sha256": installed_source_hash(meshvenn_agent),
         "native_library_sha256": library_sha, "engine_path": meshvenn_engine.__file__,
         "agent_path": meshvenn_agent.__file__, "request_sha256": hashlib.sha256(encoded(arguments)).hexdigest(),
-        "direct": {"catalogue": catalogue, "preflight": preflight, "diagnostic": diagnostic, "mesh": mesh, "appearance": appearance},
-        "mcp": asyncio.run(protocol(args, arguments, value["volume"], library_sha)),
+        "correction_request_sha256": hashlib.sha256(encoded(correction)).hexdigest(),
+        "direct": {"catalogue": catalogue, "preflight": preflight, "diagnostic": diagnostic, "mesh": mesh, "appearance": appearance,
+                   "planned": planned, "prepared": prepared, "stale_preparation": stale},
+        "mcp": asyncio.run(protocol(args, arguments, value["volume"], library_sha, correction)),
         "scope": "Installed API, MCP transport and actual native execution; not identity, topology or GLB certification"}
     (args.output / "qualification.json").write_bytes(encoded(evidence))
-    print("INSTALLED_ENGINE_AGENT_PASS: two installed wheels, strict D3/D4 reports, native mesh, visible appearance, CAS, cancellation and real MCP stdio")
+    print("INSTALLED_ENGINE_AGENT_PASS: two installed wheels, strict D3/D4/D5 results, native mesh, visible appearance, revalidated corrections, CAS, cancellation and eight real MCP tools")
 
 
 if __name__ == "__main__":

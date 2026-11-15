@@ -43,8 +43,17 @@ def main():
         assert result.report.verification_status == "fail",result.report.to_json()
         assert result.identity_status == "unknown"
         assert appearance.AppearanceResult.from_json(result.to_json()) == result
+        corrections = importlib.import_module(package.__name__+".core.correction_plans")
+        capabilities = corrections.ProviderCapabilities("packaged-host","1",
+            ("region_edit","multiple_references","camera_request","identity_reference"))
+        plans = corrections.plan_corrections(revision,(result.report,),capabilities=capabilities)
+        assert corrections.CorrectionResult.from_json(plans.to_json()) == plans
+        edit = next(plan for plan in plans.plans if plan.readiness=="ready")
+        request = corrections.prepare_correction(edit,revision,(result.report,),capabilities=capabilities)
+        assert request.candidate_origin=="derived" and request.verification_status=="unknown"
+        assert corrections.PreparedCorrection.from_json(request.to_json()) == request
         assert tuple(bpy.context.scene.objects) == before
-        print("PACKAGED_APPEARANCE_DIAGNOSTICS_PASS: visible paint defect, unknown identity, strict replay, no scene mutation")
+        print("PACKAGED_APPEARANCE_DIAGNOSTICS_PASS: visible paint defect, checked correction package, unknown identity, strict replay, no scene mutation")
     finally:
         package.unregister()
 

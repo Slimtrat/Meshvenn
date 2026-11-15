@@ -8,7 +8,7 @@ from setuptools.command.build_py import build_py
 
 PURE_CORE_PACKAGES = (
     "diagnostic_contracts", "diagnostics_preflight", "geometry_diagnostics", "appearance_diagnostics", "material_visibility",
-    "native_bridge", "projection_math", "geometry_contracts", "pipeline_contracts",
+    "correction_plans", "native_bridge", "projection_math", "geometry_contracts", "pipeline_contracts",
 )
 PURE_CORE_MODULES = {
     "__init__", "image_mask", "native_loader", "native_scan", "native_scan_diagnostics",

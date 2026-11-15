@@ -108,6 +108,39 @@ class GatewayTests(unittest.TestCase):
         self.assertEqual(result["status"], "failed")
         self.assertEqual(result["verification_status"], "unknown")
 
+    def test_correction_readiness_is_preserved_without_asset_approval(self):
+        self.engine.value = {"schema_version": 1, "readiness": "ready", "verification_status": "unknown"}
+        for action in ("corrections.plan", "corrections.prepare"):
+            arguments = {"view_set": {}, "reports": [], "capabilities": {}, "annotations": []}
+            if action == "corrections.prepare":
+                arguments["plan"] = {}
+            with self.subTest(action=action):
+                result = self.gateway.execute(action, arguments)
+                self.assertEqual((result["status"], result["verification_status"]), ("completed", "unknown"))
+                self.assertEqual(result["result"]["readiness"], "ready")
+                self.assertEqual(self.engine.calls[-1][0], action)
+                self.engine.value["verification_status"] = "pass"
+                rejected = self.gateway.execute(action, arguments)
+                self.assertEqual(rejected["error"]["code"], "invalid_engine_output")
+                self.engine.value["verification_status"] = "unknown"
+
+    def test_correction_request_limits_and_host_overrides_reject_before_port(self):
+        base = {"view_set": {}, "reports": []}
+        for changes in ({"reports": [None]*21}, {"annotations": [None]*129}, {"plan": {}},
+                        {"capabilities": []}, {"provider": {}}, {"policy": {"path": "untrusted"}}):
+            with self.subTest(changes=changes):
+                self.assertEqual(self.gateway.execute("corrections.plan", {**base, **changes})["status"], "invalid_request")
+        self.assertEqual(self.engine.calls, [])
+
+    def test_cancelled_correction_completion_retains_typed_evidence(self):
+        self.engine.value = {"schema_version": 1, "plans": [{"readiness": "needs_input"}],
+                             "completion": "cancelled", "verification_status": "unknown"}
+        result = self.gateway.execute("corrections.plan", {"view_set": {}, "reports": []})
+        self.assertEqual(result["status"], "cancelled")
+        self.assertIsNotNone(result["artifact"])
+        self.assertEqual(result["summary"]["completion"], "cancelled")
+        self.assertEqual(result["summary"]["readiness_counts"]["needs_input"], 1)
+
     def test_unknown_action_extra_arguments_and_host_overrides_reject_before_port(self):
         cases = [("shell.execute", {"code": "ignored"}), ("geometry.diagnose", {**self.arguments, "python_executable": "x"}),
                  ("geometry.diagnose", {**self.arguments, "policy": {"backend": "x"}}),

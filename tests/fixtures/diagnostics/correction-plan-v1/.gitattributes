@@ -1,0 +1,2 @@
+# The deliberately invalid native probe is hash-pinned original binary data.
+*.bin binary

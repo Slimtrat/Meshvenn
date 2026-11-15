@@ -43,6 +43,7 @@ def _object(properties, required=()):
 
 def action_schemas():
     from .core.appearance_diagnostics import AppearancePolicy, AppearanceRegionAnchor, AppearanceViewSettings, SurfaceMesh
+    from .core.correction_plans import CorrectionPlan, CorrectionPolicy, CorrectionResult, EditAnnotation, PreparedCorrection, ProviderCapabilities
     png = _object({"png_base64": {"type": "string", "maxLength": 44_739_244},
                    "format": {"const": "png"}}, ("png_base64",))
     rgba = _object({"format": {"const": "rgba"}, "width": {"type": "integer", "minimum": 1, "maximum": 1_048_576},
@@ -74,6 +75,19 @@ def action_schemas():
         "identity_status": {"enum": ["pass", "fail", "unknown", "not_applicable"]},
         "deterministic_status": {"enum": ["pass", "fail", "unknown", "not_applicable"]}},
         "required": ["schema_version", "verification_status", "identity_status", "deterministic_status"]}
+    correction = _object({"view_set": model_schema(ViewSetRevision),
+        "reports": {"type": "array", "maxItems": 20, "items": model_schema(DiagnosticReport)},
+        "capabilities": model_schema(ProviderCapabilities),
+        "annotations": {"type": "array", "maxItems": 128, "items": model_schema(EditAnnotation)},
+        "policy": model_schema(CorrectionPolicy)}, ("view_set", "reports"))
+    prepare = _object({**correction["properties"], "plan": model_schema(CorrectionPlan)}, ("plan", "view_set", "reports"))
+    def correction_output(model):
+        schema = model_schema(model)
+        schema["properties"]["verification_status"] = {"const": "unknown"}
+        schema["required"].append("verification_status")
+        return schema
     return {"engine.capabilities": (_object({}), {"type": "object"}),
             "views.preflight": (preflight, output), "geometry.diagnose": (diagnosis, output),
-            "geometry.mesh": (mesh, output), "appearance.diagnose": (appearance, appearance_output)}
+            "geometry.mesh": (mesh, output), "appearance.diagnose": (appearance, appearance_output),
+            "corrections.plan": (correction, correction_output(CorrectionResult)),
+            "corrections.prepare": (prepare, correction_output(PreparedCorrection))}

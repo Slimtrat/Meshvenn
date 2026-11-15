@@ -8,7 +8,7 @@ from dataclasses import asdict
 from .catalogue import VERSION, action_schemas
 from .core.diagnostics_preflight import PreflightPolicy, analyze_preflight
 from .core.geometry_diagnostics import GeometryPolicy, NativeGeometryBackend, VolumeArtifact, analyze_geometry
-from .dto import appearance_arguments, object_fields, policy, validate_json, view_arguments
+from .dto import appearance_arguments, correction_arguments, object_fields, policy, validate_json, view_arguments
 from .errors import EngineError
 from .native import NativeRuntime
 
@@ -33,7 +33,8 @@ class MeshvennEngine:
             "limits": {"request_bytes": 67_108_864, "decoded_pixels": 4_194_304,
                        "mesh_vertices": 262_144, "mesh_indices": 1_048_576},
             "semantic_analyzer_configured": self._vision_analyzer is not None,
-            "scope": ["Deterministic input, geometry and visible appearance diagnostics, plus native surface extraction.",
+            "scope": ["Deterministic input, geometry and visible appearance diagnostics, native surface extraction and correction planning.",
+                      "Correction planning and preparation never execute a provider or certify the asset.",
                       "Semantic identity is unknown without an explicitly qualified host analyzer; geometry/export acceptance is separate.",
                       "Blender pipelines, rigging, animation and export certification are not advertised."]}
 
@@ -48,6 +49,18 @@ class MeshvennEngine:
                 raise EngineError("cancelled", "Engine execution was cancelled before analysis.")
             if action == "engine.capabilities":
                 return self.capabilities()
+            if action in ("corrections.plan", "corrections.prepare"):
+                from .core.correction_plans import plan_corrections, prepare_correction
+                revision, reports, capabilities, annotations, correction_policy, selected = correction_arguments(
+                    arguments, preparing=action == "corrections.prepare")
+                options = dict(capabilities=capabilities, annotations=annotations, policy=correction_policy)
+                if action == "corrections.plan":
+                    result = plan_corrections(revision, reports, cancel=cancel, **options)
+                else:
+                    result = prepare_correction(selected, revision, reports, **options)
+                data = result.to_dict()
+                data["verification_status"] = "unknown"
+                return json.loads(json.dumps(data, allow_nan=False, separators=(",", ":")))
             if action == "appearance.diagnose":
                 from .core.appearance_diagnostics import analyze_appearance
                 revision, inputs, surface, settings, regions, anchors, reports, appearance_policy = appearance_arguments(arguments)

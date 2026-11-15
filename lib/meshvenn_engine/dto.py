@@ -142,3 +142,26 @@ def appearance_arguments(arguments):
     reports = tuple(DiagnosticReport.from_dict(value) for value in raw_reports)
     surface = SurfaceMesh.from_dict(arguments["surface"]) if arguments.get("surface") is not None else None
     return revision, inputs, surface, settings, regions, anchors, reports, policy(AppearancePolicy, arguments.get("policy"))
+
+
+def correction_arguments(arguments, *, preparing=False):
+    """Decode planning evidence without accepting provider execution or paths."""
+    from .core.correction_plans import CorrectionPlan, CorrectionPolicy, EditAnnotation, ProviderCapabilities
+    from .core.diagnostic_contracts import DiagnosticReport
+    allowed = ("view_set", "reports", "capabilities", "annotations", "policy") + (("plan",) if preparing else ())
+    required = ("view_set", "reports") + (("plan",) if preparing else ())
+    object_fields(arguments, allowed, required)
+    revision = ViewSetRevision.from_dict(arguments["view_set"])
+    if len(revision.views) > 20:
+        raise ValueError("At most 20 views fit the correction request profile.")
+    raw_reports, raw_annotations = arguments["reports"], arguments.get("annotations", [])
+    if type(raw_reports) is not list or len(raw_reports) > 20:
+        raise ValueError("At most 20 current diagnostic reports are supported.")
+    if type(raw_annotations) is not list or len(raw_annotations) > 128:
+        raise ValueError("At most 128 explicit edit annotations are supported.")
+    reports = tuple(DiagnosticReport.from_dict(item) for item in raw_reports)
+    annotations = tuple(EditAnnotation.from_dict(item) for item in raw_annotations)
+    capabilities = (ProviderCapabilities.from_dict(arguments["capabilities"])
+                    if "capabilities" in arguments else None)
+    selected = CorrectionPlan.from_dict(arguments["plan"]) if preparing else None
+    return revision, reports, capabilities, annotations, policy(CorrectionPolicy, arguments.get("policy")), selected
