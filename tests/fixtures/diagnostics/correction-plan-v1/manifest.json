@@ -1,0 +1,747 @@
+{
+  "assets": [
+    {
+      "bytes": 211,
+      "path": "assets/shifted/target-image.png",
+      "sha256": "0321edfd5b72134ed54f76f69941fdab3c96b3b742656e0fe631a2c91d7a8631"
+    },
+    {
+      "bytes": 226,
+      "path": "assets/shifted/target-mask.png",
+      "sha256": "fe946bc0f62d2a51e521c8a3197252dae4aab51a43f20ee52566b46c2356bf63"
+    },
+    {
+      "bytes": 214,
+      "path": "assets/shifted/reference-image.png",
+      "sha256": "3f83f36611399c2404d2cbe287f8c9fb036d3707b86fdc60af609065df1d0d37"
+    },
+    {
+      "bytes": 229,
+      "path": "assets/shifted/reference-mask.png",
+      "sha256": "37868d320e90763bab1c4c6b3f87c6f10e15b2c21df83ed2d73291fadd3708ca"
+    },
+    {
+      "bytes": 214,
+      "path": "assets/empty_mask/target-image.png",
+      "sha256": "17738c670041090e676133385a8478b0e792e297ec5cea2eed3df2b19a21efa5"
+    },
+    {
+      "bytes": 219,
+      "path": "assets/empty_mask/target-mask.png",
+      "sha256": "9525415d29f098ccbc57bcea6f81ec0ee9b85d9534c09b2255aa72b44ec33776"
+    },
+    {
+      "bytes": 217,
+      "path": "assets/empty_mask/reference-image.png",
+      "sha256": "7d3e972878f191a46d3c2c72cc52127ff7b16527dfa26c0ef20151bd047f63e8"
+    },
+    {
+      "bytes": 232,
+      "path": "assets/empty_mask/reference-mask.png",
+      "sha256": "7630372638367e3c4c1ead3648310fa9900c4105da06e2e1f15be6eadb307bf1"
+    },
+    {
+      "bytes": 216,
+      "path": "assets/missing_side/target-image.png",
+      "sha256": "54abefbf2187bda3992f9fa07954148950bd198410c1307fae85ab925bfcfe24"
+    },
+    {
+      "bytes": 231,
+      "path": "assets/missing_side/target-mask.png",
+      "sha256": "ff8e484d6c2aa4ef8e0a2016fe05663b57839ae192787044b5fc741f38129f30"
+    },
+    {
+      "bytes": 219,
+      "path": "assets/missing_side/reference-image.png",
+      "sha256": "2e2de07461bdeb39b72a7655fafdc5b0f2831c0fb91bc9c59cc7b6e96aacec33"
+    },
+    {
+      "bytes": 234,
+      "path": "assets/missing_side/reference-mask.png",
+      "sha256": "b9ba53879b43ab45e39e3561131def28bb71a853fcf3b6c6565c508bd08a3ef1"
+    },
+    {
+      "bytes": 598,
+      "path": "authoring-proof.json",
+      "sha256": "90b0bb8aac2b62152859b1fcfcd56afe813dab40840ac6c3522cf6abbd1a4c72"
+    },
+    {
+      "bytes": 92,
+      "path": "assets/invalid-native.bin",
+      "sha256": "fbccd3b1d6703c290eb1a8cf1e451229a45246c38ef824e6c93c3021302caabd"
+    }
+  ],
+  "cases": [
+    {
+      "author_intent": {
+        "allow_targeted_edit": true,
+        "preserve_asymmetry": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "targeted_visible_colour",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "actual_local_D4_failure",
+          "eligible_targeted_plan",
+          "edit_has_bounded_region_and_accepted_reference",
+          "explicit_D2_D3_D4_postconditions",
+          "prepare_is_nonexecuting_package"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D4",
+        "parent_case_id": "local_colour_change",
+        "raster_resolution": 32
+      },
+      "split": "calibration"
+    },
+    {
+      "author_intent": {
+        "allow_targeted_edit": false,
+        "preserve_asymmetry": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "intentional_asymmetry",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "actual_named_D4_pass",
+          "no_image_edit_without_supported_fault",
+          "no_symmetry_correction"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D4",
+        "parent_case_id": "intentional_asymmetry",
+        "raster_resolution": 32
+      },
+      "split": "heldout"
+    },
+    {
+      "author_intent": {
+        "fix_preparation_first": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "framing_preparation",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "actual_alignment_proposal",
+          "preparation_workflow",
+          "no_image_regeneration_for_framing"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D2",
+        "recipe": "shifted"
+      },
+      "split": "calibration"
+    },
+    {
+      "author_intent": {
+        "fix_preparation_first": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "mask_preparation",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "actual_mask_failure",
+          "mask_preparation_workflow",
+          "no_image_regeneration_for_mask"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D2",
+        "recipe": "empty_mask"
+      },
+      "split": "heldout"
+    },
+    {
+      "author_intent": {
+        "required_camera": {
+          "azimuth_degrees": 90.0,
+          "elevation_degrees": 0.0
+        }
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "missing_useful_view",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "actual_coverage_failure",
+          "useful_view_workflow",
+          "requested_direction_is_missing_observation"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D2",
+        "recipe": "missing_side"
+      },
+      "split": "calibration"
+    },
+    {
+      "author_intent": {
+        "do_not_blame_images_for_engine_failure": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "native_engine_failure",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "actual_native_failure",
+          "engine_diagnosis_workflow",
+          "no_image_edit_for_engine_failure"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_native_failure",
+        "parent_case_id": "ambiguous_pair"
+      },
+      "split": "heldout"
+    },
+    {
+      "author_intent": {
+        "no_automatic_fault_attribution": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "ambiguous_geometry",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "actual_ambiguous_geometry",
+          "reference_choice_workflow",
+          "no_unsupported_targeted_edit"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D3",
+        "parent_case_id": "ambiguous_pair"
+      },
+      "split": "calibration"
+    },
+    {
+      "author_intent": {
+        "canonical_mathematical_authority": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "canonical_geometry",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "actual_canonical_geometry_evidence",
+          "canonical_evidence_retained",
+          "no_unsupported_global_blame"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D3",
+        "parent_case_id": "canonical_resolves_pair"
+      },
+      "split": "heldout"
+    },
+    {
+      "author_intent": {
+        "allow_targeted_edit": true,
+        "mask_is_required": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": false,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.no_masks",
+        "version": "1"
+      },
+      "case_id": "unsupported_masks",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "eligible_edit_intent_preserved",
+          "unsupported_masks_explicit",
+          "no_silent_mask_drop",
+          "not_prepared_for_provider"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D4",
+        "parent_case_id": "local_colour_change",
+        "raster_resolution": 32
+      },
+      "split": "calibration"
+    },
+    {
+      "author_intent": {
+        "all_accepted_references_required": true,
+        "allow_targeted_edit": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 1,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.single_reference",
+        "version": "1"
+      },
+      "case_id": "unsupported_multiple_references",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "at_least_two_accepted_references",
+          "unsupported_multiple_references_explicit",
+          "no_silent_reference_drop",
+          "not_prepared_for_provider"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "additional_reference": {
+          "meaning": "Independent accepted original 45-degree view of the same authored body; preserve both references.",
+          "parent_case_id": "healthy_reprojected",
+          "role": "reference",
+          "view_id": "target"
+        },
+        "kind": "actual_D4",
+        "parent_case_id": "local_colour_change",
+        "raster_resolution": 32
+      },
+      "split": "heldout"
+    },
+    {
+      "author_intent": {
+        "allow_targeted_edit": true,
+        "verified_camera_constraint_required": true
+      },
+      "capabilities": {
+        "camera_constraints": false,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.no_camera_control",
+        "version": "1"
+      },
+      "case_id": "unsupported_camera_control",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "unsupported_camera_explicit",
+          "no_silent_camera_drop",
+          "not_prepared_for_provider"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D4",
+        "parent_case_id": "local_colour_change",
+        "raster_resolution": 32
+      },
+      "split": "heldout"
+    },
+    {
+      "author_intent": {
+        "allow_targeted_edit": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "stale_source",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "base_plan_preparable",
+          "prepare_rejects_stale_source"
+        ]
+      },
+      "prepare_mutation": {
+        "change": "target_revision_and_content",
+        "kind": "source"
+      },
+      "source": {
+        "kind": "actual_D4",
+        "parent_case_id": "local_colour_change",
+        "raster_resolution": 32
+      },
+      "split": "calibration"
+    },
+    {
+      "author_intent": {
+        "allow_targeted_edit": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "stale_capabilities",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "base_plan_preparable",
+          "prepare_rejects_stale_capabilities"
+        ]
+      },
+      "prepare_mutation": {
+        "change": "version",
+        "kind": "capabilities"
+      },
+      "source": {
+        "kind": "actual_D4",
+        "parent_case_id": "local_colour_change",
+        "raster_resolution": 32
+      },
+      "split": "heldout"
+    },
+    {
+      "author_intent": {
+        "allow_targeted_edit": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "stale_report",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "base_plan_preparable",
+          "prepare_rejects_stale_report"
+        ]
+      },
+      "prepare_mutation": {
+        "change": "finding_evidence_or_message",
+        "kind": "report"
+      },
+      "source": {
+        "kind": "actual_D4",
+        "parent_case_id": "local_colour_change",
+        "raster_resolution": 32
+      },
+      "split": "calibration"
+    },
+    {
+      "author_intent": {
+        "allow_targeted_edit": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "stale_policy",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "base_plan_preparable",
+          "prepare_rejects_stale_policy"
+        ]
+      },
+      "prepare_mutation": {
+        "change": "meaningful_configuration",
+        "kind": "policy"
+      },
+      "source": {
+        "kind": "actual_D4",
+        "parent_case_id": "local_colour_change",
+        "raster_resolution": 32
+      },
+      "split": "heldout"
+    },
+    {
+      "author_intent": {
+        "allow_targeted_edit": true,
+        "provenance_limit": "Analytic stand-in for user-origin preservation; no real photograph or identity is qualified.",
+        "source_is_original_user_content": true
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "user_original_preserved",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "base_plan_preparable",
+          "user_original_preserved",
+          "candidate_lineage_is_derived_from_original"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D4",
+        "origin": "user",
+        "parent_case_id": "local_colour_change",
+        "raster_resolution": 32
+      },
+      "split": "heldout"
+    },
+    {
+      "author_intent": {
+        "allow_targeted_edit": false
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "missing_semantic_evidence",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "actual_semantic_unknown",
+          "no_autoregeneration_for_missing_semantics"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D4",
+        "parent_case_id": "healthy_multicolour",
+        "raster_resolution": 32
+      },
+      "split": "calibration"
+    },
+    {
+      "author_intent": {
+        "allow_targeted_edit": false
+      },
+      "capabilities": {
+        "camera_constraints": true,
+        "image_edit": true,
+        "masks": true,
+        "max_references": 8,
+        "meaning": "Declared contract specimen only; no real provider was contacted or qualified.",
+        "profile_id": "corpus.capability_contract",
+        "version": "1"
+      },
+      "case_id": "low_support_semantic_claim",
+      "expected": {
+        "controls": [
+          "originals_unchanged",
+          "all_plans_bind_exact_sources_reports_policy_and_capabilities",
+          "no_provider_execution",
+          "no_general_semantic_or_human_qualification",
+          "actual_local_semantic_mock_called",
+          "actual_semantic_unknown",
+          "no_autoregeneration_for_low_confidence"
+        ]
+      },
+      "prepare_mutation": null,
+      "source": {
+        "kind": "actual_D4",
+        "parent_case_id": "healthy_multicolour",
+        "raster_resolution": 32,
+        "semantic_mock": "low_confidence_limited"
+      },
+      "split": "heldout"
+    }
+  ],
+  "corpus_version": "correction-plan-v1",
+  "evaluation_plan": {
+    "D3_reprojection_size": 64,
+    "D3_resolution": 32,
+    "D4_sampling_size": 32,
+    "edit_annotations": "When author intent allows a targeted edit, bind the measured finding to the original target-space authored ROI and its inline truth-region mask. The mask is an explicit author annotation, not inferred from diagnostic residuals.",
+    "max_seconds_per_diagnostic": 20.0,
+    "native_optional_but_required_for_complete_qualification": true,
+    "report_orders": [
+      "canonical",
+      "reverse"
+    ],
+    "semantic_mock": {
+      "confidence": 0.2,
+      "qualification_evidence": null,
+      "support": "limited",
+      "verdict": "changed"
+    }
+  },
+  "expectations_frozen_before_D5_evaluation": true,
+  "limits": {
+    "D6_D8": "unknown",
+    "initial_D7_and_issue_84": "open",
+    "provider_execution": "not performed",
+    "real_user_photographs": "not included",
+    "semantic_identity": "unqualified"
+  },
+  "parents": {
+    "appearance": {
+      "path": "tests/fixtures/diagnostics/appearance-v1/manifest.json",
+      "sha256": "5fc81e9563bd6ee03ebc5b6f8b2f2eb003b8283aaa04a1f481788f6b4533d5e3"
+    },
+    "geometry": {
+      "path": "tests/fixtures/diagnostics/geometry-v1/manifest.json",
+      "sha256": "aea6c48d9ffdfe1c5777291c4f0c82c945cb6fcd44e9a398fa9790ba9eb47a49"
+    }
+  },
+  "provenance": {
+    "generator_sources": [
+      {
+        "path": "scripts/correction_plan_corpus/fixtures.py",
+        "sha256_lf": "f74eec56db5fe2333a1a4a9c681db513c703c2fdec63d063832eb05baf5a5f25"
+      },
+      {
+        "path": "scripts/appearance_diagnostic_corpus/authoring.py",
+        "sha256_lf": "1b2ec051040666aa41642cb8ea095de7264e10bcb62b2167371666e27963507a"
+      }
+    ],
+    "human_reviewed": false,
+    "kind": "original_analytic_and_explicit_contract_specimens",
+    "provider_fidelity_qualified": false,
+    "real_provider_calls": 0
+  },
+  "schema_version": 1
+}

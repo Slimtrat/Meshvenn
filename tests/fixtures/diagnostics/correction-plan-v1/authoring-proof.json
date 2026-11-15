@@ -1,0 +1,16 @@
+{
+  "D2_shape": "(.34<u<.65 and .2<v<.75) or (.65<u<.76 and .52<v<.65)",
+  "D2_shifted_target_pixels": [
+    5,
+    -3
+  ],
+  "D4_and_D3_sources": "Unmodified original independently frozen appearance-v1 and geometry-v1 fixtures.",
+  "canonical_evidence": "Mathematical author intent, not invented human review.",
+  "coordinate_space": "bottom-left endpoint-grid pixels",
+  "human_reviewed": false,
+  "intentional_asymmetry": true,
+  "provenance": "Original analytic authoring; no planner, engine or provider output.",
+  "provider_qualification": false,
+  "raster_size": 64,
+  "schema_version": 1
+}
