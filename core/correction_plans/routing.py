@@ -1,6 +1,7 @@
 """Conservative interpretation of the existing D2/D3/D4 finding vocabulary."""
 from dataclasses import dataclass
 
+from ..diagnostic_contracts import Region
 from ..geometry_diagnostics.projection import check_budget
 from .lineage import accepted_references
 
@@ -57,7 +58,12 @@ def routes(view_set,reports,annotations,policy,report_hashes,deadline=None,cance
                 continue
             action=preparation_action(f)
             if action:
-                result.append(Route(report,f,action,None,None,"Resolve source preparation before any generative change."))
+                targets=[vid for vid in f.view_ids if vid in views and views[vid].role=="observation"]
+                if not targets:
+                    targets=[vid for vid in f.view_ids if vid in views]
+                for vid in targets or (None,):
+                    target=Region(vid,"source-preparation") if vid else None
+                    result.append(Route(report,f,action,target,None,"Resolve source preparation before any generative change."))
                 continue
             if f.category=="engine" and f.required:
                 result.append(Route(report,f,"diagnose_engine",None,None,"Technical failure or incomplete evidence requires diagnosis, not regeneration."))
@@ -134,4 +140,7 @@ def routes(view_set,reports,annotations,policy,report_hashes,deadline=None,cance
             if f.category=="geometry" and f.required or f.code=="appearance.canonical_reference":
                 result.append(Route(report,f,"select_reference",f.regions[0] if f.regions else None,None,
                     "Measured contradictions identify a suspect group, not which view is physically true; choose an authoritative reference."))
+            elif f.required:
+                result.append(Route(report,f,"review_evidence",f.regions[0] if f.regions else None,None,
+                    "Required evidence remains unresolved; inspect this diagnostic before choosing any image-content change."))
     return result
