@@ -119,6 +119,16 @@ def _sync_directory(path):
             os.close(descriptor)
 
 
+def _windows_path(path):
+    """Pass absolute extended paths to WinAPI, independently of MAX_PATH policy."""
+    absolute = os.path.abspath(os.fspath(path)).replace("/", "\\")
+    if absolute.startswith("\\\\?\\"):
+        return absolute
+    if absolute.startswith("\\\\"):
+        return "\\\\?\\UNC\\"+absolute[2:]
+    return "\\\\?\\"+absolute
+
+
 def _move(source, target, *, replace):
     if os.name == "nt":
         import ctypes
@@ -127,7 +137,7 @@ def _move(source, target, *, replace):
         move.restype = ctypes.c_int
         # WRITE_THROUGH plus fsync on the complete temporary file. The source
         # and destination always share a directory/filesystem.
-        if not move(str(source), str(target), 8 | (1 if replace else 0)):
+        if not move(_windows_path(source), _windows_path(target), 8 | (1 if replace else 0)):
             raise ctypes.WinError(ctypes.get_last_error())
     elif replace:
         os.replace(source, target)
@@ -141,7 +151,9 @@ class LoopStore:
         if (type(lock_timeout) not in (int, float) or not math.isfinite(lock_timeout) or not 0 < lock_timeout <= 120
                 or type(max_artifact_bytes) is not int or not 1 <= max_artifact_bytes <= 512*1024*1024):
             raise ValueError("Store limits require a finite lock timeout and bounded artifact size.")
-        self.root = Path(root).absolute()
+        # Keep the namespace on derived paths too: Python file APIs may also
+        # inherit MAX_PATH restrictions when Windows long-path policy is off.
+        self.root = Path(_windows_path(root)) if os.name == "nt" else Path(root).absolute()
         self.root.mkdir(parents=True, exist_ok=True)
         _directory(self.root)
         self.root = self.root.resolve(strict=True)

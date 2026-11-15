@@ -6,6 +6,7 @@ import json
 import multiprocessing
 import os
 from pathlib import Path
+import shutil
 import struct
 import sys
 import tempfile
@@ -88,6 +89,29 @@ class LoopStoreTests(unittest.TestCase):
             {"phase":"new","events":[{"id":1}]},{"phase":"reserved","events":[{"id":1}]}))
         self.code("session_exists",lambda:self.store.create("CON",{}))
         self.code("session_not_found",lambda:self.store.load("absent"))
+
+    def test_long_root_and_full_length_session_id_preserve_documented_limits(self):
+        root = self.root/("nested-"+"x"*50)/("nested-"+"y"*50)
+        if os.name=="nt":
+            from meshvenn_engine.loop_store import _windows_path
+            self.addCleanup(lambda:shutil.rmtree(_windows_path(root),ignore_errors=True))
+        store = LoopStore(root)
+        identifier = "s"+"a"*127
+        if os.name=="nt":
+            self.assertGreater(len(str(root/"sessions"/("s-"+identifier)/"head.json")),260)
+        store.create(identifier,{"phase":"reserved"})
+        store.update(identifier,lambda state:{"phase":"receipt-durable"})
+        restarted = LoopStore(root)
+        self.assertEqual(restarted.load(identifier),{"phase":"receipt-durable"})
+        self.assertEqual(len(restarted.history(identifier)),2)
+        digest = restarted.put_artifact(glb_bytes())
+        self.assertEqual(restarted.read_artifact(digest),glb_bytes())
+
+    @unittest.skipUnless(os.name=="nt","WinAPI path conversion is Windows-specific.")
+    def test_winapi_namespace_preserves_unc_and_already_extended_paths(self):
+        from meshvenn_engine.loop_store import _windows_path
+        self.assertEqual(_windows_path(r"\\server\share\folder\file"),r"\\?\UNC\server\share\folder\file")
+        self.assertEqual(_windows_path(r"\\?\C:\folder\file"),r"\\?\C:\folder\file")
 
     def test_callback_failure_and_invalid_result_leave_head_unchanged(self):
         self.store.create("shared",{"count":0})
