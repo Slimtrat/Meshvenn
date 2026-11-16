@@ -12,7 +12,7 @@ import subprocess
 import sys
 from time import perf_counter
 
-from .integrity import checked_path,file_record,inventory_tree,read_json,sha256_file,verify_file,verify_inventory
+from .integrity import checked_path,file_record,inventory_tree,native_path,read_json,sha256_file,verify_file,verify_inventory
 
 _ROOT=Path(__file__).resolve().parents[2]
 
@@ -185,16 +185,19 @@ def _summarize(spec,summary,manifest,root):
             failures.append({"case_id":row["case_id"],"configuration":list(_row_key(spec,row))[1:],
                              "score":score,"execution_failure":row.get("execution_failure",row.get("error"))})
     if summary["qualification_status"]=="pass" and failures:raise ValueError("Passing summary hides failed corpus records")
-    findings,policy_hashes=_validate_evidence(spec,summary,rows,root)
+    return {"by_split":splits,"failures":failures,"coverage_complete":set(observed)==expected}
+
+
+def _summarize_evidence(spec,summary,root):
+    findings,policy_hashes=_validate_evidence(spec,summary,summary[spec.records],root)
     unknown=Counter(f["code"] for f in findings if f.get("status")=="unknown")
     diagnostic_status=Counter(f["status"] for f in findings)
-    return {"by_split":splits,"failures":failures,"policy_hashes":policy_hashes,
+    return {"policy_hashes":policy_hashes,
             "unknowns":{"findings_count":sum(unknown.values()),"by_code":dict(sorted(unknown.items())),
                 "diagnostic_status_counts":dict(sorted(diagnostic_status.items())),
                 "limits":summary.get("scope_limits",summary.get("limits",summary.get("unevaluated",[]))),
                 "unavailable":summary.get("unavailable",[]),
-                "semantic_quality_qualified":summary.get("semantic_quality_qualified",False)},
-            "coverage_complete":set(observed)==expected}
+                "semantic_quality_qualified":summary.get("semantic_quality_qualified",False)}}
 
 
 def run_corpora(output: Path, *, native_library: Path | None=None, selection: tuple[str,...] | None=None) -> dict:
@@ -209,7 +212,9 @@ def run_corpora(output: Path, *, native_library: Path | None=None, selection: tu
     requested=known if selection is None else set(selection)
     if not requested or not requested<=known or selection is not None and len(selection)!=len(requested):
         raise ValueError("Select unique known corpora D2, D3, D4, D5, D6")
-    output=Path(output).absolute();output.mkdir(parents=True,exist_ok=True)
+    # Pass the extended absolute path through to legacy runners as well as our
+    # own reads/writes: extending only the inventory cannot repair failed output.
+    output=native_path(output);output.mkdir(parents=True,exist_ok=True)
     number=1
     while True:
         run=output/"corpora"/f"{number:04d}"
@@ -256,6 +261,9 @@ def run_corpora(output: Path, *, native_library: Path | None=None, selection: tu
                     summary=read_json(report_path)
                     if type(summary) is not dict:raise ValueError("Corpus result must be a JSON object")
                     entry["runner_status"]=summary.get("qualification_status")
+                    # A reported failure survives missing/invalid supporting
+                    # archives. Integrity can prevent PASS, never erase FAIL.
+                    if entry["runner_status"]=="fail":entry["status"]="fail"
                     entry["runner_qualification_identity"]=summary.get("qualification_identity")
                     entry["complete_matrix"]=summary.get("complete_matrix")
                     entry["scope"]=summary.get("qualified_scope",summary.get("scope"))
@@ -263,8 +271,10 @@ def run_corpora(output: Path, *, native_library: Path | None=None, selection: tu
                     entry["sources"]["implementation"]=summary.get("implementation",{})
                     if summary.get("manifest_sha256")!=manifest_record["sha256"]:raise ValueError("Runner manifest does not match the frozen input")
                     extracted=_summarize(spec,summary,manifest,root)
-                    entry.update({k:extracted[k] for k in ("by_split","unknowns","failures")})
-                    entry["sources"]["policy_hashes"]=extracted["policy_hashes"]
+                    entry.update({k:extracted[k] for k in ("by_split","failures")})
+                    evidence=_summarize_evidence(spec,summary,root)
+                    entry["unknowns"]=evidence["unknowns"]
+                    entry["sources"]["policy_hashes"]=evidence["policy_hashes"]
                     stable=summary.get("authorities_unchanged",summary.get("implementation_sources_unchanged_during_run"))
                     if stable is not True:issue("source_authorities_changed","Runner source authorities were not stable")
                     if not summary["complete_matrix"] or not extracted["coverage_complete"]:
@@ -280,7 +290,8 @@ def run_corpora(output: Path, *, native_library: Path | None=None, selection: tu
                     issue("missing_qualification","Runner produced no machine-readable qualification archive")
             if sha256_file(manifest_path)!=manifest_record["sha256"]:raise ValueError("Frozen manifest changed during execution")
         except (OSError,ValueError,KeyError,TypeError) as exc:
-            entry["technical_status"]="failed";entry["status"]="unknown"
+            entry["technical_status"]="failed"
+            if entry["status"]!="fail":entry["status"]="unknown"
             issue("unverifiable_corpus_result",exc)
         try:
             inventory=inventory_tree(root)
@@ -290,7 +301,9 @@ def run_corpora(output: Path, *, native_library: Path | None=None, selection: tu
             entry["outputs"]["inventory"]=relative(path)
             entry["inventory_sha256"]=sha256_file(path)
         except (OSError,ValueError) as exc:
-            entry["technical_status"]="failed";entry["status"]="unknown";issue("evidence_integrity_failed",exc)
+            entry["technical_status"]="failed"
+            if entry["status"]!="fail":entry["status"]="unknown"
+            issue("evidence_integrity_failed",exc)
         entry["elapsed_seconds"]=perf_counter()-begin
         results.append(entry)
     stable=aggregation_sources==_aggregation_sources()

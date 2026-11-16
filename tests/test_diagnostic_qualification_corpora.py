@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import shutil
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from scripts.diagnostic_qualification import corpora
-from scripts.diagnostic_qualification.integrity import (file_record,inventory_tree,read_json,
+from scripts.diagnostic_qualification.integrity import (file_record,inventory_tree,native_path,read_json,
     sha256_file,verify_file,verify_inventory)
 
 
@@ -90,6 +92,31 @@ class CorpusExecutionFailures(unittest.TestCase):
         self.assertEqual("unknown",result["status"])
         self.assertIn("unverifiable_corpus_result",[i["code"] for i in result["results"][0]["issues"]])
 
+    def test_fully_failed_matrix_retains_fail_when_raw_archive_is_missing(self):
+        def failed_missing(*args):
+            execution=self.emit(*args)
+            directory=Path(args[0][args[0].index("--output")+1])
+            summary=read_json(directory/"qualification.json")
+            summary["qualification_status"]="fail"
+            summary["cases"][0]["scoring"]["passed_expectations"]=False
+            summary["metrics"]={"evaluated_variants":1,"failed_cases":1}
+            write_json(directory/"qualification.json",summary)
+            (directory/"one/128/observations.json").unlink()
+            execution["exit_code"]=1
+            return execution
+        result=self.run_one(failed_missing)
+        stage=result["results"][0]
+        self.assertEqual("fail",result["status"])
+        self.assertEqual("fail",stage["status"])
+        self.assertEqual("fail",stage["runner_status"])
+        self.assertEqual("failed",stage["technical_status"])
+        self.assertTrue(stage["complete_matrix"])
+        self.assertEqual(1,stage["metrics"]["failed_cases"])
+        self.assertEqual(1,stage["by_split"]["heldout"]["failed"])
+        self.assertEqual("one",stage["failures"][0]["case_id"])
+        self.assertFalse(result["selected_full_matrices_passed"])
+        self.assertIn("unverifiable_corpus_result",[i["code"] for i in stage["issues"]])
+
     def test_claimed_full_matrix_cannot_omit_a_frozen_configuration(self):
         manifest=read_json(self.fixture)
         manifest["cases"][0]["variants"].append({"resolution":256})
@@ -139,6 +166,39 @@ class EvidenceIntegrityFailures(unittest.TestCase):
             for content in ('{"status":"pass","status":"fail"}','{"metric":NaN}'):
                 path.write_text(content,encoding="utf-8")
                 with self.assertRaises(ValueError):read_json(path)
+
+
+@unittest.skipUnless(os.name=="nt","Windows extended output paths")
+class WindowsLongOutput(unittest.TestCase):
+    def test_extended_path_is_idempotent_and_supports_unc(self):
+        ordinary=Path("C:/qualification/evidence")
+        extended=native_path(ordinary)
+        self.assertTrue(str(extended).startswith("\\\\?\\C:\\"))
+        self.assertEqual(extended,native_path(extended))
+        self.assertEqual("\\\\?\\UNC\\server\\share\\evidence",
+                         str(native_path(Path("\\\\server\\share\\evidence"))))
+
+    def test_real_D5_cli_keeps_deep_output_and_inventory_readable(self):
+        # No simulated runner: exercise frozen D5 through its CLI. Missing DLL
+        # intentionally leaves the native controls unqualified, never PASS.
+        base=Path(tempfile.mkdtemp(prefix="dq-long-"))
+        self.addCleanup(shutil.rmtree,native_path(base))
+        output=base/("long-output-"+"a"*45)/("durable-evidence-"+"b"*45)/("retained-run-"+"c"*45)/("nested-output-"+"d"*45)
+        self.assertGreater(len(str(output)),260)
+        result=corpora.run_corpora(output,selection=("D5",))
+        stage=result["results"][0]
+        command_output=stage["command"][stage["command"].index("--output")+1]
+        self.assertTrue(command_output.startswith("\\\\?\\"))
+        self.assertEqual(native_path(output)/stage["outputs"]["root"],Path(command_output))
+        self.assertEqual("unknown",stage["status"])
+        self.assertEqual("unqualified",stage["runner_status"])
+        self.assertEqual("completed",stage["technical_status"])
+        self.assertEqual(0,stage["metrics"]["failed"])
+        self.assertEqual(0,stage["metrics"]["execution_failures"])
+        self.assertEqual(["matrix_incomplete"],[i["code"] for i in stage["issues"]])
+        inventory=read_json(native_path(output)/stage["outputs"]["inventory"])
+        self.assertEqual("pass",verify_inventory(Path(command_output),inventory)["status"])
+        self.assertTrue(any(len(str(Path(command_output)/f["path"]))>300 for f in inventory["files"]))
 
 
 if __name__=="__main__":

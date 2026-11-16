@@ -9,12 +9,16 @@ import re
 import stat
 
 
-def _native(path):
+def native_path(path: Path) -> Path:
+    """Absolute filesystem/CLI path, extended on Windows without relocation."""
     path=Path(path).absolute()
     value=str(path)
     if os.name=="nt" and not value.startswith("\\\\?\\"):
         value="\\\\?\\UNC\\"+value[2:] if value.startswith("\\\\") else "\\\\?\\"+value
     return Path(value)
+
+
+_native=native_path
 
 
 def sha256_file(path: Path) -> str:
