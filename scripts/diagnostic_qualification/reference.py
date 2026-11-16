@@ -9,6 +9,12 @@ import struct
 
 FROZEN_MANIFEST_SHA256="f0d1e6be24740cb4b38ce359613d8bf0f377f1bfae81b393f4e8d1c8ada0145f"
 REPO=Path(__file__).resolve().parents[2]
+# The manifest names the public path as it existed at the pre-provider freeze.
+# Its immutable historical bytes, rather than today's safe wrapper, are proof.
+HISTORICAL_AUTHORS={
+    ("scripts/build_diagnostic_reference.py","6eab89f7cab7d5fc059051e0ecd833dcaea220d89901536ea8c19e6620257ce9"):
+        "tests/fixtures/diagnostics/provider-authoring-v1/build_diagnostic_reference.py",
+}
 
 
 def _read(path,limit):
@@ -52,8 +58,8 @@ def verify_fixture(root:Path)->dict:
             raise ValueError("Fixture artifact differs from its frozen byte fingerprint: "+name)
         contents[name]=data
     author=manifest["authoring_script"]
-    if author["path"]!="scripts/build_diagnostic_reference.py" or hashlib.sha256(
-            _read(REPO/author["path"],1024*1024)).hexdigest()!=author["sha256"]:
+    archived=HISTORICAL_AUTHORS.get((author["path"],author["sha256"]))
+    if archived is None or hashlib.sha256(_read(REPO/archived,1024*1024)).hexdigest()!=author["sha256"]:
         raise ValueError("The original Blender authoring script changed.")
     for name,data in contents.items():
         if name.endswith(".png"):
@@ -98,5 +104,7 @@ def verify_fixture(root:Path)->dict:
         verified_assets=len(assets),verified_bytes=total,source_glb_sha256=proof["source_glb_sha256"],
         resources=dict(meshes=len(document["meshes"]),nodes=len(document["nodes"]),materials=len(document["materials"]),
             triangles=triangles,embedded_buffers=1,external_resources=0),
+        authoring_source=dict(historical_manifest_path=author["path"],historical_source_sha256=author["sha256"],
+            archived_path=archived,active_wrapper_sha256=hashlib.sha256(_read(REPO/author["path"],1024*1024)).hexdigest()),
         archived_reload_verified=True,fresh_reload_performed=False,
         archived_reload_proof_sha256=hashlib.sha256(contents[manifest["truth"]["reload"]]).hexdigest(),manifest=manifest)
