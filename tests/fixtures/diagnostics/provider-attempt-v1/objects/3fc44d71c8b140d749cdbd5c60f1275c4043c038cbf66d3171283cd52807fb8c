@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "execution": {
+    "mode": "host_tool",
+    "tool_name": "image_gen.imagegen",
+    "request_id": null,
+    "backend_model": null,
+    "started_at": "2026-11-16T18:33:26.000Z",
+    "finished_at": "2026-11-16T18:34:24.000Z",
+    "latency_seconds": 57.354,
+    "outcome": "completed",
+    "error": null,
+    "max_calls": 1,
+    "calls": 1,
+    "billing_mode": "host_tool_no_api_invoice",
+    "cost": {
+      "status": "unknown",
+      "amount": null,
+      "currency": null
+    },
+    "usage": {
+      "status": "unknown",
+      "values": null
+    },
+    "parameters": {
+      "prompt": "Use case: precise-object-edit.\nAsset type: controlled MeshVenn diagnostic correction, not a redesign.\nInput image 1 is the EDIT TARGET: an original 1024 x 1024 transparent orthographic front render of an asymmetric rounded teal robot. Its chest badge interior is incorrectly pink/magenta.\nInput image 2 is the HEALTHY REFERENCE of the exact same robot, same camera and same image grid; its badge interior is blue.\nChange ONLY the pink circular badge interior in input image 1 to match the blue badge interior in input image 2. Preserve the yellow/gold badge rim. Preserve every other part and pixel as closely as possible: the cream head, dark face, antenna, teal body, shoulders, hands, legs, feet, and especially the single orange flag and flagpole on the right of the image. Keep all proportions, outlines, surface shading, camera angle, position, framing and the original 1024 x 1024 canvas. Keep the genuine transparent background and original alpha edges. Do not add a floor, shadow, text, watermark or other objects. Return the single corrected image, retaining the exact front view. This is a localized material-colour correction only.",
+      "transparent_background": true,
+      "reference_assets": [
+        "before",
+        "healthy"
+      ],
+      "path_redactions": "Local reference paths replaced with asset IDs; no unexposed model/usage/price parameters were inferred."
+    },
+    "raw_provenance_asset": "raw"
+  },
+  "tool_response": {
+    "observed_image_returned": true,
+    "output_sha256": "b2d87cff830961fcc079dd0d3b5b157b05dcbc896d897fa5a651aaf465432093",
+    "output_bytes": 733466,
+    "output_dimensions": {
+      "width": 1254,
+      "height": 1254
+    },
+    "backend_model_exposed": false,
+    "usage_exposed": false,
+    "cost_exposed": false,
+    "saved_filename": "provider-output.png",
+    "local_saved_path_redacted": true,
+    "fixture_manifest_sha256": "f0d1e6be24740cb4b38ce359613d8bf0f377f1bfae81b393f4e8d1c8ada0145f",
+    "frozen_before_provider": true,
+    "authoring_commit": "92ea49d",
+    "measurement_profile_commit": "6e3f3d278839b9083b75b5aa1fe9ce482e4a479e",
+    "source_provenance": "Original GPL-3.0-or-later Blender geometry/renders; no third-party artwork or user photograph.",
+    "output_provenance": "Unmodified host-tool output observed by the caller; no provider signature or backend-model claim."
+  }
+}

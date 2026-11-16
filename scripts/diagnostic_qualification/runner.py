@@ -23,7 +23,8 @@ def review_template(packet):
             "image_sha256s": sorted(packet["roles"].get("after", [])),
             "glb_sha256s": sorted(packet["roles"].get("glb", [])),
             "reviewer": {"kind": "unknown", "name": None, "experience": "none", "non_3d": True, "attested": False},
-            "state": "pending", "reviewed_at": None, "tasks": [], "limitations": []}
+            "state": "pending", "reviewed_at": None, "tasks": [],
+            "limitations": ["A completed human attestation and task observations have not been supplied."]}
 
 
 def _bound_comparison(packet, archive, reference, destination):
@@ -81,11 +82,17 @@ def run_evidence(output: Path, *, native_library=None, selection=None, archive=N
             raise ValueError("The explicitly requested archive does not exist.")
         if packet:
             packet = dict(packet, outcome=packet["execution"]["outcome"])
+            glbs = [a for a in packet["assets"] if a["role"] == "glb"]
+            if not ref or len(glbs) != 1 or glbs[0]["asset_id"] != "reference_glb" or glbs[0]["sha256"] != ref["source_glb_sha256"]:
+                if ref:
+                    ref = dict(ref, status="unknown", attempt_glb_binding="fail")
+                raise ValueError("The offered GLB is not bound to the exact independently verified reference reload.")
+            ref = dict(ref, attempt_glb_binding="pass", attempt_packet_sha256=packet["packet_sha256"])
             if ref:
                 comparison = _bound_comparison(packet, archive_path, reference, run / "pixel-preservation.png")
             human = import_review(Path(review), archive_path, run / "human-review") if review else review_status(archive_path)
-            labels = {"healthy": "Référence saine — rendu du GLB original", "before": "Image à corriger — badge incorrect"}
-            for role, label in (("reference", labels["healthy"]), ("before", labels["before"]), ("after", "Sortie originale de l’outil — à évaluer")):
+            labels = {"healthy": "Référence attendue — badge bleu, rendu du GLB original", "before": "1. Avant — badge rose à corriger"}
+            for role, label in (("before", labels["before"]), ("after", "2. Résultat brut de l’outil — à contrôler"), ("reference", labels["healthy"])):
                 selected = [a for a in packet["assets"] if a["role"] == role and a["media_type"] == "image/png"]
                 if role == "reference":
                     selected = [a for a in selected if a["asset_id"] == "healthy"]
@@ -103,7 +110,8 @@ def run_evidence(output: Path, *, native_library=None, selection=None, archive=N
     report = assemble_report(corpora, attempt=packet, comparison=comparison, reference=ref, review=human)
     report.pop("report_sha256")
     report["technical_errors"] = errors
-    report["technical_status"] = "failed" if errors or corpora.get("status") == "fail" else "completed"
+    execution_failed = any(r.get("technical_status") in ("failed", "timed_out") for r in corpora.get("results", []))
+    report["technical_status"] = "failed" if errors or execution_failed or corpora.get("status") == "fail" else "completed"
     if errors:
         report["qualification_status"] = "fail"
     report["report_sha256"] = hashlib.sha256(canonical(report)).hexdigest()

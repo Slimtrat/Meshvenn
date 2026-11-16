@@ -30,6 +30,13 @@ def render_page(output: Path, report: dict, *, pictures=(), downloads=(), review
     review = "" if review_template is None else review_form(review_template)
     state = report.get("qualification_status", "unknown")
     explanation = "Des preuves restent à compléter." if state == "unknown" else "Un contrôle a échoué : les détails restent conservés." if state == "fail" else "Les contrôles déclarés sont terminés."
+    comparison = report.get("comparison") or {}
+    if comparison.get("reason") == "image_grid_changed":
+        before, after = comparison["assets"]["before"], comparison["assets"]["after"]
+        explanation = (f"L’outil a changé le format : {before['width']} × {before['height']} → "
+                       f"{after['width']} × {after['height']}. La correction n’est pas validée.")
+    elif comparison.get("outside_pixels_status") == "fail":
+        explanation = "L’image a été modifiée en dehors du badge. La correction n’est pas validée."
     document = '''<!doctype html><html lang="fr"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; base-uri 'none'; form-action 'none'">
@@ -43,9 +50,9 @@ a,button{color:#124d6b}a{display:inline-block;margin:8px 14px 8px 0}button{font:
 label{display:block;font-weight:600;margin-top:17px}input,select,textarea{font:inherit;max-width:100%;padding:8px;border:1px solid #8999a4;border-radius:4px}textarea{width:95%;min-height:65px}fieldset{border:1px solid #b7c4cc;margin:22px 0;padding:16px}legend{font-weight:700}
 pre{max-height:540px;overflow:auto;padding:16px;background:white;white-space:pre-wrap;word-break:break-word}small{color:#405766}output{display:block;margin-top:12px}a:focus,button:focus,input:focus,select:focus,textarea:focus{outline:3px solid #cd7b00;outline-offset:3px}
 </style>
-<main><h1>Ce que montre l’essai de correction</h1>
+<main><h1>Test : passer le badge rose au bleu</h1>
 <p class="notice">''' + html.escape(explanation) + ''' Une amélioration de couleur ne suffit pas à valider le personnage ni un modèle 3D corrigé.</p>
-<p>La demande porte sur le badge uniquement. Comparez la référence, l’image à corriger et la sortie conservée de l’outil. Vérifiez aussi les petits éléments asymétriques, les membres et le fond transparent.</p>
+<p>La première image montre le badge rose à corriger ; la deuxième est le résultat conservé de l’outil. La référence bleue est montrée ensuite. Seul l’intérieur du badge devait changer. Vérifiez aussi le fanion, les membres et la transparence autour du robot.</p>
 <section aria-label="Images de comparaison"><div class="grid">''' + "".join(figures) + '''</div></section>
 <h2>Fichiers et provenance</h2>
 <p>Le GLB de référence provient de la scène originale et a été rechargé pour vérification. Il ne représente pas une reconstruction de l’image corrigée. La livraison d’un GLB corrigé reste à qualifier.</p>''' + "".join(links) + review + '''

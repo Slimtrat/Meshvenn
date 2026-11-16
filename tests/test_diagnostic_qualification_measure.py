@@ -52,6 +52,15 @@ class PixelEvidenceTests(unittest.TestCase):
         result = compare_images(self.good, self.bad, self.bad, self.mask)
         self.assertEqual(result["numerical_improvement"], 0)
 
+    def test_large_generated_grid_is_recorded_without_bypassing_decoder_budget(self):
+        after = self.root / "tool-output.png"
+        after.write_bytes(png_rgba(1254, 1254, bytes((25, 55, 95, 255)) * (1254 * 1254)))
+        result = compare_images(self.good, self.bad, after, self.mask)
+        self.assertEqual(result["reason"], "image_grid_changed")
+        self.assertEqual(result["assets"]["after"]["width"], 1254)
+        self.assertEqual(result["assets"]["after"]["height"], 1254)
+        self.assertNotIn("numerical_improvement", result)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,103 @@
+name: Diagnostic evidence qualification
+
+on:
+  pull_request:
+    paths:
+      - 'core/diagnostic_contracts/**'
+      - 'core/diagnostics_preflight/**'
+      - 'core/geometry_diagnostics/**'
+      - 'core/appearance_diagnostics/**'
+      - 'core/correction_plans/**'
+      - 'core/correction_loop/**'
+      - 'core/projection_math/**'
+      - 'core/material_visibility/**'
+      - 'core/image_mask.py'
+      - 'core/projection_alignment.py'
+      - 'core/projection_frame.py'
+      - 'lib/meshvenn_engine/**'
+      - 'native/**'
+      - 'scripts/*diagnostic*'
+      - 'scripts/diagnostic_qualification/**'
+      - 'scripts/*_corpus/**'
+      - 'scripts/qualify_*.py'
+      - 'tests/test_diagnostic_qualification*.py'
+      - 'tests/test_provider_reference.py'
+      - 'tests/fixtures/diagnostics/**'
+      - '.github/workflows/diagnostic_evidence.yml'
+      - '.gitattributes'
+  push:
+    branches: [main]
+    paths:
+      - 'core/**'
+      - 'lib/meshvenn_engine/**'
+      - 'native/**'
+      - 'scripts/diagnostic_qualification/**'
+      - 'scripts/*_corpus/**'
+      - 'scripts/qualify_*.py'
+      - 'scripts/build_diagnostic_reference.py'
+      - 'tests/test_diagnostic_qualification*.py'
+      - 'tests/test_provider_reference.py'
+      - 'tests/fixtures/diagnostics/**'
+      - '.github/workflows/diagnostic_evidence.yml'
+      - '.gitattributes'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnostic-evidence-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay:
+    name: D7 evidence (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: windows-latest
+            python: '3.13'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Build unchanged native library on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S native -B build/evidence-native -G Ninja -DCMAKE_BUILD_TYPE=Release -DBPT_BUILD_TESTS=OFF
+          cmake --build build/evidence-native --parallel
+          echo "MESHVENN_TEST_NATIVE_LIBRARY=${GITHUB_WORKSPACE}/build/evidence-native/libbpt_core.so" >> "$GITHUB_ENV"
+      - name: Build unchanged native library on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cmake -S native -B build/evidence-native -A x64 -DBPT_BUILD_TESTS=OFF
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build build/evidence-native --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $evidenceLibrary = Join-Path $env:GITHUB_WORKSPACE 'build/evidence-native/Release/bpt_core.dll'
+          "MESHVENN_TEST_NATIVE_LIBRARY=$evidenceLibrary" >> $env:GITHUB_ENV
+      - name: Test real archives, failure boundaries and qualification claims
+        env:
+          PYTHONPATH: lib
+        run: python -m unittest discover -s tests -p 'test_diagnostic_qualification*.py' -v
+      - name: Verify original reference and cached provider provenance
+        run: python -m unittest tests.test_provider_reference -v
+      - name: Replay all five frozen corpora and the original tool output offline
+        run: python scripts/qualify_diagnostic_evidence.py --require-complete-regressions --output tmp/diagnostic-evidence
+      - name: Preserve evidence reports, per-case overlays and human review packet
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnostic-evidence-${{ matrix.os }}-python-${{ matrix.python }}
+          path: tmp/diagnostic-evidence
+          retention-days: 14
+          if-no-files-found: error

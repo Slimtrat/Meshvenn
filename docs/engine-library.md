@@ -166,3 +166,8 @@ Validation:
   working directory. With the native variable set, both the installed D3 worker
   and mesh worker must execute successfully. Packaging opt-in fails if build
   dependencies are missing; the ordinary stdlib test suite does not require them.
+
+The repository's [D7 evidence command](diagnostic-evidence.md) replays frozen
+diagnostic corpora and archived real-tool output outside this library. Its
+offline comparison/review page records failures and unknowns; it does not add
+provider credentials, host tools or quality claims to the pure engine.

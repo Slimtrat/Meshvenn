@@ -14,7 +14,9 @@ def canonical(value) -> bytes:
 
 def implementation() -> dict:
     root = Path(__file__).resolve().parents[2]
-    files = [*Path(__file__).resolve().parent.glob("*.py"), root / "scripts/qualify_diagnostic_evidence.py"]
+    files = [*Path(__file__).resolve().parent.glob("*.py"), root / "scripts/qualify_diagnostic_evidence.py",
+             root / "scripts/build_diagnostic_reference.py",
+             root / "tests/fixtures/diagnostics/provider-authoring-v1/build_diagnostic_reference.py"]
     return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(files) if p.is_file()}
 
 
@@ -50,6 +52,7 @@ def assemble_report(corpora: dict, *, attempt=None, comparison=None, reference=N
         "profile_basis": {"regression_thresholds": "Existing corpus policies and frozen expectations, unchanged.",
                           "protected_pixels": "D6 default outside_pixel_tolerance=0; no post-result relaxation.",
                           "pixel_alpha_threshold": .5,
+                          "mask_threshold": .5, "mask_convention": "D2 explicit mask alpha AND max(RGB)",
                           "new_statistical_holdout": False,
                           "real_provider_numeric_metrics_are_descriptive": True},
         "checks": checks, "corpora": corpora, "attempt": attempt, "comparison": comparison,

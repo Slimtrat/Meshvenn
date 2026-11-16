@@ -146,7 +146,8 @@ def complete_report(report, manifest_hash, implementation, artifacts=()):
         configuration_sha256=sha256(canonical_json({"engine":report.policy.to_dict(),"manifest":manifest_hash,"implementation":implementation})),
         required_checks=tuple(sorted(set(report.policy.required_checks)|{f.code for f in unknowns})))
     result = replace(report,findings=tuple(findings)+unknowns,policy=policy,
-                     engines=report.engines+(EngineVersion("appearance-corpus",CORPUS_VERSION),),
+                     engines=report.engines+(() if any(e.engine_id=="appearance-corpus" for e in report.engines)
+                                             else (EngineVersion("appearance-corpus",CORPUS_VERSION),)),
                      completion="partial" if report.completion=="complete" else report.completion)
     return replace(result,report_id="appearance-corpus-"+result.dependency_fingerprint[:20])
 

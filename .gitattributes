@@ -19,3 +19,4 @@ docs/geometry-diagnostic-corpus-evidence/**/*.png binary
 scripts/build_diagnostic_reference.py text eol=lf
 tests/fixtures/diagnostics/provider-v1/*.json text eol=lf
 tests/fixtures/diagnostics/provider-attempt-v1/** -text
+tests/fixtures/diagnostics/provider-authoring-v1/build_diagnostic_reference.py text eol=lf

@@ -3,19 +3,39 @@ from __future__ import annotations
 
 import hashlib
 from pathlib import Path
+import struct
+import zlib
 
-from core.diagnostics_preflight import RasterInput
+from core.diagnostics_preflight import RasterInput, ViewInput
+from core.diagnostics_preflight.registration import mask_from_input
+from core.diagnostics_preflight.rasters import MAX_FILE_BYTES
 
 
 def compare_images(healthy: Path, before: Path, after: Path, mask: Path) -> dict:
     """No resize, registration, colour fitting, or threshold selection after results."""
     rasters = {}
     assets = {}
+    files = {}
     for name, path in (("healthy", healthy), ("before", before), ("after", after), ("mask", mask)):
+        if path.stat().st_size > MAX_FILE_BYTES:
+            return {"status": "unknown", "reason": "image_byte_budget:" + name, "assets": assets,
+                    "semantic_identity_status": "unknown"}
         data = path.read_bytes()
-        raster = RasterInput.from_path(path)
+        files[name] = data
+        dimensions = None
+        if (len(data) >= 33 and data[:16] == b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" and
+                zlib.crc32(data[12:29]) & 0xffffffff == struct.unpack(">I", data[29:33])[0]):
+            dimensions = struct.unpack(">II", data[16:24])
         assets[name] = {"sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data),
-                        "width": raster.width, "height": raster.height}
+                        "width": dimensions[0] if dimensions else None,
+                        "height": dimensions[1] if dimensions else None}
+    grids = {(a["width"], a["height"]) for a in assets.values()}
+    if all(a["width"] and a["height"] for a in assets.values()) and len(grids) != 1:
+        return {"status": "fail", "reason": "image_grid_changed", "assets": assets,
+                "dimension_source": "CRC-checked PNG IHDR; decoded pixel budget is not bypassed",
+                "outside_pixels_status": "unknown", "semantic_identity_status": "unknown"}
+    for name, data in files.items():
+        raster = RasterInput.from_png_bytes(data)
         if raster.error:
             return {"status": "unknown", "reason": "unsupported_image:" + name,
                     "assets": assets, "semantic_identity_status": "unknown"}
@@ -25,7 +45,8 @@ def compare_images(healthy: Path, before: Path, after: Path, mask: Path) -> dict
         return {"status": "fail", "reason": "image_grid_changed", "assets": assets,
                 "outside_pixels_status": "unknown", "semantic_identity_status": "unknown"}
     reference, original, candidate, region = (rasters[k].rgba for k in ("healthy", "before", "after", "mask"))
-    inside = [i for i in range(0, len(region), 4) if region[i + 3] >= .5]
+    support = mask_from_input(ViewInput(rasters["before"], mask=rasters["mask"]), .5, .5).values
+    inside = [4 * i for i, editable in enumerate(support) if editable]
     if not inside:
         raise ValueError("An independently authored nonempty edit mask is required.")
     changed_outside = 0
@@ -33,7 +54,7 @@ def compare_images(healthy: Path, before: Path, after: Path, mask: Path) -> dict
     before_error = after_error = 0.
     overlay = bytearray()
     for i in range(0, len(reference), 4):
-        editable = region[i + 3] >= .5
+        editable = bool(support[i // 4])
         changed = original[i:i+4] != candidate[i:i+4]
         if changed and not editable:
             changed_outside += 1
@@ -54,6 +75,7 @@ def compare_images(healthy: Path, before: Path, after: Path, mask: Path) -> dict
             "outside_mask_changed_pixels": changed_outside,
             "outside_pixels_status": "pass" if changed_outside == 0 else "fail",
             "outside_pixel_tolerance": 0, "alpha_threshold": .5,
+            "mask_rgb_threshold": .5, "mask_convention": "D2 explicit mask: alpha >= .5 and max(RGB) >= .5",
             "foreground_alpha_iou": intersection / union if union else None,
             "semantic_identity_status": "unknown", "corrected_geometry_status": "unknown",
             "qualification_status": "unknown", "colour_space": "decoded display RGB; no photometric fitting",
