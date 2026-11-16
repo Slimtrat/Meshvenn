@@ -30,6 +30,8 @@ def assemble_report(corpora: dict, *, attempt=None, comparison=None, reference=N
          "meaning": "Existing frozen diagnostic/planning/orchestration controls only."},
         {"id": "real_attempt_archive", "status": "pass" if attempt else "unknown",
          "meaning": "Verified before/after/provenance bytes; not provider fidelity."},
+        {"id": "real_attempt_output", "status": "pass" if (attempt or {}).get("outcome") == "completed" else "fail" if (attempt or {}).get("outcome") in ("failed", "cancelled") else "unknown",
+         "meaning": "Observed tool completion only; not successful image correction."},
         {"id": "protected_pixels", "status": preservation,
          "meaning": "Exact source grid and pixels outside the independently authored edit mask."},
         {"id": "reference_glb_reload", "status": (reference or {}).get("status", "unknown"),
