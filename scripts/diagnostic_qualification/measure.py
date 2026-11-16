@@ -9,6 +9,7 @@ import zlib
 from core.diagnostics_preflight import RasterInput, ViewInput
 from core.diagnostics_preflight.registration import mask_from_input
 from core.diagnostics_preflight.rasters import MAX_FILE_BYTES
+from .differences import directional_differences, unavailable
 
 
 def compare_images(healthy: Path, before: Path, after: Path, mask: Path) -> dict:
@@ -19,7 +20,7 @@ def compare_images(healthy: Path, before: Path, after: Path, mask: Path) -> dict
     for name, path in (("healthy", healthy), ("before", before), ("after", after), ("mask", mask)):
         if path.stat().st_size > MAX_FILE_BYTES:
             return {"status": "unknown", "reason": "image_byte_budget:" + name, "assets": assets,
-                    "semantic_identity_status": "unknown"}
+                    "semantic_identity_status": "unknown", "directional_differences": unavailable("image_byte_budget")}
         data = path.read_bytes()
         files[name] = data
         dimensions = None
@@ -33,17 +34,20 @@ def compare_images(healthy: Path, before: Path, after: Path, mask: Path) -> dict
     if all(a["width"] and a["height"] for a in assets.values()) and len(grids) != 1:
         return {"status": "fail", "reason": "image_grid_changed", "assets": assets,
                 "dimension_source": "CRC-checked PNG IHDR; decoded pixel budget is not bypassed",
-                "outside_pixels_status": "unknown", "semantic_identity_status": "unknown"}
+                "outside_pixels_status": "unknown", "semantic_identity_status": "unknown",
+                "directional_differences": unavailable("image_grid_changed")}
     for name, data in files.items():
         raster = RasterInput.from_png_bytes(data)
         if raster.error:
             return {"status": "unknown", "reason": "unsupported_image:" + name,
-                    "assets": assets, "semantic_identity_status": "unknown"}
+                    "assets": assets, "semantic_identity_status": "unknown",
+                    "directional_differences": unavailable("unsupported_image:" + name)}
         rasters[name] = raster
     shape = {(r.width, r.height) for r in rasters.values()}
     if len(shape) != 1:
         return {"status": "fail", "reason": "image_grid_changed", "assets": assets,
-                "outside_pixels_status": "unknown", "semantic_identity_status": "unknown"}
+                "outside_pixels_status": "unknown", "semantic_identity_status": "unknown",
+                "directional_differences": unavailable("image_grid_changed")}
     reference, original, candidate, region = (rasters[k].rgba for k in ("healthy", "before", "after", "mask"))
     support = mask_from_input(ViewInput(rasters["before"], mask=rasters["mask"]), .5, .5).values
     inside = [4 * i for i, editable in enumerate(support) if editable]
@@ -68,6 +72,7 @@ def compare_images(healthy: Path, before: Path, after: Path, mask: Path) -> dict
         overlay.extend(colour)
     before_error /= 3 * len(inside)
     after_error /= 3 * len(inside)
+    differences = directional_differences(original, candidate, support, rasters["before"].width, rasters["before"].height)
     return {"status": "measured", "assets": assets, "mask_pixels": len(inside),
             "masked_rgb_mean_absolute_error_before": before_error,
             "masked_rgb_mean_absolute_error_after": after_error,
@@ -79,6 +84,7 @@ def compare_images(healthy: Path, before: Path, after: Path, mask: Path) -> dict
             "foreground_alpha_iou": intersection / union if union else None,
             "semantic_identity_status": "unknown", "corrected_geometry_status": "unknown",
             "qualification_status": "unknown", "colour_space": "decoded display RGB; no photometric fitting",
+            "directional_differences": differences,
             "overlay_rgba": bytes(overlay), "width": rasters["healthy"].width, "height": rasters["healthy"].height}
 
 
@@ -92,4 +98,17 @@ def write_comparison(healthy: Path, before: Path, after: Path, mask: Path, outpu
         output.write_bytes(data)
         result["overlay"] = {"path": output.name, "sha256": hashlib.sha256(data).hexdigest(),
                              "legend": "red: changed outside mask; green: authored edit region; pale: remaining pixels"}
+    differences = result["directional_differences"]
+    artifacts = []
+    for key, label, colour in (("before_minus_after", "1 - 2: foreground removed outside edit mask", "red"),
+                               ("after_minus_before", "2 - 1: foreground added outside edit mask", "blue")):
+        pixels = differences.pop(key + "_rgba", None)
+        if pixels is None:
+            continue
+        path = output.with_name(output.stem + "-" + key.replace("_", "-") + ".png")
+        data = png_rgba(result["width"], result["height"], pixels)
+        path.write_bytes(data)
+        artifacts.append({"kind": key, "path": path.name, "sha256": hashlib.sha256(data).hexdigest(),
+                          "label": label, "legend": colour + ": unexpected foreground difference; green: permitted edit; pale: remainder"})
+    differences["artifacts"] = artifacts
     return result

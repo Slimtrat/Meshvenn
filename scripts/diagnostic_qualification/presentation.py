@@ -7,8 +7,7 @@ import json
 from pathlib import Path
 
 
-def render_page(output: Path, report: dict, *, pictures=(), downloads=(), review_template=None) -> None:
-    """Only verified caller-selected files are embedded; no remote scripts/resources."""
+def image_cards(pictures):
     figures = []
     for label, path in pictures:
         raw = Path(path).read_bytes()
@@ -17,6 +16,37 @@ def render_page(output: Path, report: dict, *, pictures=(), downloads=(), review
         encoded = base64.b64encode(raw).decode("ascii")
         figures.append('<figure><img alt="' + html.escape(label, quote=True) +
                        '" src="data:image/png;base64,' + encoded + '"><figcaption>' + html.escape(label) + '</figcaption></figure>')
+    return "".join(figures)
+
+
+def difference_summary(comparison):
+    differences = comparison.get("directional_differences") or {}
+    outside = differences.get("outside_edit_mask") or {}
+    def count(value):
+        return "Non calculable" if value is None else html.escape(str(value)) + " pixel(s)"
+    def empty(value):
+        return "Non calculable" if value is None else "Vide" if value else "Non vide"
+    rows = []
+    for key, label in (("before_minus_after", "1 − 2 : silhouette disparue"),
+                       ("after_minus_before", "2 − 1 : silhouette ajoutée")):
+        result = differences.get(key) or {}
+        rows.append('<tr><th scope="row">' + label + '</th><td>' + count(result.get("outside_edit_mask_pixels")) +
+                    '</td><td>' + empty(result.get("outside_edit_mask_empty")) + '</td></tr>')
+    rows.append('<tr><th scope="row">Couleurs ou transparence modifiées</th><td>' + count(outside.get("changed_rgba_pixels")) +
+                '</td><td>' + empty(outside.get("rgba_difference_empty")) + '</td></tr>')
+    note = ("Les différences ne sont pas calculées : les dimensions des images diffèrent. Aucun redimensionnement automatique n’est appliqué."
+            if differences.get("reason") == "image_grid_changed" else
+            "Les deux différences de silhouette doivent être vides, et les autres couleurs et valeurs de transparence doivent être identiques. Le contour utilise le fond transparent ; les couleurs restent vérifiées séparément.")
+    return ('<section aria-label="Différences hors zone autorisée"><h2>1 − 2 et 2 − 1</h2>'
+            '<p>Ces contrôles portent sur les pixels hors du badge à modifier.</p><table><thead><tr><th>Contrôle</th><th>Différence</th><th>Ensemble</th></tr></thead><tbody>' +
+            "".join(rows) + '</tbody></table><p>' + note + '</p></section>')
+
+
+def render_page(output: Path, report: dict, *, pictures=(), downloads=(), review_template=None, difference_pictures=()) -> None:
+    """Only verified caller-selected files are embedded; no remote scripts/resources."""
+    figures = image_cards(pictures)
+    maps = image_cards(difference_pictures)
+    map_section = '<details><summary>Voir les différences calculées</summary><div class="grid">' + maps + '</div></details>' if maps else ""
     links = []
     for label, path in downloads:
         path = Path(path)
@@ -47,13 +77,14 @@ body{max-width:1100px;margin:auto;padding:32px 22px}h1{font-size:2rem;line-heigh
 .notice{border-left:5px solid #ae6b00;background:#fff4d9;padding:15px 20px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
 figure{margin:0;padding:12px;background:white;border:1px solid #dce3e8;border-radius:10px}img{width:100%;height:auto;background:repeating-conic-gradient(#f4f4f4 0% 25%,#fff 0% 50%) 50%/24px 24px}figcaption{padding-top:9px}
 a,button{color:#124d6b}a{display:inline-block;margin:8px 14px 8px 0}button{font:inherit;background:#153f56;color:white;border:0;padding:12px 18px;border-radius:6px;cursor:pointer}
+table{width:100%;table-layout:fixed;border-collapse:collapse;background:white}th,td{padding:10px;text-align:left;border:1px solid #dce3e8;overflow-wrap:anywhere}thead{background:#e8eff4}
 label{display:block;font-weight:600;margin-top:17px}input,select,textarea{font:inherit;max-width:100%;padding:8px;border:1px solid #8999a4;border-radius:4px}textarea{width:95%;min-height:65px}fieldset{border:1px solid #b7c4cc;margin:22px 0;padding:16px}legend{font-weight:700}
 pre{max-height:540px;overflow:auto;padding:16px;background:white;white-space:pre-wrap;word-break:break-word}small{color:#405766}output{display:block;margin-top:12px}a:focus,button:focus,input:focus,select:focus,textarea:focus{outline:3px solid #cd7b00;outline-offset:3px}
 </style>
 <main><h1>Test : passer le badge rose au bleu</h1>
 <p class="notice">''' + html.escape(explanation) + ''' Une amélioration de couleur ne suffit pas à valider le personnage ni un modèle 3D corrigé.</p>
 <p>La première image montre le badge rose à corriger ; la deuxième est le résultat conservé de l’outil. La référence bleue est montrée ensuite. Seul l’intérieur du badge devait changer. Vérifiez aussi le fanion, les membres et la transparence autour du robot.</p>
-<section aria-label="Images de comparaison"><div class="grid">''' + "".join(figures) + '''</div></section>
+<section aria-label="Images de comparaison"><div class="grid">''' + figures + '''</div></section>''' + difference_summary(comparison) + map_section + '''
 <h2>Fichiers et provenance</h2>
 <p>Le GLB de référence provient de la scène originale et a été rechargé pour vérification. Il ne représente pas une reconstruction de l’image corrigée. La livraison d’un GLB corrigé reste à qualifier.</p>''' + "".join(links) + review + '''
 <details><summary>Mesures et résultats complets</summary><pre>''' + details + '''</pre></details>

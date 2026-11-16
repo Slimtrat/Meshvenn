@@ -27,6 +27,10 @@ def assemble_report(corpora: dict, *, attempt=None, comparison=None, reference=N
     preservation = (comparison or {}).get("outside_pixels_status", "unknown")
     if (comparison or {}).get("reason") == "image_grid_changed":
         preservation = "fail"
+    differences = (comparison or {}).get("directional_differences") or {}
+    def directional_status(key):
+        empty = differences.get(key, {}).get("outside_edit_mask_empty")
+        return "pass" if empty is True else "fail" if empty is False else "unknown"
     checks = [
         {"id": "frozen_regressions", "status": regression_status,
          "meaning": "Existing frozen diagnostic/planning/orchestration controls only."},
@@ -36,6 +40,10 @@ def assemble_report(corpora: dict, *, attempt=None, comparison=None, reference=N
          "meaning": "Observed tool completion only; not successful image correction."},
         {"id": "protected_pixels", "status": preservation,
          "meaning": "Exact source grid and pixels outside the independently authored edit mask."},
+        {"id": "before_minus_after", "status": directional_status("before_minus_after"),
+         "meaning": "Before foreground absent from after, outside the edit mask; must be empty."},
+        {"id": "after_minus_before", "status": directional_status("after_minus_before"),
+         "meaning": "After foreground absent from before, outside the edit mask; must be empty."},
         {"id": "reference_glb_reload", "status": (reference or {}).get("status", "unknown"),
          "meaning": "Known reference geometry only; not an export of a corrected candidate."},
         {"id": "human_image_review", "status": (review or {}).get("human_review_status", "unknown"),
@@ -53,6 +61,7 @@ def assemble_report(corpora: dict, *, attempt=None, comparison=None, reference=N
                           "protected_pixels": "D6 default outside_pixel_tolerance=0; no post-result relaxation.",
                           "pixel_alpha_threshold": .5,
                           "mask_threshold": .5, "mask_convention": "D2 explicit mask alpha AND max(RGB)",
+                          "image_set_difference": "Union of both directions; exact RGBA checked in addition to alpha foreground.",
                           "new_statistical_holdout": False,
                           "real_provider_numeric_metrics_are_descriptive": True},
         "checks": checks, "corpora": corpora, "attempt": attempt, "comparison": comparison,

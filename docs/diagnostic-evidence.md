@@ -66,6 +66,43 @@ descriptive pixel measurements do not certify identity or geometry.
 The explicit mask uses the existing D2 convention: alpha and maximum RGB must
 both reach .5. An opaque black background is protected, not editable.
 
+### Two directional differences
+
+The report explicitly compares **before (1)** with **after (2)** on the original
+fixed grid. Foreground sets contain coordinates whose alpha reaches .5:
+
+- `1 − 2` identifies foreground that disappeared.
+- `2 − 1` identifies foreground that appeared.
+- Their union is the symmetric difference; it must be empty **outside the edit
+  mask**. An equally sized deletion and addition cannot cancel each other.
+
+This is set difference, not signed channel subtraction. Adding `(1 − 2)` and
+`(2 − 1)` arithmetically would always yield zero and would prove nothing.
+Exact decoded RGBA values are checked separately at every protected coordinate:
+unchanged foreground can still hide a changed colour or alpha value. RGBA sets
+contain `(x,y,R,G,B,A)`, so a changed pixel contributes an old sample to one
+direction and a new sample to the other; neither is discarded by cancellation.
+
+| Change outside the mask | 1 − 2 foreground | 2 − 1 foreground | Changed RGBA pixels | Preservation |
+| --- | ---: | ---: | ---: | --- |
+| None | 0 | 0 | 0 | Pass |
+| One pixel removed and one added | 1 | 1 | 2 | Fail |
+| Same foreground, one pixel recoloured | 0 | 0 | 1 | Fail |
+
+The permitted badge recolouring need not have an empty **whole-image** RGBA
+difference. Full-image counts remain in JSON; the preservation gate and HTML
+table explicitly use the region outside the independently authored mask.
+The healthy reference is used for colour-error measurements, not substituted
+for the actual before image in these differences.
+
+Two hashed diagnostic maps show unexpected removal/addition separately, with
+the allowed edit region in green. They and the existing RGBA-change map are
+available under the offline page's difference disclosure. Source images are
+never modified to create these measurement maps. A wrong grid, unsupported
+decoder or input budget produces unknown/null differences, never zero or an
+empty-set claim. The archived 1,254-square provider output therefore remains
+uncomparable and rejected; the original 1,024-square inputs are unchanged.
+
 The backend model, usage and price were not exposed. They remain `null/unknown`,
 including currency; unknown is never converted to zero. The trial was limited
 to one observed host-tool call, with no service API invoice or paid retry.

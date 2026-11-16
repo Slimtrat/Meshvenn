@@ -58,7 +58,7 @@ def run_evidence(output: Path, *, native_library=None, selection=None, archive=N
     errors = []
     ref = packet = comparison = human = None
     corpora = {"status": "unknown", "all_full_matrices_passed": False, "reason": "Integrity-only replay; no diagnostic matrix executed."}
-    pictures, downloads = [], []
+    pictures, downloads, difference_pictures = [], [], []
     archive_path = Path(archive) if archive else ARCHIVE
     try:
         ref = verify_fixture(reference)
@@ -103,7 +103,11 @@ def run_evidence(output: Path, *, native_library=None, selection=None, archive=N
                     target.write_bytes((archive_path / "objects" / asset["sha256"]).read_bytes())
                     downloads.append(("Télécharger le GLB de référence — " + asset["sha256"][:12], target))
             if comparison and comparison.get("overlay"):
-                pictures.append(("Vert : masque demandé ; rouge : pixels modifiés ailleurs", run / comparison["overlay"]["path"]))
+                difference_pictures.append(("Vert : masque demandé ; rouge : pixels modifiés ailleurs", run / comparison["overlay"]["path"]))
+            labels = {"before_minus_after": "1 − 2 : silhouette disparue hors du badge (rouge)",
+                      "after_minus_before": "2 − 1 : silhouette ajoutée hors du badge (bleu)"}
+            for artifact in (comparison or {}).get("directional_differences", {}).get("artifacts", []):
+                difference_pictures.append((labels[artifact["kind"]], run / artifact["path"]))
     except (OSError, ValueError) as exc:
         errors.append({"stage": "attempt_or_review", "error": type(exc).__name__, "message": str(exc)})
         packet = None
@@ -118,5 +122,6 @@ def run_evidence(output: Path, *, native_library=None, selection=None, archive=N
     (run / "report.json").write_bytes(canonical(report))
     downloads.append(("Télécharger le rapport JSON", run / "report.json"))
     render_page(run / "review.html", report, pictures=pictures, downloads=downloads,
-                review_template=review_template(packet) if packet and packet["execution"]["outcome"] == "completed" else None)
+                review_template=review_template(packet) if packet and packet["execution"]["outcome"] == "completed" else None,
+                difference_pictures=difference_pictures)
     return {"run_path": run, "report": report}
