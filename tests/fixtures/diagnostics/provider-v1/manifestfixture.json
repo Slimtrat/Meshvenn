@@ -1,0 +1,292 @@
+{
+  "assets": [
+    {
+      "bytes": 6001,
+      "path": "badge-edit-mask.png",
+      "sha256": "5fb57ca1c5ae8a2eb6c2ecb45dc4c7981ff2bceb33a299c5374befef8a561fe0"
+    },
+    {
+      "bytes": 5985,
+      "path": "badge-visible-mask.png",
+      "sha256": "2baaceb24bef380765a16e00ad39b4352b12dea5395d82c37d16020a683c2770"
+    },
+    {
+      "bytes": 27508,
+      "path": "glb-reload-proof.json",
+      "sha256": "ae2e854626ba66ced806a7c77bc3dcaf7030a47db1ee50d6c303acdabc660035"
+    },
+    {
+      "bytes": 645380,
+      "path": "original-reference.glb",
+      "sha256": "0f7d2043927792c8880ecbf5fd41b04abc93f3e68693f7f51f1d50ea2e9f3aa8"
+    },
+    {
+      "bytes": 11183,
+      "path": "original-source.json",
+      "sha256": "d80af21eb188fe2fed4208d2084017c3371c6521fbb00ffd3705bc0229302feb"
+    },
+    {
+      "bytes": 4327,
+      "path": "reference-back-subject-mask.png",
+      "sha256": "72316a5beb1f61b8727febd25241f9ced36e7901315b6ff1111979ade527c045"
+    },
+    {
+      "bytes": 208257,
+      "path": "reference-back-transparent.png",
+      "sha256": "b3b450a4ea10df57c9eea91d0569509d0b8e2b591bb5daa4170331a997109209"
+    },
+    {
+      "bytes": 140831,
+      "path": "reference-back.png",
+      "sha256": "434b819719d2eb5ce813343453b298e21d238fd07cceadbbd0d263d43f9acc53"
+    },
+    {
+      "bytes": 12370,
+      "path": "reference-front-subject-mask.png",
+      "sha256": "4d40bb70e9aac856b96490c6aedcb24b1c482c5feb692381e15379f642562b67"
+    },
+    {
+      "bytes": 774162,
+      "path": "reference-front-transparent.png",
+      "sha256": "93b492fb847d98a83052273d96e29fb6f5d8c207db2c74ee8592dfdd29eece4b"
+    },
+    {
+      "bytes": 528892,
+      "path": "reference-front.png",
+      "sha256": "ba5c7a10b16b95cf698a1490ae3c1e6623d54104de8a1d5f58f2cdab48146408"
+    },
+    {
+      "bytes": 3194,
+      "path": "reference-left-subject-mask.png",
+      "sha256": "c5beb61f7443350409f9f0c8eef004f6540a5845c6ecb2016c16930e70f1cc05"
+    },
+    {
+      "bytes": 160006,
+      "path": "reference-left-transparent.png",
+      "sha256": "846efbffbaaecb19e89130030e05ac35b11b114785a5735d15f5fbeac8576df0"
+    },
+    {
+      "bytes": 88658,
+      "path": "reference-left.png",
+      "sha256": "5b8743d27177e660e677769e137fb1ec4aa7d7e1cd02d9ce6458618737700a0e"
+    },
+    {
+      "bytes": 3206,
+      "path": "reference-right-subject-mask.png",
+      "sha256": "665ba6946a83792b2d79477db78100e0270c53489dd15a616f70d34af1f375c8"
+    },
+    {
+      "bytes": 160348,
+      "path": "reference-right-transparent.png",
+      "sha256": "58d5e8d68c992d7ee6598f021a44322e407f3c10b646ed6c8edc49766bb5f890"
+    },
+    {
+      "bytes": 90389,
+      "path": "reference-right.png",
+      "sha256": "31e8104b9bbb4a19e6dade0ec60830270749af66df14ed1ac4bc46e82a023237"
+    },
+    {
+      "bytes": 12370,
+      "path": "target-wrong-badge-subject-mask.png",
+      "sha256": "4d40bb70e9aac856b96490c6aedcb24b1c482c5feb692381e15379f642562b67"
+    },
+    {
+      "bytes": 773425,
+      "path": "target-wrong-badge-transparent.png",
+      "sha256": "a1505e4dbad283713dc99cf7b3a9a0596cbf74bd889d1c75083b2874ae472b75"
+    },
+    {
+      "bytes": 529059,
+      "path": "target-wrong-badge.png",
+      "sha256": "7adb919e497445bc019009d4a7eb2123f1b5610b4f8a3555fed0c649dbbba0a5"
+    }
+  ],
+  "authoring_script": {
+    "path": "scripts/build_diagnostic_reference.py",
+    "sha256": "6eab89f7cab7d5fc059051e0ecd833dcaea220d89901536ea8c19e6620257ce9"
+  },
+  "cameras": {
+    "back": {
+      "alignment": {
+        "offset_u": 0.0,
+        "offset_v": 0.0,
+        "scale": 1.0
+      },
+      "azimuth_degrees": 180,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "height": 512,
+      "location": [
+        7.347880586115415e-16,
+        6.0,
+        0.0
+      ],
+      "maximum_native_uv_error": 2.455711364812707e-07,
+      "ortho_scale": 2.0,
+      "pixel_convention": "Blender pixel-centres; native nearest-endpoint raster quantization <= 0.5 pixel",
+      "projection": "orthographic",
+      "rotation_euler": [
+        -1.570796251296997,
+        -3.141592502593994,
+        -0.0
+      ],
+      "width": 512
+    },
+    "front": {
+      "alignment": {
+        "offset_u": 0.0,
+        "offset_v": 0.0,
+        "scale": 1.0
+      },
+      "azimuth_degrees": 0,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "height": 1024,
+      "location": [
+        0.0,
+        -6.0,
+        0.0
+      ],
+      "maximum_native_uv_error": 5.137920379705285e-07,
+      "ortho_scale": 2.0,
+      "pixel_convention": "Blender pixel-centres; native nearest-endpoint raster quantization <= 0.5 pixel",
+      "projection": "orthographic",
+      "rotation_euler": [
+        1.5707964897155762,
+        -0.0,
+        0.0
+      ],
+      "width": 1024
+    },
+    "left": {
+      "alignment": {
+        "offset_u": 0.0,
+        "offset_v": 0.0,
+        "scale": 1.0
+      },
+      "azimuth_degrees": 270,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "height": 512,
+      "location": [
+        -6.0,
+        1.1021821408568715e-15,
+        0.0
+      ],
+      "maximum_native_uv_error": 1.478195190696141e-07,
+      "ortho_scale": 2.0,
+      "pixel_convention": "Blender pixel-centres; native nearest-endpoint raster quantization <= 0.5 pixel",
+      "projection": "orthographic",
+      "rotation_euler": [
+        1.5707963705062866,
+        -0.0,
+        -1.5707963705062866
+      ],
+      "width": 512
+    },
+    "right": {
+      "alignment": {
+        "offset_u": 0.0,
+        "offset_v": 0.0,
+        "scale": 1.0
+      },
+      "azimuth_degrees": 90,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "height": 512,
+      "location": [
+        6.0,
+        -3.6739402930577075e-16,
+        0.0
+      ],
+      "maximum_native_uv_error": 1.5616416931818478e-07,
+      "ortho_scale": 2.0,
+      "pixel_convention": "Blender pixel-centres; native nearest-endpoint raster quantization <= 0.5 pixel",
+      "projection": "orthographic",
+      "rotation_euler": [
+        1.5707963705062866,
+        -0.0,
+        1.5707963705062866
+      ],
+      "width": 512
+    }
+  },
+  "corrected_3d_claim": false,
+  "defect": {
+    "changed_outside_edit_support": 0,
+    "changed_pixels": 7096,
+    "edit_mask_authority": "Visible geometry footprint expanded by 2 pixels for finite antialiasing; not inferred segmentation.",
+    "edit_support_dilation_pixels": 2,
+    "edit_support_pixels": 7604,
+    "healthy": "reference-front-transparent.png",
+    "healthy_linear_rgba": [
+      0.025,
+      0.11,
+      0.8,
+      1.0
+    ],
+    "object": "badge_color",
+    "original_uv_bounds": [
+      0.40234375,
+      0.453125,
+      0.4970703125,
+      0.541015625
+    ],
+    "property": "Principled BSDF Base Color only",
+    "target": "target-wrong-badge-transparent.png",
+    "visible_mask_authority": "Nearest scene.ray_cast hit equals badge_color, at each original front pixel centre.",
+    "visible_pixel_centres": 6840,
+    "wrong_linear_rgba": [
+      0.8,
+      0.025,
+      0.16,
+      1.0
+    ]
+  },
+  "expected_observations_before_provider": [
+    "Only the visible chest badge has the wrong authored color.",
+    "The body, face, limbs, silhouette, camera, background and one-sided right flag must remain unchanged.",
+    "Front visible color can be compared. Hidden/back-facing badge evidence remains unknown.",
+    "A 2D provider edit does not establish a corrected mesh or a correct final GLB.",
+    "No human-reviewed or generative-provider identity qualification is claimed."
+  ],
+  "fixture_id": "provider-rounded-robot-v1",
+  "frozen_before_provider": true,
+  "human_reviewed": false,
+  "license": "GPL-3.0-or-later",
+  "provider_calls": 0,
+  "provider_fidelity_qualified": false,
+  "provider_inputs": {
+    "edit_mask": "badge-edit-mask.png",
+    "healthy": "reference-front-transparent.png",
+    "height": 1024,
+    "selection_frozen_before_provider": true,
+    "target": "target-wrong-badge-transparent.png",
+    "transparent_background": true,
+    "visible_mask": "badge-visible-mask.png",
+    "width": 1024
+  },
+  "renderer": {
+    "background": "Transparent studio render composited onto opaque white; paired alpha-derived subject mask.",
+    "blender": "5.2.1 LTS",
+    "color_space": "sRGB",
+    "device": "CPU",
+    "diffuse_bounces": 0,
+    "engine": "CYCLES",
+    "exposure": -0.65,
+    "glossy_bounces": 0,
+    "look": "None",
+    "max_bounces": 1,
+    "samples": 32,
+    "seed": 17,
+    "view_transform": "Standard"
+  },
+  "schema_version": 1,
+  "truth": {
+    "all_reference_views_rendered_after_fresh_glb_import": true,
+    "geometry_identical_between_healthy_and_defect": true,
+    "glb": "original-reference.glb",
+    "reload": "glb-reload-proof.json",
+    "source": "original-source.json"
+  }
+}

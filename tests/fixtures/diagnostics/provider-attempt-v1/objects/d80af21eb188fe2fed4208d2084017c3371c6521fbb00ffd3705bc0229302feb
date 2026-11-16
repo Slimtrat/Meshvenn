@@ -1,0 +1,645 @@
+{
+  "asset_id": "meshvenn-original-rounded-robot-v1",
+  "coordinate_space": "Blender Z-up/native normalized cube [-1,1]",
+  "expected_parts": [
+    "antenna_stem",
+    "antenna_tip",
+    "badge_brass_ring",
+    "badge_color",
+    "body",
+    "eye_left",
+    "eye_right",
+    "head",
+    "left_arm",
+    "left_boot",
+    "left_elbow",
+    "left_hand",
+    "left_hip",
+    "left_knee",
+    "left_shin",
+    "left_shoulder",
+    "left_thigh",
+    "mouth",
+    "neck",
+    "right_arm",
+    "right_boot",
+    "right_elbow",
+    "right_flag_only",
+    "right_flag_pole",
+    "right_hand",
+    "right_hip",
+    "right_knee",
+    "right_shin",
+    "right_shoulder",
+    "right_thigh",
+    "visor"
+  ],
+  "healthy_badge_linear_rgba": [
+    0.025,
+    0.11,
+    0.8,
+    1.0
+  ],
+  "human_validated": false,
+  "license": "GPL-3.0-or-later",
+  "mesh_objects": 31,
+  "one_sided_feature": "right_flag_only",
+  "origin": "Repository-owned mathematical Blender primitive authoring; no external or production assets.",
+  "primitives": [
+    {
+      "center": [
+        0.0,
+        0.0,
+        -0.08
+      ],
+      "material": "shell_teal",
+      "name": "body",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.31,
+        0.215,
+        0.39
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.0,
+        0.0,
+        0.3
+      ],
+      "depth": 0.12,
+      "material": "joint_slate",
+      "name": "neck",
+      "primitive": "cylinder",
+      "radius": 0.1,
+      "vertices": 24
+    },
+    {
+      "center": [
+        0.0,
+        0.0,
+        0.55
+      ],
+      "material": "face_ivory",
+      "name": "head",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.29,
+        0.225,
+        0.25
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.0,
+        -0.205,
+        0.575
+      ],
+      "material": "visor_navy",
+      "name": "visor",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.222,
+        0.055,
+        0.112
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.082,
+        -0.258,
+        0.6
+      ],
+      "material": "eye_ice",
+      "name": "eye_left",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.026,
+        0.014,
+        0.033
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.082,
+        -0.258,
+        0.6
+      ],
+      "material": "eye_ice",
+      "name": "eye_right",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.026,
+        0.014,
+        0.033
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.0,
+        -0.256,
+        0.525
+      ],
+      "material": "eye_ice",
+      "name": "mouth",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.055,
+        0.009,
+        0.012
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.1,
+        0.0,
+        0.82
+      ],
+      "depth": 0.18,
+      "material": "joint_slate",
+      "name": "antenna_stem",
+      "primitive": "cylinder",
+      "radius": 0.012,
+      "vertices": 24
+    },
+    {
+      "center": [
+        -0.1,
+        0.0,
+        0.91
+      ],
+      "material": "flag_coral",
+      "name": "antenna_tip",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.036,
+        0.036,
+        0.036
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.1,
+        -0.217,
+        -0.005
+      ],
+      "material": "trim_brass",
+      "name": "badge_brass_ring",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.116,
+        0.03,
+        0.109
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.1,
+        -0.249,
+        -0.005
+      ],
+      "material": "badge_cobalt",
+      "name": "badge_color",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.095,
+        0.016,
+        0.088
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.315,
+        0.0,
+        0.145
+      ],
+      "material": "joint_slate",
+      "name": "left_shoulder",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.092,
+        0.095,
+        0.1
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.395,
+        0.0,
+        -0.005
+      ],
+      "material": "shell_teal",
+      "name": "left_arm",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.074,
+        0.082,
+        0.18
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 14
+    },
+    {
+      "center": [
+        -0.438,
+        0.0,
+        -0.165
+      ],
+      "material": "joint_slate",
+      "name": "left_elbow",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.073,
+        0.078,
+        0.072
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.475,
+        -0.01,
+        -0.255
+      ],
+      "material": "face_ivory",
+      "name": "left_hand",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.09,
+        0.092,
+        0.092
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.13,
+        0.0,
+        -0.44
+      ],
+      "material": "joint_slate",
+      "name": "left_hip",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.087,
+        0.087,
+        0.08
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.13,
+        0.0,
+        -0.565
+      ],
+      "material": "shell_teal",
+      "name": "left_thigh",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.077,
+        0.082,
+        0.13
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.13,
+        -0.01,
+        -0.69
+      ],
+      "material": "joint_slate",
+      "name": "left_knee",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.076,
+        0.082,
+        0.071
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.13,
+        0.0,
+        -0.785
+      ],
+      "material": "shell_teal",
+      "name": "left_shin",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.071,
+        0.078,
+        0.105
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        -0.13,
+        -0.045,
+        -0.89
+      ],
+      "material": "joint_slate",
+      "name": "left_boot",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.112,
+        0.145,
+        0.061
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.315,
+        0.0,
+        0.145
+      ],
+      "material": "joint_slate",
+      "name": "right_shoulder",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.092,
+        0.095,
+        0.1
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.395,
+        0.0,
+        -0.005
+      ],
+      "material": "shell_teal",
+      "name": "right_arm",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.074,
+        0.082,
+        0.18
+      ],
+      "segments": 32,
+      "tilt_y_degrees": -14
+    },
+    {
+      "center": [
+        0.438,
+        0.0,
+        -0.165
+      ],
+      "material": "joint_slate",
+      "name": "right_elbow",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.073,
+        0.078,
+        0.072
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.475,
+        -0.01,
+        -0.255
+      ],
+      "material": "face_ivory",
+      "name": "right_hand",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.09,
+        0.092,
+        0.092
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.13,
+        0.0,
+        -0.44
+      ],
+      "material": "joint_slate",
+      "name": "right_hip",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.087,
+        0.087,
+        0.08
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.13,
+        0.0,
+        -0.565
+      ],
+      "material": "shell_teal",
+      "name": "right_thigh",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.077,
+        0.082,
+        0.13
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.13,
+        -0.01,
+        -0.69
+      ],
+      "material": "joint_slate",
+      "name": "right_knee",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.076,
+        0.082,
+        0.071
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.13,
+        0.0,
+        -0.785
+      ],
+      "material": "shell_teal",
+      "name": "right_shin",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.071,
+        0.078,
+        0.105
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.13,
+        -0.045,
+        -0.89
+      ],
+      "material": "joint_slate",
+      "name": "right_boot",
+      "primitive": "uv_sphere",
+      "rings": 16,
+      "scale": [
+        0.112,
+        0.145,
+        0.061
+      ],
+      "segments": 32,
+      "tilt_y_degrees": 0.0
+    },
+    {
+      "center": [
+        0.515,
+        -0.035,
+        0.235
+      ],
+      "depth": 0.98,
+      "material": "trim_brass",
+      "name": "right_flag_pole",
+      "primitive": "cylinder",
+      "radius": 0.012,
+      "vertices": 24
+    },
+    {
+      "faces": [
+        [
+          0,
+          2,
+          1
+        ],
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          0,
+          1,
+          4,
+          3
+        ],
+        [
+          1,
+          2,
+          5,
+          4
+        ],
+        [
+          2,
+          0,
+          3,
+          5
+        ]
+      ],
+      "material": "flag_coral",
+      "name": "right_flag_only",
+      "primitive": "authored_triangular_prism",
+      "vertices": [
+        [
+          0.53,
+          -0.045,
+          0.72
+        ],
+        [
+          0.85,
+          -0.045,
+          0.65
+        ],
+        [
+          0.53,
+          -0.045,
+          0.51
+        ],
+        [
+          0.53,
+          -0.015,
+          0.72
+        ],
+        [
+          0.85,
+          -0.015,
+          0.65
+        ],
+        [
+          0.53,
+          -0.015,
+          0.51
+        ]
+      ]
+    }
+  ],
+  "provider_calls": 0,
+  "schema_version": 1,
+  "triangles": 26204
+}

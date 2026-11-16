@@ -151,7 +151,8 @@ def complete_report(report: DiagnosticReport, manifest_hash: str, implementation
                                                     "implementation": implementation})),
         required_checks=tuple(sorted(set(report.policy.required_checks) | {f.code for f in unknowns})))
     result = replace(report, findings=report.findings + unknowns, policy=policy,
-                     engines=report.engines + (EngineVersion("geometry-corpus", CORPUS_VERSION),),
+                     engines=report.engines + (() if any(e.engine_id == "geometry-corpus" for e in report.engines)
+                                               else (EngineVersion("geometry-corpus", CORPUS_VERSION),)),
                      completion="partial" if report.completion == "complete" else report.completion)
     return replace(result, report_id="geometry-corpus-" + result.dependency_fingerprint[:20])
 

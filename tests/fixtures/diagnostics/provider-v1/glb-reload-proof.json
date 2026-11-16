@@ -1,0 +1,1007 @@
+{
+  "after": {
+    "antenna_stem": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.08799999952316284,
+        0.012000000104308128,
+        0.9099999666213989
+      ],
+      "minimum": [
+        -0.1120000034570694,
+        -0.012000000104308128,
+        0.7300000190734863
+      ],
+      "triangle_position_sha256": "811ba4fc5497ff8ec67952da40c613c80d03b424bf630663bec6323a3c88e008",
+      "triangles": 92,
+      "vertices": 98
+    },
+    "antenna_tip": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.06400001049041748,
+        0.035999998450279236,
+        0.9460000395774841
+      ],
+      "minimum": [
+        -0.13599996268749237,
+        -0.035999976098537445,
+        0.8740000128746033
+      ],
+      "triangle_position_sha256": "142ac98ce8d33587f0ebbb426a5ae382ce3979b3c89e5ae3b6b3830881679481",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "badge_brass_ring": {
+      "geometric_components": 1,
+      "maximum": [
+        0.01599995791912079,
+        -0.18699999153614044,
+        0.10399999469518661
+      ],
+      "minimum": [
+        -0.21599988639354706,
+        -0.24699997901916504,
+        -0.11400000005960464
+      ],
+      "triangle_position_sha256": "7cd9ee9bcf47f3bae5d4e8d127fa869f07d1b21af746fc8344cb48810d500ad6",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "badge_color": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.005000032484531403,
+        -0.2329999953508377,
+        0.08299999684095383
+      ],
+      "minimum": [
+        -0.19499990344047546,
+        -0.26499998569488525,
+        -0.09300000220537186
+      ],
+      "triangle_position_sha256": "a8477a7cddc50e3b53460f91643d906036dd32895ef832356e125015099e1f4d",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "body": {
+      "geometric_components": 1,
+      "maximum": [
+        0.30999991297721863,
+        0.2150000035762787,
+        0.3100000023841858
+      ],
+      "minimum": [
+        -0.3099997043609619,
+        -0.21499986946582794,
+        -0.4699999690055847
+      ],
+      "triangle_position_sha256": "a2d13ed906ca22b32481c1f9657010b1ecf2131802e0eae823a79f7cca9d3830",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "eye_left": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.056000009179115295,
+        -0.24399998784065247,
+        0.6330000162124634
+      ],
+      "minimum": [
+        -0.10799998044967651,
+        -0.2719999849796295,
+        0.5670000314712524
+      ],
+      "triangle_position_sha256": "81c4f74bb5adc7b714ac5e54e888388227594bb448df351cef464101fe110552",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "eye_right": {
+      "geometric_components": 1,
+      "maximum": [
+        0.10799999535083771,
+        -0.24399998784065247,
+        0.6330000162124634
+      ],
+      "minimum": [
+        0.05600002408027649,
+        -0.2719999849796295,
+        0.5670000314712524
+      ],
+      "triangle_position_sha256": "81a9cab88a7adda994d660c4e02cebfa521c229b200d01dd5d9afca03c761d78",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "head": {
+      "geometric_components": 1,
+      "maximum": [
+        0.28999990224838257,
+        0.22499999403953552,
+        0.800000011920929
+      ],
+      "minimum": [
+        -0.28999972343444824,
+        -0.22499984502792358,
+        0.30000001192092896
+      ],
+      "triangle_position_sha256": "c3127fe40fa5f8de21a4fd92fc9792237083be59d5298df057a82da4b504c08f",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "left_arm": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.3111061155796051,
+        0.0820000022649765,
+        0.1697898656129837
+      ],
+      "minimum": [
+        -0.478893905878067,
+        -0.08199995011091232,
+        -0.17978985607624054
+      ],
+      "triangle_position_sha256": "28ba46a5804cc34aecceed1e594cae663131f214bcac5a1bfe707c48aca60f4e",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "left_boot": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.01800002157688141,
+        0.09999999403953552,
+        -0.8289999961853027
+      ],
+      "minimum": [
+        -0.24199989438056946,
+        -0.18999990820884705,
+        -0.9509999752044678
+      ],
+      "triangle_position_sha256": "c515659d6c7e9adc11479c69a7be261aa098b71d3c150e0b8b6a62817d23299d",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "left_elbow": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.36500000953674316,
+        0.07800000160932541,
+        -0.09300000965595245
+      ],
+      "minimum": [
+        -0.5109999179840088,
+        -0.07799994945526123,
+        -0.2370000034570694
+      ],
+      "triangle_position_sha256": "b9e53ef1cd6b6780df4d9e8a751ca507ec0c89ae9111b1767bf28dc3f030a117",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "left_hand": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.3850000202655792,
+        0.0820000022649765,
+        -0.1629999876022339
+      ],
+      "minimum": [
+        -0.5649999380111694,
+        -0.10199993848800659,
+        -0.34700000286102295
+      ],
+      "triangle_position_sha256": "10cdd8e602c812a9c678b6887fe90abace12d86212de7461fd069ed72efaf7d5",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "left_hip": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.04300002008676529,
+        0.08699999749660492,
+        -0.36000001430511475
+      ],
+      "minimum": [
+        -0.21699991822242737,
+        -0.08699993789196014,
+        -0.5199999809265137
+      ],
+      "triangle_position_sha256": "1aafe5720e11a9bb4d194d40027f35377241ecc1fb0e0cf4d561962f8416d242",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "left_knee": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.054000020027160645,
+        0.07200000435113907,
+        -0.6190000176429749
+      ],
+      "minimum": [
+        -0.20599991083145142,
+        -0.09199994802474976,
+        -0.7609999775886536
+      ],
+      "triangle_position_sha256": "3f0488f70d8f3e6e2eeacb5adfa778279e3b2990650f2916ad6cd486a8442788",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "left_shin": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.05900001525878906,
+        0.07800000160932541,
+        -0.6800000071525574
+      ],
+      "minimum": [
+        -0.2009999305009842,
+        -0.07799994945526123,
+        -0.89000004529953
+      ],
+      "triangle_position_sha256": "cea5eb4867631d1eec543e41e92c10a0b5db0b6e09b8b37d70531bc23463f71c",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "left_shoulder": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.22300001978874207,
+        0.0949999988079071,
+        0.24500000476837158
+      ],
+      "minimum": [
+        -0.4069999158382416,
+        -0.09499993920326233,
+        0.044999994337558746
+      ],
+      "triangle_position_sha256": "c0a4b714c89c6bb6f71eed4c443f12488bcc2e921fd1971f07affa30a86fcdb6",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "left_thigh": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.05300001800060272,
+        0.0820000022649765,
+        -0.4350000023841858
+      ],
+      "minimum": [
+        -0.20699992775917053,
+        -0.08199995011091232,
+        -0.6949999928474426
+      ],
+      "triangle_position_sha256": "5a6d295b12ea5968ea860c4de288830f596f1a8833dc8e50f18ca3275b1ab877",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "mouth": {
+      "geometric_components": 1,
+      "maximum": [
+        0.05499998480081558,
+        -0.24700000882148743,
+        0.5370000004768372
+      ],
+      "minimum": [
+        -0.0549999475479126,
+        -0.26500001549720764,
+        0.512999951839447
+      ],
+      "triangle_position_sha256": "4cc1495d14e291493492a9b88964c44b1fe783f9ea99c228dd6fa88771eddec2",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "neck": {
+      "geometric_components": 1,
+      "maximum": [
+        0.10000000149011612,
+        0.10000000149011612,
+        0.36000001430511475
+      ],
+      "minimum": [
+        -0.10000000149011612,
+        -0.10000000149011612,
+        0.24000000953674316
+      ],
+      "triangle_position_sha256": "1fb59fcd15ebc4bdfc8d907448b88f04aa89a673fe4540f9c7dd75716d3def96",
+      "triangles": 92,
+      "vertices": 98
+    },
+    "right_arm": {
+      "geometric_components": 1,
+      "maximum": [
+        0.478893905878067,
+        0.0820000022649765,
+        0.1697898656129837
+      ],
+      "minimum": [
+        0.3111061155796051,
+        -0.08199995011091232,
+        -0.17978985607624054
+      ],
+      "triangle_position_sha256": "7aabc87ee613663198364108d80d42510c92b5fcc6f07f0c474871f28a31fad3",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "right_boot": {
+      "geometric_components": 1,
+      "maximum": [
+        0.24199996888637543,
+        0.09999999403953552,
+        -0.8289999961853027
+      ],
+      "minimum": [
+        0.018000096082687378,
+        -0.18999990820884705,
+        -0.9509999752044678
+      ],
+      "triangle_position_sha256": "f17a3900f0756b6038953f2252974c896ac485894ed03cc3ebb427f2813a5545",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "right_elbow": {
+      "geometric_components": 1,
+      "maximum": [
+        0.5109999775886536,
+        0.07800000160932541,
+        -0.09300000965595245
+      ],
+      "minimum": [
+        0.36500006914138794,
+        -0.07799994945526123,
+        -0.2370000034570694
+      ],
+      "triangle_position_sha256": "6b400a3143d50b8e0057c384e4663f4670648d08ae7618b1a7002957a6d8c7b1",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "right_flag_only": {
+      "geometric_components": 1,
+      "maximum": [
+        0.8500000238418579,
+        -0.014999999664723873,
+        0.7200000286102295
+      ],
+      "minimum": [
+        0.5299999713897705,
+        -0.04500000178813934,
+        0.5099999904632568
+      ],
+      "triangle_position_sha256": "ccafb8a1da7bbe04f2b5674479725b37a5cabe610db551ea0ded13d03ac0ad97",
+      "triangles": 8,
+      "vertices": 18
+    },
+    "right_flag_pole": {
+      "geometric_components": 1,
+      "maximum": [
+        0.5270000100135803,
+        -0.023000000044703484,
+        0.7250000238418579
+      ],
+      "minimum": [
+        0.5029999613761902,
+        -0.04699999839067459,
+        -0.2549999952316284
+      ],
+      "triangle_position_sha256": "de6008fa22183969f4a902f7e0202420c251c8768be23342e0b1aec33081abaf",
+      "triangles": 92,
+      "vertices": 98
+    },
+    "right_hand": {
+      "geometric_components": 1,
+      "maximum": [
+        0.5649999380111694,
+        0.0820000022649765,
+        -0.1629999876022339
+      ],
+      "minimum": [
+        0.385000079870224,
+        -0.10199993848800659,
+        -0.34700000286102295
+      ],
+      "triangle_position_sha256": "c5469cd095212c78b9969de8759f9f3c017271a7dec9705865ca9bc591f98884",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "right_hip": {
+      "geometric_components": 1,
+      "maximum": [
+        0.21699997782707214,
+        0.08699999749660492,
+        -0.36000001430511475
+      ],
+      "minimum": [
+        0.043000079691410065,
+        -0.08699993789196014,
+        -0.5199999809265137
+      ],
+      "triangle_position_sha256": "414b4c8860692f42bda5ff969194cb79d83df38257cd11241a1673c23114fac5",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "right_knee": {
+      "geometric_components": 1,
+      "maximum": [
+        0.2059999704360962,
+        0.07200000435113907,
+        -0.6190000176429749
+      ],
+      "minimum": [
+        0.05400007218122482,
+        -0.09199994802474976,
+        -0.7609999775886536
+      ],
+      "triangle_position_sha256": "451195330ecf74e8d808a9870547cb17567a14bae3d911a4ca52bf7c65ab6280",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "right_shin": {
+      "geometric_components": 1,
+      "maximum": [
+        0.20099997520446777,
+        0.07800000160932541,
+        -0.6800000071525574
+      ],
+      "minimum": [
+        0.059000059962272644,
+        -0.07799994945526123,
+        -0.89000004529953
+      ],
+      "triangle_position_sha256": "28d7437a4e26523f7ecefac1dc9014f9c46982db714a9f749a6c1b0dfc84fea6",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "right_shoulder": {
+      "geometric_components": 1,
+      "maximum": [
+        0.40699997544288635,
+        0.0949999988079071,
+        0.24500000476837158
+      ],
+      "minimum": [
+        0.22300007939338684,
+        -0.09499993920326233,
+        0.044999994337558746
+      ],
+      "triangle_position_sha256": "3def944f9f5dbe85dd354bc841a9fa7f05ac2fbf5fba56de5f7da588e8a409a6",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "right_thigh": {
+      "geometric_components": 1,
+      "maximum": [
+        0.2069999724626541,
+        0.0820000022649765,
+        -0.4350000023841858
+      ],
+      "minimum": [
+        0.0530000701546669,
+        -0.08199995011091232,
+        -0.6949999928474426
+      ],
+      "triangle_position_sha256": "1852524f13909e8314e2c4e0283bcc97d8953e7655b92cdc15d5e0c09d227709",
+      "triangles": 960,
+      "vertices": 559
+    },
+    "visor": {
+      "geometric_components": 1,
+      "maximum": [
+        0.22199994325637817,
+        -0.15000000596046448,
+        0.6869999766349792
+      ],
+      "minimum": [
+        -0.22199979424476624,
+        -0.25999996066093445,
+        0.46299999952316284
+      ],
+      "triangle_position_sha256": "1664a5af6de9415affa435d1610f847e6ecf29afe6068c9f818153d153907a17",
+      "triangles": 960,
+      "vertices": 559
+    }
+  },
+  "before": {
+    "antenna_stem": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.08799999952316284,
+        0.012000000104308128,
+        0.9099999666213989
+      ],
+      "minimum": [
+        -0.1120000034570694,
+        -0.012000000104308128,
+        0.7300000190734863
+      ],
+      "triangle_position_sha256": "811ba4fc5497ff8ec67952da40c613c80d03b424bf630663bec6323a3c88e008",
+      "triangles": 92,
+      "vertices": 48
+    },
+    "antenna_tip": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.06400001049041748,
+        0.035999998450279236,
+        0.9460000395774841
+      ],
+      "minimum": [
+        -0.13599996268749237,
+        -0.035999976098537445,
+        0.8740000128746033
+      ],
+      "triangle_position_sha256": "142ac98ce8d33587f0ebbb426a5ae382ce3979b3c89e5ae3b6b3830881679481",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "badge_brass_ring": {
+      "geometric_components": 1,
+      "maximum": [
+        0.01599995791912079,
+        -0.18699999153614044,
+        0.10399999469518661
+      ],
+      "minimum": [
+        -0.21599988639354706,
+        -0.24699997901916504,
+        -0.11400000005960464
+      ],
+      "triangle_position_sha256": "7cd9ee9bcf47f3bae5d4e8d127fa869f07d1b21af746fc8344cb48810d500ad6",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "badge_color": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.005000032484531403,
+        -0.2329999953508377,
+        0.08299999684095383
+      ],
+      "minimum": [
+        -0.19499990344047546,
+        -0.26499998569488525,
+        -0.09300000220537186
+      ],
+      "triangle_position_sha256": "a8477a7cddc50e3b53460f91643d906036dd32895ef832356e125015099e1f4d",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "body": {
+      "geometric_components": 1,
+      "maximum": [
+        0.30999991297721863,
+        0.2150000035762787,
+        0.3100000023841858
+      ],
+      "minimum": [
+        -0.3099997043609619,
+        -0.21499986946582794,
+        -0.4699999690055847
+      ],
+      "triangle_position_sha256": "a2d13ed906ca22b32481c1f9657010b1ecf2131802e0eae823a79f7cca9d3830",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "eye_left": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.056000009179115295,
+        -0.24399998784065247,
+        0.6330000162124634
+      ],
+      "minimum": [
+        -0.10799998044967651,
+        -0.2719999849796295,
+        0.5670000314712524
+      ],
+      "triangle_position_sha256": "81c4f74bb5adc7b714ac5e54e888388227594bb448df351cef464101fe110552",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "eye_right": {
+      "geometric_components": 1,
+      "maximum": [
+        0.10799999535083771,
+        -0.24399998784065247,
+        0.6330000162124634
+      ],
+      "minimum": [
+        0.05600002408027649,
+        -0.2719999849796295,
+        0.5670000314712524
+      ],
+      "triangle_position_sha256": "81a9cab88a7adda994d660c4e02cebfa521c229b200d01dd5d9afca03c761d78",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "head": {
+      "geometric_components": 1,
+      "maximum": [
+        0.28999990224838257,
+        0.22499999403953552,
+        0.800000011920929
+      ],
+      "minimum": [
+        -0.28999972343444824,
+        -0.22499984502792358,
+        0.30000001192092896
+      ],
+      "triangle_position_sha256": "c3127fe40fa5f8de21a4fd92fc9792237083be59d5298df057a82da4b504c08f",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "left_arm": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.3111061155796051,
+        0.0820000022649765,
+        0.1697898656129837
+      ],
+      "minimum": [
+        -0.478893905878067,
+        -0.08199995011091232,
+        -0.17978985607624054
+      ],
+      "triangle_position_sha256": "28ba46a5804cc34aecceed1e594cae663131f214bcac5a1bfe707c48aca60f4e",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "left_boot": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.01800002157688141,
+        0.09999999403953552,
+        -0.8289999961853027
+      ],
+      "minimum": [
+        -0.24199989438056946,
+        -0.18999990820884705,
+        -0.9509999752044678
+      ],
+      "triangle_position_sha256": "c515659d6c7e9adc11479c69a7be261aa098b71d3c150e0b8b6a62817d23299d",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "left_elbow": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.36500000953674316,
+        0.07800000160932541,
+        -0.09300000965595245
+      ],
+      "minimum": [
+        -0.5109999179840088,
+        -0.07799994945526123,
+        -0.2370000034570694
+      ],
+      "triangle_position_sha256": "b9e53ef1cd6b6780df4d9e8a751ca507ec0c89ae9111b1767bf28dc3f030a117",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "left_hand": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.3850000202655792,
+        0.0820000022649765,
+        -0.1629999876022339
+      ],
+      "minimum": [
+        -0.5649999380111694,
+        -0.10199993848800659,
+        -0.34700000286102295
+      ],
+      "triangle_position_sha256": "10cdd8e602c812a9c678b6887fe90abace12d86212de7461fd069ed72efaf7d5",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "left_hip": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.04300002008676529,
+        0.08699999749660492,
+        -0.36000001430511475
+      ],
+      "minimum": [
+        -0.21699991822242737,
+        -0.08699993789196014,
+        -0.5199999809265137
+      ],
+      "triangle_position_sha256": "1aafe5720e11a9bb4d194d40027f35377241ecc1fb0e0cf4d561962f8416d242",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "left_knee": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.054000020027160645,
+        0.07200000435113907,
+        -0.6190000176429749
+      ],
+      "minimum": [
+        -0.20599991083145142,
+        -0.09199994802474976,
+        -0.7609999775886536
+      ],
+      "triangle_position_sha256": "3f0488f70d8f3e6e2eeacb5adfa778279e3b2990650f2916ad6cd486a8442788",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "left_shin": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.05900001525878906,
+        0.07800000160932541,
+        -0.6800000071525574
+      ],
+      "minimum": [
+        -0.2009999305009842,
+        -0.07799994945526123,
+        -0.89000004529953
+      ],
+      "triangle_position_sha256": "cea5eb4867631d1eec543e41e92c10a0b5db0b6e09b8b37d70531bc23463f71c",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "left_shoulder": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.22300001978874207,
+        0.0949999988079071,
+        0.24500000476837158
+      ],
+      "minimum": [
+        -0.4069999158382416,
+        -0.09499993920326233,
+        0.044999994337558746
+      ],
+      "triangle_position_sha256": "c0a4b714c89c6bb6f71eed4c443f12488bcc2e921fd1971f07affa30a86fcdb6",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "left_thigh": {
+      "geometric_components": 1,
+      "maximum": [
+        -0.05300001800060272,
+        0.0820000022649765,
+        -0.4350000023841858
+      ],
+      "minimum": [
+        -0.20699992775917053,
+        -0.08199995011091232,
+        -0.6949999928474426
+      ],
+      "triangle_position_sha256": "5a6d295b12ea5968ea860c4de288830f596f1a8833dc8e50f18ca3275b1ab877",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "mouth": {
+      "geometric_components": 1,
+      "maximum": [
+        0.05499998480081558,
+        -0.24700000882148743,
+        0.5370000004768372
+      ],
+      "minimum": [
+        -0.0549999475479126,
+        -0.26500001549720764,
+        0.512999951839447
+      ],
+      "triangle_position_sha256": "4cc1495d14e291493492a9b88964c44b1fe783f9ea99c228dd6fa88771eddec2",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "neck": {
+      "geometric_components": 1,
+      "maximum": [
+        0.10000000149011612,
+        0.10000000149011612,
+        0.36000001430511475
+      ],
+      "minimum": [
+        -0.10000000149011612,
+        -0.10000000149011612,
+        0.24000000953674316
+      ],
+      "triangle_position_sha256": "1fb59fcd15ebc4bdfc8d907448b88f04aa89a673fe4540f9c7dd75716d3def96",
+      "triangles": 92,
+      "vertices": 48
+    },
+    "right_arm": {
+      "geometric_components": 1,
+      "maximum": [
+        0.478893905878067,
+        0.0820000022649765,
+        0.1697898656129837
+      ],
+      "minimum": [
+        0.3111061155796051,
+        -0.08199995011091232,
+        -0.17978985607624054
+      ],
+      "triangle_position_sha256": "7aabc87ee613663198364108d80d42510c92b5fcc6f07f0c474871f28a31fad3",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "right_boot": {
+      "geometric_components": 1,
+      "maximum": [
+        0.24199996888637543,
+        0.09999999403953552,
+        -0.8289999961853027
+      ],
+      "minimum": [
+        0.018000096082687378,
+        -0.18999990820884705,
+        -0.9509999752044678
+      ],
+      "triangle_position_sha256": "f17a3900f0756b6038953f2252974c896ac485894ed03cc3ebb427f2813a5545",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "right_elbow": {
+      "geometric_components": 1,
+      "maximum": [
+        0.5109999775886536,
+        0.07800000160932541,
+        -0.09300000965595245
+      ],
+      "minimum": [
+        0.36500006914138794,
+        -0.07799994945526123,
+        -0.2370000034570694
+      ],
+      "triangle_position_sha256": "6b400a3143d50b8e0057c384e4663f4670648d08ae7618b1a7002957a6d8c7b1",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "right_flag_only": {
+      "geometric_components": 1,
+      "maximum": [
+        0.8500000238418579,
+        -0.014999999664723873,
+        0.7200000286102295
+      ],
+      "minimum": [
+        0.5299999713897705,
+        -0.04500000178813934,
+        0.5099999904632568
+      ],
+      "triangle_position_sha256": "ccafb8a1da7bbe04f2b5674479725b37a5cabe610db551ea0ded13d03ac0ad97",
+      "triangles": 8,
+      "vertices": 6
+    },
+    "right_flag_pole": {
+      "geometric_components": 1,
+      "maximum": [
+        0.5270000100135803,
+        -0.023000000044703484,
+        0.7250000238418579
+      ],
+      "minimum": [
+        0.5029999613761902,
+        -0.04699999839067459,
+        -0.2549999952316284
+      ],
+      "triangle_position_sha256": "de6008fa22183969f4a902f7e0202420c251c8768be23342e0b1aec33081abaf",
+      "triangles": 92,
+      "vertices": 48
+    },
+    "right_hand": {
+      "geometric_components": 1,
+      "maximum": [
+        0.5649999380111694,
+        0.0820000022649765,
+        -0.1629999876022339
+      ],
+      "minimum": [
+        0.385000079870224,
+        -0.10199993848800659,
+        -0.34700000286102295
+      ],
+      "triangle_position_sha256": "c5469cd095212c78b9969de8759f9f3c017271a7dec9705865ca9bc591f98884",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "right_hip": {
+      "geometric_components": 1,
+      "maximum": [
+        0.21699997782707214,
+        0.08699999749660492,
+        -0.36000001430511475
+      ],
+      "minimum": [
+        0.043000079691410065,
+        -0.08699993789196014,
+        -0.5199999809265137
+      ],
+      "triangle_position_sha256": "414b4c8860692f42bda5ff969194cb79d83df38257cd11241a1673c23114fac5",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "right_knee": {
+      "geometric_components": 1,
+      "maximum": [
+        0.2059999704360962,
+        0.07200000435113907,
+        -0.6190000176429749
+      ],
+      "minimum": [
+        0.05400007218122482,
+        -0.09199994802474976,
+        -0.7609999775886536
+      ],
+      "triangle_position_sha256": "451195330ecf74e8d808a9870547cb17567a14bae3d911a4ca52bf7c65ab6280",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "right_shin": {
+      "geometric_components": 1,
+      "maximum": [
+        0.20099997520446777,
+        0.07800000160932541,
+        -0.6800000071525574
+      ],
+      "minimum": [
+        0.059000059962272644,
+        -0.07799994945526123,
+        -0.89000004529953
+      ],
+      "triangle_position_sha256": "28d7437a4e26523f7ecefac1dc9014f9c46982db714a9f749a6c1b0dfc84fea6",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "right_shoulder": {
+      "geometric_components": 1,
+      "maximum": [
+        0.40699997544288635,
+        0.0949999988079071,
+        0.24500000476837158
+      ],
+      "minimum": [
+        0.22300007939338684,
+        -0.09499993920326233,
+        0.044999994337558746
+      ],
+      "triangle_position_sha256": "3def944f9f5dbe85dd354bc841a9fa7f05ac2fbf5fba56de5f7da588e8a409a6",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "right_thigh": {
+      "geometric_components": 1,
+      "maximum": [
+        0.2069999724626541,
+        0.0820000022649765,
+        -0.4350000023841858
+      ],
+      "minimum": [
+        0.0530000701546669,
+        -0.08199995011091232,
+        -0.6949999928474426
+      ],
+      "triangle_position_sha256": "1852524f13909e8314e2c4e0283bcc97d8953e7655b92cdc15d5e0c09d227709",
+      "triangles": 960,
+      "vertices": 482
+    },
+    "visor": {
+      "geometric_components": 1,
+      "maximum": [
+        0.22199994325637817,
+        -0.15000000596046448,
+        0.6869999766349792
+      ],
+      "minimum": [
+        -0.22199979424476624,
+        -0.25999996066093445,
+        0.46299999952316284
+      ],
+      "triangle_position_sha256": "1664a5af6de9415affa435d1610f847e6ecf29afe6068c9f818153d153907a17",
+      "triangles": 960,
+      "vertices": 482
+    }
+  },
+  "comparison": "Symmetric world-vertex and triangle-centroid nearest distances, bounds, triangle and welded-component counts.",
+  "geometric_components": 31,
+  "maximum_world_position_error": 0.0,
+  "mesh_objects": 31,
+  "reloaded_in_empty_scene": true,
+  "schema_version": 1,
+  "source_glb_sha256": "0f7d2043927792c8880ecbf5fd41b04abc93f3e68693f7f51f1d50ea2e9f3aa8",
+  "tolerance": 2e-06,
+  "triangles": 26204
+}
