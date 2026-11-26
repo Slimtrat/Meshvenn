@@ -11,6 +11,7 @@ import importlib
 import json
 import math
 import statistics
+from dataclasses import replace
 from pathlib import Path
 import sys
 from types import SimpleNamespace
@@ -48,6 +49,10 @@ def main():
     parser.add_argument('--source-sha256',required=True)
     parser.add_argument('--dataset',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--texture-size',type=int,choices=(128,256,512,1024,2048,4096),default=512)
+    parser.add_argument('--padding-pixels',type=int,default=None)
+    parser.add_argument('--cloth',action='store_true',help='Add portable authored cloth normal and roughness maps')
+    parser.add_argument('--coherent-head',action='store_true',help='Use front/back authority for dark native head markings, preserving lateral cloth')
     parser.add_argument('--cardinal-priority',action='store_true',
         help='Prefer the first-sheet cardinal views and use their measured cloth median for unobserved samples')
     parser.add_argument('--variants',nargs='+',choices=('baseline','detail','trajectory','combined'),
@@ -83,7 +88,8 @@ def main():
             views.append(SimpleNamespace(name=identifier,image=bpy.data.images.load(str(path)),enabled=True,
                 azimuth=math.radians(angle),elevation=0.,flip_x=False,weight=weight))
         settings=SimpleNamespace(projections=views,alpha_threshold=.5,
-            uv_bake_texture_size=512,uv_bake_samples_per_axis=1,uv_bake_padding_pixels=4,
+            uv_bake_texture_size=args.texture_size,uv_bake_samples_per_axis=1,
+            uv_bake_padding_pixels=args.padding_pixels if args.padding_pixels is not None else max(4,args.texture_size//128),
             uv_bake_reuse_existing_uv=True,material_max_contributors=1)
         context=pipeline.PipelineContext(scene=bpy.context.scene,settings=settings)
         prepared=module('implementations.projection_images').ProjectionImagesImplementation().execute(context)
@@ -103,11 +109,18 @@ def main():
             width=mesh['meshvenn_projection_width'],depth=mesh['meshvenn_projection_depth'],
             height=mesh['meshvenn_projection_height'],voxel_size=mesh['meshvenn_projection_voxel_size'],
             center_xy=mesh['meshvenn_projection_center_xy'])
-        geometry=contracts.GeometrySurfaceOutput(blender_object=mesh,source=prepared.payload,
+        material_source=prepared.payload
+        row=dict(id=name,rebake=rebake,refit=refit)
+        if args.coherent_head and rebake:
+            sys.path.insert(0,str(ROOT/'extensions'))
+            from meshvenn_cloth.regions import coherent_head_views
+            selected,policy=coherent_head_views(mesh,prepared.payload.material_views,space,module('core.image_mask').BinaryMask)
+            material_source=SimpleNamespace(material_views=selected)
+            row['region_source_policy']=policy
+        geometry=contracts.GeometrySurfaceOutput(blender_object=mesh,source=material_source,
             projection_space=space,
             implementation_id='native-visual-hull',metadata={'source_blend_sha256':args.source_sha256})
         context.set_output(pipeline.PipelineStage.GEOMETRY,geometry)
-        row=dict(id=name,rebake=rebake,refit=refit)
         if rebake:
             outcome=module('implementations.uv_bake').UVBakeImplementation().execute(context)
             if not outcome.success:raise RuntimeError(outcome.message)
@@ -119,6 +132,14 @@ def main():
                 row['unobserved_color_provenance']=dict(color=list(fallback),linear_rgb=True,
                     source='az000',uv_window=[.4,.4,.6,.7],opaque_samples=len(pixels),
                     method='per-channel median; inferred fill, not observed texture or coverage')
+            if args.cloth:
+                sys.path.insert(0,str(ROOT/'extensions'))
+                from meshvenn_cloth.authoring import apply_cloth
+                from meshvenn_cloth.config import ClothConfig
+                cloth=apply_cloth(mesh,ClothConfig(texture_size=args.texture_size))
+                context.set_output(pipeline.PipelineStage.MATERIAL,replace(outcome.payload,material=cloth['material']))
+                row['cloth']=dict(config=cloth['config'],authority='Authored surface detail, not observed coverage',
+                    normal_size=list(cloth['normal'].size),roughness_size=list(cloth['roughness'].size))
         if refit:
             # This is a new source rig, never a migration of an animated consumer.
             world=mesh.matrix_world.copy();mesh.parent=None;mesh.matrix_world=world

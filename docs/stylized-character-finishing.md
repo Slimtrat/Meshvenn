@@ -24,6 +24,10 @@ With `--cardinal-priority`, the recipe derives the unobserved fabric color from 
 
 ## Reproduce and compare
 
+For a finer authored fabric finish, enable the separate [Meshvenn Cloth extension](../extensions/meshvenn_cloth/README.md). It adds an opt-in **Cloth UV Bake** MATERIAL implementation through the public registry and can finish a single existing baked material. It preserves the base-color image, surface, UVs and rig while baking portable tangent normals and metallic/roughness maps. The final glTF material does not require procedural shader support. Detail-map size and base-color bake size are separate settings.
+
+The generated-dummy benchmark accepts `--texture-size 2048 --cloth --coherent-head --variants detail --cardinal-priority`. The head policy retains lateral cloth samples while reserving dark markings for its front/back source views. Its explicit appearance masks use the native head ownership and level saved cameras; they do not alter the source images, silhouettes or observed-coverage accounting. This is a declared artistic rule for contradictory generated views. The versioned [cloth example and consumer handoff](../example/v2/generated/StytchDummyCloth/README.md) records the source hashes, inferred fill, authored detail, exported transport checks and remaining Stytch contract/budget requirements.
+
 Use a cached eight-view manifest whose camera/image conventions already match the native projector. ImageGen cells at equal orthographic scale need the registered frame described by that manifest; raw cell yaw labels are not sufficient.
 
 ```powershell

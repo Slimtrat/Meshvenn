@@ -1,0 +1,110 @@
+name: Portable cloth material
+
+on:
+  pull_request:
+    paths:
+      - 'extensions/meshvenn_cloth/**'
+      - 'example/v2/generated/StytchDummyCloth/**'
+      - 'scripts/build_meshvenn_cloth.py'
+      - 'scripts/benchmark_stylized_dummy_quality.py'
+      - 'scripts/render_cloth_comparison.py'
+      - 'implementations/uv_bake/**'
+      - 'implementations/glb_export/**'
+      - '.github/workflows/cloth_extension.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'extensions/meshvenn_cloth/**'
+      - 'example/v2/generated/StytchDummyCloth/**'
+      - 'scripts/build_meshvenn_cloth.py'
+      - 'scripts/benchmark_stylized_dummy_quality.py'
+      - 'scripts/render_cloth_comparison.py'
+      - 'implementations/uv_bake/**'
+      - 'implementations/glb_export/**'
+      - '.github/workflows/cloth_extension.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloth-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portable:
+    name: Standalone cloth and GLB roundtrip
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m unittest discover -s extensions/meshvenn_cloth/tests -v
+      - run: python scripts/build_meshvenn_cloth.py
+      - uses: actions/cache@v4
+        id: blender
+        with:
+          path: .blender
+          key: blender-linux-x64-5.2.1
+      - name: Download Blender
+        if: steps.blender.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .blender
+          curl --fail --show-error --location --retry 5 --retry-all-errors \
+            --connect-timeout 20 --max-time 600 \
+            --output "${RUNNER_TEMP}/blender.tar.xz" \
+            https://download.blender.org/release/Blender5.2/blender-5.2.1-linux-x64.tar.xz
+          xz --test "${RUNNER_TEMP}/blender.tar.xz"
+          tar -xJf "${RUNNER_TEMP}/blender.tar.xz" -C .blender --strip-components=1
+      - name: Validate independent ZIP and actual material execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          .blender/blender --command extension validate dist/meshvenn_cloth-0.1.0.zip
+          python -m zipfile -e dist/meshvenn_cloth-0.1.0.zip "${RUNNER_TEMP}/cloth-install/meshvenn_cloth"
+          .blender/blender --background --factory-startup --disable-autoexec --python-exit-code 1 \
+            --python extensions/meshvenn_cloth/tests/blender_smoke.py -- \
+            --package-root "${RUNNER_TEMP}/cloth-install/meshvenn_cloth" --output output/cloth-qualification
+      - name: Qualify the delivered dummy's rig and preserve its bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          .blender/blender --background --factory-startup --disable-autoexec --python-exit-code 1 \
+            --python scripts/run_humanoid_quality_loop.py -- \
+            --source example/v2/generated/StytchDummyCloth/character.glb --output output/cloth-dummy-quality
+          python - <<'PY'
+          import hashlib, json, pathlib
+          source = pathlib.Path('example/v2/generated/StytchDummyCloth/character.glb')
+          provenance = json.loads(source.with_name('provenance.json').read_text())
+          assert hashlib.sha256(source.read_bytes()).hexdigest() == provenance['sha256']
+          state = json.loads(pathlib.Path('output/cloth-dummy-quality/session.json').read_text())
+          assert state['status'] == 'checks_passed' and state['selected']['id'] == 'baseline'
+          assert not state['attempts']
+          assert pathlib.Path('output/cloth-dummy-quality/selected.glb').read_bytes() == source.read_bytes()
+          PY
+      - name: Render the same qualified rig before and after finishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          .blender/blender --background --factory-startup --disable-autoexec --python-exit-code 1 \
+            --python scripts/run_humanoid_quality_loop.py -- \
+            --source example/v2/generated/StytchDummy8Views/rig-baseline.glb --output output/cloth-source-quality
+          .blender/blender --background --factory-startup --disable-autoexec --python-exit-code 1 \
+            --python scripts/render_cloth_comparison.py -- \
+            --baseline output/cloth-source-quality/selected.glb \
+            --cloth example/v2/generated/StytchDummyCloth/character.glb --output output/cloth-renders
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: portable-cloth-evidence
+          path: |
+            dist/meshvenn_cloth-*.zip
+            output/cloth-qualification/
+            output/cloth-dummy-quality/
+            output/cloth-source-quality/
+            output/cloth-renders/
+          if-no-files-found: error
