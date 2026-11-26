@@ -100,6 +100,8 @@ def execute_uv_bake(self, context: PipelineContext) -> StageExecutionResult:
     context.metadata['material_projection_convention'] = projection_space.convention.value
     context.metadata['uv_bake_image'] = image.name
     context.metadata['uv_bake_material'] = material.name
+    context.metadata['uv_bake_unobserved_color'] = list(config.unobserved_color)
+    obj['meshvenn_uv_bake_unobserved_color'] = list(config.unobserved_color)
     context.metadata['uv_bake_effective_island_margin'] = config.effective_island_margin_fraction
     context.metadata['material_storage_encoding'] = 'sRGB RGB / linear alpha, RGBA8'
     obj['bpt_uv_bake_storage_encoding'] = context.metadata['material_storage_encoding']

@@ -7,6 +7,7 @@ from bpy.props import (
     CollectionProperty,
     EnumProperty,
     FloatProperty,
+    FloatVectorProperty,
     IntProperty,
     PointerProperty,
     StringProperty,
@@ -309,6 +310,12 @@ class BPT_PG_Settings(
         default=(
             DEFAULT_UV_BAKE_TEXTURE_SIZE
         ),
+    )
+
+    uv_bake_unobserved_color: FloatVectorProperty(
+        name="Unobserved Color",
+        description="Color for surface samples without a usable source projection; these samples remain marked as fallback",
+        size=3, subtype="COLOR", default=(0.18,0.18,0.18), min=0.0, max=1.0,
     )
 
     uv_bake_padding_pixels: IntProperty(

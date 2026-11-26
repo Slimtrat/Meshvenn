@@ -344,6 +344,7 @@ class UVBakeImplementation:
             text="Texture",
             icon="TEXTURE",
         )
+        _draw_optional_property(texture_box, settings, "uv_bake_unobserved_color", "Unobserved Color")
 
         if not _draw_optional_property(
             texture_box,

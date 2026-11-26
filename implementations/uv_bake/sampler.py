@@ -110,7 +110,7 @@ def _build_surface_sampler(
             from ...core.projected_material.blending import _blend_projected_color_detailed
             result = _blend_projected_color_detailed(
                 position, normal, views, **projection_space.as_projection_kwargs(),
-                facing_power=config.facing_power, fallback_color=DEFAULT_FALLBACK_COLOR,
+                facing_power=config.facing_power, fallback_color=(*config.unobserved_color, 1.0),
                 allow_backface_fallback=config.allow_backface_fallback,
                 visibility_tester=visibility_tester, blend_config=blend_config)
             for name in ("total_samples", "candidate_samples", "source_rejected_samples",
@@ -164,7 +164,7 @@ def _build_surface_sampler(
                 ),
 
                 fallback_color=(
-                    DEFAULT_FALLBACK_COLOR
+                    (*config.unobserved_color, 1.0)
                 ),
 
                 allow_backface_fallback=(
