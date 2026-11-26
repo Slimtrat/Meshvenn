@@ -146,9 +146,19 @@ def _worker(request_path):
         light=bpy.data.objects.new(name,light_data);scene.collection.objects.link(light)
         light.location=center+Vector(position)*scale
         light.rotation_euler=(center-light.location).to_track_quat("-Z","Y").to_euler()
+    # Use the same CPU backend for both modes, including on Linux without EGL.
+    # A plain material plus flat polygon normals reveals geometry without an
+    # OpenGL/Workbench dependency or changing the reloaded vertex positions.
+    scene.render.engine="CYCLES";scene.cycles.device="CPU";scene.cycles.samples=8;scene.cycles.use_denoising=False
+    clay=bpy.data.materials.new("ReviewGeometryClay");clay.use_nodes=True
+    shader=clay.node_tree.nodes.get("Principled BSDF")
+    shader.inputs["Base Color"].default_value=(.56,.62,.7,1)
+    shader.inputs["Roughness"].default_value=1
     result={"schema_version":1,"status":"partial","quality_status":"unknown","output_root":str(output),
             "request_sha256":_sha(request_path),"blender_version":bpy.app.version_string,
             "render_script_sha256":request["render_script_sha256"],
+            "render_backend":{"engine":"CYCLES","device":"CPU","samples":8,"denoising":False,
+                              "flat_mode":"plain material override and flat polygon normals"},
             "coordinate_frame":"Blender world coordinates after exact GLB reload; no per-asset fit or normalization",
             "source_bounds":bounds,"angles":request["angles"],"size":request["size"],"modes":request["modes"],
             "crop_policy":"Shared source-bounds full/head/bust crops; anatomical labels are visual prompts, not segmentation",
@@ -170,16 +180,12 @@ def _worker(request_path):
         original_smooth={obj.name:[p.use_smooth for p in obj.data.polygons] for obj in objects}
         for mode in request["modes"]:
             if mode=="flat":
-                scene.render.engine="BLENDER_WORKBENCH"
-                scene.display.shading.light="STUDIO";scene.display.shading.studiolight_rotate_z=.35
-                scene.display.shading.color_type="SINGLE";scene.display.shading.single_color=(.56,.62,.7)
-                scene.display.shading.show_shadows=True;scene.display.shading.show_cavity=False
-                scene.display.shading.show_specular_highlight=False
-                scene.display.shading.background_type="WORLD";scene.world.color=(.055,.065,.085)
+                scene.view_layers[0].material_override=clay
+                scene.world.color=(.055,.065,.085)
                 for obj in objects:
                     for poly in obj.data.polygons:poly.use_smooth=False
             else:
-                scene.render.engine="CYCLES";scene.cycles.device="CPU";scene.cycles.samples=8;scene.cycles.use_denoising=False
+                scene.view_layers[0].material_override=None
                 scene.world.color=(.16,.16,.16)
                 for obj in objects:
                     for poly,smooth in zip(obj.data.polygons,original_smooth[obj.name]):poly.use_smooth=smooth

@@ -14,6 +14,8 @@ In the CI run, download `character-quality-review-<attempt>`, extract the entire
 
 The review does not substitute an unrelated good-looking reference for the reconstruction. A separate reference, when supplied through the rendering API, remains explicitly distinct.
 
+Both visual modes use Cycles CPU, without denoising. The facets mode applies a plain material and flat polygon normals; it does not change mesh vertices. No GPU, Workbench or EGL library is needed on a headless CI runner.
+
 ## Generate a new comparison
 
 Use Python 3.11+ and a supported Blender executable with GLB import/export, plus a built native library:
