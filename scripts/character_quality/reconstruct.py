@@ -16,9 +16,10 @@ from types import SimpleNamespace
 
 ROOT=Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
+from scripts.character_quality.camera_profiles import LEGACY_CAMERAS, DENSE_CAMERAS, DENSE_PROFILE
 
 # Native positive elevation views from -Z; names describe physical camera sides.
-ANGLES=tuple((f"az{a:03d}",a,0.) for a in (0,45,90,135,180,225,270,315))+(("top",0.,-90.),("bottom",0.,90.))
+ANGLES=LEGACY_CAMERAS
 
 
 def _write(path,value):
@@ -43,8 +44,8 @@ def reconstruct_cases(output,native_library,*,source_glb=None,resolution=64,mask
     if type(mask_size) is not int or not 32<=mask_size<=512:raise ValueError("Mask raster must be 32..512.")
     if type(hero_size) is not int or not 64<=hero_size<=1024:raise ValueError("Hero raster must be 64..1024.")
     counts=tuple(view_counts)
-    if not counts or len(set(counts))!=len(counts) or any(type(n) is not int or n not in (2,8,10) for n in counts):
-        raise ValueError("View counts must be unique members of 2,8,10.")
+    if not counts or len(set(counts))!=len(counts) or any(type(n) is not int or n not in (2,8,10,18) for n in counts):
+        raise ValueError("View counts must be unique members of 2,8,10,18.")
     library=Path(native_library).resolve()
     source=Path(source_glb or ROOT/"tests/fixtures/diagnostics/provider-v1/original-reference.glb").resolve()
     if not library.is_file() or not source.is_file():raise ValueError("Existing native library and source GLB are required.")
@@ -68,7 +69,7 @@ def reconstruct_cases(output,native_library,*,source_glb=None,resolution=64,mask
     if any(a < -1.000002 or b > 1.000002 for a,b in zip(*source_info["bounds"])):
         raise ValueError("Source world surface must already be in the declared normalized cube; no hidden source fit is performed.")
     mask_dir=out/"masks";mask_dir.mkdir()
-    views,_=ray_masks(meshes,mask_dir,mask_size,ANGLES)
+    views,_=ray_masks(meshes,mask_dir,mask_size,DENSE_CAMERAS if 18 in counts else ANGLES)
     public_views=[{k:v for k,v in view.items() if k!="mask"} for view in views]
     source_hero=out/"source.hero.png";hero(out/"source.glb",source_hero,hero_size)
     source_sha=hashlib.sha256(original).hexdigest()
@@ -83,7 +84,8 @@ def reconstruct_cases(output,native_library,*,source_glb=None,resolution=64,mask
         scope=dict(actual_reconstruction=True,plain_static_glb=True,rig_certified=False,source_mesh_used_for_candidate_fit=False),
         generator=dict(blender=bpy.app.version_string,source_files=[dict(path=name,
             sha256=hashlib.sha256((ROOT/name).read_bytes()).hexdigest()) for name in (
-                "scripts/character_quality/reconstruct.py","scripts/character_quality/blender_scene.py")]),
+                "scripts/character_quality/reconstruct.py","scripts/character_quality/blender_scene.py",
+                "scripts/character_quality/camera_profiles.py")]),
         implementation_sources=[dict(path=name,sha256=hashlib.sha256((ROOT/name).read_bytes()).hexdigest()) for name in (
             "core/native_bridge/runtime.py","core/native_scan_trace.py","core/surface_refinement.py","core/contour_surface.py",
             "core/native_mesh_builder.py","core/projection_frame.py")])
@@ -114,6 +116,7 @@ def reconstruct_cases(output,native_library,*,source_glb=None,resolution=64,mask
             hero_path=out/(identifier+".hero.png");hero(path,hero_path,hero_size)
             case=dict(id=identifier,role="candidate",glb=record(path,out),hero=record(hero_path,out),reload=reload,
                 resolution=resolution,view_ids=[v["id"] for v in selected],surface_refinement=finish,refinement=refinement,
+                input_camera_profile=DENSE_PROFILE if count==18 else "native-cube-legacy-input-v1",
                 native_mesh=dict(vertices=mesh.vertex_count,polygons=mesh.polygon_count,
                     vertices_sha256=hashlib.sha256(mesh.vertices.tobytes()).hexdigest(),
                     indices_sha256=hashlib.sha256(mesh.indices.tobytes()).hexdigest()),

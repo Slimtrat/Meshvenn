@@ -18,6 +18,7 @@ def main(argv=None):
     parser.add_argument("--source-glb", type=Path)
     parser.add_argument("--from-reconstruction", type=Path, action="append", default=[], help="Inspect cached actual reconstruction manifests; each GLB is reimported and verified again.")
     parser.add_argument("--standard-only", action="store_true")
+    parser.add_argument("--ten-views-only", action="store_true", help="Omit the denser 18-view pair; retain the original comparison matrix.")
     parser.add_argument("--render-size", type=int, default=640)
     options = parser.parse_args(argv)
     from scripts.character_quality.workflow import qualify_characters
@@ -25,6 +26,7 @@ def main(argv=None):
         result = qualify_characters(options.output, blender_executable=options.blender,
             native_library=options.native_library, source_glb=options.source_glb,
             from_reconstruction=options.from_reconstruction, include_high_resolution=not options.standard_only,
+            include_dense_views=not options.ten_views_only,
             render_size=options.render_size)
     except (ImportError, OSError, ValueError, KeyError, TypeError) as exc:
         print("Character comparison unavailable: " + str(exc), file=sys.stderr)

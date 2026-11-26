@@ -72,7 +72,7 @@ def _reconstruct(blender, native_library, output, *, resolution, mask_size, view
 
 
 def qualify_characters(output, *, blender_executable, native_library=None, source_glb=None,
-                       from_reconstruction=(), include_high_resolution=True, render_size=640):
+                       from_reconstruction=(), include_high_resolution=True, include_dense_views=True, render_size=640):
     output = Path(output).resolve()
     output.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
@@ -88,7 +88,7 @@ def qualify_characters(output, *, blender_executable, native_library=None, sourc
                          mask_size=256, view_counts=(2, 8, 10), source_glb=source_glb))
             if include_high_resolution:
                 paths.append(_reconstruct(blender, native, output / "reconstruction-128", resolution=128,
-                             mask_size=512, view_counts=(10,), source_glb=source_glb))
+                             mask_size=512, view_counts=(10,18) if include_dense_views else (10,), source_glb=source_glb))
         audited = [_audit_reconstruction(path) for path in paths]
         first_root, first = audited[0]
         source = first["source"]

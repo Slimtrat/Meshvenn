@@ -17,6 +17,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from scripts.character_quality.camera_profiles import DENSE_CAMERAS, DENSE_PROFILE, ADDITIONAL_CAMERAS
 
 PROFILE = "native-cube-source-frame-fidelity-v1"
 IOU_GATE_PROFILE = "per-view-min-v1"
@@ -60,12 +61,19 @@ def _input_binding(asset, source_sha):
     _checked(manifest_path.parent / case["glb"]["path"], asset["glb_sha256"])
     _checked(manifest_path.parent / manifest["source"]["glb"]["path"], source_sha)
     cameras = {c["id"]: c for c in manifest["cameras"]}
-    allowed = {name: (a, e) for name, a, e in CAMERAS}
+    allowed = {name: (a, e) for name, a, e in DENSE_CAMERAS}
     ids = case["view_ids"]
     if not ids or len(set(ids)) != len(ids) or any(i not in allowed for i in ids):
         raise ValueError("Invalid source input camera profile")
+    if len(cameras) != len(manifest["cameras"]):
+        raise ValueError("Duplicate source camera evidence")
+    if case.get("input_camera_profile") == DENSE_PROFILE or any(i not in {n for n, _, _ in CAMERAS} for i in ids):
+        if set(ids) != set(allowed) or case.get("input_camera_profile") != DENSE_PROFILE:
+            raise ValueError("Dense source inputs require the complete versioned 18-camera profile")
     for name in ids:
-        camera = cameras[name]
+        camera = cameras.get(name)
+        if camera is None:
+            raise ValueError("Selected input camera evidence is missing")
         if (camera["azimuth_degrees"], camera["elevation_degrees"]) != allowed[name] or camera["flip_x"] is not False:
             raise ValueError("Input camera does not match the frozen native profile")
         _checked(manifest_path.parent / camera["png"]["path"], camera["png"]["sha256"])
@@ -187,14 +195,14 @@ def _surface(reference, candidate, samples):
     return detail
 
 
-def _silhouettes(points, faces, size):
+def _silhouettes(points, faces, size, cameras=ALL_CAMERAS):
     from mathutils import Vector
     from mathutils.bvhtree import BVHTree
     from core.projection_frame import native_projection_axes
     from core.projection_math import compile_projection
     tree = BVHTree.FromPolygons(points, faces, all_triangles=True, epsilon=0.)
     masks = {}
-    for name, azimuth, elevation in ALL_CAMERAS:
+    for name, azimuth, elevation in cameras:
         right, up, direction = map(Vector, native_projection_axes(azimuth, elevation))
         transform = compile_projection(azimuth_degrees=azimuth, elevation_degrees=elevation)
         values = bytearray(size * size)
@@ -226,12 +234,14 @@ def _worker(request_path):
     source_points, source_faces = _geometry(source)
     center, longest = _shared_frame(source_points)
     reference = _triangles(source_points, source_faces, center, longest)
-    expected = _silhouettes(source_points, source_faces, request["raster_size"])
+    evaluation_cameras = ALL_CAMERAS + ADDITIONAL_CAMERAS if any(
+        a["bound_input_view_ids"] and len(a["bound_input_view_ids"]) == 18 for a in request["assets"]) else ALL_CAMERAS
+    expected = _silhouettes(source_points, source_faces, request["raster_size"], evaluation_cameras)
     result = dict(schema_version=1, profile=PROFILE, status="partial", verification_status="unknown",
         request_sha256=_sha(request_path), worker_sha256=request["worker_sha256"], blender_version=bpy.app.version_string,
         source=dict(asset_id=source["asset_id"], glb_sha256=source["glb_sha256"], mesh_sha256=source["mesh_sha256"]),
         shared_frame=dict(center=list(center), longest_extent=longest, candidate_fit=False),
-        raster_size=request["raster_size"], cameras=[dict(id=n, azimuth_degrees=a, elevation_degrees=e) for n, a, e in ALL_CAMERAS],
+        raster_size=request["raster_size"], cameras=[dict(id=n, azimuth_degrees=a, elevation_degrees=e) for n, a, e in evaluation_cameras],
         withheld_camera_angles=list(WITHHELD_CAMERA_ANGLES),
         threshold_authority="benchmark_glb_v2.py legacy .05/.60 coarse Fscore; IoU threshold .65 transferred from legacy MEAN to NEW stricter per-view-min-v1, frozen before measurements; not universal aesthetics",
         iou_gate_profile=IOU_GATE_PROFILE,
@@ -242,9 +252,9 @@ def _worker(request_path):
             continue
         points, faces = _geometry(asset)
         surface = _surface(reference, _triangles(points, faces, center, longest), request["samples"])
-        actual = _silhouettes(points, faces, request["raster_size"])
-        per_view = {name: _iou(expected[name], actual[name]) for name in expected}
         ids = asset["bound_input_view_ids"]
+        actual = _silhouettes(points, faces, request["raster_size"], evaluation_cameras if ids and len(ids) == 18 else ALL_CAMERAS)
+        per_view = {name: _iou(expected[name], mask) for name, mask in actual.items()}
         source_iou = min(per_view[i] for i in ids) if ids else None
         withheld = [per_view[f"withheld{a:03d}"] for a in WITHHELD_CAMERA_ANGLES]
         target_iou = min(withheld)
@@ -253,7 +263,7 @@ def _worker(request_path):
             source_iou=_gate(source_iou, .65, "NEW per-view-min-v1: minimum bound input-camera IoU, threshold transferred from legacy mean."),
             target_iou=_gate(target_iou if not outside else None, .65, "NEW per-view-min-v1: minimum four withheld camera IoUs. Outside cube makes raster incomplete."),
             important_parts=dict(status="unknown", reason="No complete validated local important-part comparison supplied."),
-            coverage=dict(status="pass" if ids and len(ids) == 10 else "unknown", observed_input_view_ids=ids,
+            coverage=dict(status="pass" if ids and {n for n, _, _ in CAMERAS}.issubset(ids) else "unknown", observed_input_view_ids=ids,
                 reason="Declared and SHA-bound ten-camera INPUT profile only; no surface visibility certification."))
         if outside:
             gates["source_iou"] = _gate(None, .65, "Candidate extends outside the declared cube raster field.")
