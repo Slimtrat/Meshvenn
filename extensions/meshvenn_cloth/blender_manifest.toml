@@ -1,0 +1,14 @@
+schema_version = "1.0.0"
+id = "meshvenn_cloth"
+version = "0.1.0"
+name = "Meshvenn Cloth"
+tagline = "Bake portable woven detail for projected character textures"
+maintainer = "Slimtrat"
+type = "add-on"
+website = "https://github.com/Slimtrat/Meshvenn"
+tags = ["Material", "Bake"]
+blender_version_min = "5.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+
+[build]
+paths_exclude_pattern = ["/tests/", "__pycache__/", "*.pyc", "*.zip"]

@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "asset": "character.glb",
+  "sha256": "c5d79f03057fe84264a1fa9231bc31e71f42c971324ae0a08009c339b760b65d",
+  "size_bytes": 8455284,
+  "asset_version": "stytch-dummy-cloth-v1",
+  "license": "GPL-3.0-or-later",
+  "generator": "ImageGen source views plus Meshvenn projection, qualified native skin and authored cloth finish",
+  "source_engine_revision": "65c6a62eddea8805a9c3e9b9a1a1da3729acd94d",
+  "source_fixture": "../StytchDummy8Views/rig-baseline.glb",
+  "source_fixture_sha256": "2e4e0003742cca99f5c7de7343dfa948710927c07c69274f2585a5e7f6f36a2c",
+  "qualified_skin_input_sha256": "d09033d900fac465bbcb93c618f9512a1d5db9695fab902a0d96857578e74b98",
+  "native_source_blend_sha256": "db883450f565efd04a69b058eb1ebd789e7d9bba2ecdde94a42e5989e37d5a76",
+  "prepared_source_blend_sha256": "f0acc85f145096761074da5f54cab05ebff382b39dcdf511e67699fd0f096a1a",
+  "source_preparation_rest_error": 3.054058785193878e-06,
+  "dataset": "../StytchDummy8Views/inputs/dataset-native-frame.json",
+  "dataset_sha256": "9178e30cbcb6744e5357e1fa26bfcab94dffcff89565e8577b7aa8a84f5c1ed2",
+  "source_images_unchanged": true,
+  "inputs_are_generated": true,
+  "camera_authority": "Prompt-requested, not physically calibrated",
+  "ground_truth_3d": null,
+  "prepared_source_geometry_uv_bones_weights_exact": true,
+  "color_bake": {
+    "triangles": 39804,
+    "rasterized_triangles": 39803,
+    "degenerate_triangles": 0,
+    "texture_size": 2048,
+    "covered_pixels": 1630345,
+    "padded_pixels": 643258,
+    "overlap_pixels": 310,
+    "surface_samples": 1630655,
+    "fallback_samples": 218887,
+    "selected_source_samples": 1506925,
+    "coverage_ratio": 0.3887045383453369,
+    "uv_total_area": 0.3887566994777457,
+    "uv_total_area_pixels": 1630563.7796463068,
+    "uv_min_triangle_area_pixels": 1.3805654495954514,
+    "uv_mean_triangle_area_pixels": 40.964822119543435,
+    "uv_max_triangle_area_pixels": 81.29831502400339,
+    "uv_subpixel_triangles": 0,
+    "uv_subpixel_triangle_ratio": 0.0
+  },
+  "source_policy": {
+    "policy": "native-head-feature-authority-v1",
+    "head_cutoff_v": 0.7357301115989685,
+    "allowed_head_views": [
+      "az000",
+      "az180"
+    ],
+    "head_masked_views": [
+      "az045",
+      "az090",
+      "az135",
+      "az225",
+      "az270",
+      "az315"
+    ],
+    "excluded_mask_pixels": 13638,
+    "dark_feature_max_linear_rgb": 0.22,
+    "dilation_pixels_at_627": 6,
+    "scope": "Front/back authority for dark generated head markings; lateral cloth retained; source images and geometry unchanged"
+  },
+  "cloth": {
+    "config": {
+      "texture_size": 2048,
+      "thread_spacing": 0.004,
+      "relief": 0.00012,
+      "roughness": 0.87,
+      "button_roughness": 0.42
+    },
+    "authority": "Authored surface detail, not observed coverage",
+    "normal_size": [
+      2048,
+      2048
+    ],
+    "roughness_size": [
+      2048,
+      2048
+    ]
+  },
+  "inferred_color": {
+    "color": [
+      0.5702157354771531,
+      0.4295809452262014,
+      0.29266667440308747
+    ],
+    "linear_rgb": true,
+    "source": "az000",
+    "uv_window": [
+      0.4,
+      0.4,
+      0.6,
+      0.7
+    ],
+    "opaque_samples": 564,
+    "method": "per-channel median; inferred fill, not observed texture or coverage"
+  },
+  "export_roundtrip": {
+    "schema_version": 1,
+    "passed": true,
+    "sha256": "c5d79f03057fe84264a1fa9231bc31e71f42c971324ae0a08009c339b760b65d",
+    "sample_count": 1,
+    "clip_count": 0,
+    "position_tolerance": 0.00035844674557447434,
+    "max_rest_error": 3.253611794207245e-06,
+    "max_deformation_error": 0.0,
+    "max_weight_error": 1.4792384261941294e-08,
+    "max_duration_error_seconds": 0.0,
+    "duration_tolerance_seconds": 0.041666666666666664,
+    "sampling": "rest plus five matched integer-frame samples per clip",
+    "rest_origin": "static scene",
+    "morph_target_count": 0,
+    "scope": "pipeline-output-to-export; not anatomical or source-import certification"
+  },
+  "meshes": 1,
+  "skins": 1,
+  "joints": 18,
+  "joint_names": [
+    "root",
+    "pelvis",
+    "spine",
+    "chest",
+    "neck",
+    "head",
+    "upper_arm.L",
+    "forearm.L",
+    "hand.L",
+    "upper_arm.R",
+    "forearm.R",
+    "hand.R",
+    "thigh.L",
+    "shin.L",
+    "foot.L",
+    "thigh.R",
+    "shin.R",
+    "foot.R"
+  ],
+  "animations": 0,
+  "textures": {
+    "count": 3,
+    "embedded": true,
+    "base_color": "sRGB 2048x2048",
+    "normal": "Non-Color tangent 2048x2048",
+    "metallic_roughness": "Non-Color packed G/B 2048x2048"
+  },
+  "regions": null,
+  "sockets": null,
+  "collision_proxies": null,
+  "quality_certification": "unknown",
+  "consumer_acceptance": "unknown",
+  "integration_status": "Visual native-rig candidate; requires explicit Stytch contract adaptation and acceptance, not a modular drop-in",
+  "license_authority": "Repository LICENSE for contributed project assets; not automatic inheritance from the generator",
+  "explicit_asset_license_grant_recorded": false,
+  "consumer_license_review": "Pending Stytch owner review; this record does not grant a new licence or exception",
+  "licence_scope": "Repository-declared licence for this GLB and its embedded maps; no separate asset-specific grant asserted for the source sheets or local blend",
+  "rig_quality_report": "rig-quality.json",
+  "rig_quality_report_sha256": "35357daf8bb0d75c23b7370c6687899597582cb220cd636ea9ee1b89547ac7c8"
+}

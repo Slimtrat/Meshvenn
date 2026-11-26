@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "profile": "native-humanoid-deformation-v1",
+  "policy_sha256": "a4317dce2bfe14798e7cff2fb856b5c17157eb1f6b0dd1c4d7b3824f2c19e244",
+  "source_sha256": "c5d79f03057fe84264a1fa9231bc31e71f42c971324ae0a08009c339b760b65d",
+  "status": "checks_passed",
+  "selected": {
+    "id": "baseline",
+    "sha256": "c5d79f03057fe84264a1fa9231bc31e71f42c971324ae0a08009c339b760b65d"
+  },
+  "regeneration_attempts": 0,
+  "blender": "5.2.1",
+  "measurements": {
+    "proximal_link_error": 0.0,
+    "distal_link_error": 3.853921790824959e-06,
+    "protected_elbow_error": 0.0,
+    "shoulder_link_error": 1.9519958935218463e-06,
+    "protected_shoulder_error": 0.0,
+    "elbow_radius_retention": 0.7278447631446217,
+    "elbow_area_retention": 0.17015968915070864,
+    "elbow_inverted_area_fraction": 0.0,
+    "source_structure_changes": 0,
+    "invalid_weights": 0,
+    "export_failures": 0.0,
+    "rest_position_error": 0.0,
+    "appearance_transport_changes": 0
+  },
+  "checks": {
+    "source_structure_changes": "pass",
+    "invalid_weights": "pass",
+    "export_failures": "pass",
+    "appearance_transport_changes": "pass",
+    "rest_position_error": "pass",
+    "proximal_link_error": "pass",
+    "distal_link_error": "pass",
+    "protected_elbow_error": "pass",
+    "shoulder_link_error": "pass",
+    "protected_shoulder_error": "pass",
+    "elbow_radius_retention": "pass",
+    "elbow_area_retention": "pass",
+    "elbow_inverted_area_fraction": "pass"
+  },
+  "evidence": {
+    "probes": [
+      {
+        "bone": "forearm.L",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 1.7434947263793253e-06,
+        "proximal_error": 0.0,
+        "radius_retention": 0.9285824747731998,
+        "area_retention": 0.6360284831189525,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "forearm.L",
+        "degrees": 90,
+        "protected_error": 0.0,
+        "distal_error": 1.3673241026450221e-06,
+        "proximal_error": 0.0,
+        "radius_retention": 0.7278447631446217,
+        "area_retention": 0.17950110751515888,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "upper_arm.L",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 1.9519958935218463e-06,
+        "proximal_error": 9.07662653145355e-07
+      },
+      {
+        "bone": "upper_arm.L",
+        "degrees": 70,
+        "protected_error": 0.0,
+        "distal_error": 1.7117440628227426e-06,
+        "proximal_error": 6.970373994682671e-07
+      },
+      {
+        "bone": "forearm.R",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 3.4891904577733385e-06,
+        "proximal_error": 0.0,
+        "radius_retention": 0.9295959806231374,
+        "area_retention": 0.6308349770154125,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "forearm.R",
+        "degrees": 90,
+        "protected_error": 0.0,
+        "distal_error": 3.853921790824959e-06,
+        "proximal_error": 0.0,
+        "radius_retention": 0.7322451409046894,
+        "area_retention": 0.17015968915070864,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "upper_arm.R",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 1.4675020563020197e-06,
+        "proximal_error": 6.356199652709208e-07
+      },
+      {
+        "bone": "upper_arm.R",
+        "degrees": 70,
+        "protected_error": 0.0,
+        "distal_error": 1.832244078617083e-06,
+        "proximal_error": 1.089809060238226e-06
+      }
+    ],
+    "rest_restore_error": 0.0,
+    "region_counts": {
+      "L": {
+        "proximal": 414,
+        "shoulder_rigid": 201,
+        "distal": 1370,
+        "ring": 259,
+        "protected": 15715
+      },
+      "R": {
+        "proximal": 475,
+        "shoulder_rigid": 270,
+        "distal": 1454,
+        "ring": 237,
+        "protected": 15579
+      }
+    },
+    "surface": {
+      "vertex_count": 23624,
+      "triangle_count": 39804,
+      "surface_area": 3.5465152139608804,
+      "axis_aligned_area_fraction": 0.1181670405441079,
+      "degenerate_triangles": 0,
+      "boundary_edges": 0,
+      "nonmanifold_edges": 24,
+      "signed_volume_observation": 0.19521812016990422,
+      "verification_status": "unknown",
+      "topology_weld": "coincident positions rounded in the same height-normalized frame; observation only",
+      "scope": "Surface/topology diagnostics; no reference morphology or anatomical certificate"
+    },
+    "appearance": {
+      "transport": {
+        "image_sha256": [
+          "013449d3d855107fd21652d3e64cfca1444ef98c3ccc51a93c945d8e4a1d2740",
+          "0ad1a733a7de5a450ba734a7f6091ba5b39751c2ae434a7a280ec7cf05d44d24",
+          "4b9e9fc4472a40bcf6487e26b20f1791269da611991665df1a14217f65f6634b"
+        ],
+        "materials_sha256": "d04afc91f25204024fd803d574401a4c846d5c83ed7ab8bd10b41b0e09f2fb5f"
+      },
+      "identity_status": "unknown",
+      "camera_calibration": "not established by this rig loop"
+    },
+    "native_rest_matrix_error": 0.0,
+    "source_pose_scope": "Static native source; global visual quality and consumer acceptance remain unknown"
+  },
+  "quality_certification": "unknown",
+  "consumer_acceptance": "unknown"
+}
