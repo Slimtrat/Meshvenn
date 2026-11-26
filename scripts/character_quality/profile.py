@@ -82,6 +82,7 @@ def compare_quality(reference, candidate, *, preservation_gates=None, profile=No
         enclosed_volume_ratio=_ratio(candidate.get('enclosed_volume'),reference.get('enclosed_volume')),
         reference_enclosed_volume=reference.get('enclosed_volume'),candidate_enclosed_volume=candidate.get('enclosed_volume'),
         note='Absolute source-frame sizes are retained, not fitted away; these do not replace independent distance/part gates.')
+    result['volume_observability_status']='pass' if all(_finite(mesh.get('enclosed_volume')) and mesh['enclosed_volume']>0 for mesh in (reference,candidate)) else 'unknown'
     before={r['region_id']:r for r in reference.get('regions',[])};after={r['region_id']:r for r in candidate.get('regions',[])};regions=[]
     for name,first in sorted(before.items()):
         second=after.get(name,{})
@@ -101,9 +102,12 @@ def compare_quality(reference, candidate, *, preservation_gates=None, profile=No
     for name in sorted(set(REQUIRED_GATES)|set(supplied)):
         value=supplied.get(name)
         valid=type(value) is dict and value.get('status') in ('pass','fail','unknown') and _sha(value.get('evidence_sha256'))
-        gates[name]=dict(value) if valid else dict(status='unknown',reason='Independent gate/evidence not supplied or malformed.')
+        gates[name]=dict(value) if valid else dict(status='fail' if type(value) is dict and value.get('status')=='fail' else 'unknown',
+            reported_status=value.get('status') if type(value) is dict else None,
+            reason='Independent gate/evidence not supplied or malformed; a reported failure is not erased.')
     statuses=[gate['status'] for gate in gates.values()]+[r['surface_presence_status'] for r in regions]
     if not compatible or reference.get('coverage_status')!='measured' or candidate.get('coverage_status')!='measured':statuses.append('unknown')
+    if result['volume_observability_status']=='unknown':statuses.append('unknown')
     result['preservation_gates']=gates
     result['preservation_status']='fail' if 'fail' in statuses else 'unknown' if 'unknown' in statuses else 'pass'
     result['overall_status']='fail' if result['shape_status']=='fail' or result['preservation_status']=='fail' else 'unknown'

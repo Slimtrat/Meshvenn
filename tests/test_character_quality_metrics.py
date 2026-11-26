@@ -176,6 +176,17 @@ class FrozenGeometryTests(unittest.TestCase):
         self.assertEqual(result['shape_status'],'unknown');self.assertEqual(result['preservation_status'],'unknown')
         self.assertEqual(compare_quality(first,first,preservation_gates=gates(important_parts='unknown'))['preservation_status'],'unknown')
 
+    def test_unresolved_solid_volume_or_unsubstantiated_failure_cannot_turn_into_preservation_pass(self):
+        closed=self.measure(self.cube['vertices'],self.cube['triangles'])
+        opened=self.measure(self.cube['vertices'],self.cube['triangles'][:-1])
+        self.assertIsNone(opened['enclosed_volume'])
+        result=compare_quality(closed,opened,preservation_gates=gates())
+        self.assertEqual(result['volume_observability_status'],'unknown')
+        self.assertEqual(result['preservation_status'],'unknown')
+        evidence=gates();evidence['important_parts']={'status':'fail','evidence_sha256':None}
+        self.assertEqual(compare_quality(closed,closed,preservation_gates=evidence)['preservation_status'],'fail')
+        with self.assertRaises(ValueError):MetricPolicy(max_triangles=200001)
+
     def test_malformed_inputs_and_missing_geometry_are_not_silently_measured(self):
         for vertices,triangles in (([[float('nan'),0,0]],[]),([[0,0,0]],[[0,1,2]]),([[0,0,0]],[[True,0,0]])):
             with self.assertRaises(ValueError):self.measure(vertices,triangles)

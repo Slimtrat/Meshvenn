@@ -27,9 +27,9 @@ class MetricPolicy:
     normal_tolerance: float = 1e-7
 
     def __post_init__(self):
-        for name in ('max_vertices','max_triangles','max_regions','max_sections','max_work'):
+        for name,maximum in (('max_vertices',200000),('max_triangles',200000),('max_regions',16),('max_sections',32),('max_work',40000000)):
             value=getattr(self,name)
-            if type(value) is not int or not 1<=value<=40000000: raise ValueError('Invalid metric work bound: '+name)
+            if type(value) is not int or not 1<=value<=maximum: raise ValueError('Invalid metric work bound: '+name)
         for name in ('max_seconds','position_tolerance','normal_tolerance'):
             value=getattr(self,name)
             if type(value) not in (int,float) or not math.isfinite(value) or value<=0: raise ValueError('Invalid metric tolerance/deadline.')
