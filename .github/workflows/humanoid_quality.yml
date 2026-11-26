@@ -1,0 +1,119 @@
+name: Automatic humanoid quality
+
+on:
+  pull_request:
+    paths:
+      - 'packages/meshvenn_humanoid/**'
+      - 'extensions/meshvenn_humanoid_auto/**'
+      - 'example/v2/generated/StytchDummy8Views/**'
+      - 'core/**'
+      - 'implementations/canonical_rig_v2/**'
+      - 'implementations/glb_export/**'
+      - 'properties/**'
+      - 'registration/**'
+      - '__init__.py'
+      - 'scripts/*humanoid*'
+      - 'tests/blender_humanoid_pipeline.py'
+      - '.github/workflows/humanoid_quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/meshvenn_humanoid/**'
+      - 'extensions/meshvenn_humanoid_auto/**'
+      - 'example/v2/generated/StytchDummy8Views/**'
+      - 'core/**'
+      - 'implementations/canonical_rig_v2/**'
+      - 'implementations/glb_export/**'
+      - 'properties/**'
+      - 'registration/**'
+      - '__init__.py'
+      - 'scripts/*humanoid*'
+      - 'tests/blender_humanoid_pipeline.py'
+      - '.github/workflows/humanoid_quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: humanoid-quality-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  library:
+    name: Humanoid library (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python: '3.11'
+          - os: windows-latest
+            python: '3.13'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m unittest discover -s packages/meshvenn_humanoid/tests -v
+
+  blender:
+    name: Installed humanoid regeneration and extension
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build and install standalone wheel and extension
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install 'setuptools>=77' wheel
+          python -m pip wheel --no-deps --no-build-isolation packages/meshvenn_humanoid --wheel-dir dist/humanoid
+          python -m pip install --no-deps dist/humanoid/*.whl
+          python scripts/build_humanoid_extension.py --wheel dist/humanoid/meshvenn_humanoid-0.1.0-py3-none-any.whl
+      - uses: actions/cache@v4
+        id: blender
+        with:
+          path: .blender
+          key: blender-linux-x64-5.2.1
+      - name: Download Blender
+        if: steps.blender.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .blender
+          curl --fail --show-error --location --retry 5 --retry-all-errors \
+            --connect-timeout 20 --max-time 600 \
+            --output "${RUNNER_TEMP}/blender.tar.xz" \
+            https://download.blender.org/release/Blender5.2/blender-5.2.1-linux-x64.tar.xz
+          xz --test "${RUNNER_TEMP}/blender.tar.xz"
+          tar -xJf "${RUNNER_TEMP}/blender.tar.xz" -C .blender --strip-components=1
+      - name: Validate extension and qualify the actual installed pipeline
+        shell: bash
+        run: |
+          set -euo pipefail
+          .blender/blender --command extension validate dist/meshvenn_humanoid_auto-0.1.0.zip
+          python -I scripts/qualify_humanoid_loop.py --blender .blender/blender \
+            --extension dist/meshvenn_humanoid_auto-0.1.0.zip --output output/humanoid-qualification
+      - name: Render actual before and after elbow poses
+        shell: bash
+        run: |
+          set -euo pipefail
+          .blender/blender --background --factory-startup --disable-autoexec --python-exit-code 1 \
+            --python scripts/render_humanoid_quality.py -- \
+            --session output/humanoid-qualification/regeneration --output output/humanoid-renders
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: humanoid-quality-evidence
+          path: |
+            dist/humanoid/
+            dist/meshvenn_humanoid_auto-*.zip
+            output/humanoid-qualification/
+            output/humanoid-renders/
+          if-no-files-found: error

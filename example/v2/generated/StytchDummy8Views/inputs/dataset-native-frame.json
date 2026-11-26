@@ -1,0 +1,303 @@
+{
+  "schema_version": 2,
+  "character_id": "stytch-dummy-v2",
+  "generator": "built-in ImageGen",
+  "inputs_are_generated": true,
+  "requested_pose": "T",
+  "pose_verified": false,
+  "ground_truth_3d": null,
+  "preprocessing": "Fixed cell crops, followed by yaw convention conversion and analytical horizontal native-frame registration. No per-view silhouette fit.",
+  "four_views": [
+    "az000",
+    "az090",
+    "az180",
+    "az270"
+  ],
+  "eight_views": [
+    "az000",
+    "az045",
+    "az090",
+    "az135",
+    "az180",
+    "az225",
+    "az270",
+    "az315"
+  ],
+  "views": [
+    {
+      "id": "az000",
+      "path": "views/az000.png",
+      "sha256": "e22fd6c4bcc4f52ab0eb4ecc163b04b8db76389cf584e51ec634f47cdb4b452b",
+      "width": 627,
+      "height": 627,
+      "azimuth_degrees": 0,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "source_sheet": "four-cardinal-source.png",
+      "source_sheet_sha256": "c81fd9111fa14f657b091c9ed0d1a3bf54863903de0456d82c29b1a47b4f1467",
+      "source_rectangle": [
+        0,
+        0,
+        627,
+        627
+      ],
+      "pixel_sha256": "8e913503618b2a4648d92f0dd3a0b0d474600621a7700dbd50a3ef9da36368fd",
+      "alpha_threshold": 0.5,
+      "foreground_pixels": 84563,
+      "foreground_bbox": [
+        40,
+        36,
+        587,
+        604
+      ],
+      "camera_authority": "ImageGen prompt requested; not physically calibrated",
+      "requested_yaw_degrees": 0,
+      "source_crop_path": "views/az000.png",
+      "source_crop_sha256": "e22fd6c4bcc4f52ab0eb4ecc163b04b8db76389cf584e51ec634f47cdb4b452b",
+      "horizontal_scale": 1.0
+    },
+    {
+      "id": "az045",
+      "path": "native-frame/az045.png",
+      "sha256": "22841f816333d4e223acb7910489a346cee66e4f29a0aeea28503ad836cdd5b5",
+      "width": 627,
+      "height": 627,
+      "azimuth_degrees": 315,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "source_sheet": "four-diagonal-source.png",
+      "source_sheet_sha256": "bfd59bec59e8e1db3c5ed4c5fda460205f6b45b5621430b8a6d05e46fe0319ef",
+      "source_rectangle": [
+        0,
+        0,
+        627,
+        627
+      ],
+      "pixel_sha256": "c255f8b8987cc76f70219b808566aee1bfb9225c58cf2e3995d04ef510c1167a",
+      "alpha_threshold": 0.5,
+      "foreground_pixels": 83809,
+      "foreground_bbox": [
+        110,
+        31,
+        520,
+        608
+      ],
+      "camera_authority": "ImageGen prompt requested; not physically calibrated",
+      "requested_yaw_degrees": 45,
+      "source_crop_path": "views/az045.png",
+      "source_crop_sha256": "ca0f462f5585fa1db138abf082336546a6d416b8bce606e9fb4123da8df6bd90",
+      "horizontal_scale": 0.7071067811865476
+    },
+    {
+      "id": "az090",
+      "path": "views/az090.png",
+      "sha256": "027d20179d9c615310aed7ab20065be7660ec9a18554b9813506fee5e595b849",
+      "width": 627,
+      "height": 627,
+      "azimuth_degrees": 270,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "source_sheet": "four-cardinal-source.png",
+      "source_sheet_sha256": "c81fd9111fa14f657b091c9ed0d1a3bf54863903de0456d82c29b1a47b4f1467",
+      "source_rectangle": [
+        627,
+        0,
+        1254,
+        627
+      ],
+      "pixel_sha256": "0cbd3fb80de88d79ebe0c8e9feed647be481e22435533bee5b3da740f239efff",
+      "alpha_threshold": 0.5,
+      "foreground_pixels": 49739,
+      "foreground_bbox": [
+        247,
+        36,
+        387,
+        605
+      ],
+      "camera_authority": "ImageGen prompt requested; not physically calibrated",
+      "requested_yaw_degrees": 90,
+      "source_crop_path": "views/az090.png",
+      "source_crop_sha256": "027d20179d9c615310aed7ab20065be7660ec9a18554b9813506fee5e595b849",
+      "horizontal_scale": 0.9999999999999998
+    },
+    {
+      "id": "az135",
+      "path": "native-frame/az135.png",
+      "sha256": "83284bbb9e55d81ed1cd7848eee61d1f322c80af70b06e9aca1477f51a7254e3",
+      "width": 627,
+      "height": 627,
+      "azimuth_degrees": 225,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "source_sheet": "four-diagonal-source.png",
+      "source_sheet_sha256": "bfd59bec59e8e1db3c5ed4c5fda460205f6b45b5621430b8a6d05e46fe0319ef",
+      "source_rectangle": [
+        627,
+        0,
+        1254,
+        627
+      ],
+      "pixel_sha256": "c03fb9d522c409285c00d0daa5ceff6f47f5bf0eabf53965c9c4c5c3855a93c3",
+      "alpha_threshold": 0.5,
+      "foreground_pixels": 83761,
+      "foreground_bbox": [
+        106,
+        32,
+        520,
+        606
+      ],
+      "camera_authority": "ImageGen prompt requested; not physically calibrated",
+      "requested_yaw_degrees": 135,
+      "source_crop_path": "views/az135.png",
+      "source_crop_sha256": "e26fa6cadf9cdcae552476219627feea2c36d4c7150571d5618c3802934bfec3",
+      "horizontal_scale": 0.7071067811865475
+    },
+    {
+      "id": "az180",
+      "path": "views/az180.png",
+      "sha256": "6117d1eb38e896b9ba5a1b331e637421c3d80bd21a006364886e96925df38e8f",
+      "width": 627,
+      "height": 627,
+      "azimuth_degrees": 180,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "source_sheet": "four-cardinal-source.png",
+      "source_sheet_sha256": "c81fd9111fa14f657b091c9ed0d1a3bf54863903de0456d82c29b1a47b4f1467",
+      "source_rectangle": [
+        0,
+        627,
+        627,
+        1254
+      ],
+      "pixel_sha256": "1a922b502dafc44abdbe1e41437680f6ee47a1b0a101d2d0b7e9c778ddb7e611",
+      "alpha_threshold": 0.5,
+      "foreground_pixels": 85704,
+      "foreground_bbox": [
+        38,
+        36,
+        588,
+        604
+      ],
+      "camera_authority": "ImageGen prompt requested; not physically calibrated",
+      "requested_yaw_degrees": 180,
+      "source_crop_path": "views/az180.png",
+      "source_crop_sha256": "6117d1eb38e896b9ba5a1b331e637421c3d80bd21a006364886e96925df38e8f",
+      "horizontal_scale": 0.9999999999999998
+    },
+    {
+      "id": "az225",
+      "path": "native-frame/az225.png",
+      "sha256": "13e7323271b4c3023738f54c9656c43a5f70bbc7c76b556670f9de1a3e985dc8",
+      "width": 627,
+      "height": 627,
+      "azimuth_degrees": 135,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "source_sheet": "four-diagonal-source.png",
+      "source_sheet_sha256": "bfd59bec59e8e1db3c5ed4c5fda460205f6b45b5621430b8a6d05e46fe0319ef",
+      "source_rectangle": [
+        0,
+        627,
+        627,
+        1254
+      ],
+      "pixel_sha256": "9a4f88a709b9054654e73bfcd015cba9c6ee3a41daaf9c868f0e0b3d4786961a",
+      "alpha_threshold": 0.5,
+      "foreground_pixels": 85111,
+      "foreground_bbox": [
+        107,
+        30,
+        510,
+        609
+      ],
+      "camera_authority": "ImageGen prompt requested; not physically calibrated",
+      "requested_yaw_degrees": 225,
+      "source_crop_path": "views/az225.png",
+      "source_crop_sha256": "16da7793539a26766e2fd6d954ef098b209d7d76073744f5af50464e56a1deab",
+      "horizontal_scale": 0.7071067811865476
+    },
+    {
+      "id": "az270",
+      "path": "views/az270.png",
+      "sha256": "fbdf38a7ea0acf338860e10dbf200fa86302d49467b014e01d445b4bbc15389c",
+      "width": 627,
+      "height": 627,
+      "azimuth_degrees": 90,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "source_sheet": "four-cardinal-source.png",
+      "source_sheet_sha256": "c81fd9111fa14f657b091c9ed0d1a3bf54863903de0456d82c29b1a47b4f1467",
+      "source_rectangle": [
+        627,
+        627,
+        1254,
+        1254
+      ],
+      "pixel_sha256": "574918d9ab320d5086607e62efddefd339ef63a02175c27e3b12bc8ee35a21cc",
+      "alpha_threshold": 0.5,
+      "foreground_pixels": 49700,
+      "foreground_bbox": [
+        240,
+        35,
+        379,
+        604
+      ],
+      "camera_authority": "ImageGen prompt requested; not physically calibrated",
+      "requested_yaw_degrees": 270,
+      "source_crop_path": "views/az270.png",
+      "source_crop_sha256": "fbdf38a7ea0acf338860e10dbf200fa86302d49467b014e01d445b4bbc15389c",
+      "horizontal_scale": 1.0
+    },
+    {
+      "id": "az315",
+      "path": "native-frame/az315.png",
+      "sha256": "439e47c90c5157085a742d26bf4dfec9ecb43be43b68e1347152f459bd5bb122",
+      "width": 627,
+      "height": 627,
+      "azimuth_degrees": 45,
+      "elevation_degrees": 0.0,
+      "flip_x": false,
+      "source_sheet": "four-diagonal-source.png",
+      "source_sheet_sha256": "bfd59bec59e8e1db3c5ed4c5fda460205f6b45b5621430b8a6d05e46fe0319ef",
+      "source_rectangle": [
+        627,
+        627,
+        1254,
+        1254
+      ],
+      "pixel_sha256": "216ae75a1a56860b29ba8765d67b34d62c9e5b12ad4fdad60f48d5aa27d028e5",
+      "alpha_threshold": 0.5,
+      "foreground_pixels": 83342,
+      "foreground_bbox": [
+        120,
+        31,
+        518,
+        609
+      ],
+      "camera_authority": "ImageGen prompt requested; not physically calibrated",
+      "requested_yaw_degrees": 315,
+      "source_crop_path": "views/az315.png",
+      "source_crop_sha256": "af8bb58e6fe8d29356975e59d667cdb49fb8a8562511cba0b48f7d2ce6f1112d",
+      "horizontal_scale": 0.7071067811865475
+    }
+  ],
+  "four_view_pixels_reused_exactly_for_eight": true,
+  "limitations": [
+    "Camera angles and orthographic scale are prompt assumptions, not measured calibration.",
+    "Image consistency and rig/consumer suitability require separate checks."
+  ],
+  "predecessor_manifest_sha256": "b55c79916d09a93a7a2ac40b6b6a93b1af137a7ac2afb47d0b045e3c59bc51e9",
+  "camera_authority": "Prompt-requested orthographic cameras; yaw interpreted from visible facing direction; uncalibrated",
+  "frame_conversion": {
+    "azimuth_degrees": "(-requested yaw) modulo 360; front points toward Blender -Y",
+    "horizontal_scale": "1 / (abs(cos(azimuth)) + abs(sin(azimuth)))",
+    "reason": "Native projector divides image U by the rotated cube horizontal extent; ImageGen cells requested equal orthographic scale.",
+    "center_uv": [
+      0.5,
+      0.5
+    ],
+    "vertical_scale": 1.0,
+    "resampling": "Pillow bilinear RGBA, transparent outside",
+    "limitations": "This fixes declared coordinate conventions, not generated camera calibration or pose inconsistency."
+  }
+}
