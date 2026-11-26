@@ -97,7 +97,9 @@ def _worker(request_path):
     for asset in request["assets"]:
         if _sha(asset["glb_path"])!=asset["glb_sha256"]:raise ValueError("GLB changed before import")
         before=set(bpy.data.objects)
-        bpy.ops.import_scene.gltf(filepath=asset["glb_path"])
+        # Imported bone-display shapes are helper meshes, not GLB geometry.
+        # Exclude their creation so they cannot pollute bounds or mesh receipts.
+        bpy.ops.import_scene.gltf(filepath=asset["glb_path"],disable_bone_shape=True)
         objects=[o for o in bpy.data.objects if o not in before and o.type=="MESH"]
         if not objects:raise ValueError("Reloaded GLB has no mesh")
         imported[asset["asset_id"]]=objects
