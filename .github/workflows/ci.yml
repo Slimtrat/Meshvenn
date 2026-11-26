@@ -2688,6 +2688,35 @@ jobs:
             --python scripts/build_diagnostic_reference.py -- \
             --verify-glb-only --output tests/fixtures/diagnostics/provider-v1
 
+      - name: Compare actual character shapes and retained details
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/qualify_character_quality.py \
+            --blender "${BLENDER_ROOT}/blender" \
+            --native-library "${RUNNER_TEMP}/meshvenn-smoke/blender_projection_tool/native/bin/libbpt_core.so" \
+            --output "${RUNNER_TEMP}/meshvenn-character-quality" --render-size 512
+
+      - name: Upload character quality comparison
+        if: always()
+        id: character-quality-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: character-quality-review-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/meshvenn-character-quality
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Link character quality comparison
+        if: always() && steps.character-quality-artifact.outcome == 'success'
+        shell: bash
+        env:
+          REVIEW_ARTIFACT_URL: ${{ steps.character-quality-artifact.outputs.artifact-url }}
+        run: |
+          echo "### Character shape review" >> "$GITHUB_STEP_SUMMARY"
+          echo "[Download the actual GLBs, synchronized renders and measurements](${REVIEW_ARTIFACT_URL}). Extract the archive and open review/index.html." >> "$GITHUB_STEP_SUMMARY"
+          echo "Technical completion is not visual approval; lost details, unknown checks and missing human review remain explicit." >> "$GITHUB_STEP_SUMMARY"
+
       - name: Verify packaged prepared authority and publication rollback
         shell: bash
         run: |

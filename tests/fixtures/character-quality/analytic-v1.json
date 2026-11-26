@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "fixture_id": "character-shape-analytic-v1",
+  "scope": "Frozen analytic regression controls; not a universal style or aesthetic acceptance profile.",
+  "frame_id": "analytic-common-frame",
+  "units": "native_normalized",
+  "profile": {
+    "profile_id": "reference-relative-analytic-controls-v1",
+    "largest_planar_patch_increase": 0.03,
+    "normal_moment8_increase": 0.05,
+    "section_turning_increase": 0.08,
+    "minimum_signal_count": 2
+  },
+  "cube": {
+    "vertices": [[-1,-1,-1],[1,-1,-1],[1,1,-1],[-1,1,-1],[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1]],
+    "triangles": [[0,2,1],[0,3,2],[4,5,6],[4,6,7],[0,1,5],[0,5,4],[1,2,6],[1,6,5],[2,3,7],[2,7,6],[3,0,4],[3,4,7]],
+    "expected": {"surface_area": 24.0, "enclosed_volume": 8.0, "largest_planar_patch_fraction": 0.16666666666666666, "normal_moment4": 0.3333333333333333, "normal_moment8": 0.3333333333333333, "central_section_turning_concentration": 0.25}
+  },
+  "ellipsoid": {"recipe": "uv_ellipsoid", "axes": [0.7,0.5,0.9], "longitudes": 32, "latitude_intervals": 16},
+  "controls": [
+    {"id": "intentional_cube", "reference": "cube", "candidate": "same_cube", "expected_shape_status": "pass"},
+    {"id": "cube_retessellation", "reference": "cube", "candidate": "four_way_face_subdivision", "expected_shape_status": "pass"},
+    {"id": "ellipsoid_retessellation", "reference": "ellipsoid", "candidate": "four_way_face_subdivision", "expected_shape_status": "pass"},
+    {"id": "exaggerated_cubification", "reference": "ellipsoid", "candidate": "cube_scaled_to_frozen_axes", "expected_shape_status": "fail"},
+    {"id": "rigid_rotation", "reference": "cube", "candidate": "joint_mesh_and_section_rotation", "expected_shape_status": "pass"},
+    {"id": "missing_named_hand", "reference": "body_with_detached_hand", "candidate": "body_only", "expected_preservation_status": "fail"},
+    {"id": "missing_independent_gates", "reference": "cube", "candidate": "same_cube", "expected_preservation_status": "unknown"}
+  ]
+}
