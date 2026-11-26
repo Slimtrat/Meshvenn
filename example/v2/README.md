@@ -1,5 +1,11 @@
 # GLB reference examples V2
 
+The separate [Stytch Chamber props](props/StytchChamberV1/README.md) add an authored
+stone doorway and a hollow loot chest with rigid hinge animations and no skeleton.
+Their own CI validates GLB/PBR delivery, closed geometry, native Godot pivots and
+negative spaces. They are additional prop fixtures, outside the ten-file upstream
+corpus and its existing reconstruction scores.
+
 Ten open-content GLB files from [Khronos glTF Sample Assets](https://github.com/KhronosGroup/glTF-Sample-Assets), [three.js](https://github.com/mrdoob/three.js) and [Quaternius](https://quaternius.com/), pinned to exact upstream repository revisions in `manifest.json`. These are **reference assets for development and CI**, not part of the Blender extension package.
 
 The geometry cases are Avocado, BarramundiFish, BoomBox and ToyCar. The rig cases are RiggedSimple, RiggedFigure, Fox, RobotExpressive, QuaterniusHuman and UAL1_Standard. ToyCar includes material extensions and cameras. Fox is a quadruped: it verifies explicit source-role adaptation, but remains excluded from Canonical Biped anatomical-fit scoring. RobotExpressive is the multi-mesh humanoid stress case with fourteen clips. QuaterniusHuman tests the Mixamo-compatible adapter with seven authored clips. UAL1 tests the Unreal-compatible adapter with 43 authored clips, including four fixed poses: A_TPose, Pistol_Aim_Down, Pistol_Aim_Neutral and Pistol_Aim_Up. The latter are independently checked against source keyframe data and must stay constant; all other clips must move. No Adobe Mixamo downloads or Epic Mannequin assets are redistributed.
