@@ -83,7 +83,7 @@ print('FIDELITY_NO_FIT_TESTS_PASSED')
             for kind in ("mesh", "glb"):
                 self.assertEqual(hashlib.sha256(Path(record[kind + "_path"]).read_bytes()).hexdigest(), asset[kind + "_sha256"])
             self.assertEqual(asset["gates"]["important_parts"]["status"], "unknown")
-            self.assertEqual(len(asset["per_view_iou"]), 14)
+            self.assertEqual(len(asset["per_view_iou"]), 22 if len(record.get("bound_input_view_ids") or ()) == 18 else 14)
             self.assertEqual(asset["verification_status"], "unknown")
 
 
