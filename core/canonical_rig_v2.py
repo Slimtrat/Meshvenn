@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import math
 import statistics
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable, Sequence
 
 from .canonical_rig import BoneSpec, MeshBounds, bounds_from_vertices
@@ -36,6 +36,7 @@ class CanonicalFitV2Report:
     right_leg_center_in_heights: float
     confidence: float
     lower_body: dict[str, object]
+    arm_trajectories: dict[str, object] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -54,6 +55,8 @@ class CanonicalFitV2Report:
             "lower_body": self.lower_body,
             "arm_envelope_height": self.arm_envelope_height,
             "arm_pose": self.arm_pose,
+            "arm_pose_policy": "observed lateral trajectory; horizontal within 20 degrees",
+            "arm_trajectories": self.arm_trajectories,
             "left_leg_center_in_heights": self.left_leg_center_in_heights,
             "right_leg_center_in_heights": self.right_leg_center_in_heights,
             "confidence": self.confidence,
@@ -108,14 +111,15 @@ def _arm_height_line(samples: Sequence[Point3], center: float, floor: float,
             centers.append((statistics.median([x for x, _ in band]),
                             _envelope_center([z for _, z in band], fallback)))
     if len(centers) < 2:
-        return (lambda _: fallback), max(thickness, default=0.0)
+        return (lambda _: fallback), max(thickness, default=0.0), {"band_count": len(centers), "slope": None}
     origin_x = statistics.mean(x for x, _ in centers)
     origin_z = statistics.mean(z for _, z in centers)
     denominator = sum((x - origin_x) ** 2 for x, _ in centers)
     slope = (sum((x - origin_x) * (z - origin_z) for x, z in centers) / denominator
              if denominator > 1.0e-12 else 0.0)
     slope = max(-1.0, min(0.25, slope))
-    return (lambda x: max(0.40, min(0.86, origin_z + slope * (x - origin_x)))), max(thickness, default=0.0)
+    return ((lambda x: max(0.40, min(0.86, origin_z + slope * (x - origin_x)))),
+            max(thickness, default=0.0), {"band_count": len(centers), "slope": slope})
 
 
 def _side_leg_center(
@@ -178,7 +182,6 @@ def fit_canonical_biped_v2(
     ]
     arm_envelope_height = _median_or(arm_z_samples, 0.59)
     shoulder_z = 0.741
-    arm_pose = "t-pose" if arm_envelope_height >= 0.68 else "a-pose"
 
     leg_centers = {
         side: _side_leg_center(points, bounds, side, 0.08, 0.44)
@@ -210,14 +213,23 @@ def fit_canonical_biped_v2(
         BoneSpec("head", "neck", head_base, point(0.0, 0.97)),
     ]
     arm_thickness = {}
+    arm_trajectories = {}
     for side_name, side in (("L", 1), ("R", -1)):
         extent = side_extents[side]
-        arm_line, arm_thickness[side] = _arm_height_line(
+        arm_line, arm_thickness[side], trajectory = _arm_height_line(
             side_samples[side], center_x, floor, height, side, extent, arm_envelope_height
         )
         # Long T-pose arms must not be capped at proportions of the first A-pose
         # fixture. The measured span and local trajectory define each chain.
-        side_pose = "t-pose" if arm_line(0.78 * extent) >= 0.70 else "a-pose"
+        # Pose describes the direction of the arm, not its fraction of total
+        # body height. Large cartoon heads lower that fraction even in a T-pose.
+        slope = trajectory["slope"]
+        if slope is None:
+            side_pose = "t-pose" if arm_line(0.78 * extent) >= 0.70 else "a-pose"
+        else:
+            side_pose = "t-pose" if slope >= -math.tan(math.radians(20)) else "a-pose"
+        arm_trajectories[side_name] = dict(trajectory, pose=side_pose,
+            authority="observed-trajectory" if slope is not None else "height-prior-fallback")
         shoulder_x = side * (0.20 if side_pose == "t-pose" else 0.15) * extent
         elbow_x = side * 0.52 * extent
         wrist_x = side * 0.78 * extent
@@ -270,6 +282,7 @@ def fit_canonical_biped_v2(
     sample_confidence = min(1.0, min(len(side_samples[1]), len(side_samples[-1])) / 24.0)
     balance = min(side_extents.values()) / max(side_extents.values())
     confidence = max(0.0, min(1.0, sample_confidence * balance))
+    side_poses = {trajectory["pose"] for trajectory in arm_trajectories.values()}
     report = CanonicalFitV2Report(
         vertex_count=len(raw_points),
         unique_position_count=len(points),
@@ -280,7 +293,8 @@ def fit_canonical_biped_v2(
         left_arm_thickness_in_heights=arm_thickness[1],
         right_arm_thickness_in_heights=arm_thickness[-1],
         arm_envelope_height=arm_envelope_height,
-        arm_pose=arm_pose,
+        arm_pose=next(iter(side_poses)) if len(side_poses) == 1 else "mixed-pose",
+        arm_trajectories=arm_trajectories,
         left_leg_center_in_heights=leg_centers[1],
         right_leg_center_in_heights=leg_centers[-1],
         confidence=confidence,

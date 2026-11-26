@@ -110,6 +110,29 @@ class CanonicalRigV2Tests(unittest.TestCase):
         by_name = {bone.name: bone for bone in bones}
         self.assertLess(by_name["hand.L"].head[1], by_name["upper_arm.L"].head[1] - 0.05)
 
+    def test_low_horizontal_arms_do_not_turn_into_an_a_pose(self) -> None:
+        points = [(x,y,.64 if abs(x)>.22 else z) for x,y,z in biped_points()]
+        bones, report = fit_canonical_biped_v2(points)
+        self.assertEqual(report.arm_pose,"t-pose")
+        for name in ("L","R"):
+            self.assertEqual(report.arm_trajectories[name]["authority"],"observed-trajectory")
+            for bone in bones:
+                if bone.name in (f"upper_arm.{name}",f"forearm.{name}",f"hand.{name}"):
+                    self.assertAlmostEqual(bone.head[2],.64,delta=.002)
+
+    def test_raised_sloping_arms_are_still_an_a_pose(self) -> None:
+        points = [(x,y,z+.15 if abs(x)>.22 else z) for x,y,z in biped_points(wrist_z=.58)]
+        bones, report = fit_canonical_biped_v2(points)
+        self.assertEqual(report.arm_pose,"a-pose")
+        self.assertTrue(all(t["slope"]<-.5 for t in report.arm_trajectories.values()))
+
+    def test_observed_pose_report_tracks_each_side(self) -> None:
+        points = [(x,y,.64 if x>.22 else z) for x,y,z in biped_points(wrist_z=.58)]
+        _, report = fit_canonical_biped_v2(points)
+        self.assertEqual(report.arm_pose,"mixed-pose")
+        self.assertEqual(report.arm_trajectories["L"]["pose"],"t-pose")
+        self.assertEqual(report.arm_trajectories["R"]["pose"],"a-pose")
+
     def test_broad_block_is_not_reported_as_a_slender_arm(self) -> None:
         points = [(x, y, index / 20) for x in (-.5, -.4, -.3, -.1, .1, .3, .4, .5)
                   for y in (-.06, .06) for index in range(21)]

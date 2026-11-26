@@ -100,9 +100,15 @@ class UVBakeMaterialConfig:
         DEFAULT_WEIGHT_POWER
     )
 
+    unobserved_color: tuple[float, float, float] = DEFAULT_FALLBACK_COLOR[:3]
+
     def validate(
         self,
     ) -> None:
+        if (len(self.unobserved_color) != 3
+                or any(type(v) not in (int,float) or not math.isfinite(v) or not 0 <= v <= 1
+                       for v in self.unobserved_color)):
+            raise ValueError("Unobserved color requires three finite linear RGB values in [0, 1].")
         if self.texture_size <= 0:
             raise ValueError(
                 (

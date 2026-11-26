@@ -109,6 +109,7 @@ def _config_from_settings(
 ) -> UVBakeMaterialConfig:
     config = (
         UVBakeMaterialConfig(
+            unobserved_color=tuple(_read_setting(settings, "uv_bake_unobserved_color", DEFAULT_FALLBACK_COLOR[:3])),
             texture_size=int(
                 _read_setting(
                     settings,
