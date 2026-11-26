@@ -46,6 +46,15 @@ def main():
         vertex.co = point
     mesh.data.update()
     bpy.data.objects.remove(old_rig, do_unlink=True)
+    # A new UV bake can still exist only in memory. Snapshotting must preserve
+    # its pixels without changing the live image's source or packed state.
+    texture = next(
+        n for n in mesh.data.materials[0].node_tree.nodes if n.type == "TEX_IMAGE"
+    )
+    volatile = bpy.data.images.new("Unpacked pipeline texture", width=2, height=2)
+    volatile.pixels[:] = [0.1, 0.2, 0.3, 1.0] * 4
+    expected_pixel = tuple(volatile.pixels[:4])
+    texture.image = volatile
     geometry_api = module("core.geometry_contracts")
     papi = module("core.pipeline_contracts")
     geometry = geometry_api.GeometrySurfaceOutput(
@@ -85,6 +94,12 @@ def main():
             and bpy.data.filepath == file
         )
         assert counts == {name: len(getattr(bpy.data, name)) for name in counts}
+        assert (
+            texture.image is volatile
+            and volatile.source == "GENERATED"
+            and volatile.packed_file is None
+        )
+        assert tuple(volatile.pixels[:4]) == expected_pixel
         return result
 
     if extension:
@@ -112,6 +127,30 @@ def main():
         )
         assert exported.success, exported.message
         assert exported.metadata["roundtrip"]["passed"]
+        # Decode the exported GLB in an isolated import and verify the color,
+        # not merely the presence of a texture or a successful exporter call.
+        original_objects = set(bpy.data.objects)
+        original_images = set(bpy.data.images)
+        bpy.ops.import_scene.gltf(
+            filepath=str(a.output / "automatic.glb"), disable_bone_shape=True
+        )
+        imported_mesh = next(
+            o for o in set(bpy.data.objects) - original_objects if o.type == "MESH"
+        )
+        imported_image = next(
+            n.image
+            for n in imported_mesh.data.materials[0].node_tree.nodes
+            if n.type == "TEX_IMAGE"
+        )
+        assert (
+            max(abs(v - w) for v, w in zip(imported_image.pixels[:4], expected_pixel))
+            < 1.0 / 255
+        )
+        for obj in set(bpy.data.objects) - original_objects:
+            bpy.data.objects.remove(obj, do_unlink=True)
+        for image in set(bpy.data.images) - original_images:
+            if image.users == 0:
+                bpy.data.images.remove(image)
     finally:
         if extension:
             extension.unregister()

@@ -1,10 +1,11 @@
 """Scene-preserving subprocess supervision and transactional weight application."""
 
 from pathlib import Path
-import hashlib, json, os, subprocess, uuid
+import json, os, subprocess, uuid
 import bpy
 from ..models import Asset, Assessment
 from . import source
+from .snapshot import write_snapshot
 
 
 class SubprocessSupervisor:
@@ -30,7 +31,7 @@ class SubprocessSupervisor:
             while parent:
                 objects.add(parent)
                 parent = parent.parent
-        bpy.data.libraries.write(str(input_path), objects, compress=True)
+        write_snapshot(input_path, mesh, objects)
         worker = Path(__file__).with_name("worker.py")
         command = [
             bpy.app.binary_path,
