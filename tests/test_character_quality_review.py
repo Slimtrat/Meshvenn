@@ -114,6 +114,9 @@ class PresentationIntegrity(unittest.TestCase):
     def test_actual_js_preserves_unsaved_answers_when_switching_and_saving(self):
         second=copy.deepcopy(self.manifest["assets"][1]);second["asset_id"]="candidate2"
         self.manifest["assets"].append(second)
+        self.manifest["character_assessment"]={"candidates":[
+            {"asset_id":"candidate","comparison":{"shape_status":"fail"},"warnings":["Tête trop anguleuse"]},
+            {"asset_id":"candidate2","comparison":{"shape_status":"unknown"},"warnings":["Détails à vérifier"]}]}
         page=self.publish().read_text(encoding="utf-8")
         payload=json.loads(re.search(r'<script id="data" type="application/json">(.*?)</script>',page,re.S)[1])
         script=re.findall(r'<script>(.*?)</script>',page,re.S)[0]
@@ -123,14 +126,14 @@ class PresentationIntegrity(unittest.TestCase):
 const assert=require('node:assert/strict'),vm=require('node:vm');
 const inputs=[],ids={};let downloaded=null;
 class Element{
- constructor(tag){this.tag=tag;this.children=[];this.options=[];this.value='';this.checked=false;this.textContent='';this.handlers={};if(tag==='input')inputs.push(this)}
+ constructor(tag){this.tag=tag;this.children=[];this.options=[];this.value='';this.checked=false;this.textContent='';this.style={};this.handlers={};if(tag==='input')inputs.push(this)}
  append(...items){for(const item of items){this.children.push(item);if(this.tag==='select'&&item.tag==='option'){this.options.push(item);item.parent=this;if(this.value==='')this.value=item.value}}}
  replaceChildren(...items){this.children=[];this.append(...items)}
  addEventListener(name,fn){this.handlers[name]=fn}
  remove(){if(this.parent)this.parent.options=this.parent.options.filter(o=>o!==this)}
  click(){}
 }
-for(const id of ['candidate','mode','crop','angle','anglelabel','play','source-label','candidate-label','source-image','candidate-image','source-links','candidate-links','questions','comment','reviewer','save','saved','references','attestation','data'])ids[id]=new Element(id==='candidate'||id==='mode'?'select':'div');
+for(const id of ['candidate','mode','crop','angle','anglelabel','play','source-label','candidate-label','source-image','candidate-image','source-links','candidate-links','questions','comment','reviewer','save','saved','references','attestation','data','assessment'])ids[id]=new Element(id==='candidate'||id==='mode'?'select':'div');
 for(const value of ['flat','material']){const o=new Element('option');o.value=value;ids.mode.append(o)}
 ids.crop.value='full';ids.angle.value='0';ids.attestation.checked=false;
 for(const value of ['beginner','occasional','experienced']){const i=new Element('input');i.name='experience_3d';i.value=value}
@@ -141,8 +144,10 @@ vm.runInNewContext(SCRIPT+`
 function answer(id,value){for(const input of document.getElementsByName(id))input.checked=input.value===value}
 if(document.querySelector('input[name="experience_3d"]:checked')!==null)throw Error('Experience was preselected');
 if($('attestation').checked)throw Error('Attestation was preselected');
+if(!$('assessment').children[1].textContent.includes('plus anguleuses'))throw Error('Missing measured boxiness warning');
 answer('head_boxy','no');$('comment').value='Premier avis conservé';
 $('candidate').value='candidate2';$('candidate').onchange();
+if(!$('assessment').children[1].textContent.includes('incomplètes ou mitigées'))throw Error('Stale shape verdict after selection');
 answer('bust_coherent','yes');$('comment').value='Deuxième avis conservé';
 $('candidate').value='candidate';$('candidate').onchange();
 if($('comment').value!=='Premier avis conservé')throw Error('First comment lost');

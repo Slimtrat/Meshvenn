@@ -728,6 +728,11 @@ Python / Blender validation
 
 The CI also creates installable Blender extension artifacts.
 
+To judge squared-off characters and missing details, download its
+`character-quality-review` artifact and open `review/index.html` after extraction.
+The [character quality guide](docs/character-quality.md) explains the synchronized
+source/current/finer comparisons, exact GLBs and geometry observations.
+
 The [GLB reference examples V2](example/v2/README.md) provide ten pinned,
 individually licensed models. A dedicated CI workflow benchmarks reconstruction
 from ten rendered views and publishes silhouette, 3D surface and rig-quality scores.
