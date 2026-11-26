@@ -1,0 +1,18 @@
+schema_version = "1.0.0"
+id = "meshvenn_humanoid_auto"
+version = "0.1.0"
+name = "Meshvenn Humanoid Quality"
+tagline = "Automatically inspect and regenerate native humanoid skinning"
+maintainer = "Slimtrat"
+type = "add-on"
+website = "https://github.com/Slimtrat/Meshvenn"
+tags = ["Rigging", "Animation"]
+blender_version_min = "5.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+wheels = ["./wheels/meshvenn_humanoid-0.1.0-py3-none-any.whl"]
+
+[permissions]
+files = "Save humanoid candidates and quality reports"
+
+[build]
+paths_exclude_pattern = ["__pycache__/", "*.pyc", "*.zip"]
