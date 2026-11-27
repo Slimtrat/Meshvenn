@@ -34,6 +34,16 @@ Stytch Walk/Hop/leg/equipment/missing-module/contact behavior, human acceptance
 or distribution rights. The candidate is not selected or admitted. Issue #103
 remains open; collision proxies and physics qualification remain #100.
 
+The separate [Stytch numeric receipt](../example/v2/modular/StytchDummyCloth/evidence/stytch-native-receipt.json)
+now records six passing native candidate campaigns for the exact `2df4fcf7…`
+artifact, including the full factory, Hop/Walk/Held clearance, missing regions,
+equipment, native-body variants, foot grounding and replay identity rejections.
+The producer independently read those six local exact-asset receipts. This is
+not a MeshVenn CI replay or downstream gameplay/packaging/mobile/rights
+admission. Private app captures/code/buffers remain external. The older `d49…`
+failure is not repointed to the passing identity; the asset family ID is
+disambiguated by variant and SHA.
+
 ## Why the initial LOD was rejected
 
 Rest-only decimation hid large posed errors. The first protected candidate

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "asset_sha256": "2df4fcf7d51efb20fe91d75975f8b61fdf4194ca122fdcbeaab65cfb74b97c29",
+  "asset_family": "stytch-dummy-cloth-modular-v1",
+  "consumer_variant": "cloth-modular-v3-local",
+  "producer_variant": "deformation-protected-portable-v5",
+  "consumer_pull_request": "https://github.com/Stytch0/Stytch/pull/260",
+  "verification": "Reported by Stytch and independently read from six exact-asset local native qualification receipts. Not a MeshVenn CI execution.",
+  "stages": [
+    {
+      "stage": "structure",
+      "status": "passed-requested-stage-only",
+      "evidence_sha256": "e79844efaaf130845ec2f5c9c83d9a9e241fc69bf48d88c3d93fa905e8338799"
+    },
+    {
+      "stage": "walk-held",
+      "status": "passed-requested-stage-only",
+      "evidence_sha256": "342d436498387098bb7c86ad043249f291500283a4ea9fb903c79a3eb080f9e2"
+    },
+    {
+      "stage": "foot-grounding",
+      "status": "passed-requested-stage-only",
+      "evidence_sha256": "b3aa74f6a38db0be2dddf914ef14e31f8ae2bcc55ad7a41cc6231c362f29a4bb"
+    },
+    {
+      "stage": "native-body",
+      "status": "passed-requested-stage-only",
+      "evidence_sha256": "37e8591f7e627675720643877658c982f7755a11ac4b882db75256fa2df0d9b0"
+    },
+    {
+      "stage": "replay-identity",
+      "status": "passed-requested-stage-only",
+      "evidence_sha256": "a871b044db9f27b1fb650b085806c71f7601a0ce4b88a119b45c9d505aa64928"
+    },
+    {
+      "stage": "full-factory",
+      "status": "passed-requested-stage-only",
+      "evidence_sha256": "49ae5c3f5dbac1f64ecbc6f9a4732fe226525d869e9398f00bc3c51ea75ef534"
+    }
+  ],
+  "full_factory_evidence_sha256": "127ec3fec498d176d1942cac1a847c4f227ccd9f23665f7cc01ae3ef0c3688b6",
+  "full_factory_counts": {
+    "AnatomyFrames": 16,
+    "TargetChecks": 192,
+    "VisibilityChecks": 1040,
+    "EquipmentChecks": 1248,
+    "AssemblyIdentityRejections": 16,
+    "ArmClearanceChecks": 288,
+    "NativeElbowExcitationChecks": 4,
+    "WalkHeldArmClearanceChecks": 576,
+    "FootGroundingContractChecks": 4,
+    "FootGroundingFloorChecks": 288,
+    "FootGroundingDisplayScales": 3
+  },
+  "imported_body_unchanged": true,
+  "product_catalog_changed": false,
+  "visual_acceptance": false,
+  "native_gameplay_validated": false,
+  "production_run_enabled": false,
+  "distribution_approved": false,
+  "rights_review_pending": true,
+  "remaining": [
+    "source creases and human visual review",
+    "source-free PCK",
+    "Android and mobile performance",
+    "canonical physical-to-native skin mapping and physics",
+    "consumer gameplay/distribution admission and rights"
+  ],
+  "scope": "Numerical receipt/provenance only. No consumer code, app captures or dense buffers published. Earlier d49ffad5 remains rejected; no immutable library entry repointed."
+}

@@ -10,6 +10,10 @@ on:
       - 'implementations/glb_export/**'
       - 'implementations/authored_source.py'
       - 'core/modular_character/**'
+      - 'core/geometry_contracts/**'
+      - 'packages/meshvenn_humanoid/**'
+      - 'scripts/author_stytch_doll.py'
+      - 'operators/modular_*.py'
       - '.github/workflows/cloth_modular.yml'
   push:
     branches: [main]
@@ -21,6 +25,10 @@ on:
       - 'implementations/glb_export/**'
       - 'implementations/authored_source.py'
       - 'core/modular_character/**'
+      - 'core/geometry_contracts/**'
+      - 'packages/meshvenn_humanoid/**'
+      - 'scripts/author_stytch_doll.py'
+      - 'operators/modular_*.py'
       - '.github/workflows/cloth_modular.yml'
   workflow_dispatch:
 

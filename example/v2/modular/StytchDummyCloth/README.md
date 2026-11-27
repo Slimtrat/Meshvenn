@@ -20,12 +20,14 @@ reference. The eighteen joints and disabled normalization are retained.
 | Public GLB import and No Rebuild | Pass; 17 rest/native probe states |
 | Material transport | All three embedded images and shader semantics preserved |
 | Four matched render views | Silhouette IoU >0.998; interior linear RGB RMSE <0.0163 |
+| Actual Stytch native candidate campaigns | Six stages pass for this exact SHA; [numeric receipt](evidence/stytch-native-receipt.json) |
 | General visual and Stytch gameplay admission | **Not admitted** |
 
 These are fidelity checks to the source, not a claim that its arm creases have
 been fixed. Stytch independently recaptures from this exact new identity/rest
-rig. Walk/Hop, missing regions, equipment, contacts and rights remain consumer
-gates in [#103](https://github.com/Slimtrat/Meshvenn/issues/103). Collision proxies
+rig. The six native test campaigns pass; general gameplay, packaging, mobile,
+visual and rights admission remain consumer gates in
+[#103](https://github.com/Slimtrat/Meshvenn/issues/103). Collision proxies
 and Jolt qualification remain [#100](https://github.com/Slimtrat/Meshvenn/issues/100).
 No old library entry or frozen full-body file is replaced.
 
