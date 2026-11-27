@@ -1,0 +1,362 @@
+{
+  "schema_version": 1,
+  "asset_sha256": "2df4fcf7d51efb20fe91d75975f8b61fdf4194ca122fdcbeaab65cfb74b97c29",
+  "source_sha256": "5cd525a32008ca0b9b5c92562cc4c7bc8d22baf2562fd368332b875b015e207d",
+  "budget": {
+    "max_sampled_surface_error_m": 0.005,
+    "p99_sampled_surface_error_m": 0.002,
+    "native_limits": {
+      "source_structure_changes": [
+        "max",
+        0.0
+      ],
+      "invalid_weights": [
+        "max",
+        0.0
+      ],
+      "export_failures": [
+        "max",
+        0.0
+      ],
+      "appearance_transport_changes": [
+        "max",
+        0.0
+      ],
+      "rest_position_error": [
+        "max",
+        2e-05
+      ],
+      "proximal_link_error": [
+        "max",
+        0.01
+      ],
+      "distal_link_error": [
+        "max",
+        0.01
+      ],
+      "protected_elbow_error": [
+        "max",
+        0.001
+      ],
+      "shoulder_link_error": [
+        "max",
+        0.02
+      ],
+      "protected_shoulder_error": [
+        "max",
+        0.001
+      ],
+      "elbow_radius_retention": [
+        "min",
+        0.65
+      ],
+      "elbow_area_retention": [
+        "min",
+        0.05
+      ],
+      "elbow_inverted_area_fraction": [
+        "max",
+        0.0
+      ]
+    },
+    "native_probe_count": 16,
+    "scope": "Public GLB import fidelity and native probes, not an actual Stytch replay"
+  },
+  "native_profile": {
+    "proximal_link_error": 0.0001894934909541154,
+    "distal_link_error": 3.853921790824959e-06,
+    "protected_elbow_error": 0.0,
+    "shoulder_link_error": 1.9519958935218463e-06,
+    "protected_shoulder_error": 0.0,
+    "elbow_radius_retention": 0.7278447631446217,
+    "elbow_area_retention": 0.17015968915070864,
+    "elbow_inverted_area_fraction": 0.0
+  },
+  "native_failures": {},
+  "native_evidence": {
+    "probes": [
+      {
+        "bone": "forearm.L",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 1.7434947263793253e-06,
+        "proximal_error": 0.0,
+        "radius_retention": 0.9285824747731998,
+        "area_retention": 0.6361181755209376,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "forearm.L",
+        "degrees": 90,
+        "protected_error": 0.0,
+        "distal_error": 1.3673241026450221e-06,
+        "proximal_error": 0.0,
+        "radius_retention": 0.7278447631446217,
+        "area_retention": 0.17958064248442226,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "upper_arm.L",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 1.9519958935218463e-06,
+        "proximal_error": 9.085972639848383e-07
+      },
+      {
+        "bone": "upper_arm.L",
+        "degrees": 70,
+        "protected_error": 0.0,
+        "distal_error": 1.7117440628227426e-06,
+        "proximal_error": 6.269487036459503e-07
+      },
+      {
+        "bone": "forearm.R",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 3.4891904577733385e-06,
+        "proximal_error": 0.00010245198947924433,
+        "radius_retention": 0.9295959806231374,
+        "area_retention": 0.6308413216710043,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "forearm.R",
+        "degrees": 90,
+        "protected_error": 0.0,
+        "distal_error": 3.853921790824959e-06,
+        "proximal_error": 0.0001894934909541154,
+        "radius_retention": 0.7322451409046894,
+        "area_retention": 0.17015968915070864,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "upper_arm.R",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 1.8271769620254238e-06,
+        "proximal_error": 6.356199652709208e-07
+      },
+      {
+        "bone": "upper_arm.R",
+        "degrees": 70,
+        "protected_error": 0.0,
+        "distal_error": 1.832244078617083e-06,
+        "proximal_error": 1.089754355807395e-06
+      }
+    ],
+    "rest_restore_error": 0.0,
+    "region_counts": {
+      "L": {
+        "proximal": 225,
+        "shoulder_rigid": 26,
+        "distal": 790,
+        "ring": 259,
+        "protected": 5844
+      },
+      "R": {
+        "proximal": 217,
+        "shoulder_rigid": 27,
+        "distal": 863,
+        "ring": 237,
+        "protected": 5785
+      }
+    }
+  },
+  "appearance": {
+    "images": [
+      "013449d3d855107fd21652d3e64cfca1444ef98c3ccc51a93c945d8e4a1d2740",
+      "0ad1a733a7de5a450ba734a7f6091ba5b39751c2ae434a7a280ec7cf05d44d24",
+      "4b9e9fc4472a40bcf6487e26b20f1791269da611991665df1a14217f65f6634b"
+    ],
+    "materials": [
+      {
+        "doubleSided": true,
+        "normalTexture": {
+          "image_sha256": "013449d3d855107fd21652d3e64cfca1444ef98c3ccc51a93c945d8e4a1d2740",
+          "sampler": {
+            "magFilter": 9729,
+            "minFilter": 9987
+          }
+        },
+        "pbrMetallicRoughness": {
+          "baseColorTexture": {
+            "image_sha256": "4b9e9fc4472a40bcf6487e26b20f1791269da611991665df1a14217f65f6634b",
+            "sampler": {
+              "magFilter": 9729,
+              "minFilter": 9987,
+              "wrapS": 33071,
+              "wrapT": 33071
+            }
+          },
+          "metallicRoughnessTexture": {
+            "image_sha256": "0ad1a733a7de5a450ba734a7f6091ba5b39751c2ae434a7a280ec7cf05d44d24",
+            "sampler": {
+              "magFilter": 9729,
+              "minFilter": 9987
+            }
+          }
+        }
+      }
+    ]
+  },
+  "source_authority_unchanged": true,
+  "no_rebuild_passed": true,
+  "poses": [
+    {
+      "pose": "rest",
+      "error_m": {
+        "max": 0.002530325436964631,
+        "p99": 0.0010193524649366736,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-forearm-L-45",
+      "error_m": {
+        "max": 0.00253031263127923,
+        "p99": 0.0010370658710598946,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-forearm-L-90",
+      "error_m": {
+        "max": 0.0030059656128287315,
+        "p99": 0.0010925085516646504,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-upper_arm-L-45",
+      "error_m": {
+        "max": 0.00253031263127923,
+        "p99": 0.001021069590933621,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-upper_arm-L-70",
+      "error_m": {
+        "max": 0.00253031263127923,
+        "p99": 0.001025694771669805,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-hand-L-45",
+      "error_m": {
+        "max": 0.00253031263127923,
+        "p99": 0.0010203173151239753,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-thigh-L-45",
+      "error_m": {
+        "max": 0.00253031263127923,
+        "p99": 0.0010288336779922247,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-shin-L-90",
+      "error_m": {
+        "max": 0.004106076899915934,
+        "p99": 0.0014602233422920108,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-foot-L-30",
+      "error_m": {
+        "max": 0.0033039525151252747,
+        "p99": 0.0011276740115135908,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-forearm-R-45",
+      "error_m": {
+        "max": 0.00253031263127923,
+        "p99": 0.001040478702634573,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-forearm-R-90",
+      "error_m": {
+        "max": 0.0040437886491417885,
+        "p99": 0.0010773742105811834,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-upper_arm-R-45",
+      "error_m": {
+        "max": 0.00253031263127923,
+        "p99": 0.0010285224998369813,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-upper_arm-R-70",
+      "error_m": {
+        "max": 0.00253031263127923,
+        "p99": 0.0010289199417456985,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-hand-R-45",
+      "error_m": {
+        "max": 0.00253031263127923,
+        "p99": 0.0010193500202149153,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-thigh-R-45",
+      "error_m": {
+        "max": 0.002531449543312192,
+        "p99": 0.0010213612113147974,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-shin-R-90",
+      "error_m": {
+        "max": 0.0047757430002093315,
+        "p99": 0.0014443687396124005,
+        "samples": 92188
+      },
+      "passed": true
+    },
+    {
+      "pose": "native-foot-R-30",
+      "error_m": {
+        "max": 0.003656395012512803,
+        "p99": 0.001246409141458571,
+        "samples": 92188
+      },
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "consumer_replay_performed": false,
+  "visual_acceptance": false
+}

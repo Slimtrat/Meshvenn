@@ -1,0 +1,11 @@
+Repository declaration carried from the existing cloth source: GPL-3.0-or-later.
+See the repository LICENSE and the original source candidate provenance.
+
+This record does not assert automatic generator-output inheritance and does not
+record a new blanket asset-family grant over generated input sheets or sources.
+explicit_asset_license_grant_recorded: false
+consumer_license_review: pending
+
+Producer numerical fidelity is not downstream distribution, gameplay, contact
+or physics admission. Preserve provenance.json, manifest.json and the original
+reference identity. Do not replace immutable earlier library versions.

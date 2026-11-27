@@ -1,0 +1,1182 @@
+{
+  "schema_version": 1,
+  "scope": "Retained numerical failures; no private app images/code/dense buffers. No failed candidate selected.",
+  "candidates": [
+    {
+      "id": "raw-collapse",
+      "lod_report_sha256": "1bec77d77a0ec7184f3ed599eed19d41d2e52ad9111b62ff520ab3824631e756",
+      "selected": false,
+      "lod_candidates": [
+        {
+          "ratio": 0.44,
+          "triangles": 17512,
+          "vertices": 8737,
+          "max_pruned_mass": 0.05855426890775561,
+          "sampled_surface_distance_m": {
+            "max": 0.001920311595313251,
+            "p99": 0.0006080516031943262,
+            "samples": 85936
+          },
+          "topology": {
+            "vertex_count": 8737,
+            "triangle_count": 17512,
+            "surface_area": 3.5458142125650904,
+            "axis_aligned_area_fraction": 0.11822100280870687,
+            "degenerate_triangles": 0,
+            "boundary_edges": 0,
+            "nonmanifold_edges": 24,
+            "signed_volume_observation": 0.1952188667641667,
+            "verification_status": "unknown",
+            "topology_weld": "coincident positions rounded in the same height-normalized frame; observation only",
+            "scope": "Surface/topology diagnostics; no reference morphology or anatomical certificate"
+          },
+          "elapsed": 1.2082235000016226,
+          "selected": false,
+          "pose_quality": "pending exact consumer replay"
+        },
+        {
+          "ratio": 0.42,
+          "triangles": 16716,
+          "vertices": 8339,
+          "max_pruned_mass": 0.05855426890775561,
+          "sampled_surface_distance_m": {
+            "max": 0.001920311595313251,
+            "p99": 0.0006012419471517205,
+            "samples": 84742
+          },
+          "topology": {
+            "vertex_count": 8339,
+            "triangle_count": 16716,
+            "surface_area": 3.5458464963722887,
+            "axis_aligned_area_fraction": 0.11852681459989149,
+            "degenerate_triangles": 0,
+            "boundary_edges": 0,
+            "nonmanifold_edges": 24,
+            "signed_volume_observation": 0.19521315226392633,
+            "verification_status": "unknown",
+            "topology_weld": "coincident positions rounded in the same height-normalized frame; observation only",
+            "scope": "Surface/topology diagnostics; no reference morphology or anatomical certificate"
+          },
+          "elapsed": 0.8616451000016241,
+          "selected": false,
+          "pose_quality": "pending exact consumer replay"
+        },
+        {
+          "ratio": 0.4,
+          "triangles": 15920,
+          "vertices": 7941,
+          "max_pruned_mass": 0.05855426890775561,
+          "sampled_surface_distance_m": {
+            "max": 0.001920311595313251,
+            "p99": 0.0005957803805358708,
+            "samples": 83548
+          },
+          "topology": {
+            "vertex_count": 7941,
+            "triangle_count": 15920,
+            "surface_area": 3.545868292435756,
+            "axis_aligned_area_fraction": 0.11843285707226585,
+            "degenerate_triangles": 0,
+            "boundary_edges": 0,
+            "nonmanifold_edges": 24,
+            "signed_volume_observation": 0.19520768648770787,
+            "verification_status": "unknown",
+            "topology_weld": "coincident positions rounded in the same height-normalized frame; observation only",
+            "scope": "Surface/topology diagnostics; no reference morphology or anatomical certificate"
+          },
+          "elapsed": 0.8165368000009039,
+          "selected": false,
+          "pose_quality": "pending exact consumer replay"
+        }
+      ]
+    },
+    {
+      "id": "count-protected",
+      "lod_report_sha256": "f46b4a6790e5772e4cb193205b16f5cba8da18051b5bfd7f9c74199c913c90d6",
+      "selected": false,
+      "triangles": 17512,
+      "max_pruned_skin_mass": 0.014849613420665264,
+      "rest": {
+        "max": 0.001920311595313251,
+        "p99": 0.0005929030594415963,
+        "samples": 85936
+      },
+      "pose_report_sha256": "208495a3aee936b8046beffa1def6b918b4ce8694b680fc4951518ba04a7b01b",
+      "native_failures": {
+        "proximal_link_error": 0.025378350734747864,
+        "shoulder_link_error": 0.052910171388177954,
+        "elbow_inverted_area_fraction": 0.10002938335060882
+      },
+      "failed_pose_samples": [
+        {
+          "pose": "presence-0000.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.028074724599719048,
+            "p99": 0.003744320711120963,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "presence-0036.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.028073955327272415,
+            "p99": 0.003744320711120963,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "presence-0072.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.02807600423693657,
+            "p99": 0.003744320711120963,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "presence-0108.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.028075052425265312,
+            "p99": 0.0037443286273628473,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "held-0000.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.025605583563447,
+            "p99": 0.0041936044581234455,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "held-0036.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.029924511909484863,
+            "p99": 0.004565087612718344,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "held-0072.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.025605561211705208,
+            "p99": 0.0041936044581234455,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "held-0108.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.022443989291787148,
+            "p99": 0.0039713154546916485,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-forearm-L-45",
+          "sampled_surface_distance_m": {
+            "max": 0.021205352619290352,
+            "p99": 0.0012573844287544489,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-forearm-L-90",
+          "sampled_surface_distance_m": {
+            "max": 0.021077943965792656,
+            "p99": 0.0017290066462010145,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-upper_arm-L-45",
+          "sampled_surface_distance_m": {
+            "max": 0.026435980573296547,
+            "p99": 0.0015009301714599133,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-upper_arm-L-70",
+          "sampled_surface_distance_m": {
+            "max": 0.027318382635712624,
+            "p99": 0.001966026844456792,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-forearm-R-45",
+          "sampled_surface_distance_m": {
+            "max": 0.007679400034248829,
+            "p99": 0.0009806277230381966,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-forearm-R-90",
+          "sampled_surface_distance_m": {
+            "max": 0.01184455119073391,
+            "p99": 0.0014378835912793875,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-upper_arm-R-45",
+          "sampled_surface_distance_m": {
+            "max": 0.01371781900525093,
+            "p99": 0.0012049120850861073,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-upper_arm-R-70",
+          "sampled_surface_distance_m": {
+            "max": 0.015624849125742912,
+            "p99": 0.0014411004958674312,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-hand-R-45",
+          "sampled_surface_distance_m": {
+            "max": 0.006600391585379839,
+            "p99": 0.0008086320012807846,
+            "samples": 85936
+          },
+          "passed": false
+        }
+      ]
+    },
+    {
+      "id": "barycentric",
+      "lod_report_sha256": "f02512fa99c62210263ab85f0579af66b4e001cc1c7a66fb03f5fba7e9ed561e",
+      "selected": false,
+      "triangles": 17512,
+      "max_pruned_skin_mass": 0.004824564258690045,
+      "rest": {
+        "max": 0.001920311595313251,
+        "p99": 0.0005929030594415963,
+        "samples": 85936
+      },
+      "pose_report_sha256": "09de0d123d120117b219e999cc3d240745f43fedd0a6485c7383de0a5717a83c",
+      "native_failures": {
+        "elbow_inverted_area_fraction": 0.07890859576866557
+      },
+      "failed_pose_samples": [
+        {
+          "pose": "presence-0000.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.030275382101535797,
+            "p99": 0.004023544955998659,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "presence-0036.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.030274691060185432,
+            "p99": 0.004023532848805189,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "presence-0072.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.030276423320174217,
+            "p99": 0.004023544955998659,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "presence-0108.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.03027556836605072,
+            "p99": 0.0040235561318695545,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "held-0000.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.026288576424121857,
+            "p99": 0.004308073781430721,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "held-0036.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.02890661172568798,
+            "p99": 0.004582921974360943,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "held-0072.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.026288582012057304,
+            "p99": 0.0043080635368824005,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "held-0108.json.gz",
+          "sampled_surface_distance_m": {
+            "max": 0.02467210404574871,
+            "p99": 0.004093352239578962,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-forearm-L-45",
+          "sampled_surface_distance_m": {
+            "max": 0.021771276369690895,
+            "p99": 0.0012003934243693948,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-forearm-L-90",
+          "sampled_surface_distance_m": {
+            "max": 0.02197088673710823,
+            "p99": 0.0016623068368062377,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-upper_arm-L-45",
+          "sampled_surface_distance_m": {
+            "max": 0.026332978159189224,
+            "p99": 0.0012886383337900043,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-upper_arm-L-70",
+          "sampled_surface_distance_m": {
+            "max": 0.029455499723553658,
+            "p99": 0.0017185359029099345,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-shin-L-90",
+          "sampled_surface_distance_m": {
+            "max": 0.005239902529865503,
+            "p99": 0.0008188339998014271,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-forearm-R-45",
+          "sampled_surface_distance_m": {
+            "max": 0.008540172129869461,
+            "p99": 0.0009073102264665067,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-forearm-R-90",
+          "sampled_surface_distance_m": {
+            "max": 0.01380207110196352,
+            "p99": 0.0012214349117130041,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-upper_arm-R-45",
+          "sampled_surface_distance_m": {
+            "max": 0.014019560068845749,
+            "p99": 0.0011074942303821445,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-upper_arm-R-70",
+          "sampled_surface_distance_m": {
+            "max": 0.017487071454524994,
+            "p99": 0.0013509159907698631,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-hand-R-45",
+          "sampled_surface_distance_m": {
+            "max": 0.006603383459150791,
+            "p99": 0.0007837000885047019,
+            "samples": 85936
+          },
+          "passed": false
+        }
+      ]
+    },
+    {
+      "id": "gradient-protected",
+      "lod_report_sha256": "219f11e7ed3cdf7355594e4a3f4295f1a0cdebcea36aabd780140a2a492eab9a",
+      "selected": false,
+      "triangles": 17512,
+      "max_pruned_skin_mass": 0.004535192669834376,
+      "rest": {
+        "max": 0.0023812248837202787,
+        "p99": 0.000967382628004998,
+        "samples": 85936
+      },
+      "pose_report_sha256": "7f69af49afecb370fc315421e9d85444ee0466cf81d59aae63311841c7eecea6",
+      "native_failures": {},
+      "failed_pose_samples": [
+        {
+          "pose": "native-forearm-L-90",
+          "sampled_surface_distance_m": {
+            "max": 0.005924950819462538,
+            "p99": 0.0010684956796467304,
+            "samples": 85936
+          },
+          "passed": false
+        },
+        {
+          "pose": "native-shin-L-90",
+          "sampled_surface_distance_m": {
+            "max": 0.00837124977260828,
+            "p99": 0.0015160867478698492,
+            "samples": 85936
+          },
+          "passed": false
+        }
+      ]
+    },
+    {
+      "id": "feedback-portability-failure",
+      "lod_report_sha256": "f366d5041cd7219e713a59f07f1348482e813278a55bb44ef7e82d77a328c080",
+      "selected": false,
+      "triangles": 17512,
+      "max_pruned_skin_mass": 0.004530889995187026,
+      "rest": {
+        "max": 0.002530332189053297,
+        "p99": 0.0009836949175223708,
+        "samples": 85936
+      },
+      "pose_report_sha256": "7f1a05c287c46c5e9fa8265f9ce6e323efd7125d1345bf434e4a1685274cac58",
+      "native_failures": {},
+      "failed_pose_samples": [],
+      "export_failure": "Strict unchanged roundtrip rejected max weight difference 0.000168912 > 0.0001. Final v5 removes tiny influences in source before all tests; export tolerances unchanged."
+    },
+    {
+      "id": "weight-probe-v1",
+      "scope": "Source-weight visual correction trials, separate from LOD; all unselected",
+      "report": {
+        "budget": {
+          "max_trials": 4,
+          "recipes": [
+            0,
+            8,
+            24,
+            60
+          ],
+          "existing_native_limits": {
+            "source_structure_changes": [
+              "max",
+              0.0
+            ],
+            "invalid_weights": [
+              "max",
+              0.0
+            ],
+            "export_failures": [
+              "max",
+              0.0
+            ],
+            "appearance_transport_changes": [
+              "max",
+              0.0
+            ],
+            "rest_position_error": [
+              "max",
+              2e-05
+            ],
+            "proximal_link_error": [
+              "max",
+              0.01
+            ],
+            "distal_link_error": [
+              "max",
+              0.01
+            ],
+            "protected_elbow_error": [
+              "max",
+              0.001
+            ],
+            "shoulder_link_error": [
+              "max",
+              0.02
+            ],
+            "protected_shoulder_error": [
+              "max",
+              0.001
+            ],
+            "elbow_radius_retention": [
+              "min",
+              0.65
+            ],
+            "elbow_area_retention": [
+              "min",
+              0.05
+            ],
+            "elbow_inverted_area_fraction": [
+              "max",
+              0.0
+            ]
+          },
+          "captured_max_opposed_arm_faces": 0,
+          "captured_p99_edge_ratio_max": 1.3,
+          "captured_p99_normal_geometric_angle_max_deg": 45,
+          "scope": "Candidate trial only, no consumer/visual admission. Original native single-axis profile must also pass; source immutable."
+        },
+        "trials": [
+          {
+            "iterations": 0,
+            "native": {
+              "proximal_link_error": 0.0,
+              "distal_link_error": 1.9501677692927975e-06,
+              "protected_elbow_error": 0.0,
+              "shoulder_link_error": 1.5298366405179785e-06,
+              "protected_shoulder_error": 0.0,
+              "elbow_radius_retention": 0.727813843176873,
+              "elbow_area_retention": 0.1701592161408606,
+              "elbow_inverted_area_fraction": 0.0
+            },
+            "failed_native": {},
+            "max_pruned_mass": 1.0896474123001099e-07,
+            "captured": [
+              {
+                "pose": "held-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.407944820711482,
+                "p99_normal_geometric_angle_deg": 43.0156011780235
+              },
+              {
+                "pose": "held-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.4326884208075872,
+                "p99_normal_geometric_angle_deg": 44.66175282662809
+              },
+              {
+                "pose": "held-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.4079448672096015,
+                "p99_normal_geometric_angle_deg": 43.01560453888103
+              },
+              {
+                "pose": "held-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.384571809072847,
+                "p99_normal_geometric_angle_deg": 42.12124682631589
+              },
+              {
+                "pose": "presence-0000.json.gz",
+                "opposed_arm_faces": 92,
+                "p99_edge_ratio": 1.5037084848278153,
+                "p99_normal_geometric_angle_deg": 82.3370019663764
+              },
+              {
+                "pose": "presence-0036.json.gz",
+                "opposed_arm_faces": 92,
+                "p99_edge_ratio": 1.5037087619836669,
+                "p99_normal_geometric_angle_deg": 82.33693245784764
+              },
+              {
+                "pose": "presence-0072.json.gz",
+                "opposed_arm_faces": 92,
+                "p99_edge_ratio": 1.5037084848278195,
+                "p99_normal_geometric_angle_deg": 82.3370019663764
+              },
+              {
+                "pose": "presence-0108.json.gz",
+                "opposed_arm_faces": 92,
+                "p99_edge_ratio": 1.503708212450612,
+                "p99_normal_geometric_angle_deg": 82.33702806388784
+              }
+            ],
+            "selected": false
+          },
+          {
+            "iterations": 8,
+            "native": {
+              "proximal_link_error": 0.003540078896743924,
+              "distal_link_error": 0.005971993190385476,
+              "protected_elbow_error": 0.0,
+              "shoulder_link_error": 0.00386971074931205,
+              "protected_shoulder_error": 0.0,
+              "elbow_radius_retention": 0.7262688146789223,
+              "elbow_area_retention": 0.19593745364503598,
+              "elbow_inverted_area_fraction": 0.0
+            },
+            "failed_native": {},
+            "max_pruned_mass": 0.018251034022963353,
+            "captured": [
+              {
+                "pose": "held-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3487745699288887,
+                "p99_normal_geometric_angle_deg": 38.88208705677366
+              },
+              {
+                "pose": "held-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3744091845175508,
+                "p99_normal_geometric_angle_deg": 40.21918868809534
+              },
+              {
+                "pose": "held-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.348774600231604,
+                "p99_normal_geometric_angle_deg": 38.882091252877736
+              },
+              {
+                "pose": "held-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3337352222144123,
+                "p99_normal_geometric_angle_deg": 35.71010723045897
+              },
+              {
+                "pose": "presence-0000.json.gz",
+                "opposed_arm_faces": 88,
+                "p99_edge_ratio": 1.4307391873639097,
+                "p99_normal_geometric_angle_deg": 83.3834347279433
+              },
+              {
+                "pose": "presence-0036.json.gz",
+                "opposed_arm_faces": 88,
+                "p99_edge_ratio": 1.4307389677643374,
+                "p99_normal_geometric_angle_deg": 83.383356645599
+              },
+              {
+                "pose": "presence-0072.json.gz",
+                "opposed_arm_faces": 88,
+                "p99_edge_ratio": 1.4307395861381806,
+                "p99_normal_geometric_angle_deg": 83.38343472794332
+              },
+              {
+                "pose": "presence-0108.json.gz",
+                "opposed_arm_faces": 88,
+                "p99_edge_ratio": 1.4307390668234852,
+                "p99_normal_geometric_angle_deg": 83.3834640422442
+              }
+            ],
+            "selected": false
+          },
+          {
+            "iterations": 24,
+            "native": {
+              "proximal_link_error": 0.0146775351075292,
+              "distal_link_error": 0.01957370991192702,
+              "protected_elbow_error": 0.0,
+              "shoulder_link_error": 0.01834568144228708,
+              "protected_shoulder_error": 0.0,
+              "elbow_radius_retention": 0.7236595091180777,
+              "elbow_area_retention": 0.22654245089326083,
+              "elbow_inverted_area_fraction": 0.0
+            },
+            "failed_native": {
+              "proximal_link_error": 0.0146775351075292,
+              "distal_link_error": 0.01957370991192702
+            },
+            "max_pruned_mass": 0.021500911523500532,
+            "captured": [
+              {
+                "pose": "held-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.29649648399611,
+                "p99_normal_geometric_angle_deg": 32.36649267748605
+              },
+              {
+                "pose": "held-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3215746231664194,
+                "p99_normal_geometric_angle_deg": 34.51059015292651
+              },
+              {
+                "pose": "held-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.2964965051649162,
+                "p99_normal_geometric_angle_deg": 32.366494163868964
+              },
+              {
+                "pose": "held-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.2784672328795832,
+                "p99_normal_geometric_angle_deg": 29.97003271870737
+              },
+              {
+                "pose": "presence-0000.json.gz",
+                "opposed_arm_faces": 38,
+                "p99_edge_ratio": 1.3630221636431594,
+                "p99_normal_geometric_angle_deg": 68.30274614546647
+              },
+              {
+                "pose": "presence-0036.json.gz",
+                "opposed_arm_faces": 38,
+                "p99_edge_ratio": 1.3630119931162754,
+                "p99_normal_geometric_angle_deg": 68.30274513375238
+              },
+              {
+                "pose": "presence-0072.json.gz",
+                "opposed_arm_faces": 38,
+                "p99_edge_ratio": 1.3630315336234573,
+                "p99_normal_geometric_angle_deg": 68.30274614546651
+              },
+              {
+                "pose": "presence-0108.json.gz",
+                "opposed_arm_faces": 38,
+                "p99_edge_ratio": 1.3630244137982044,
+                "p99_normal_geometric_angle_deg": 68.3027464379944
+              }
+            ],
+            "selected": false
+          },
+          {
+            "iterations": 60,
+            "native": {
+              "proximal_link_error": 0.03820492474156429,
+              "distal_link_error": 0.0453509616916808,
+              "protected_elbow_error": 0.0,
+              "shoulder_link_error": 0.048576628196050554,
+              "protected_shoulder_error": 0.0,
+              "elbow_radius_retention": 0.7219077014932278,
+              "elbow_area_retention": 0.280510380603422,
+              "elbow_inverted_area_fraction": 0.0
+            },
+            "failed_native": {
+              "proximal_link_error": 0.03820492474156429,
+              "distal_link_error": 0.0453509616916808,
+              "shoulder_link_error": 0.048576628196050554
+            },
+            "max_pruned_mass": 0.02412403533393448,
+            "captured": [
+              {
+                "pose": "held-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.248806006176964,
+                "p99_normal_geometric_angle_deg": 26.86832917353735
+              },
+              {
+                "pose": "held-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.270866995800455,
+                "p99_normal_geometric_angle_deg": 27.94835344893941
+              },
+              {
+                "pose": "held-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.2488059980693211,
+                "p99_normal_geometric_angle_deg": 26.86833030600423
+              },
+              {
+                "pose": "held-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.2400415310150459,
+                "p99_normal_geometric_angle_deg": 26.284144307935655
+              },
+              {
+                "pose": "presence-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3186154881028636,
+                "p99_normal_geometric_angle_deg": 46.11434956685408
+              },
+              {
+                "pose": "presence-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3186156869436392,
+                "p99_normal_geometric_angle_deg": 46.11431606829718
+              },
+              {
+                "pose": "presence-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.318615488102883,
+                "p99_normal_geometric_angle_deg": 46.1143495668591
+              },
+              {
+                "pose": "presence-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3186152899096717,
+                "p99_normal_geometric_angle_deg": 46.11435784149803
+              }
+            ],
+            "selected": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "weight-probe-v2",
+      "scope": "Source-weight visual correction trials, separate from LOD; all unselected",
+      "report": {
+        "budget": {
+          "max_trials": 4,
+          "recipes": [
+            24,
+            60,
+            120,
+            200
+          ],
+          "existing_native_limits": {
+            "source_structure_changes": [
+              "max",
+              0.0
+            ],
+            "invalid_weights": [
+              "max",
+              0.0
+            ],
+            "export_failures": [
+              "max",
+              0.0
+            ],
+            "appearance_transport_changes": [
+              "max",
+              0.0
+            ],
+            "rest_position_error": [
+              "max",
+              2e-05
+            ],
+            "proximal_link_error": [
+              "max",
+              0.01
+            ],
+            "distal_link_error": [
+              "max",
+              0.01
+            ],
+            "protected_elbow_error": [
+              "max",
+              0.001
+            ],
+            "shoulder_link_error": [
+              "max",
+              0.02
+            ],
+            "protected_shoulder_error": [
+              "max",
+              0.001
+            ],
+            "elbow_radius_retention": [
+              "min",
+              0.65
+            ],
+            "elbow_area_retention": [
+              "min",
+              0.05
+            ],
+            "elbow_inverted_area_fraction": [
+              "max",
+              0.0
+            ]
+          },
+          "captured_max_opposed_arm_faces": 0,
+          "captured_p99_edge_ratio_max": 1.3,
+          "captured_p99_normal_geometric_angle_max_deg": 45,
+          "scope": "Constrained diffusion; retain original fixed profile rigid link influence totals. No consumer/visual admission. Original native single-axis profile must also pass; source immutable."
+        },
+        "trials": [
+          {
+            "iterations": 24,
+            "native": {
+              "proximal_link_error": 0.0,
+              "distal_link_error": 1.9501677692927975e-06,
+              "protected_elbow_error": 0.0,
+              "shoulder_link_error": 1.5298366600950061e-06,
+              "protected_shoulder_error": 0.0,
+              "elbow_radius_retention": 0.7236597703530059,
+              "elbow_area_retention": 0.22654245089326083,
+              "elbow_inverted_area_fraction": 0.0
+            },
+            "failed_native": {},
+            "max_pruned_mass": 0.021500907772170397,
+            "captured": [
+              {
+                "pose": "held-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.312005028789563,
+                "p99_normal_geometric_angle_deg": 32.43687385533083
+              },
+              {
+                "pose": "held-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3352521000905817,
+                "p99_normal_geometric_angle_deg": 34.5884474426694
+              },
+              {
+                "pose": "held-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3120050166063242,
+                "p99_normal_geometric_angle_deg": 32.43687534769399
+              },
+              {
+                "pose": "held-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.2906905868970528,
+                "p99_normal_geometric_angle_deg": 29.99501522584675
+              },
+              {
+                "pose": "presence-0000.json.gz",
+                "opposed_arm_faces": 39,
+                "p99_edge_ratio": 1.4055024892737256,
+                "p99_normal_geometric_angle_deg": 68.30562726294576
+              },
+              {
+                "pose": "presence-0036.json.gz",
+                "opposed_arm_faces": 39,
+                "p99_edge_ratio": 1.4055042290702113,
+                "p99_normal_geometric_angle_deg": 68.30562624642633
+              },
+              {
+                "pose": "presence-0072.json.gz",
+                "opposed_arm_faces": 39,
+                "p99_edge_ratio": 1.4055012839685952,
+                "p99_normal_geometric_angle_deg": 68.30562725609192
+              },
+              {
+                "pose": "presence-0108.json.gz",
+                "opposed_arm_faces": 39,
+                "p99_edge_ratio": 1.4055019388148748,
+                "p99_normal_geometric_angle_deg": 68.30562755436327
+              }
+            ],
+            "selected": false
+          },
+          {
+            "iterations": 60,
+            "native": {
+              "proximal_link_error": 0.0,
+              "distal_link_error": 1.9501677475678674e-06,
+              "protected_elbow_error": 0.0,
+              "shoulder_link_error": 1.5298366826687126e-06,
+              "protected_shoulder_error": 0.0,
+              "elbow_radius_retention": 0.7219094222963556,
+              "elbow_area_retention": 0.27988626631415253,
+              "elbow_inverted_area_fraction": 0.0
+            },
+            "failed_native": {},
+            "max_pruned_mass": 0.02410925027938582,
+            "captured": [
+              {
+                "pose": "held-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.341820219145328,
+                "p99_normal_geometric_angle_deg": 29.31921795413165
+              },
+              {
+                "pose": "held-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3542240200889195,
+                "p99_normal_geometric_angle_deg": 30.09894365784738
+              },
+              {
+                "pose": "held-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.34182018893996,
+                "p99_normal_geometric_angle_deg": 29.319218296929545
+              },
+              {
+                "pose": "held-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3336340039364087,
+                "p99_normal_geometric_angle_deg": 28.772560837557666
+              },
+              {
+                "pose": "presence-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.433724416188028,
+                "p99_normal_geometric_angle_deg": 52.71851922109438
+              },
+              {
+                "pose": "presence-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.4337723090000176,
+                "p99_normal_geometric_angle_deg": 52.71851974713007
+              },
+              {
+                "pose": "presence-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.43368413837811,
+                "p99_normal_geometric_angle_deg": 52.718519386214496
+              },
+              {
+                "pose": "presence-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.4337134816079118,
+                "p99_normal_geometric_angle_deg": 52.71851904829017
+              }
+            ],
+            "selected": false
+          },
+          {
+            "iterations": 120,
+            "native": {
+              "proximal_link_error": 0.0,
+              "distal_link_error": 1.7316569189186495e-06,
+              "protected_elbow_error": 0.0,
+              "shoulder_link_error": 1.5298367021368641e-06,
+              "protected_shoulder_error": 0.0,
+              "elbow_radius_retention": 0.7211506551578053,
+              "elbow_area_retention": 0.3355998743844157,
+              "elbow_inverted_area_fraction": 0.0
+            },
+            "failed_native": {},
+            "max_pruned_mass": 0.02533435504460957,
+            "captured": [
+              {
+                "pose": "held-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3554729489559512,
+                "p99_normal_geometric_angle_deg": 30.521846103451978
+              },
+              {
+                "pose": "held-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.371077704861083,
+                "p99_normal_geometric_angle_deg": 31.20675688936592
+              },
+              {
+                "pose": "held-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3554729285962412,
+                "p99_normal_geometric_angle_deg": 30.52184422835794
+              },
+              {
+                "pose": "held-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3470016763173136,
+                "p99_normal_geometric_angle_deg": 30.13107858079459
+              },
+              {
+                "pose": "presence-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.4441801353293058,
+                "p99_normal_geometric_angle_deg": 50.38838034417412
+              },
+              {
+                "pose": "presence-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.4442389101158002,
+                "p99_normal_geometric_angle_deg": 50.38837626965303
+              },
+              {
+                "pose": "presence-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.444143081050681,
+                "p99_normal_geometric_angle_deg": 50.38838033936763
+              },
+              {
+                "pose": "presence-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.4441685348165825,
+                "p99_normal_geometric_angle_deg": 50.3883815254944
+              }
+            ],
+            "selected": false
+          },
+          {
+            "iterations": 200,
+            "native": {
+              "proximal_link_error": 0.0,
+              "distal_link_error": 1.9501677475678674e-06,
+              "protected_elbow_error": 0.0,
+              "shoulder_link_error": 1.5298361295540263e-06,
+              "protected_shoulder_error": 0.0,
+              "elbow_radius_retention": 0.7206335741348969,
+              "elbow_area_retention": 0.35747953538031774,
+              "elbow_inverted_area_fraction": 0.0
+            },
+            "failed_native": {},
+            "max_pruned_mass": 0.025936181212094733,
+            "captured": [
+              {
+                "pose": "held-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3649715234420998,
+                "p99_normal_geometric_angle_deg": 31.79718244217358
+              },
+              {
+                "pose": "held-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3857219363863675,
+                "p99_normal_geometric_angle_deg": 32.34026374806809
+              },
+              {
+                "pose": "held-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3649715235132136,
+                "p99_normal_geometric_angle_deg": 31.79718189753779
+              },
+              {
+                "pose": "held-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.3565689955986555,
+                "p99_normal_geometric_angle_deg": 31.27584820594508
+              },
+              {
+                "pose": "presence-0000.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.4603367255585742,
+                "p99_normal_geometric_angle_deg": 54.22578132859598
+              },
+              {
+                "pose": "presence-0036.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.4602419854212765,
+                "p99_normal_geometric_angle_deg": 54.225775568868436
+              },
+              {
+                "pose": "presence-0072.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.4604271621999307,
+                "p99_normal_geometric_angle_deg": 54.22578124340419
+              },
+              {
+                "pose": "presence-0108.json.gz",
+                "opposed_arm_faces": 0,
+                "p99_edge_ratio": 1.460359543078623,
+                "p99_normal_geometric_angle_deg": 54.22578301605381
+              }
+            ],
+            "selected": false
+          }
+        ]
+      }
+    }
+  ]
+}

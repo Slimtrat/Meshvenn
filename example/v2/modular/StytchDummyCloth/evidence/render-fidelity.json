@@ -1,0 +1,41 @@
+{
+  "policy": {
+    "min_silhouette_iou": 0.98,
+    "max_interior_linear_rgb_rmse": 0.04,
+    "resolution": 512,
+    "samples": 32,
+    "scope": "Four matched producer views; finite silhouette/material fidelity, not anatomical, pixel-identical consumer or human visual acceptance"
+  },
+  "reference_sha256": "c5d79f03057fe84264a1fa9231bc31e71f42c971324ae0a08009c339b760b65d",
+  "candidate_sha256": "2df4fcf7d51efb20fe91d75975f8b61fdf4194ca122fdcbeaab65cfb74b97c29",
+  "views": [
+    {
+      "view": "front",
+      "silhouette_iou": 0.9980680636052905,
+      "interior_linear_rgb_rmse": 0.01210878323763609,
+      "passed": true
+    },
+    {
+      "view": "back",
+      "silhouette_iou": 0.9980839649152686,
+      "interior_linear_rgb_rmse": 0.012925933115184307,
+      "passed": true
+    },
+    {
+      "view": "side",
+      "silhouette_iou": 0.9980205485908191,
+      "interior_linear_rgb_rmse": 0.013172770850360394,
+      "passed": true
+    },
+    {
+      "view": "elbow90",
+      "silhouette_iou": 0.9984895624895108,
+      "interior_linear_rgb_rmse": 0.01629244163632393,
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "skin_normals": "Direct blended basis, not recomputed posed geometric normals",
+  "private_consumer_images_used": false,
+  "visual_acceptance": false
+}

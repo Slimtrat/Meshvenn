@@ -126,7 +126,9 @@ class SourceLodTests(unittest.TestCase):
                 + binary
             )
 
-        with tempfile.TemporaryDirectory(dir=ROOT / "tmp") as folder:
+        scratch = ROOT / "tmp"
+        scratch.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=scratch) as folder:
             first, second = Path(folder) / "first.glb", Path(folder) / "second.glb"
             write(first, doc)
             changed = deepcopy(doc)
