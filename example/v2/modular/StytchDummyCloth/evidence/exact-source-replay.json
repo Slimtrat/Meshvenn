@@ -1,0 +1,535 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "native_vs_raw_max_error_in_heights": 2e-05,
+    "raw_vs_gpu_max_error_in_heights": 0.0002,
+    "raw_vs_gpu_max_normal_angle_deg": 0.02,
+    "rest_frame_matrix_error": 2e-06,
+    "applied_matrix_error": 0.0002,
+    "scope": "Transport only. Recomputed geometric normals and directly skinned normals are distinct measurements. No contact, visual or gameplay acceptance."
+  },
+  "asset_sha256": "c5d79f03057fe84264a1fa9231bc31e71f42c971324ae0a08009c339b760b65d",
+  "source_blend_sha256": "5f4c2730c8a5be475d68462e38d1d054fe8fedb0d4f0d476707421276febe1f5",
+  "capture_geometry_sha256": "1246c469bdcaf2cc59502bff8690beed2cc937d42b4903bb84166cc8fc3a18f8",
+  "engine": "4.7.1-stable (official)",
+  "renderer": "opengl3",
+  "height_m": 1.7922336980700493,
+  "rest_frame_error": 2.4157375966282757e-07,
+  "inverse_bind_error": 4.3572998098539983e-08,
+  "native_rest_error": 1.0883697407690351e-06,
+  "imported_rest_position_error_m": 6.44147921522601e-08,
+  "imported_weight_component_error": 1.528586730958903e-05,
+  "rest_coherence": {
+    "arm_triangles": 11148,
+    "arm_facing_negative": 0,
+    "all_facing_negative": 21,
+    "arm_normal_geometric_angle_deg": {
+      "max": 82.44476412189522,
+      "p99": 15.300121707684644,
+      "p95": 9.753101131105117,
+      "median": 1.6950463430908402
+    },
+    "arm_edge_ratio": {
+      "max": 1.0,
+      "p99": 1.0,
+      "p95": 1.0,
+      "median": 1.0
+    }
+  },
+  "source_correspondence": "Rest positions plus complete joint-name weights and oriented triangle multiplicity; seam duplicates permitted",
+  "index_convention": "Every imported triangle reverses raw glTF winding; comparisons use the verified raw convention",
+  "native_normal_scope": "Blender evaluated vertex normals, recalculated from posed geometry; distinct from direct LBS normals and final normal-mapped pixels",
+  "poses": [
+    {
+      "pose": "presence-0000.json.gz",
+      "pose_sha256": "7807a62b9c9feec2f4b77d75a082e47632be9dd31b74bc9ff8a041708153df42",
+      "mode": "presence",
+      "frame": 0,
+      "native_vs_raw_m": {
+        "max": 8.749065310427898e-07,
+        "p99": 8.255933023790039e-07,
+        "p95": 6.828672441572006e-07,
+        "median": 1.2889973247342882e-07
+      },
+      "raw_vs_gpu_m": {
+        "max": 9.721181503902327e-06,
+        "p99": 9.216898400035866e-06,
+        "p95": 6.569616574324533e-06,
+        "median": 6.617922004578867e-08
+      },
+      "raw_vs_gpu_normal_angle_deg": {
+        "max": 0.013300585825491469,
+        "p99": 0.009177240375768267,
+        "p95": 0.007631393453752061,
+        "median": 0.003716714880548573
+      },
+      "imported_cpu_vs_gpu_m": {
+        "max": 6.889423371932709e-05,
+        "p99": 5.330488971584605e-05,
+        "p95": 4.229554220003784e-05,
+        "median": 1.1942607324871107e-05
+      },
+      "imported_cpu_vs_gpu_normal_angle_deg": {
+        "max": 0.007402154297269996,
+        "p99": 0.005258689743693255,
+        "p95": 0.004195103847479804,
+        "median": 0.002269794130109833
+      },
+      "native_geometric_vs_raw_skinned_normal_angle_deg": {
+        "max": 177.52390302804278,
+        "p99": 68.70022509565716,
+        "p95": 7.175781095186631,
+        "median": 0.0023624553950996594
+      },
+      "applied_matrix_error": 2.780124226287213e-07,
+      "raw_coherence": {
+        "arm_triangles": 11148,
+        "arm_facing_negative": 92,
+        "all_facing_negative": 161,
+        "arm_normal_geometric_angle_deg": {
+          "max": 177.6406531013738,
+          "p99": 82.33645431738985,
+          "p95": 16.44099159026688,
+          "median": 1.9713800218923516
+        },
+        "arm_edge_ratio": {
+          "max": 1.934450776555429,
+          "p99": 1.5037089758517768,
+          "p95": 1.0000039204940256,
+          "median": 0.999999940372774
+        }
+      },
+      "transport_passed": true
+    },
+    {
+      "pose": "presence-0036.json.gz",
+      "pose_sha256": "155c435a16df3fa6cbafc7df8c0b0b0effc1d346afd4877ef108187da68d5200",
+      "mode": "presence",
+      "frame": 36,
+      "native_vs_raw_m": {
+        "max": 8.817654210582476e-07,
+        "p99": 8.31084004526e-07,
+        "p95": 6.822115688210973e-07,
+        "median": 1.097274522635657e-07
+      },
+      "raw_vs_gpu_m": {
+        "max": 9.666560321327506e-06,
+        "p99": 9.141070605515156e-06,
+        "p95": 6.5480999242824476e-06,
+        "median": 1.0197530404818795e-07
+      },
+      "raw_vs_gpu_normal_angle_deg": {
+        "max": 0.01253188905734765,
+        "p99": 0.009548614195343948,
+        "p95": 0.007946217263424144,
+        "median": 0.004090302657099323
+      },
+      "imported_cpu_vs_gpu_m": {
+        "max": 6.877114120821668e-05,
+        "p99": 5.3357879646839463e-05,
+        "p95": 4.233459058533515e-05,
+        "median": 1.2042553489720659e-05
+      },
+      "imported_cpu_vs_gpu_normal_angle_deg": {
+        "max": 0.007402154297269996,
+        "p99": 0.005553026514097527,
+        "p95": 0.004262475972360498,
+        "median": 0.0025472209032890696
+      },
+      "native_geometric_vs_raw_skinned_normal_angle_deg": {
+        "max": 177.5225948503627,
+        "p99": 68.70071242794708,
+        "p95": 7.175681528304982,
+        "median": 0.002410215856673114
+      },
+      "applied_matrix_error": 2.7769656237410303e-07,
+      "raw_coherence": {
+        "arm_triangles": 11148,
+        "arm_facing_negative": 92,
+        "all_facing_negative": 161,
+        "arm_normal_geometric_angle_deg": {
+          "max": 177.64065003153104,
+          "p99": 82.33645250643613,
+          "p95": 16.440991499968334,
+          "median": 1.9713799617797365
+        },
+        "arm_edge_ratio": {
+          "max": 1.9344507752874014,
+          "p99": 1.503708977233545,
+          "p95": 1.000003942564699,
+          "median": 0.999999940557016
+        }
+      },
+      "transport_passed": true
+    },
+    {
+      "pose": "presence-0072.json.gz",
+      "pose_sha256": "23bdf2c22567fff6ebb1e11c1ea26c7533503474cf846e7de3da9e574937141c",
+      "mode": "presence",
+      "frame": 72,
+      "native_vs_raw_m": {
+        "max": 8.809009484843919e-07,
+        "p99": 8.298132063294637e-07,
+        "p95": 6.832283546588328e-07,
+        "median": 1.5190003685880035e-07
+      },
+      "raw_vs_gpu_m": {
+        "max": 9.634605792921521e-06,
+        "p99": 9.155451850214108e-06,
+        "p95": 6.571814307088626e-06,
+        "median": 1.767908308986277e-07
+      },
+      "raw_vs_gpu_normal_angle_deg": {
+        "max": 0.012813036574355736,
+        "p99": 0.009525017096189076,
+        "p95": 0.00793098164470629,
+        "median": 0.00411138393615984
+      },
+      "imported_cpu_vs_gpu_m": {
+        "max": 6.881295108936864e-05,
+        "p99": 5.33645546227861e-05,
+        "p95": 4.2345028368759506e-05,
+        "median": 1.197296474305957e-05
+      },
+      "imported_cpu_vs_gpu_normal_angle_deg": {
+        "max": 0.007402154297269996,
+        "p99": 0.005559538097216618,
+        "p95": 0.004259312209124051,
+        "median": 0.0025570965401491537
+      },
+      "native_geometric_vs_raw_skinned_normal_angle_deg": {
+        "max": 177.52162748109447,
+        "p99": 68.70061113716704,
+        "p95": 7.175795240753669,
+        "median": 0.0024105127525598045
+      },
+      "applied_matrix_error": 2.77713652828155e-07,
+      "raw_coherence": {
+        "arm_triangles": 11148,
+        "arm_facing_negative": 92,
+        "all_facing_negative": 161,
+        "arm_normal_geometric_angle_deg": {
+          "max": 177.6406498488839,
+          "p99": 82.33645239869075,
+          "p95": 16.440991494595778,
+          "median": 1.9713799582030784
+        },
+        "arm_edge_ratio": {
+          "max": 1.9344507752119406,
+          "p99": 1.5037089773157482,
+          "p95": 1.0000039438778279,
+          "median": 0.9999999405570159
+        }
+      },
+      "transport_passed": true
+    },
+    {
+      "pose": "presence-0108.json.gz",
+      "pose_sha256": "0792df68ce06f5ecc2f1c8ff3eebe6503dc375205d75817aa0608112b03726a9",
+      "mode": "presence",
+      "frame": 108,
+      "native_vs_raw_m": {
+        "max": 8.725761918724402e-07,
+        "p99": 8.2242066446337e-07,
+        "p95": 6.78361387795164e-07,
+        "median": 1.1312390349016225e-07
+      },
+      "raw_vs_gpu_m": {
+        "max": 9.773675784140235e-06,
+        "p99": 9.243765447276284e-06,
+        "p95": 6.5975641369997814e-06,
+        "median": 5.0113011772886006e-08
+      },
+      "raw_vs_gpu_normal_angle_deg": {
+        "max": 0.012401257882356647,
+        "p99": 0.009480594842791418,
+        "p95": 0.007954179054439727,
+        "median": 0.004093937844500149
+      },
+      "imported_cpu_vs_gpu_m": {
+        "max": 6.880871922622889e-05,
+        "p99": 5.3446921143117366e-05,
+        "p95": 4.2348309955758497e-05,
+        "median": 1.1983263400239401e-05
+      },
+      "imported_cpu_vs_gpu_normal_angle_deg": {
+        "max": 0.007402154297269996,
+        "p99": 0.005488592606788049,
+        "p95": 0.004253725298569539,
+        "median": 0.002553207261801775
+      },
+      "native_geometric_vs_raw_skinned_normal_angle_deg": {
+        "max": 177.5226713248907,
+        "p99": 68.70057292352963,
+        "p95": 7.175818313111255,
+        "median": 0.002406801689233237
+      },
+      "applied_matrix_error": 2.7769234434539894e-07,
+      "raw_coherence": {
+        "arm_triangles": 11148,
+        "arm_facing_negative": 92,
+        "all_facing_negative": 161,
+        "arm_normal_geometric_angle_deg": {
+          "max": 177.64065272529243,
+          "p99": 82.33645409553496,
+          "p95": 16.44099157920445,
+          "median": 1.9713800145282039
+        },
+        "arm_edge_ratio": {
+          "max": 1.934450776400102,
+          "p99": 1.5037089760210525,
+          "p95": 1.000003923197836,
+          "median": 0.99999994038196
+        }
+      },
+      "transport_passed": true
+    },
+    {
+      "pose": "held-0000.json.gz",
+      "pose_sha256": "ca3bf55c172ced368a94405853e42647b42172f622ad8d335462a1654167a876",
+      "mode": "held",
+      "frame": 0,
+      "native_vs_raw_m": {
+        "max": 7.333847119427111e-07,
+        "p99": 7.008231108498914e-07,
+        "p95": 6.322626029045995e-07,
+        "median": 1.1699082203074474e-07
+      },
+      "raw_vs_gpu_m": {
+        "max": 7.143403111493957e-06,
+        "p99": 6.414835792876263e-06,
+        "p95": 4.520339528921295e-06,
+        "median": 1.1204613861034363e-06
+      },
+      "raw_vs_gpu_normal_angle_deg": {
+        "max": 0.012757117789404897,
+        "p99": 0.009939380638268498,
+        "p95": 0.0081233823863981,
+        "median": 0.004144414624515412
+      },
+      "imported_cpu_vs_gpu_m": {
+        "max": 6.86931055204322e-05,
+        "p99": 5.336455164353544e-05,
+        "p95": 4.229358742078037e-05,
+        "median": 1.202673188894927e-05
+      },
+      "imported_cpu_vs_gpu_normal_angle_deg": {
+        "max": 0.007211681911956774,
+        "p99": 0.005785796241707396,
+        "p95": 0.004714923038363241,
+        "median": 0.0024099740491188635
+      },
+      "native_geometric_vs_raw_skinned_normal_angle_deg": {
+        "max": 72.98852670711983,
+        "p99": 38.81309007962766,
+        "p95": 8.85413852496798,
+        "median": 0.0038938329419893505
+      },
+      "applied_matrix_error": 5.514191026984028e-07,
+      "raw_coherence": {
+        "arm_triangles": 11148,
+        "arm_facing_negative": 0,
+        "all_facing_negative": 21,
+        "arm_normal_geometric_angle_deg": {
+          "max": 82.43045431959912,
+          "p99": 43.01539761414008,
+          "p95": 15.62432085395934,
+          "median": 2.488860866809219
+        },
+        "arm_edge_ratio": {
+          "max": 1.708284323503542,
+          "p99": 1.407945372662488,
+          "p95": 1.1835848973685585,
+          "median": 0.9999998195547551
+        }
+      },
+      "transport_passed": true
+    },
+    {
+      "pose": "held-0036.json.gz",
+      "pose_sha256": "34ca33b6d7aa861f1268e61daf28d6b610a6f4709fcdd2aae0cdeb95a9970393",
+      "mode": "held",
+      "frame": 36,
+      "native_vs_raw_m": {
+        "max": 8.05392643515497e-07,
+        "p99": 7.531433020690833e-07,
+        "p95": 6.608101828831705e-07,
+        "median": 1.2615679310157304e-07
+      },
+      "raw_vs_gpu_m": {
+        "max": 8.383013648729754e-06,
+        "p99": 6.703754935329943e-06,
+        "p95": 5.822975764822392e-06,
+        "median": 1.475520960450958e-06
+      },
+      "raw_vs_gpu_normal_angle_deg": {
+        "max": 0.01346750159997372,
+        "p99": 0.009855539081017859,
+        "p95": 0.007995233383820133,
+        "median": 0.00412716295577
+      },
+      "imported_cpu_vs_gpu_m": {
+        "max": 6.892335995737565e-05,
+        "p99": 5.3344957331036496e-05,
+        "p95": 4.2272008422199466e-05,
+        "median": 1.1935159756313493e-05
+      },
+      "imported_cpu_vs_gpu_normal_angle_deg": {
+        "max": 0.007089215998472004,
+        "p99": 0.005726317427683423,
+        "p95": 0.004722708252556589,
+        "median": 0.002426461350871185
+      },
+      "native_geometric_vs_raw_skinned_normal_angle_deg": {
+        "max": 78.6802052215978,
+        "p99": 40.02433796323303,
+        "p95": 10.228298427576867,
+        "median": 0.003995711193452195
+      },
+      "applied_matrix_error": 4.970065441058796e-07,
+      "raw_coherence": {
+        "arm_triangles": 11148,
+        "arm_facing_negative": 0,
+        "all_facing_negative": 21,
+        "arm_normal_geometric_angle_deg": {
+          "max": 82.42778055026088,
+          "p99": 44.661741570970634,
+          "p95": 16.978208835826766,
+          "median": 2.57621841580313
+        },
+        "arm_edge_ratio": {
+          "max": 1.748507029432207,
+          "p99": 1.4326876796019012,
+          "p95": 1.2117314636975172,
+          "median": 0.9999997450154892
+        }
+      },
+      "transport_passed": true
+    },
+    {
+      "pose": "held-0072.json.gz",
+      "pose_sha256": "8913da1b3a639ea660e0da0acb88c306256aabbea2f94e940dcb59de173852d6",
+      "mode": "held",
+      "frame": 72,
+      "native_vs_raw_m": {
+        "max": 7.871319488615948e-07,
+        "p99": 7.301415517769249e-07,
+        "p95": 6.507989151631081e-07,
+        "median": 1.2314643952503175e-07
+      },
+      "raw_vs_gpu_m": {
+        "max": 7.140633131672756e-06,
+        "p99": 6.41414557824329e-06,
+        "p95": 4.527959382559173e-06,
+        "median": 1.1233899912147486e-06
+      },
+      "raw_vs_gpu_normal_angle_deg": {
+        "max": 0.012757308289537042,
+        "p99": 0.009939571777787749,
+        "p95": 0.008122235003650604,
+        "median": 0.0041442594907685724
+      },
+      "imported_cpu_vs_gpu_m": {
+        "max": 6.869351307400697e-05,
+        "p99": 5.336386239495728e-05,
+        "p95": 4.228487826592126e-05,
+        "median": 1.2017025333050816e-05
+      },
+      "imported_cpu_vs_gpu_normal_angle_deg": {
+        "max": 0.007211901698815871,
+        "p99": 0.0057831855552503775,
+        "p95": 0.004712210278767306,
+        "median": 0.0024101199065224383
+      },
+      "native_geometric_vs_raw_skinned_normal_angle_deg": {
+        "max": 72.98844679173742,
+        "p99": 38.813150820739374,
+        "p95": 8.85415598891514,
+        "median": 0.003896304614794427
+      },
+      "applied_matrix_error": 5.589726030513775e-07,
+      "raw_coherence": {
+        "arm_triangles": 11148,
+        "arm_facing_negative": 0,
+        "all_facing_negative": 21,
+        "arm_normal_geometric_angle_deg": {
+          "max": 82.43045431959798,
+          "p99": 43.015397614137754,
+          "p95": 15.624320853959926,
+          "median": 2.48886086680856
+        },
+        "arm_edge_ratio": {
+          "max": 1.7082843235035332,
+          "p99": 1.4079453726624707,
+          "p95": 1.1835848973685474,
+          "median": 0.9999998195547508
+        }
+      },
+      "transport_passed": true
+    },
+    {
+      "pose": "held-0108.json.gz",
+      "pose_sha256": "7d96661fc7828052857b990f71d6e6bb3b23c95bc7af40afa591c559d1918e50",
+      "mode": "held",
+      "frame": 108,
+      "native_vs_raw_m": {
+        "max": 7.555614233582252e-07,
+        "p99": 6.969065222311867e-07,
+        "p95": 6.32775094488697e-07,
+        "median": 1.326098166736812e-07
+      },
+      "raw_vs_gpu_m": {
+        "max": 7.078594136786485e-06,
+        "p99": 6.435247473156943e-06,
+        "p95": 4.477715898912628e-06,
+        "median": 7.486978855278358e-07
+      },
+      "raw_vs_gpu_normal_angle_deg": {
+        "max": 0.013781272362942769,
+        "p99": 0.009903353742523657,
+        "p95": 0.00816487410112503,
+        "median": 0.004155489254779094
+      },
+      "imported_cpu_vs_gpu_m": {
+        "max": 6.88518105210758e-05,
+        "p99": 5.342638185252472e-05,
+        "p95": 4.2316844720306635e-05,
+        "median": 1.1958159496738507e-05
+      },
+      "imported_cpu_vs_gpu_normal_angle_deg": {
+        "max": 0.007129554504665943,
+        "p99": 0.0057533436278588874,
+        "p95": 0.004702871661113647,
+        "median": 0.0023950876202592135
+      },
+      "native_geometric_vs_raw_skinned_normal_angle_deg": {
+        "max": 71.73382951388929,
+        "p99": 38.1546497401445,
+        "p95": 7.6681926128082045,
+        "median": 0.003740559194737681
+      },
+      "applied_matrix_error": 6.469660767394192e-07,
+      "raw_coherence": {
+        "arm_triangles": 11148,
+        "arm_facing_negative": 0,
+        "all_facing_negative": 21,
+        "arm_normal_geometric_angle_deg": {
+          "max": 82.43309318166357,
+          "p99": 42.12122526935385,
+          "p95": 14.670173502480187,
+          "median": 2.3969858560526554
+        },
+        "arm_edge_ratio": {
+          "max": 1.6705170285036548,
+          "p99": 1.3845710779086535,
+          "p95": 1.1540882880402443,
+          "median": 0.9999998105228898
+        }
+      },
+      "transport_passed": true
+    }
+  ],
+  "transport_passed": true,
+  "visual_acceptance": false,
+  "consumer_pixel_equality_claimed": false
+}

@@ -1,0 +1,89 @@
+name: Modular cloth source qualification
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/*cloth*'
+      - 'tests/blender_cloth_authoring.py'
+      - 'example/v2/modular/StytchDummyCloth/**'
+      - 'example/v2/generated/StytchDummyCloth/**'
+      - 'implementations/glb_export/**'
+      - 'implementations/authored_source.py'
+      - 'core/modular_character/**'
+      - 'core/geometry_contracts/**'
+      - 'packages/meshvenn_humanoid/**'
+      - 'scripts/author_stytch_doll.py'
+      - 'operators/modular_*.py'
+      - '.github/workflows/cloth_modular.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/*cloth*'
+      - 'tests/blender_cloth_authoring.py'
+      - 'example/v2/modular/StytchDummyCloth/**'
+      - 'example/v2/generated/StytchDummyCloth/**'
+      - 'implementations/glb_export/**'
+      - 'implementations/authored_source.py'
+      - 'core/modular_character/**'
+      - 'core/geometry_contracts/**'
+      - 'packages/meshvenn_humanoid/**'
+      - 'scripts/author_stytch_doll.py'
+      - 'operators/modular_*.py'
+      - '.github/workflows/cloth_modular.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloth-modular-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source:
+    name: Modular cloth No Rebuild and pose fidelity
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: blender
+        with:
+          path: .blender
+          key: blender-linux-x64-5.2.1
+      - name: Download Blender
+        if: steps.blender.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .blender
+          curl --fail --show-error --location --retry 5 --retry-all-errors \
+            --connect-timeout 20 --max-time 600 \
+            --output "${RUNNER_TEMP}/blender.tar.xz" \
+            https://download.blender.org/release/Blender5.2/blender-5.2.1-linux-x64.tar.xz
+          xz --test "${RUNNER_TEMP}/blender.tar.xz"
+          tar -xJf "${RUNNER_TEMP}/blender.tar.xz" -C .blender --strip-components=1
+      - name: Capture conventions and source LOD regressions
+        run: >-
+          .blender/blender --background --factory-startup --disable-autoexec --python-exit-code 1
+          --python tests/blender_cloth_authoring.py
+      - name: Reopen source and qualify the public GLBs
+        run: >-
+          .blender/blender --background --factory-startup --disable-autoexec --python-exit-code 1
+          --python scripts/qualify_cloth_modular.py --
+          --fixture example/v2/modular/StytchDummyCloth --output output/cloth-modular-ci
+      - name: Compare PBR and silhouettes with transported skin normals
+        run: >-
+          .blender/blender --background --factory-startup --disable-autoexec --python-exit-code 1
+          --python scripts/render_cloth_lod.py --
+          --reference example/v2/generated/StytchDummyCloth/character.glb
+          --candidate example/v2/modular/StytchDummyCloth/character.glb
+          --output output/cloth-modular-renders
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: modular-cloth-producer-evidence
+          path: |
+            output/cloth-modular-ci/
+            output/cloth-modular-renders/
+          if-no-files-found: warn

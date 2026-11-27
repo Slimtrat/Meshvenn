@@ -1,0 +1,440 @@
+{
+  "schema_version": 1,
+  "source_sha256": "5f4c2730c8a5be475d68462e38d1d054fe8fedb0d4f0d476707421276febe1f5",
+  "candidate_sha256": "6ddecc3078c9b73762535f4447a0e30e177a82ed04a753b003f74b9f7e09f6a6",
+  "reference_glb_sha256": "c5d79f03057fe84264a1fa9231bc31e71f42c971324ae0a08009c339b760b65d",
+  "budget": {
+    "max_sampled_surface_error_m": 0.005,
+    "p99_sampled_surface_error_m": 0.002,
+    "native_limits": {
+      "source_structure_changes": [
+        "max",
+        0.0
+      ],
+      "invalid_weights": [
+        "max",
+        0.0
+      ],
+      "export_failures": [
+        "max",
+        0.0
+      ],
+      "appearance_transport_changes": [
+        "max",
+        0.0
+      ],
+      "rest_position_error": [
+        "max",
+        2e-05
+      ],
+      "proximal_link_error": [
+        "max",
+        0.01
+      ],
+      "distal_link_error": [
+        "max",
+        0.01
+      ],
+      "protected_elbow_error": [
+        "max",
+        0.001
+      ],
+      "shoulder_link_error": [
+        "max",
+        0.02
+      ],
+      "protected_shoulder_error": [
+        "max",
+        0.001
+      ],
+      "elbow_radius_retention": [
+        "min",
+        0.65
+      ],
+      "elbow_area_retention": [
+        "min",
+        0.05
+      ],
+      "elbow_inverted_area_fraction": [
+        "max",
+        0.0
+      ]
+    },
+    "scope": "Same pre-existing source/LOD surface budgets applied to every rest/posed sample. No visual/consumer admission. Capture completeness is separately required."
+  },
+  "source_native_profile": {
+    "proximal_link_error": 0.0,
+    "distal_link_error": 1.9501677692927975e-06,
+    "protected_elbow_error": 0.0,
+    "shoulder_link_error": 1.5298366405179785e-06,
+    "protected_shoulder_error": 0.0,
+    "elbow_radius_retention": 0.727813843176873,
+    "elbow_area_retention": 0.1701592161408606,
+    "elbow_inverted_area_fraction": 0.0
+  },
+  "candidate_native_profile": {
+    "proximal_link_error": 0.000189493511254088,
+    "distal_link_error": 1.9501677692927975e-06,
+    "protected_elbow_error": 0.0,
+    "shoulder_link_error": 1.5298366405179785e-06,
+    "protected_shoulder_error": 0.0,
+    "elbow_radius_retention": 0.727813843176873,
+    "elbow_area_retention": 0.1701592161408606,
+    "elbow_inverted_area_fraction": 0.0
+  },
+  "failed_candidate_native_checks": {},
+  "candidate_native_evidence": {
+    "probes": [
+      {
+        "bone": "forearm.L",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 1.9501677692927975e-06,
+        "proximal_error": 0.0,
+        "radius_retention": 0.9285794404719468,
+        "area_retention": 0.636120468544451,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "forearm.L",
+        "degrees": 90,
+        "protected_error": 0.0,
+        "distal_error": 1.2113299325693695e-06,
+        "proximal_error": 0.0,
+        "radius_retention": 0.727813843176873,
+        "area_retention": 0.17958303299842512,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "upper_arm.L",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 1.5298366405179785e-06,
+        "proximal_error": 5.500285653836334e-07
+      },
+      {
+        "bone": "upper_arm.L",
+        "degrees": 70,
+        "protected_error": 0.0,
+        "distal_error": 1.1558119828837496e-06,
+        "proximal_error": 7.036354583758449e-07
+      },
+      {
+        "bone": "forearm.R",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 1.466711722704222e-06,
+        "proximal_error": 0.00010245200045467451,
+        "radius_retention": 0.9295984387987694,
+        "area_retention": 0.6308409561804332,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "forearm.R",
+        "degrees": 90,
+        "protected_error": 0.0,
+        "distal_error": 1.7225336598847406e-06,
+        "proximal_error": 0.000189493511254088,
+        "radius_retention": 0.7322460580947363,
+        "area_retention": 0.1701592161408606,
+        "inverted_area_fraction": 0.0
+      },
+      {
+        "bone": "upper_arm.R",
+        "degrees": 45,
+        "protected_error": 0.0,
+        "distal_error": 1.3634170218839932e-06,
+        "proximal_error": 6.662205283053157e-07
+      },
+      {
+        "bone": "upper_arm.R",
+        "degrees": 70,
+        "protected_error": 0.0,
+        "distal_error": 1.0635341474942047e-06,
+        "proximal_error": 6.661846357034899e-07
+      }
+    ],
+    "rest_restore_error": 0.0,
+    "region_counts": {
+      "L": {
+        "proximal": 211,
+        "shoulder_rigid": 25,
+        "distal": 627,
+        "ring": 239,
+        "protected": 4321
+      },
+      "R": {
+        "proximal": 202,
+        "shoulder_rigid": 26,
+        "distal": 655,
+        "ring": 221,
+        "protected": 4299
+      }
+    }
+  },
+  "poses": [
+    {
+      "pose": "rest",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.0009836949175223708,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "presence-0000.json.gz",
+      "sampled_surface_distance_m": {
+        "max": 0.0025303191505372524,
+        "p99": 0.0010007224045693874,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "presence-0036.json.gz",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.0010007224045693874,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "presence-0072.json.gz",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.0010007121600210667,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "presence-0108.json.gz",
+      "sampled_surface_distance_m": {
+        "max": 0.0025303191505372524,
+        "p99": 0.0010007121600210667,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "held-0000.json.gz",
+      "sampled_surface_distance_m": {
+        "max": 0.002530123805627227,
+        "p99": 0.0010295393876731396,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "held-0036.json.gz",
+      "sampled_surface_distance_m": {
+        "max": 0.0025300318375229836,
+        "p99": 0.0010410561226308346,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "held-0072.json.gz",
+      "sampled_surface_distance_m": {
+        "max": 0.002530123805627227,
+        "p99": 0.0010295393876731396,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "held-0108.json.gz",
+      "sampled_surface_distance_m": {
+        "max": 0.0025302197318524122,
+        "p99": 0.001016146270558238,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-forearm-L-45",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.0010065484093502164,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-forearm-L-90",
+      "sampled_surface_distance_m": {
+        "max": 0.0030059581622481346,
+        "p99": 0.0010559028014540672,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-upper_arm-L-45",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.0009861462749540806,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-upper_arm-L-70",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.0009899104479700327,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-hand-L-45",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.0009852147195488214,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-thigh-L-45",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.0009933313122019172,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-shin-L-90",
+      "sampled_surface_distance_m": {
+        "max": 0.004106046631932259,
+        "p99": 0.0014535048976540565,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-foot-L-30",
+      "sampled_surface_distance_m": {
+        "max": 0.0033039788249880075,
+        "p99": 0.0011022670660167933,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-forearm-R-45",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.001007189741358161,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-forearm-R-90",
+      "sampled_surface_distance_m": {
+        "max": 0.0040437886491417885,
+        "p99": 0.0010344457114115357,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-upper_arm-R-45",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.0009934345725923777,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-upper_arm-R-70",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.0009934896370396018,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-hand-R-45",
+      "sampled_surface_distance_m": {
+        "max": 0.002530332189053297,
+        "p99": 0.0009832301875576377,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-thigh-R-45",
+      "sampled_surface_distance_m": {
+        "max": 0.002531415782868862,
+        "p99": 0.0009867716580629349,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-shin-R-90",
+      "sampled_surface_distance_m": {
+        "max": 0.0047757430002093315,
+        "p99": 0.0014339281478896737,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    },
+    {
+      "pose": "native-foot-R-30",
+      "sampled_surface_distance_m": {
+        "max": 0.003656375454738736,
+        "p99": 0.001239374396391213,
+        "samples": 85936
+      },
+      "passed": true,
+      "feedback_source_vertices": []
+    }
+  ],
+  "feedback_source_vertices": [],
+  "fidelity_passed": true,
+  "selected": false,
+  "visual_acceptance": false,
+  "consumer_admission": false,
+  "missing_consumer_cases": [
+    "walk",
+    "leg",
+    "missing-region",
+    "equipment",
+    "contact"
+  ],
+  "scope": "Finite bidirectional samples of source versus LOD triangles, not continuous Hausdorff/silhouette proof. Preserves existing source defects; does not certify anatomical quality."
+}

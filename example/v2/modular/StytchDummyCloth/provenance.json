@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "asset_version": "stytch-dummy-cloth-modular-v1",
+  "artifact": "character.glb",
+  "sha256": "2df4fcf7d51efb20fe91d75975f8b61fdf4194ca122fdcbeaab65cfb74b97c29",
+  "editable_source_sha256": "5cd525a32008ca0b9b5c92562cc4c7bc8d22baf2562fd368332b875b015e207d",
+  "source_authoring_revision": "c8b8cb9a90111266c04c5331cb5b304a45b2175a",
+  "reference_glb_sha256": "c5d79f03057fe84264a1fa9231bc31e71f42c971324ae0a08009c339b760b65d",
+  "reference_provenance": "../../generated/StytchDummyCloth/provenance.json",
+  "original_native_source_sha256": "5f4c2730c8a5be475d68462e38d1d054fe8fedb0d4f0d476707421276febe1f5",
+  "license": "GPL-3.0-or-later",
+  "license_authority": "Repository declaration carried from the existing source candidate; not automatic generator-output inheritance or a new blanket grant over asset-family inputs.",
+  "explicit_asset_license_grant_recorded": false,
+  "consumer_license_review": "pending",
+  "input_images_generated": true,
+  "source_images_changed": false,
+  "embedded_map_bytes_changed": false,
+  "selected": false,
+  "visual_acceptance": false,
+  "consumer_admission": false,
+  "collision_proxies": null,
+  "qualification_scope": "Bounded producer fidelity only; source arm creases and actual Stytch Hop/consumer gates remain open in #103; physics #100 separate."
+}
